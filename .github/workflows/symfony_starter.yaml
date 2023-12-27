@@ -1,0 +1,71 @@
+name: Starter workflow
+
+on: push
+
+concurrency:
+  group: environment-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  init_symfony_starter:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+
+      - name: Deploy stack
+        run: make docker.deploy.ci
+
+      - name: Install Symfony app
+        run: make symfony.install
+
+      - name: Install barlito/utils
+        run: make package.barlito_utils.install
+
+      - name: Check app works well
+        run: "curl -I http://localhost:8081/ | grep -q 'Server: nginx'"
+
+      - name: Setup github token
+        run: make composer.command args="config -g github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Install phpunit
+        run: make phpunit.install
+
+      - name: Install behat
+        run: make behat.install
+
+      - name: Init behat
+        run: make behat.init
+
+      - name: Install php cs fixer
+        run: make cs_fixer.install
+
+      - name: Install php cs
+        run: make phpcs.install
+
+      - name: Install phpmd
+        run: make phpmd.install
+
+#     Dry run only to avoid action to fail because of Symfony fresh files
+      - name: Run php cs fixer
+        continue-on-error: true
+        run: make cs_fixer
+
+      - name: Run php cs
+        run: make phpcs
+
+      - name: Run phpmd
+        run: make phpmd
+
+      - name: Run phpunit
+        run: make phpunit
+
+      - name: Run behat
+        run: make behat
+
+      - name: Undeploy stack
+        run: make docker.undeploy.ci
+

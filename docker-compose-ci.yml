@@ -1,0 +1,9 @@
+version: '3.4'
+
+services:
+    nginx:
+        ports:
+            - "8081:80"
+
+networks:
+    traefik_traefik_proxy: ~
