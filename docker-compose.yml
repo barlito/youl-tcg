@@ -32,8 +32,41 @@ services:
                 - traefik.http.routers.ytcg-secure.entrypoints=https
                 - traefik.http.routers.ytcg-secure.tls=true
         networks:
+            - yctg_internal
             - traefik_traefik_proxy
+
+    db:
+        image: postgres:13
+        environment:
+            POSTGRES_PASSWORD: root
+        volumes:
+            - ytcg_db_data:/var/lib/postgresql/data:rw
+        networks:
+            - yctg_internal
+
+    adminer:
+        image: adminer
+        deploy:
+            labels:
+                - traefik.enable=true
+
+                - traefik.http.services.ytcg_adminer.loadbalancer.server.port=8080
+
+                - traefik.http.routers.ytcg_adminer.rule=Host(`ytcg-adminer.local.barlito.fr`)
+                - traefik.http.routers.ytcg_adminer.entrypoints=http
+
+                - traefik.http.routers.ytcg_adminer-secure.rule=Host(`ytcg-adminer.local.barlito.fr`)
+                - traefik.http.routers.ytcg_adminer-secure.entrypoints=https
+                - traefik.http.routers.ytcg_adminer-secure.tls=true
+        networks:
+            - yctg_internal
+            - traefik_traefik_proxy
+
+volumes:
+    ytcg_db_data:
 
 networks:
     traefik_traefik_proxy:
         external: true
+    yctg_internal:
+        driver: overlay

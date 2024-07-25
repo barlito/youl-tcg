@@ -4,7 +4,48 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b9e2c4ed-121d-4492-aa66-8cee6250ab53" name="Changes" comment="" />
+    <list default="true" id="b9e2c4ed-121d-4492-aa66-8cee6250ab53" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/config/packages/doctrine.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/packages/doctrine_migrations.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/packages/liip_imagine.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/packages/monolog.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/packages/twig.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/packages/uid.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/packages/validator.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/packages/vich_uploader.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/packages/web_profiler.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/routes/liip_imagine.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/routes/web_profiler.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/migrations/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/migrations/Version20240721190354.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Controller/TestController.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Entity/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Entity/Admin.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Repository/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Repository/BoosterRepository.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Repository/CardRepository.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Repository/DiscordUserRepository.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Repository/EntityBU/Booster.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Repository/EntityBU/Card.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Repository/EntityBU/DiscordUser.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Repository/EntityBU/Extension.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Repository/EntityBU/UserBooster.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Repository/EntityBU/UserCard.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Repository/ExtensionRepository.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Repository/UserBoosterRepository.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Repository/UserCardRepository.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/templates/base.html.twig" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/php.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/php.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/composer.json" beforeDir="false" afterPath="$PROJECT_DIR$/composer.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/composer.lock" beforeDir="false" afterPath="$PROJECT_DIR$/composer.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/bundles.php" beforeDir="false" afterPath="$PROJECT_DIR$/config/bundles.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/packages/framework.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config/packages/framework.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/symfony.lock" beforeDir="false" afterPath="$PROJECT_DIR$/symfony.lock" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -121,13 +162,18 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
-    "last_opened_file_path": "//wsl$/Ubuntu/home/barlet/Project/changy-archive",
+    "git-widget-placeholder": "project__setup",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "//wsl$/Ubuntu-Barlito/home/barlet/Project/Bundles/barlito-utils",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "reference.webide.settings.project.settings.php",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -139,6 +185,14 @@
     <key name="MoveFile.RECENT_KEYS">
       <recent name="\\wsl$\Ubuntu\home\barlet\Project\php-starter\.github\workflows" />
     </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-1d06a55b98c1-0b3e54e931b4-JavaScript-PS-241.18034.69" />
+        <option value="bundled-php-predefined-ba97393d7c68-48a1a656d44e-com.jetbrains.php.sharedIndexes-PS-241.18034.69" />
+      </set>
+    </attachedChunks>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
@@ -165,6 +219,23 @@
       <workItem from="1701465094275" duration="3491000" />
       <workItem from="1701472068470" duration="134000" />
       <workItem from="1701472209662" duration="1852000" />
+      <workItem from="1703713519299" duration="7139000" />
+      <workItem from="1703795215204" duration="3266000" />
+      <workItem from="1704512573730" duration="27000" />
+      <workItem from="1705764960231" duration="569000" />
+      <workItem from="1707245683168" duration="16000" />
+      <workItem from="1707245780369" duration="8779000" />
+      <workItem from="1707650111992" duration="13000" />
+      <workItem from="1708606259172" duration="38000" />
+      <workItem from="1710268567358" duration="2328000" />
+      <workItem from="1711122190698" duration="45000" />
+      <workItem from="1711396533699" duration="109000" />
+      <workItem from="1711481340585" duration="93000" />
+      <workItem from="1721579409550" duration="63000" />
+      <workItem from="1721579496152" duration="7634000" />
+      <workItem from="1721644655053" duration="1893000" />
+      <workItem from="1721942248587" duration="276000" />
+      <workItem from="1721942571179" duration="2775000" />
     </task>
     <servers />
   </component>
