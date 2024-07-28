@@ -17,11 +17,11 @@ class DiscordUser
     #[ORM\Column(length: 255)]
     private string $username;
 
-//    #[ORM\OneToMany(mappedBy: 'discordUser', targetEntity: UserCard::class)]
-//    private Collection $userCards;
-//
-//    #[ORM\OneToMany(mappedBy: 'discordUser', targetEntity: UserBooster::class)]
-//    private Collection $userBoosters;
+    #[ORM\OneToMany(mappedBy: 'discordUser', targetEntity: UserCard::class)]
+    private Collection $userCards;
+
+    #[ORM\OneToMany(mappedBy: 'discordUser', targetEntity: UserBooster::class)]
+    private Collection $userBoosters;
 
     public function __construct()
     {

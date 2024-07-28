@@ -21,7 +21,7 @@ when@dev:
             console:
                 type: console
                 process_psr_3_messages: false
-                channels: ["!event"]
+                channels: ["!event", "!doctrine", "!console"]
 
 when@test:
     monolog:

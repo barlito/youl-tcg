@@ -18,6 +18,8 @@ services:
             PHP_OPCACHE_REVALIDATE_FREQ: 0
             php.xdebug.var_display_max_depth: 10
             php.xdebug.var_display_max_data: 2048
+            XDEBUG_MODE: coverage
+            XDEBUG_OUTPUT_DIR: xdebug
         deploy:
             labels:
                 - traefik.enable=true

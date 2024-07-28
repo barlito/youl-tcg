@@ -20,8 +20,8 @@ class Card
     #[ORM\Column]
     private bool $uniqueFlag = false;
 
-//    #[ORM\ManyToOne(inversedBy: 'cards')]
-//    private ?Extension $extension;
+    #[ORM\ManyToOne(inversedBy: 'cards')]
+    private ?Extension $extension;
 
     public function getName(): string
     {

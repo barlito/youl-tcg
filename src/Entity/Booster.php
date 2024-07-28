@@ -19,9 +19,9 @@ class Booster
     #[ORM\Column]
     private int $quantity;
 
-//    #[ORM\ManyToOne(inversedBy: 'boosters')]
-//    #[ORM\JoinColumn(nullable: false)]
-//    private Extension $extension;
+    #[ORM\ManyToOne(inversedBy: 'boosters')]
+    #[ORM\JoinColumn(nullable: false)]
+    private Extension $extension;
 
     private array $rarityRate = [];
 

@@ -19,11 +19,11 @@ class Extension
     #[ORM\Column(length: 255)]
     private string $description;
 
-//    #[ORM\OneToMany(mappedBy: 'extension', targetEntity: Card::class)]
-//    private Collection $cards;
-//
-//    #[ORM\OneToMany(mappedBy: 'extension', targetEntity: Booster::class)]
-//    private Collection $boosters;
+    #[ORM\OneToMany(mappedBy: 'extension', targetEntity: Card::class)]
+    private Collection $cards;
+
+    #[ORM\OneToMany(mappedBy: 'extension', targetEntity: Booster::class)]
+    private Collection $boosters;
 
     public function __construct()
     {

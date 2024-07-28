@@ -9,17 +9,15 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: UserCardRepository::class)]
 class UserCard
 {
-    use IdUuidTrait;
+    #[ORM\Id]
+    #[ORM\ManyToOne(inversedBy: 'userCards')]
+    #[ORM\JoinColumn(referencedColumnName: 'discord_id', nullable: false)]
+    private DiscordUser $discordUser;
 
-//    #[ORM\Id]
-//    #[ORM\ManyToOne(inversedBy: 'userCards')]
-//    #[ORM\JoinColumn(referencedColumnName: 'discord_id', nullable: false)]
-//    private DiscordUser $discordUser;
-
-//    #[ORM\Id]
-//    #[ORM\ManyToOne]
-//    #[ORM\JoinColumn(nullable: false)]
-//    private Card $card;
+    #[ORM\Id]
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false)]
+    private Card $card;
 
     #[ORM\Column]
     private int $quantity = 0;
