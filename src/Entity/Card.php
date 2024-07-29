@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Repository\CardRepository;
@@ -129,8 +131,6 @@ class Card
      * bundle's configuration parameter 'inject_on_load' is set to 'true' this setter
      * must be able to accept an instance of 'File' as the bundle will inject one here
      * during Doctrine hydration.
-     *
-     * @param File|null $imageMaskFile
      */
     public function setMaskImageFile(?File $imageMaskFile = null): void
     {
@@ -164,8 +164,6 @@ class Card
      * bundle's configuration parameter 'inject_on_load' is set to 'true' this setter
      * must be able to accept an instance of 'File' as the bundle will inject one here
      * during Doctrine hydration.
-     *
-     * @param File|null $imageFoilFile
      */
     public function setFoilImageFile(?File $imageFoilFile = null): void
     {
@@ -183,13 +181,13 @@ class Card
         return $this->imageFoilFile;
     }
 
-    public function setImageFoilName(?string $imageFoilFile): void
+    public function setImageFoilName(?string $imageFoilName): void
     {
-        $this->imageFoilFile = $imageFoilFile;
+        $this->imageFoilName = $imageFoilName;
     }
 
     public function getImageFoilName(): ?string
     {
-        return $this->imageFoilFile;
+        return $this->imageFoilName;
     }
 }

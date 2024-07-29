@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Repository\DiscordUserRepository;
@@ -12,6 +14,7 @@ use Gedmo\Timestampable\Traits\TimestampableEntity;
 class DiscordUser
 {
     use TimestampableEntity;
+
     #[ORM\Id]
     #[ORM\Column(type: 'string', unique: true)]
     private string $discordId;

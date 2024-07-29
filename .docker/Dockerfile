@@ -5,6 +5,7 @@ FROM frankenphp_upstream AS frankenphp_base
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
     vim \
 	acl \
 #    supervisor \
