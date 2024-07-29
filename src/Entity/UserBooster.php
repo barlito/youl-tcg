@@ -5,10 +5,13 @@ namespace App\Entity;
 use App\Repository\UserBoosterRepository;
 use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Timestampable\Traits\TimestampableEntity;
 
 #[ORM\Entity(repositoryClass: UserBoosterRepository::class)]
 class UserBooster
 {
+    use TimestampableEntity;
+
     #[ORM\Id]
     #[ORM\ManyToOne(inversedBy: 'userBoosters')]
     #[ORM\JoinColumn(referencedColumnName: 'discord_id', nullable: false)]

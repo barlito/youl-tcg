@@ -5,10 +5,13 @@ namespace App\Entity;
 use App\Repository\UserCardRepository;
 use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Timestampable\Traits\TimestampableEntity;
 
 #[ORM\Entity(repositoryClass: UserCardRepository::class)]
 class UserCard
 {
+    use TimestampableEntity;
+
     #[ORM\Id]
     #[ORM\ManyToOne(inversedBy: 'userCards')]
     #[ORM\JoinColumn(referencedColumnName: 'discord_id', nullable: false)]

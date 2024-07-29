@@ -6,10 +6,12 @@ use App\Repository\DiscordUserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Timestampable\Traits\TimestampableEntity;
 
 #[ORM\Entity(repositoryClass: DiscordUserRepository::class)]
 class DiscordUser
 {
+    use TimestampableEntity;
     #[ORM\Id]
     #[ORM\Column(type: 'string', unique: true)]
     private string $discordId;
