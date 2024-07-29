@@ -1,0 +1,41 @@
+name: Tests Workflow
+
+on: workflow_call
+
+jobs:
+
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+
+      - name: Setup castor
+        uses: castor-php/setup-castor@v0.1.0
+
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ hashFiles('**/composer.lock') }}
+
+      - name: Deploy stack
+        run: make deploy.ci github_token=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run phpunit
+        run: make phpunit
+
+#      - name: Run behat
+#        run: make behat
+
+      - name: Undeploy stack
+        run: make docker.undeploy.ci

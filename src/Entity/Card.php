@@ -9,6 +9,7 @@ use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 use Symfony\Component\HttpFoundation\File\File;
+use Symfony\Component\Validator\Constraints as Assert;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 #[Vich\Uploadable]
@@ -18,20 +19,22 @@ class Card
     use IdUuidTrait;
     use TimestampableEntity;
 
+    #[Assert\Length(max: 255)]
     #[ORM\Column(length: 255)]
     private string $name;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: 'text')]
     private string $description;
 
     #[ORM\Column]
     private bool $uniqueFlag = false;
 
+    #[Assert\Valid]
     #[ORM\ManyToOne(inversedBy: 'cards')]
     private ?Extension $extension;
 
     #[Vich\UploadableField(mapping: 'cards', fileNameProperty: 'imageName')]
-    private File $imageFile;
+    private ?File $imageFile = null;
 
     #[ORM\Column(type: 'string', length: 255)]
     private string $imageName;
@@ -103,7 +106,7 @@ class Card
      * must be able to accept an instance of 'File' as the bundle will inject one here
      * during Doctrine hydration.
      */
-    public function setImageFile(File $imageFile): void
+    public function setImageFile(?File $imageFile = null): void
     {
         $this->imageFile = $imageFile;
 
