@@ -7,3 +7,5 @@ services:
 networks:
     traefik_traefik_proxy:
         external: false
+    ytcg_internal:
+        driver: bridge
