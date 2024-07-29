@@ -7,17 +7,27 @@ use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Timestampable\Traits\TimestampableEntity;
+use Symfony\Component\HttpFoundation\File\File;
+use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 #[ORM\Entity(repositoryClass: ExtensionRepository::class)]
 class Extension
 {
     use IdUuidTrait;
+    use TimestampableEntity;
 
     #[ORM\Column(length: 255)]
     private string $name;
 
     #[ORM\Column(length: 255)]
     private string $description;
+
+    #[Vich\UploadableField(mapping: 'cards', fileNameProperty: 'imageName')]
+    private File $imageFile;
+
+    #[ORM\Column(type: 'string', length: 255)]
+    private string $imageName;
 
     #[ORM\OneToMany(mappedBy: 'extension', targetEntity: Card::class)]
     private Collection $cards;
@@ -54,6 +64,36 @@ class Extension
 
         return $this;
     }
+
+    /**
+     * If manually uploading a file (i.e. not using Symfony Form) ensure an instance
+     * of 'UploadedFile' is injected into this setter to trigger the update. If this
+     * bundle's configuration parameter 'inject_on_load' is set to 'true' this setter
+     * must be able to accept an instance of 'File' as the bundle will inject one here
+     * during Doctrine hydration.
+     */
+    public function setImageFile(File $imageFile): void
+    {
+        $this->imageFile = $imageFile;
+
+        $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function getImageFile(): ?File
+    {
+        return $this->imageFile;
+    }
+
+    public function setImageName(?string $imageName): void
+    {
+        $this->imageName = $imageName;
+    }
+
+    public function getImageName(): ?string
+    {
+        return $this->imageName;
+    }
+
 
     /**
      * @return Collection<int, Card>
