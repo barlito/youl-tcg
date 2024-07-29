@@ -1,0 +1,70 @@
+services:
+    php:
+        image: ytcg-php
+        build:
+            context: .
+            dockerfile: .docker/Dockerfile
+            target: frankenphp_dev
+        environment:
+            SERVER_NAME: ":80"
+        volumes:
+            - ./:/app
+            - ./.docker/franken/Caddyfile:/etc/caddy/Caddyfile
+            - ~/.composer:/root/.composer:delegated
+            - ytcg_caddy_data:/data
+            - ytcg_caddy_config:/config
+        tty: true
+        deploy:
+            labels:
+                - traefik.enable=true
+
+                - traefik.http.services.ytcg.loadbalancer.server.port=80
+
+                - traefik.http.routers.ytcg.rule=Host(`ytcg.local.barlito.fr`)
+                - traefik.http.routers.ytcg.entrypoints=http
+#                - traefik.http.routers.ytcg.middlewares=tls-redirectscheme
+
+                - traefik.http.routers.ytcg-secure.rule=Host(`ytcg.local.barlito.fr`)
+                - traefik.http.routers.ytcg-secure.entrypoints=https
+                - traefik.http.routers.ytcg-secure.tls=true
+        networks:
+            - traefik_traefik_proxy
+            - ytcg_internal
+
+    db:
+        image: postgres:13
+        environment:
+            POSTGRES_PASSWORD: root
+        volumes:
+            - ytcg_db_data:/var/lib/postgresql/data:rw
+        networks:
+            - ytcg_internal
+
+    adminer:
+        image: adminer
+        deploy:
+            labels:
+                - traefik.enable=true
+
+                - traefik.http.services.ytcg_adminer.loadbalancer.server.port=8080
+
+                - traefik.http.routers.ytcg_adminer.rule=Host(`ytcg-adminer.local.barlito.fr`)
+                - traefik.http.routers.ytcg_adminer.entrypoints=http
+
+                - traefik.http.routers.ytcg_adminer-secure.rule=Host(`ytcg-adminer.local.barlito.fr`)
+                - traefik.http.routers.ytcg_adminer-secure.entrypoints=https
+                - traefik.http.routers.ytcg_adminer-secure.tls=true
+        networks:
+            - ytcg_internal
+            - traefik_traefik_proxy
+
+volumes:
+    ytcg_caddy_data:
+    ytcg_caddy_config:
+    ytcg_db_data:
+
+networks:
+    traefik_traefik_proxy:
+        external: true
+    ytcg_internal:
+        driver: overlay

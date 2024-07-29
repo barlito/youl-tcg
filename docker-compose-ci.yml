@@ -1,0 +1,9 @@
+services:
+    php:
+        container_name: starter_php
+        ports:
+            - "8081:80"
+
+networks:
+    traefik_traefik_proxy:
+        external: false
