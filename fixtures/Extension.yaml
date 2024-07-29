@@ -1,0 +1,9 @@
+App\Entity\Extension:
+  extension_cyberpunk:
+    name: 'Cyberpunk 2077'
+    description: 'Cyberpunk 2077 is an open-world, action-adventure story set in Night City, a megalopolis obsessed with power, glamour and body modification. You play as V, a mercenary outlaw going after a one-of-a-kind implant that is the key to immortality. You can customize your character’s cyberware, skillset and playstyle, and explore a vast city where the choices you make shape the story and the world around you.'
+    imageName: 'images/cards/default_card.png'
+  extension_bleach:
+    name: 'Bleach'
+    description: 'Bleach is a Japanese manga series written and illustrated by Tite Kubo. Bleach follows the adventures of the hotheaded teenager Ichigo Kurosaki, who inherits his parents’ destiny after he obtains the powers of a Soul Reaper—a death personification similar to the Grim Reaper—from another Soul Reaper, Rukia Kuchiki.'
+    imageName: 'images/cards/default_card.png'

@@ -12,6 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 use Symfony\Component\HttpFoundation\File\File;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ExtensionRepository::class)]
 class Extension
@@ -19,10 +20,11 @@ class Extension
     use IdUuidTrait;
     use TimestampableEntity;
 
+    #[Assert\Length(max: 255)]
     #[ORM\Column(length: 255)]
     private string $name;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: 'text')]
     private string $description;
 
     #[Vich\UploadableField(mapping: 'cards', fileNameProperty: 'imageName')]
@@ -31,10 +33,12 @@ class Extension
     #[ORM\Column(type: 'string', length: 255)]
     private string $imageName;
 
-    #[ORM\OneToMany(mappedBy: 'extension', targetEntity: Card::class)]
+    #[Assert\Valid]
+    #[ORM\OneToMany(targetEntity: Card::class, mappedBy: 'extension')]
     private Collection $cards;
 
-    #[ORM\OneToMany(mappedBy: 'extension', targetEntity: Booster::class)]
+    #[Assert\Valid]
+    #[ORM\OneToMany(targetEntity: Booster::class, mappedBy: 'extension')]
     private Collection $boosters;
 
     public function __construct()

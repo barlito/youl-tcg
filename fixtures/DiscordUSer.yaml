@@ -1,0 +1,24 @@
+App\Entity\DiscordUser:
+  discord_user_barlito:
+    discordId: 188967649332428800
+    username: "Barlito"
+
+  discord_user_juju:
+    discordId: 195659530363731968
+    username: "Juju"
+
+  discord_user_farph:
+    discordId: 188967949963362304
+    username: "Farph"
+
+  discord_user_benj:
+    discordId: 232457563910832129
+    username: "Benj"
+
+  discord_user_weeby:
+    discordId: 186441663856508928
+    username: "Warny"
+
+  discord_user_veli:
+    discordId: 189029821328785409
+    username: "Veli"
