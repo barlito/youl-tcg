@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Repository\ExtensionRepository;
@@ -93,7 +95,6 @@ class Extension
     {
         return $this->imageName;
     }
-
 
     /**
      * @return Collection<int, Card>

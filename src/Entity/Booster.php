@@ -16,6 +16,7 @@ class Booster
 {
     use IdUuidTrait;
     use TimestampableEntity;
+
     #[ORM\Column]
     private int $price;
 
@@ -88,7 +89,6 @@ class Booster
     {
         return $this->imageName;
     }
-
 
     public function getExtension(): Extension
     {
