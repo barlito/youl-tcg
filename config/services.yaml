@@ -22,7 +22,3 @@ services:
             - '../src/DependencyInjection/'
             - '../src/Entity/'
             - '../src/Kernel.php'
-
-    App\Security\DiscordAuthenticator:
-        arguments:
-            $allowedDiscordUsers: '%app.allowed_discord_users%'
