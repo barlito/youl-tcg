@@ -6,23 +6,17 @@ namespace App\Controller\Admin;
 
 use App\Admin\Field\ImageField as VichImageField;
 use App\Entity\Card;
-use Doctrine\ORM\QueryBuilder;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
-use Symfony\Component\AssetMapper\AssetMapper;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
-use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use Vich\UploaderBundle\Templating\Helper\UploaderHelper;
 
 /**
@@ -42,13 +36,15 @@ class CardCrudController extends AbstractCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->renderContentMaximized();
+            ->renderContentMaximized()
+        ;
     }
 
     public function configureFilters(Filters $filters): Filters
     {
         return $filters
-            ->add('extension');
+            ->add('extension')
+        ;
     }
 
     public function configureActions(Actions $actions): Actions
@@ -70,7 +66,8 @@ class CardCrudController extends AbstractCrudController
                 }
 
                 return $this->uploaderHelper->asset($entity, 'imageFile');
-            });
+            })
+        ;
         yield Field::new('id')->onlyOnDetail();
         yield Field::new('name');
         yield Field::new('description');

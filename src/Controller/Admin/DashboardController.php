@@ -34,7 +34,8 @@ class DashboardController extends AbstractDashboardController
         return Dashboard::new()
             ->setTitle('YTCG Admin')
             ->setFaviconPath('ytcg_logo.png')
-            ->renderContentMaximized();
+            ->renderContentMaximized()
+        ;
     }
 
     public function configureMenuItems(): iterable

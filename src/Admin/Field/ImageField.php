@@ -18,6 +18,7 @@ final class ImageField implements FieldInterface
             ->setProperty($propertyName)
             ->setLabel($label)
             ->setFormType(VichImageType::class)
-            ->setFormTypeOption('allow_delete', false);
+            ->setFormTypeOption('allow_delete', false)
+        ;
     }
 }
