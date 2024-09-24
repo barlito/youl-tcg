@@ -89,7 +89,7 @@ class Card
         return $this->uniqueFlag;
     }
 
-    public function setIsUnique(bool $uniqueFlag): static
+    public function setUnique(bool $uniqueFlag): static
     {
         $this->uniqueFlag = $uniqueFlag;
 
