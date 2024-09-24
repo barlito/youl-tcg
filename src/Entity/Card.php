@@ -9,7 +9,6 @@ use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 use Symfony\Component\HttpFoundation\File\File;
-use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Component\Validator\Constraints as Assert;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
@@ -54,11 +53,6 @@ class Card
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $imageFoilName = null;
-
-    public function getSlug(): string
-    {
-        return (new AsciiSlugger())->slug($this->name)->toString();
-    }
 
     public function getName(): string
     {
