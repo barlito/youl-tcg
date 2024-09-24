@@ -26,6 +26,8 @@ RUN install-php-extensions \
 # https://getcomposer.org/doc/03-cli.md#composer-allow-superuser
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
+COPY ./.docker/franken/php/conf.d/ /usr/local/etc/php/conf.d/
+
 HEALTHCHECK --start-period=60s CMD curl -f http://localhost:2019/metrics || exit 1
 CMD [ "frankenphp", "run", "--config", "/etc/caddy/Caddyfile" ]
 

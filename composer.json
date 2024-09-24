@@ -16,6 +16,7 @@
         "easycorp/easyadmin-bundle": "^4.11",
         "knpuniversity/oauth2-client-bundle": "^2.18",
         "stof/doctrine-extensions-bundle": "^1.12",
+        "symfony/asset-mapper": "7.1.*",
         "symfony/console": "7.1.*",
         "symfony/dotenv": "7.1.*",
         "symfony/flex": "^2",
@@ -57,7 +58,8 @@
     "scripts": {
         "auto-scripts": {
             "cache:clear": "symfony-cmd",
-            "assets:install %PUBLIC_DIR%": "symfony-cmd"
+            "assets:install %PUBLIC_DIR%": "symfony-cmd",
+            "importmap:install": "symfony-cmd"
         },
         "post-install-cmd": [
             "@auto-scripts"

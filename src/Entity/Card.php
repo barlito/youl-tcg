@@ -9,7 +9,9 @@ use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 use Symfony\Component\HttpFoundation\File\File;
+use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Component\Validator\Constraints as Assert;
+use Vich\UploaderBundle\DependencyInjection\Compiler\RegisterSluggerPass;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 #[Vich\Uploadable]
@@ -19,10 +21,12 @@ class Card
     use IdUuidTrait;
     use TimestampableEntity;
 
+    #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
     #[ORM\Column(length: 255)]
     private string $name;
 
+    #[Assert\NotBlank]
     #[ORM\Column(type: 'text')]
     private string $description;
 
@@ -30,14 +34,15 @@ class Card
     private bool $uniqueFlag = false;
 
     #[Assert\Valid]
-    #[ORM\ManyToOne(inversedBy: 'cards')]
+    #[Assert\NotBlank]
+    #[ORM\ManyToOne(fetch: 'EAGER', inversedBy: 'cards')]
     private ?Extension $extension;
 
     #[Vich\UploadableField(mapping: 'cards', fileNameProperty: 'imageName')]
     private ?File $imageFile = null;
 
     #[ORM\Column(type: 'string', length: 255)]
-    private string $imageName;
+    private ?string $imageName = null;
 
     #[Vich\UploadableField(mapping: 'masks', fileNameProperty: 'imageMaskName')]
     private ?File $imageMaskFile = null;
@@ -50,6 +55,11 @@ class Card
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $imageFoilName = null;
+
+    public function getSlug(): string
+    {
+        return (new AsciiSlugger())->slug($this->name)->toString();
+    }
 
     public function getName(): string
     {
@@ -80,7 +90,7 @@ class Card
         return $this->uniqueFlag;
     }
 
-    public function setUnique(bool $uniqueFlag): static
+    public function setIsUnique(bool $uniqueFlag): static
     {
         $this->uniqueFlag = $uniqueFlag;
 
