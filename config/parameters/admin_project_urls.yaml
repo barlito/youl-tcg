@@ -1,0 +1,3 @@
+parameters:
+    app.admin_urls:
+        youl_coin: '%env(YC_ADMIN_URL)%'

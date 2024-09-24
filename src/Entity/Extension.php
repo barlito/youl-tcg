@@ -47,6 +47,11 @@ class Extension
         $this->boosters = new ArrayCollection();
     }
 
+    public function __toString(): string
+    {
+        return $this->getName();
+    }
+
     public function getName(): string
     {
         return $this->name;

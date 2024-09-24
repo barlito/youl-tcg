@@ -19,10 +19,12 @@ class Card
     use IdUuidTrait;
     use TimestampableEntity;
 
+    #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
     #[ORM\Column(length: 255)]
     private string $name;
 
+    #[Assert\NotBlank]
     #[ORM\Column(type: 'text')]
     private string $description;
 
@@ -30,14 +32,15 @@ class Card
     private bool $uniqueFlag = false;
 
     #[Assert\Valid]
-    #[ORM\ManyToOne(inversedBy: 'cards')]
+    #[Assert\NotBlank]
+    #[ORM\ManyToOne(fetch: 'EAGER', inversedBy: 'cards')]
     private ?Extension $extension;
 
     #[Vich\UploadableField(mapping: 'cards', fileNameProperty: 'imageName')]
     private ?File $imageFile = null;
 
     #[ORM\Column(type: 'string', length: 255)]
-    private string $imageName;
+    private ?string $imageName = null;
 
     #[Vich\UploadableField(mapping: 'masks', fileNameProperty: 'imageMaskName')]
     private ?File $imageMaskFile = null;

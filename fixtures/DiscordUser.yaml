@@ -2,6 +2,7 @@ App\Entity\DiscordUser:
   discord_user_barlito:
     discordId: 188967649332428800
     username: "Barlito"
+    roles: ["ROLE_ADMIN"]
 
   discord_user_juju:
     discordId: 195659530363731968

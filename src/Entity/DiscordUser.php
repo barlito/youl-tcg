@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\RoleEnum;
 use App\Repository\DiscordUserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: DiscordUserRepository::class)]
-class DiscordUser
+class DiscordUser implements UserInterface
 {
     use TimestampableEntity;
 
@@ -21,6 +23,9 @@ class DiscordUser
 
     #[ORM\Column(length: 255)]
     private string $username;
+
+    #[ORM\Column]
+    private array $roles = [];
 
     #[ORM\OneToMany(mappedBy: 'discordUser', targetEntity: UserCard::class)]
     private Collection $userCards;
@@ -92,5 +97,43 @@ class DiscordUser
         }
 
         return $this;
+    }
+
+    /**
+     * A visual identifier that represents this user.
+     *
+     * @see UserInterface
+     */
+    public function getUserIdentifier(): string
+    {
+        return $this->username;
+    }
+
+    /**
+     * @see UserInterface
+     */
+    public function getRoles(): array
+    {
+        $roles = $this->roles;
+        // guarantee every user at least has ROLE_USER
+        $roles[] = RoleEnum::ROLE_USER->value;
+
+        return array_unique($roles);
+    }
+
+    public function setRoles(array $roles): static
+    {
+        $this->roles = $roles;
+
+        return $this;
+    }
+
+    /**
+     * @see UserInterface
+     */
+    public function eraseCredentials(): void
+    {
+        // If you store any temporary, sensitive data on the user, clear it here
+        // $this->plainPassword = null;
     }
 }

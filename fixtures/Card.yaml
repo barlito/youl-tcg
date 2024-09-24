@@ -4,19 +4,19 @@ App\Entity\Card:
     extension: '@extension_cyberpunk'
     description: 'Silverhand is a former member of the rock band Samurai. He is a central character in the Cyberpunk series and is known for his anti-corporate views and his fight against the Arasaka Corporation. He is a key figure in the game Cyberpunk 2077.'
     unique: true
-    imageName: 'images/cards/default_card.png'
+    imageName: 'default_card.png'
   card_rogue:
     name: 'Cyberpunk Rogue'
     extension: '@extension_cyberpunk'
     description: 'Rogue is the queen of the Afterlife. She is a key figure in the game Cyberpunk 2077.'
     unique: false
-    imageName: 'images/cards/default_card.png'
+    imageName: 'default_card.png'
   card_ichigo:
     name: 'Bleach Ichigo Kurosaki'
     extension: '@extension_bleach'
     description: 'Ichigo Kurosaki is the main character of the Bleach series. He is a teenager with the ability to see ghosts who gains the powers of a Soul Reaper after a fateful encounter with another Soul Reaper, Rukia Kuchiki.'
     unique: false
-    imageName: 'images/cards/default_card.png'
+    imageName: 'default_card.png'
 
 
 
