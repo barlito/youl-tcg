@@ -9,6 +9,8 @@ use App\Enum\RoleEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use KnpU\OAuth2ClientBundle\Client\ClientRegistry;
 use KnpU\OAuth2ClientBundle\Security\Authenticator\OAuth2Authenticator;
+use Lexik\Bundle\JWTAuthenticationBundle\Security\Http\Authentication\AuthenticationFailureHandler;
+use Lexik\Bundle\JWTAuthenticationBundle\Security\Http\Authentication\AuthenticationSuccessHandler;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -37,6 +39,7 @@ class DiscordAuthenticator extends OAuth2Authenticator implements Authentication
         private readonly RouterInterface $router,
         #[Autowire(param: 'app.allowed_discord_users')]
         private readonly array $allowedDiscordUsers,
+        private readonly AuthenticationSuccessHandler $authenticationSuccessHandler,
     ) {
     }
 
@@ -85,7 +88,14 @@ class DiscordAuthenticator extends OAuth2Authenticator implements Authentication
             $targetPath = $this->router->generate('app_homepage');
         }
 
-        return new RedirectResponse($targetPath);
+        $jwtResponse = $this->authenticationSuccessHandler->onAuthenticationSuccess($request, $token);
+
+        $response = new RedirectResponse($targetPath);
+        foreach ($jwtResponse->headers->getCookies() as $cookie) {
+            $response->headers->setCookie($cookie);
+        }
+
+        return $response;
     }
 
     /**

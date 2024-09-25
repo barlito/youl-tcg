@@ -8,12 +8,23 @@ use KnpU\OAuth2ClientBundle\Client\ClientRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Util\TargetPathTrait;
 
 class DiscordController extends AbstractController
 {
     use TargetPathTrait;
+
+    #[Route('/test', name: 'test')]
+    public function test(Request $request): Response
+    {
+        dump($request->getSession());
+        dump($this->getUser());
+
+        dd();
+        return new Response('ok');
+    }
 
     /**
      * Link to this controller to start the "connect" process
@@ -23,10 +34,14 @@ class DiscordController extends AbstractController
     {
         return $clientRegistry
             ->getClient('discord')
-            ->redirect([
-                'identify',
-            ])
-        ;
+            ->redirect(
+                scopes: [
+                    'identify',
+                ],
+                options: [
+                    'prompt' => 'none',
+                ]
+            );
     }
 
     /**

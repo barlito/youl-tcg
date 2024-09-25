@@ -13,13 +13,17 @@ security:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
-        main:
+
+        app:
+            pattern:   ^/test
+            jwt: ~
+
+        login:
             remember_me:
                 secret: '%kernel.secret%' # required
                 lifetime: 604800 # 1 week in seconds
                 always_remember_me: true
                 signature_properties: ['username']
-            provider: app_user_provider
             custom_authenticators:
                 - App\Security\DiscordAuthenticator
             logout:

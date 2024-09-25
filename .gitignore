@@ -36,3 +36,6 @@
 /public/images/cards/
 !/public/images/cards/default_card.png
 ###< images ###
+###> lexik/jwt-authentication-bundle ###
+/config/jwt/*.pem
+###< lexik/jwt-authentication-bundle ###
