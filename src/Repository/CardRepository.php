@@ -7,7 +7,6 @@ namespace App\Repository;
 use App\Entity\Card;
 use App\Enum\Entity\CardStatusEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -32,7 +31,7 @@ class CardRepository extends ServiceEntityRepository
         $stmt = $conn->prepare($sql);
         $result = $stmt->executeQuery([
             'status' => CardStatusEnum::DRAFT->value,
-            'maxResult' => $maxResult
+            'maxResult' => $maxResult,
         ]);
 
         return $result->fetchFirstColumn();

@@ -88,6 +88,7 @@ class Extension
     public function setStatus(ExtensionStatusEnum $status): Extension
     {
         $this->status = $status;
+
         return $this;
     }
 

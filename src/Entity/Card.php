@@ -90,6 +90,7 @@ class Card
     public function setStatus(CardStatusEnum $status): Card
     {
         $this->status = $status;
+
         return $this;
     }
 

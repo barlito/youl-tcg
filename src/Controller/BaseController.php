@@ -13,12 +13,12 @@ use Symfony\Contracts\Cache\ItemInterface;
 
 class BaseController extends AbstractController
 {
-
     #[Route('/', name: 'homepage')]
     public function homepage(CardRepository $cardRepository, CacheInterface $cache): Response
     {
         $cardsIds = $cache->get('daycards', function (ItemInterface $item) use ($cardRepository) {
             $item->expiresAt(new \DateTime('tomorrow'));
+
             return $cardRepository->findRandomCardId(3);
         });
 
