@@ -24,8 +24,20 @@ class BaseController extends AbstractController
 
         $cards = $cardRepository->findBy(['id' => $cardsIds]);
 
-        return $this->render('base.html.twig', [
+        return $this->render('pages/homepage.html.twig', [
             'cards' => $cards,
         ]);
+    }
+
+    #[Route('/extensions', name: 'extensions')]
+    public function extensions()
+    {
+        return $this->render('pages/coming_soon.html.twig');
+    }
+
+    #[Route('/boosters', name: 'boosters')]
+    public function boosters()
+    {
+        return $this->render('pages/coming_soon.html.twig');
     }
 }
