@@ -1,17 +1,115 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
-        {% block stylesheets %}
-        {% endblock %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Welcome!{% endblock %}</title>
+    <link rel="icon"
+          href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
+    {% block stylesheets %}
+        <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+        <link rel="stylesheet" href="{{ asset('styles/cards/base.css') }}">
+    {% endblock %}
 
-        {% block javascripts %}
-            {% block importmap %}{{ importmap('app') }}{% endblock %}
-        {% endblock %}
-    </head>
-    <body>
-        {% block body %}{% endblock %}
-    </body>
+    {% block javascripts %}
+        {% block importmap %}{{ importmap('app') }} {{ importmap('card') }}{% endblock %}
+    {% endblock %}
+</head>
+<body class="min-h-screen bg-gray-700">
+<header class="w-full opacity-90 bg-gradient-to-b from-gray-900 to-transparent text-white">
+    <div class="p-2 mx-4">
+        <div class="flex justify-between">
+            <div class="flex items-center">
+                <img src="{{ asset('images/ytcg_logo.png') }}" alt="Logo" class="h-16 mr-4">
+                <h1 class="text-2xl font-bold">Youl TCG</h1>
+            </div>
+            <div class="flex space-x-4 items-center text-xl text-white">
+                <a href="#" class="active">Home</a>
+                <a href="#" class="">Extensions</a>
+                <a href="#" class="">Boosters</a>
+            </div>
+            <div class="flex space-x-4 items-center text-xl text-white font-extrabold">
+                <a href="#" class>{{ app.user.username }}</a>
+            </div>
+        </div>
+    </div>
+</header>
+
+
+<main class="pt-10">
+    <div id="default-carousel" class="container mx-auto relative w-full" data-carousel="static">
+        <!-- Carousel wrapper -->
+        <div class="relative h-[70vh] overflow-hidden rounded-3xl">
+            <!-- Item 1 -->
+            <div class="hidden duration-400 ease-linear" data-carousel-item>
+                <img src="{{ asset('images/ytcg_background.png') }}"
+                     class="absolute block w-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="...">
+                <div class="absolute z-10 inset-0 flex flex-col items-center justify-center text-center bg-black bg-opacity-30 backdrop-blur-sm">
+                    <h1 class="text-6xl font-bold text-purple-800" style="text-shadow: 2px 2px 5px black;">Le
+                        multivers des Youls</h1>
+                    <p class="text-2xl text-white">The best place to play YTCG online</p>
+                </div>
+            </div>
+            <!-- Item 2 -->
+            <div class="hidden duration-400 ease-linear" data-carousel-item>
+                <img src="https://dummyimage.com/16:9x1080/"
+                     class="absolute block w-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="...">
+            </div>
+            <!-- Item 3 -->
+            <div class="hidden duration-400 ease-linear" data-carousel-item>
+                <img src="https://dummyimage.com/16:9x1080/"
+                     class="absolute block w-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="...">
+            </div>
+        </div>
+        <!-- Slider indicators -->
+        <div class="absolute z-30 flex -translate-x-1/2 bottom-5 left-1/2 space-x-3 rtl:space-x-reverse">
+            <button type="button" class="w-3 h-3 rounded-full" aria-current="true" aria-label="Slide 1"
+                    data-carousel-slide-to="0"></button>
+            <button type="button" class="w-3 h-3 rounded-full" aria-current="false" aria-label="Slide 2"
+                    data-carousel-slide-to="1"></button>
+            <button type="button" class="w-3 h-3 rounded-full" aria-current="false" aria-label="Slide 3"
+                    data-carousel-slide-to="2"></button>
+        </div>
+        <!-- Slider controls -->
+        <button type="button"
+                class="absolute top-0 start-0 z-30 flex items-center justify-center h-full px-4 cursor-pointer group focus:outline-none"
+                data-carousel-prev>
+                        <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/30 dark:bg-gray-800/30 group-hover:bg-white/50 dark:group-hover:bg-gray-800/60 group-focus:ring-4 group-focus:ring-white dark:group-focus:ring-gray-800/70 group-focus:outline-none">
+                            <svg class="w-4 h-4 text-white dark:text-gray-800 rtl:rotate-180" aria-hidden="true"
+                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                      stroke-width="2" d="M5 1 1 5l4 4"/>
+                            </svg>
+                            <span class="sr-only">Previous</span>
+                        </span>
+        </button>
+        <button type="button"
+                class="absolute top-0 end-0 z-30 flex items-center justify-center h-full px-4 cursor-pointer group focus:outline-none"
+                data-carousel-next>
+                        <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/30 dark:bg-gray-800/30 group-hover:bg-white/50 dark:group-hover:bg-gray-800/60 group-focus:ring-4 group-focus:ring-white dark:group-focus:ring-gray-800/70 group-focus:outline-none">
+                            <svg class="w-4 h-4 text-white dark:text-gray-800 rtl:rotate-180" aria-hidden="true"
+                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                      stroke-width="2" d="m1 9 4-4-4-4"/>
+                            </svg>
+                            <span class="sr-only">Next</span>
+                        </span>
+        </button>
+    </div>
+</main>
+
+<div class="mt-10 bg-slate-800">
+    <div class="container mx-auto py-5">
+        <h2 class="text-3xl font-bold text-white">Cartes du jour</h2>
+        <div class="grid grid-cols-3 gap-4 mt-4">
+            {% for card in cards %}
+
+                {{ include('components/CardComponent.html.twig') }}
+
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% block body %}{% endblock %}
+</body>
 </html>
