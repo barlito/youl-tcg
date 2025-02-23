@@ -7,3 +7,7 @@ App\Entity\Extension:
     name: 'Bleach'
     description: 'Bleach is a Japanese manga series written and illustrated by Tite Kubo. Bleach follows the adventures of the hotheaded teenager Ichigo Kurosaki, who inherits his parents’ destiny after he obtains the powers of a Soul Reaper—a death personification similar to the Grim Reaper—from another Soul Reaper, Rukia Kuchiki.'
     imageName: 'images/cards/default_card.png'
+  extension_magic:
+    name: 'Magic'
+    description: 'Magic is a game where you can play as a king of a magic kingdom. You can explore the world and fight against other kingdoms.'
+    imageName: 'images/cards/default_card.png'

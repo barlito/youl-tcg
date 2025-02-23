@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\Entity\CardStatusEnum;
 use App\Repository\CardRepository;
 use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\ORM\Mapping as ORM;
@@ -27,6 +28,9 @@ class Card
     #[Assert\NotBlank]
     #[ORM\Column(type: 'text')]
     private string $description;
+
+    #[ORM\Column(options: ['default' => CardStatusEnum::DRAFT])]
+    private CardStatusEnum $status = CardStatusEnum::DRAFT;
 
     #[ORM\Column]
     private bool $uniqueFlag = false;
@@ -75,6 +79,17 @@ class Card
     {
         $this->description = $description;
 
+        return $this;
+    }
+
+    public function getStatus(): CardStatusEnum
+    {
+        return $this->status;
+    }
+
+    public function setStatus(CardStatusEnum $status): Card
+    {
+        $this->status = $status;
         return $this;
     }
 
