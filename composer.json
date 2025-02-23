@@ -8,6 +8,7 @@
         "ext-ctype": "*",
         "ext-iconv": "*",
         "barlito/utils": "^1.5",
+        "beberlei/doctrineextensions": "^1.5",
         "doctrine/dbal": "^3",
         "doctrine/doctrine-bundle": "^2.12",
         "doctrine/doctrine-fixtures-bundle": "^3.6",
@@ -17,13 +18,18 @@
         "knpuniversity/oauth2-client-bundle": "^2.18",
         "stof/doctrine-extensions-bundle": "^1.12",
         "symfony/asset-mapper": "7.1.*",
+        "symfony/cache": "7.1.*",
         "symfony/console": "7.1.*",
         "symfony/dotenv": "7.1.*",
         "symfony/flex": "^2",
         "symfony/framework-bundle": "7.1.*",
+        "symfony/monolog-bundle": "^3.0",
         "symfony/runtime": "7.1.*",
+        "symfony/ux-twig-component": "^2.23",
         "symfony/validator": "7.1.*",
         "symfony/yaml": "7.1.*",
+        "symfonycasts/tailwind-bundle": "^0.7.1",
+        "tales-from-a-dev/flowbite-bundle": "^0.7.1",
         "vich/uploader-bundle": "^2.4",
         "wohali/oauth2-discord-new": "^1.2"
     },
@@ -85,9 +91,11 @@
         "squizlabs/php_codesniffer": "^3.10",
         "symfony/browser-kit": "7.1.*",
         "symfony/css-selector": "7.1.*",
+        "symfony/debug-bundle": "7.1.*",
         "symfony/maker-bundle": "^1.60",
         "symfony/phpunit-bridge": "^7.1",
         "symfony/stopwatch": "7.1.*",
+        "symfony/var-dumper": "7.1.*",
         "symfony/web-profiler-bundle": "7.1.*"
     }
 }
