@@ -7,7 +7,7 @@
         "php": ">=8.2",
         "ext-ctype": "*",
         "ext-iconv": "*",
-        "barlito/utils": "^1.5",
+        "barlito/utils": "^1.6",
         "beberlei/doctrineextensions": "^1.5",
         "doctrine/dbal": "^3",
         "doctrine/doctrine-bundle": "^2.12",
@@ -17,17 +17,17 @@
         "easycorp/easyadmin-bundle": "^4.11",
         "knpuniversity/oauth2-client-bundle": "^2.18",
         "stof/doctrine-extensions-bundle": "^1.12",
-        "symfony/asset-mapper": "7.1.*",
-        "symfony/cache": "7.1.*",
-        "symfony/console": "7.1.*",
-        "symfony/dotenv": "7.1.*",
+        "symfony/asset-mapper": "7.2.*",
+        "symfony/cache": "7.2.*",
+        "symfony/console": "7.2.*",
+        "symfony/dotenv": "7.2.*",
         "symfony/flex": "^2",
-        "symfony/framework-bundle": "7.1.*",
+        "symfony/framework-bundle": "7.2.*",
         "symfony/monolog-bundle": "^3.0",
-        "symfony/runtime": "7.1.*",
+        "symfony/runtime": "7.2.*",
         "symfony/ux-twig-component": "^2.23",
-        "symfony/validator": "7.1.*",
-        "symfony/yaml": "7.1.*",
+        "symfony/validator": "7.2.*",
+        "symfony/yaml": "7.2.*",
         "symfonycasts/tailwind-bundle": "^0.7.1",
         "tales-from-a-dev/flowbite-bundle": "^0.7.1",
         "vich/uploader-bundle": "^2.4",
@@ -80,22 +80,23 @@
     "extra": {
         "symfony": {
             "allow-contrib": false,
-            "require": "7.1.*"
+            "require": "7.2.*"
         }
     },
     "require-dev": {
+        "roave/security-advisories": "dev-latest",
         "friendsofphp/php-cs-fixer": "^3.60",
         "hautelook/alice-bundle": "^2.14",
         "phpmd/phpmd": "^2.15",
         "phpunit/phpunit": "^9.5",
         "squizlabs/php_codesniffer": "^3.10",
-        "symfony/browser-kit": "7.1.*",
-        "symfony/css-selector": "7.1.*",
-        "symfony/debug-bundle": "7.1.*",
+        "symfony/browser-kit": "7.2.*",
+        "symfony/css-selector": "7.2.*",
+        "symfony/debug-bundle": "7.2.*",
         "symfony/maker-bundle": "^1.60",
         "symfony/phpunit-bridge": "^7.1",
-        "symfony/stopwatch": "7.1.*",
-        "symfony/var-dumper": "7.1.*",
-        "symfony/web-profiler-bundle": "7.1.*"
+        "symfony/stopwatch": "7.2.*",
+        "symfony/var-dumper": "7.2.*",
+        "symfony/web-profiler-bundle": "7.2.*"
     }
 }
