@@ -1,6 +1,6 @@
 services:
     php:
-        image: ytcg-php
+        image: barlito/ytcg-php:development
         build:
             context: .
             dockerfile: .docker/Dockerfile
@@ -10,7 +10,7 @@ services:
         volumes:
             - ./:/app
             - ./.docker/franken/Caddyfile:/etc/caddy/Caddyfile
-            - ~/.composer:/root/.composer:delegated
+            - ~/.composer:/root/.cache/composer:delegated
             - ytcg_caddy_data:/data
             - ytcg_caddy_config:/config
         tty: true
