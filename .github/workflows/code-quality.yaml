@@ -14,9 +14,6 @@ jobs:
         with:
           submodules: 'true'
 
-      - name: export buildx
-        run: export DOCKER_BUILDKIT=1
-
       - name: Setup castor
         uses: castor-php/setup-castor@v0.1.0
 

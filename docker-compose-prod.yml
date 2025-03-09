@@ -2,7 +2,7 @@ services:
     php:
         image: barlito/ytcg-php:${TAG}
         environment:
-            DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@ytcg_db:5432/ytcg_db?serverVersion=13&charset=utf8"
+            DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@ytcg_db:5432/ytcg?serverVersion=13&charset=utf8"
             JWT_PUBLIC_KEY: "${JWT_PUBLIC_KEY}"
             JWT_SECRET_KEY: "${JWT_SECRET_KEY}"
             JWT_PASSPHRASE: "${JWT_PASSPHRASE}"

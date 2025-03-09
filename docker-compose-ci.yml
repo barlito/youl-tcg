@@ -1,3 +1,10 @@
+services:
+    php:
+        container_name: ytcg_php
+
+    db:
+        container_name: ytcg_db
+
 networks:
     traefik_traefik_proxy:
         external: false
