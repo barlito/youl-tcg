@@ -30,7 +30,7 @@ class CardRepository extends ServiceEntityRepository
         $sql = 'SELECT id FROM card WHERE status = :status ORDER BY RANDOM() LIMIT :maxResult';
         $stmt = $conn->prepare($sql);
         $result = $stmt->executeQuery([
-            'status' => CardStatusEnum::DRAFT->value,
+            'status' => CardStatusEnum::PUBLISHED->value,
             'maxResult' => $maxResult,
         ]);
 
