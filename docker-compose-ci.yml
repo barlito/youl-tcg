@@ -1,11 +1,3 @@
-services:
-    php:
-        container_name: ytcg_php
-        image: barlito/ytcg-php:ci
-
-    db:
-        container_name: ytcg_db
-
 networks:
     traefik_traefik_proxy:
         external: false

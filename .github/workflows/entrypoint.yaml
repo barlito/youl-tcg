@@ -8,18 +8,12 @@ concurrency:
 
 jobs:
 
-  build-and-push:
-    uses: ./.github/workflows/build-and-push.yaml
-    secrets: inherit
-
   # Call the code-quality workflow
   code-quality:
-    needs: build-and-push
     uses: ./.github/workflows/code-quality.yaml
     secrets: inherit
 
   # Call the test workflow
   test:
-    needs: build-and-push
     uses: ./.github/workflows/test.yaml
     secrets: inherit

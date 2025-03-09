@@ -1,6 +1,6 @@
 services:
     php:
-        image: barlito/ytcg-php:development
+        image: barlito/ytcg-php
         build:
             context: .
             dockerfile: .docker/Dockerfile
