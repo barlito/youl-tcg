@@ -24,6 +24,9 @@ jobs:
       - name: Deploy stack
         run: make deploy.ci github_token=${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate JWT key pair
+        run: castor generate-jwt-key-pair
+
       - name: Run phpunit
         run: make phpunit
 

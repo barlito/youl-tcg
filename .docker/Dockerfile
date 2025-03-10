@@ -6,6 +6,7 @@ FROM frankenphp_upstream AS frankenphp_base
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnss3-tools \
     vim \
 	acl \
 #    supervisor \
@@ -25,7 +26,6 @@ RUN install-php-extensions \
 
 # https://getcomposer.org/doc/03-cli.md#composer-allow-superuser
 ENV COMPOSER_ALLOW_SUPERUSER=1
-ENV SERVER_NAME=":80"
 
 COPY --link .docker/php/app.ini $PHP_INI_DIR/conf.d/
 COPY --link .docker/franken/Caddyfile /etc/caddy/Caddyfile
