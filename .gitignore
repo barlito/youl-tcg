@@ -36,3 +36,7 @@
 /public/images/cards/
 !/public/images/cards/default_card.png
 ###< images ###
+
+###> Castor ###
+.castor.stub.php
+###< Castor ###

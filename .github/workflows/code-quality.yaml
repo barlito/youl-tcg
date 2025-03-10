@@ -1,6 +1,7 @@
 name: Code Quality Workflow
 
-on: workflow_call
+on:
+  workflow_call:
 
 jobs:
 
@@ -16,17 +17,10 @@ jobs:
       - name: Setup castor
         uses: castor-php/setup-castor@v0.1.0
 
-      -
-        name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-
       - name: Cache Composer Dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
-          path: ~/.composer/cache/files
+          path: ~/.composer/files
           key: composer-${{ hashFiles('**/composer.lock') }}
 
       - name: Deploy stack

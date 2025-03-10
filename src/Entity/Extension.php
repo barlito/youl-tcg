@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\Entity\ExtensionStatusEnum;
 use App\Repository\ExtensionRepository;
 use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -26,6 +27,9 @@ class Extension
 
     #[ORM\Column(type: 'text')]
     private string $description;
+
+    #[ORM\Column(options: ['default' => ExtensionStatusEnum::DRAFT])]
+    private ExtensionStatusEnum $status = ExtensionStatusEnum::DRAFT;
 
     #[Vich\UploadableField(mapping: 'cards', fileNameProperty: 'imageName')]
     private File $imageFile;
@@ -72,6 +76,18 @@ class Extension
     public function setDescription(string $description): static
     {
         $this->description = $description;
+
+        return $this;
+    }
+
+    public function getStatus(): ExtensionStatusEnum
+    {
+        return $this->status;
+    }
+
+    public function setStatus(ExtensionStatusEnum $status): Extension
+    {
+        $this->status = $status;
 
         return $this;
     }

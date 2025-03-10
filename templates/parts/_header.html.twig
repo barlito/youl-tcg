@@ -1,0 +1,22 @@
+<header class="w-full opacity-90 bg-gradient-to-b from-gray-900 to-transparent text-white">
+    <div class="p-2 mx-4">
+        <div class="flex justify-between">
+            <div class="flex items-center">
+                <img src="{{ asset('images/ytcg_logo.png') }}" alt="Logo" class="h-16 mr-4">
+                <h1 class="text-2xl font-bold">Youl TCG</h1>
+            </div>
+            <div class="flex space-x-4 items-center text-xl text-white">
+                {{ _self.nav_link('homepage', 'Home') }}
+                {{ _self.nav_link('extensions', 'Cards') }}
+                {{ _self.nav_link('boosters', 'Boosters') }}
+            </div>
+            <div class="flex space-x-4 items-center text-xl text-white font-extrabold">
+                <a href="#" class>{{ app.user.username }}</a>
+            </div>
+        </div>
+    </div>
+</header>
+
+{% macro nav_link(route, label) %}
+    <a href="{{ path(route) }}" class="{{ app.request.get('_route') == route ? 'active' : '' }}">{{ label }}</a>
+{% endmacro %}

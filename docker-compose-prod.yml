@@ -1,18 +1,15 @@
 services:
     php:
-        image: barlito/ytcg-php
-        build:
-            context: .
-            dockerfile: .docker/Dockerfile
-            target: frankenphp_dev
+        image: barlito/ytcg-php:${TAG}
         environment:
-            SERVER_NAME: ":80"
-        volumes:
-            - ./:/app
-            - ./.docker/franken/Caddyfile:/etc/caddy/Caddyfile
-            - ~/.composer:/root/.cache/composer:delegated
-            - ytcg_caddy_data:/data
-            - ytcg_caddy_config:/config
+            DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@ytcg_db:5432/ytcg?serverVersion=13&charset=utf8"
+            JWT_PUBLIC_KEY: "${JWT_PUBLIC_KEY}"
+            JWT_SECRET_KEY: "${JWT_SECRET_KEY}"
+            JWT_PASSPHRASE: "${JWT_PASSPHRASE}"
+        logging:
+            driver: loki
+            options:
+                loki-url: "http://176.31.100.99:3100/loki/api/v1/push"
         tty: true
         deploy:
             labels:
@@ -20,11 +17,11 @@ services:
 
                 - traefik.http.services.ytcg.loadbalancer.server.port=80
 
-                - traefik.http.routers.ytcg.rule=Host(`ytcg.local.barlito.fr`)
+                - traefik.http.routers.ytcg.rule=Host(`ytcg.barlito.fr`)
                 - traefik.http.routers.ytcg.entrypoints=http
-#                - traefik.http.routers.ytcg.middlewares=tls-redirectscheme
+                - traefik.http.routers.ytcg.middlewares=tls-redirectscheme
 
-                - traefik.http.routers.ytcg-secure.rule=Host(`ytcg.local.barlito.fr`)
+                - traefik.http.routers.ytcg-secure.rule=Host(`ytcg.barlito.fr`)
                 - traefik.http.routers.ytcg-secure.entrypoints=https
                 - traefik.http.routers.ytcg-secure.tls=true
         networks:
@@ -35,7 +32,6 @@ services:
         image: postgres:13
         environment:
             POSTGRES_PASSWORD: root
-            POSTGRES_DB: ytcg
         volumes:
             - ytcg_db_data:/var/lib/postgresql/data:rw
         healthcheck:
@@ -54,10 +50,10 @@ services:
 
                 - traefik.http.services.ytcg_adminer.loadbalancer.server.port=8080
 
-                - traefik.http.routers.ytcg_adminer.rule=Host(`ytcg-adminer.local.barlito.fr`)
+                - traefik.http.routers.ytcg_adminer.rule=Host(`ytcg-adminer.barlito.fr`)
                 - traefik.http.routers.ytcg_adminer.entrypoints=http
 
-                - traefik.http.routers.ytcg_adminer-secure.rule=Host(`ytcg-adminer.local.barlito.fr`)
+                - traefik.http.routers.ytcg_adminer-secure.rule=Host(`ytcg-adminer.barlito.fr`)
                 - traefik.http.routers.ytcg_adminer-secure.entrypoints=https
                 - traefik.http.routers.ytcg_adminer-secure.tls=true
         networks:
@@ -65,8 +61,6 @@ services:
             - traefik_traefik_proxy
 
 volumes:
-    ytcg_caddy_data:
-    ytcg_caddy_config:
     ytcg_db_data:
 
 networks:

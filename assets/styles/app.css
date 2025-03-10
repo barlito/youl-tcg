@@ -1,2 +1,7 @@
-body {
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.active{
+    @apply font-bold underline underline-offset-auto decoration-gray-600
 }

@@ -1,6 +1,8 @@
 services:
     php:
         container_name: ytcg_php
+        volumes:
+            - ~/.composer/cache/files:/root/.composer/cache/files
 
     db:
         container_name: ytcg_db
