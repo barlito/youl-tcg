@@ -4,7 +4,7 @@ framework:
     #csrf_protection: true
 
     # Trust Traefik reverse proxy
-    trusted_proxies: 'REMOTE_ADDR'
+#    trusted_proxies: 'REMOTE_ADDR'
 
     # Note that the session will be started ONLY if you read or write from it.
     session: true
