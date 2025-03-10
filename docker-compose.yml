@@ -35,6 +35,7 @@ services:
         image: postgres:13
         environment:
             POSTGRES_PASSWORD: root
+            POSTGRES_DB: ytcg
         volumes:
             - ytcg_db_data:/var/lib/postgresql/data:rw
         healthcheck:

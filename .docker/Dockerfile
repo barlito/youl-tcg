@@ -28,10 +28,7 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV SERVER_NAME=":80"
 
 COPY --link .docker/php/app.ini $PHP_INI_DIR/conf.d/
-COPY --link --chmod=755 .docker/franken/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
 COPY --link .docker/franken/Caddyfile /etc/caddy/Caddyfile
-
-ENTRYPOINT ["docker-entrypoint"]
 
 HEALTHCHECK --start-period=60s CMD curl -f http://localhost:2019/metrics || exit 1
 CMD [ "frankenphp", "run", "--config", "/etc/caddy/Caddyfile" ]
