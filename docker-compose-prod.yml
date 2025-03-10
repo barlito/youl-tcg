@@ -1,6 +1,8 @@
 services:
     php:
         image: barlito/youl-tcg:${TAG}
+        volumes:
+            - ytcg_caddy_data:/data
         environment:
             SERVER_NAME: "ytcg.barlito.fr"
             DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@ytcg_db:5432/ytcg?serverVersion=13&charset=utf8"
@@ -66,6 +68,7 @@ services:
 
 volumes:
     ytcg_db_data:
+    ytcg_caddy_data:
 
 networks:
     traefik_traefik_proxy:
