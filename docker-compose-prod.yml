@@ -20,11 +20,11 @@ services:
 
                 - traefik.http.services.ytcg.loadbalancer.server.port=80
 
-                - traefik.http.routers.ytcg.rule=Host(`ytcg.barlito.fr`)
+                - traefik.http.routers.ytcg.rule=Host(`ytcg-.barlito.fr`)
                 - traefik.http.routers.ytcg.entrypoints=http
                 - traefik.http.routers.ytcg.middlewares=tls-redirectscheme
 
-                - traefik.tcp.routers.ytcg-secure.rule=HostSNI(`ytcg.barlito.fr`)
+                - traefik.tcp.routers.ytcg-secure.rule=HostSNI(`ytcg-.barlito.fr`)
                 - traefik.tcp.routers.ytcg-secure.entrypoints=https
                 - traefik.tcp.routers.ytcg-secure.tls=true
                 - traefik.tcp.routers.ytcg-secure.tls.passthrough=true
