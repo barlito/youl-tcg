@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
-use App\Admin\Field\ImageField;
 use App\Entity\Extension;
+use App\Enum\Entity\ExtensionStatusEnum;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
-use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 
 /**
@@ -44,8 +43,8 @@ class ExtensionCrudController extends AbstractCrudController
         yield Field::new('id')->onlyOnDetail();
         yield Field::new('name');
         yield Field::new('description');
-        //        yield BooleanField::new('isUnique');
-        //        yield AssociationField::new('extension');
-        //        yield ImageField::new('imageFile');
+        yield ChoiceField::new('status')
+            ->setChoices(ExtensionStatusEnum::cases())
+        ;
     }
 }

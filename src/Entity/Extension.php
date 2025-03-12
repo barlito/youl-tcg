@@ -32,10 +32,10 @@ class Extension
     private ExtensionStatusEnum $status = ExtensionStatusEnum::DRAFT;
 
     #[Vich\UploadableField(mapping: 'cards', fileNameProperty: 'imageName')]
-    private File $imageFile;
+    private ?File $imageFile = null;
 
-    #[ORM\Column(type: 'string', length: 255)]
-    private string $imageName;
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $imageName = null;
 
     #[Assert\Valid]
     #[ORM\OneToMany(targetEntity: Card::class, mappedBy: 'extension')]

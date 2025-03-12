@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Admin\Field\ImageField as VichImageField;
 use App\Entity\Card;
+use App\Enum\Entity\CardStatusEnum;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -13,6 +14,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
@@ -71,7 +73,13 @@ class CardCrudController extends AbstractCrudController
         yield Field::new('id')->onlyOnDetail();
         yield Field::new('name');
         yield Field::new('description');
-        yield BooleanField::new('isUnique')->renderAsSwitch(false);
+        yield ChoiceField::new('status')
+            ->setChoices(CardStatusEnum::cases())
+        ;
+        yield BooleanField::new('unique')
+            ->setLabel('Unique Flag')
+            ->renderAsSwitch(false)
+        ;
         yield AssociationField::new('extension');
         yield VichImageField::new('imageFile')->onlyOnForms();
     }
