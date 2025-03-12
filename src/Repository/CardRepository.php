@@ -6,7 +6,9 @@ namespace App\Repository;
 
 use App\Entity\Card;
 use App\Enum\Entity\CardStatusEnum;
+use App\Enum\Entity\ExtensionStatusEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -26,14 +28,17 @@ class CardRepository extends ServiceEntityRepository
 
     public function findRandomCardId(int $maxResult): array
     {
-        $conn = $this->getEntityManager()->getConnection();
-        $sql = 'SELECT id FROM card WHERE status = :status ORDER BY RANDOM() LIMIT :maxResult';
-        $stmt = $conn->prepare($sql);
-        $result = $stmt->executeQuery([
-            'status' => CardStatusEnum::PUBLISHED->value,
-            'maxResult' => $maxResult,
-        ]);
-
-        return $result->fetchFirstColumn();
+        return $this->createQueryBuilder('c')
+            ->select('c.id')
+            ->join('c.extension', 'e')
+            ->andWhere('c.status = :status')
+            ->andWhere('e.status = :extensionStatus')
+            ->setParameter('status', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->setParameter('extensionStatus', ExtensionStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->orderBy('RANDOM()')
+            ->setMaxResults($maxResult)
+            ->getQuery()
+            ->getSingleColumnResult()
+        ;
     }
 }

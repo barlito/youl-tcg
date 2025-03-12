@@ -24,6 +24,9 @@ doctrine:
                 alias: App
         controller_resolver:
             auto_mapping: false
+        dql:
+            numeric_functions:
+                Random: App\Doctrine\DBAL\FunctionNode\Random
 
 when@test:
     doctrine:

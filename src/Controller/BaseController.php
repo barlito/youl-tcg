@@ -30,13 +30,13 @@ class BaseController extends AbstractController
     }
 
     #[Route('/extensions', name: 'extensions')]
-    public function extensions()
+    public function extensions(): Response
     {
         return $this->render('pages/coming_soon.html.twig');
     }
 
     #[Route('/boosters', name: 'boosters')]
-    public function boosters()
+    public function boosters(): Response
     {
         return $this->render('pages/coming_soon.html.twig');
     }
