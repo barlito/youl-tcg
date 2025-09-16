@@ -31,6 +31,6 @@
 	php_server
 
     tls {
-        alpn h2 h3
+        alpn h2
     }
 }
