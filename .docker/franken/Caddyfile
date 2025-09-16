@@ -1,6 +1,10 @@
 {
 	{$CADDY_GLOBAL_OPTIONS}
 
+  	servers {
+    	protocols h1 h2
+  	}
+
 	frankenphp {
 		{$FRANKENPHP_CONFIG}
 	}
