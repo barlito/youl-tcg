@@ -26,6 +26,7 @@ RUN install-php-extensions \
 
 # https://getcomposer.org/doc/03-cli.md#composer-allow-superuser
 ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV SERVER_NAME=":80"
 
 COPY --link .docker/php/app.ini $PHP_INI_DIR/conf.d/
 COPY --link .docker/franken/Caddyfile /etc/caddy/Caddyfile

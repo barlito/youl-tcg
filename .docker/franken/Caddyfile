@@ -12,7 +12,7 @@
 
 {$CADDY_EXTRA_CONFIG}
 
-{$SERVER_NAME} {
+{$SERVER_NAME:localhost} {
 	log {
 		# Redact the authorization query parameter that can be set by Mercure
 		format filter {
@@ -33,8 +33,4 @@
 	header ?Permissions-Policy "browsing-topics=()"
 
 	php_server
-
-    tls {
-        alpn h2
-    }
 }
