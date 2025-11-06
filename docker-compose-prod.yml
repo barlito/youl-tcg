@@ -5,7 +5,6 @@ services:
             - ytcg_caddy_data:/data
             - ytcg_public_data:/app/public/images
         environment:
-            SERVER_NAME: "ytcg.barlito.fr"
             DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@ytcg_db:5432/ytcg?serverVersion=13&charset=utf8"
             JWT_PUBLIC_KEY: "${JWT_PUBLIC_KEY}"
             JWT_SECRET_KEY: "${JWT_SECRET_KEY}"
@@ -23,13 +22,11 @@ services:
 
                 - traefik.http.routers.ytcg.rule=Host(`ytcg.barlito.fr`)
                 - traefik.http.routers.ytcg.entrypoints=http
-                - traefik.http.routers.ytcg.middlewares=tls-redirectscheme
 
-                - traefik.tcp.routers.ytcg-secure.rule=HostSNI(`ytcg.barlito.fr`)
-                - traefik.tcp.routers.ytcg-secure.entrypoints=https
-                - traefik.tcp.routers.ytcg-secure.tls=true
-                - traefik.tcp.routers.ytcg-secure.tls.passthrough=true
-                - traefik.tcp.services.ytcg-secure.loadbalancer.server.port=443
+                - traefik.http.routers.ytcg-secure.rule=Host(`ytcg.barlito.fr`)
+                - traefik.http.routers.ytcg-secure.entrypoints=https
+                - traefik.http.routers.ytcg-secure.tls=true
+                - traefik.http.routers.ytcg-secure.tls.certresolver=letsencrypt
         networks:
             - traefik_traefik_proxy
             - ytcg_internal
