@@ -39,3 +39,93 @@ App\Entity\Card:
         unique: true
         imageName: 'default_card.png'
         status: 2
+
+    # Additional Cyberpunk cards
+    card_cp_jackie:
+        name: 'Cyberpunk Jackie Welles'
+        extension: '@extension_cyberpunk'
+        description: 'Jackie Welles is a merc and V''s best friend in Night City.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2
+    card_cp_panam:
+        name: 'Cyberpunk Panam Palmer'
+        extension: '@extension_cyberpunk'
+        description: 'Panam is a nomad with a fierce attitude and expert driver.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2
+    card_cp_judy:
+        name: 'Cyberpunk Judy Alvarez'
+        extension: '@extension_cyberpunk'
+        description: 'Judy is a talented braindance technician living in Night City.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2
+    card_cp_takemura:
+        name: 'Cyberpunk Goro Takemura'
+        extension: '@extension_cyberpunk'
+        description: 'Takemura is a former Arasaka bodyguard.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2
+
+    # Additional Bleach cards
+    card_bleach_rukia:
+        name: 'Bleach Rukia Kuchiki'
+        extension: '@extension_bleach'
+        description: 'Rukia is a Soul Reaper who gives Ichigo his powers.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2
+    card_bleach_renji:
+        name: 'Bleach Renji Abarai'
+        extension: '@extension_bleach'
+        description: 'Renji is a lieutenant in the Gotei 13.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2
+    card_bleach_byakuya:
+        name: 'Bleach Byakuya Kuchiki'
+        extension: '@extension_bleach'
+        description: 'Byakuya is the captain of the 6th Division.'
+        unique: true
+        imageName: 'default_card.png'
+        status: 2
+    card_bleach_orihime:
+        name: 'Bleach Orihime Inoue'
+        extension: '@extension_bleach'
+        description: 'Orihime is a human with powerful healing abilities.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2
+
+    # Additional Magic cards
+    card_magic_wizard:
+        name: 'Magic Archmage Merlin'
+        extension: '@extension_magic'
+        description: 'Merlin is the most powerful wizard in the kingdom.'
+        unique: true
+        imageName: 'default_card.png'
+        status: 2
+    card_magic_knight:
+        name: 'Magic Knight Commander'
+        extension: '@extension_magic'
+        description: 'The commander of the royal knights.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2
+    card_magic_dragon:
+        name: 'Magic Ancient Dragon'
+        extension: '@extension_magic'
+        description: 'An ancient dragon protecting the kingdom.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2
+    card_magic_fairy:
+        name: 'Magic Forest Fairy'
+        extension: '@extension_magic'
+        description: 'A fairy with nature magic.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2

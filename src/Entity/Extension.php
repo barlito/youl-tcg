@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\DTO\BorderConfig\BorderConfigDTO;
 use App\Enum\Entity\ExtensionStatusEnum;
 use App\Repository\ExtensionRepository;
 use Barlito\Utils\Traits\IdUuidTrait;
@@ -36,6 +37,9 @@ class Extension
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $imageName = null;
+
+    #[ORM\Column(type: 'json', nullable: true, options: ['jsonb' => true])]
+    private ?BorderConfigDTO $borderConfig = null;
 
     #[Assert\Valid]
     #[ORM\OneToMany(targetEntity: Card::class, mappedBy: 'extension')]
@@ -119,6 +123,18 @@ class Extension
     public function getImageName(): ?string
     {
         return $this->imageName;
+    }
+
+    public function getBorderConfig(): ?BorderConfigDTO
+    {
+        return $this->borderConfig;
+    }
+
+    public function setBorderConfig(?BorderConfigDTO $borderConfig): static
+    {
+        $this->borderConfig = $borderConfig;
+
+        return $this;
     }
 
     /**

@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\Extension;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Form\BorderConfig\BorderConfigType;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -45,6 +46,12 @@ class ExtensionCrudController extends AbstractCrudController
         yield Field::new('description');
         yield ChoiceField::new('status')
             ->setChoices(ExtensionStatusEnum::cases())
+        ;
+
+        yield Field::new('borderConfig', 'Bordure par défaut')
+            ->setFormType(BorderConfigType::class)
+            ->setHelp('Configuration de la bordure par défaut pour toutes les cartes de cette extension')
+            ->onlyOnForms()
         ;
     }
 }

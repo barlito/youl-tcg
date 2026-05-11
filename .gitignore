@@ -35,6 +35,9 @@
 ###> images ###
 /public/images/cards/
 !/public/images/cards/default_card.png
+/public/images/masks/
+/public/images/foils/
+/public/images/extensions/
 ###< images ###
 
 ###> Castor ###

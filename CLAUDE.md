@@ -258,3 +258,8 @@ All JWT listeners must:
 - **Docker Swarm** is used (not docker-compose), use `docker stack` or Make rules
 - **AssetMapper** handles frontend assets; no npm build needed
 - **Custom ImageField** required for VichUploader in EasyAdmin; don't use default ImageField
+
+## TODO
+
+- [ ] Add healthcheck to PHP service in docker-compose-prod.yml
+- [ ] Add PHPStan to CI/CD pipeline

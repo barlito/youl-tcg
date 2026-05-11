@@ -33,10 +33,14 @@ class DiscordUser implements UserInterface
     #[ORM\OneToMany(mappedBy: 'discordUser', targetEntity: UserBooster::class)]
     private Collection $userBoosters;
 
+    #[ORM\OneToMany(mappedBy: 'discordUser', targetEntity: BoosterOpening::class)]
+    private Collection $boosterOpenings;
+
     public function __construct()
     {
         $this->userCards = new ArrayCollection();
         $this->userBoosters = new ArrayCollection();
+        $this->boosterOpenings = new ArrayCollection();
     }
 
     public function getDiscordId(): string

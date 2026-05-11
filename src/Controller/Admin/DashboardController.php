@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\Card;
 use App\Entity\Extension;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
@@ -35,6 +36,13 @@ class DashboardController extends AbstractDashboardController
             ->setTitle('YTCG Admin')
             ->setFaviconPath('ytcg_logo.png')
             ->renderContentMaximized()
+        ;
+    }
+
+    public function configureAssets(): Assets
+    {
+        return Assets::new()
+            ->addAssetMapperEntry('app')
         ;
     }
 

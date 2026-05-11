@@ -1,0 +1,764 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Test - Card Borders{% endblock %}
+
+{% block importmap %}
+    {{ parent() }}
+    {{ importmap('card') }}
+{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-12 px-4">
+    <div class="container mx-auto">
+        <h1 class="text-4xl font-bold text-white mb-8 text-center">Test Bordures de Cartes</h1>
+
+        <!-- Advanced Controls -->
+        <div class="bg-slate-800 rounded-lg p-6 mb-8 max-w-4xl mx-auto">
+            <h2 class="text-2xl font-bold text-white mb-6">🎨 Personnalisation Avancée</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <!-- Left Column -->
+                <div class="space-y-4">
+
+                    <!-- Colors -->
+                    <div class="bg-slate-900 p-4 rounded-lg">
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="block text-white font-semibold">Couleurs du gradient</label>
+                            <button id="addColor" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm">
+                                + Ajouter
+                            </button>
+                        </div>
+                        <div id="colorsList" class="space-y-2">
+                            <!-- Colors will be added here dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Gradient Angle -->
+                    <div class="bg-slate-900 p-4 rounded-lg">
+                        <label class="block text-white font-semibold mb-2">Angle du gradient</label>
+                        <input type="range" id="gradientAngle" min="0" max="360" value="135" class="w-full">
+                        <span id="gradientAngleValue" class="text-white">135°</span>
+                    </div>
+
+                    <!-- Border Width -->
+                    <div class="bg-slate-900 p-4 rounded-lg">
+                        <label class="block text-white font-semibold mb-2">Épaisseur bordure</label>
+                        <input type="range" id="borderWidth" min="1" max="20" value="4" class="w-full">
+                        <span id="borderWidthValue" class="text-white">4px</span>
+                    </div>
+
+                    <!-- Border Radius -->
+                    <div class="bg-slate-900 p-4 rounded-lg">
+                        <label class="block text-white font-semibold mb-2">Rayon des coins</label>
+                        <input type="range" id="borderRadius" min="0" max="50" value="16" class="w-full">
+                        <span id="borderRadiusValue" class="text-white">16px</span>
+                    </div>
+
+                </div>
+
+                <!-- Right Column -->
+                <div class="space-y-4">
+
+                    <!-- Glow Effect -->
+                    <div class="bg-slate-900 p-4 rounded-lg">
+                        <div class="flex items-center mb-3">
+                            <input type="checkbox" id="glowEnabled" class="mr-2 w-5 h-5">
+                            <label class="text-white font-semibold">Effet Glow</label>
+                        </div>
+                        <div id="glowControls" class="space-y-3 opacity-50">
+                            <div>
+                                <label class="block text-white text-sm mb-2">Intensité</label>
+                                <input type="range" id="glowIntensity" min="0" max="100" value="50" class="w-full" disabled>
+                                <span id="glowIntensityValue" class="text-white">50%</span>
+                            </div>
+                            <div>
+                                <label class="block text-white text-sm mb-2">Couleur du glow</label>
+                                <input type="color" id="glowColor" value="#9333ea" class="w-full h-10 rounded" disabled>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="glowHeartbeat" class="mr-2 w-4 h-4" disabled>
+                                <label class="text-white text-sm">✨ Animation Pulse (respiration)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fade Out Effect -->
+                    <div class="bg-slate-900 p-4 rounded-lg">
+                        <div class="flex items-center mb-3">
+                            <input type="checkbox" id="fadeEnabled" class="mr-2 w-5 h-5">
+                            <label class="text-white font-semibold">Fade Out</label>
+                        </div>
+                        <div id="fadeControls" class="space-y-3 opacity-50">
+                            <div>
+                                <label class="block text-white text-sm mb-2">Direction du fade</label>
+                                <input type="range" id="fadeDirection" min="0" max="360" value="135" class="w-full" disabled>
+                                <span id="fadeDirectionValue" class="text-white">135°</span>
+                                <p class="text-xs text-gray-400 mt-1">Indépendant de l'angle du gradient</p>
+                            </div>
+                            <div>
+                                <label class="block text-white text-sm mb-2">Position de départ (%)</label>
+                                <input type="range" id="fadeStart" min="0" max="100" value="50" class="w-full" disabled>
+                                <span id="fadeStartValue" class="text-white">50%</span>
+                                <p class="text-xs text-gray-400 mt-1">Où commence le fade (0% = début, 100% = fin)</p>
+                            </div>
+                            <div>
+                                <label class="block text-white text-sm mb-2">Longueur du fade (%)</label>
+                                <input type="range" id="fadeLength" min="10" max="100" value="50" class="w-full" disabled>
+                                <span id="fadeLengthValue" class="text-white">50%</span>
+                                <p class="text-xs text-gray-400 mt-1">Longueur de la zone de transition</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Export Config -->
+                    <div class="bg-slate-900 p-4 rounded-lg">
+                        <label class="block text-white font-semibold mb-2">Configuration JSON</label>
+                        <button id="exportConfig" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded">
+                            📋 Copier la config
+                        </button>
+                        <pre id="configOutput" class="mt-2 bg-slate-950 text-green-400 p-3 rounded text-xs overflow-x-auto hidden"></pre>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid of examples -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+            <!-- 1. Bordure simple solide -->
+            <div class="text-center">
+                <h3 class="text-xl font-bold text-white mb-4">1. Bordure Simple</h3>
+                <div class="inline-block">
+                    <div class="border-example-1 card-container">
+                        {% if card %}
+                            <img src="/images/cards/{{ card.imageName }}" alt="{{ card.name }}" class="w-full h-auto">
+                        {% endif %}
+                    </div>
+                </div>
+                <p class="text-gray-400 mt-2 text-sm">Bordure solide classique</p>
+            </div>
+
+            <!-- 2. Bordure gradient linéaire -->
+            <div class="text-center">
+                <h3 class="text-xl font-bold text-white mb-4">2. Gradient Linéaire</h3>
+                <div class="inline-block">
+                    <div class="border-example-2 card-container">
+                        {% if card %}
+                            <img src="/images/cards/{{ card.imageName }}" alt="{{ card.name }}" class="w-full h-auto">
+                        {% endif %}
+                    </div>
+                </div>
+                <p class="text-gray-400 mt-2 text-sm">Gradient 2 couleurs</p>
+            </div>
+
+            <!-- 3. Bordure gradient radial -->
+            <div class="text-center">
+                <h3 class="text-xl font-bold text-white mb-4">3. Gradient Radial</h3>
+                <div class="inline-block">
+                    <div class="border-example-3 card-container">
+                        {% if card %}
+                            <img src="/images/cards/{{ card.imageName }}" alt="{{ card.name }}" class="w-full h-auto">
+                        {% endif %}
+                    </div>
+                </div>
+                <p class="text-gray-400 mt-2 text-sm">Effet spot lumineux</p>
+            </div>
+
+            <!-- 4. Bordure avec glow -->
+            <div class="text-center">
+                <h3 class="text-xl font-bold text-white mb-4">4. Glow Effect</h3>
+                <div class="inline-block">
+                    <div class="border-example-4 card-container">
+                        {% if card %}
+                            <img src="/images/cards/{{ card.imageName }}" alt="{{ card.name }}" class="w-full h-auto">
+                        {% endif %}
+                    </div>
+                </div>
+                <p class="text-gray-400 mt-2 text-sm">Lueur externe animée</p>
+            </div>
+
+            <!-- 5. Bordure fade out -->
+            <div class="text-center">
+                <h3 class="text-xl font-bold text-white mb-4">5. Fade Out</h3>
+                <div class="inline-block">
+                    <div class="border-example-5 card-container">
+                        {% if card %}
+                            <img src="/images/cards/{{ card.imageName }}" alt="{{ card.name }}" class="w-full h-auto">
+                        {% endif %}
+                    </div>
+                </div>
+                <p class="text-gray-400 mt-2 text-sm">Bordure qui s'estompe</p>
+            </div>
+
+            <!-- 6. Multi-gradient rainbow -->
+            <div class="text-center">
+                <h3 class="text-xl font-bold text-white mb-4">6. Rainbow</h3>
+                <div class="inline-block">
+                    <div class="border-example-6 card-container">
+                        {% if card %}
+                            <img src="/images/cards/{{ card.imageName }}" alt="{{ card.name }}" class="w-full h-auto">
+                        {% endif %}
+                    </div>
+                </div>
+                <p class="text-gray-400 mt-2 text-sm">Gradient multi-couleurs</p>
+            </div>
+
+            <!-- 7. Double bordure -->
+            <div class="text-center">
+                <h3 class="text-xl font-bold text-white mb-4">7. Double Bordure</h3>
+                <div class="inline-block">
+                    <div class="border-example-7 card-container">
+                        {% if card %}
+                            <img src="/images/cards/{{ card.imageName }}" alt="{{ card.name }}" class="w-full h-auto">
+                        {% endif %}
+                    </div>
+                </div>
+                <p class="text-gray-400 mt-2 text-sm">Effet double encadrement</p>
+            </div>
+
+            <!-- 8. Bordure avec pattern -->
+            <div class="text-center">
+                <h3 class="text-xl font-bold text-white mb-4">8. Pattern</h3>
+                <div class="inline-block">
+                    <div class="border-example-8 card-container">
+                        {% if card %}
+                            <img src="/images/cards/{{ card.imageName }}" alt="{{ card.name }}" class="w-full h-auto">
+                        {% endif %}
+                    </div>
+                </div>
+                <p class="text-gray-400 mt-2 text-sm">Motif répétitif</p>
+            </div>
+
+            <!-- 9. Bordure personnalisable -->
+            <div class="text-center">
+                <h3 class="text-xl font-bold text-white mb-4">9. Personnalisable ⚡</h3>
+                <div class="inline-block">
+                    <div id="customBorder" class="border-example-custom card-container">
+                        {% if card %}
+                            <img src="/images/cards/{{ card.imageName }}" alt="{{ card.name }}" class="w-full h-auto">
+                        {% endif %}
+                    </div>
+                </div>
+                <p class="text-gray-400 mt-2 text-sm">Utilise les contrôles ci-dessus</p>
+            </div>
+
+        </div>
+
+        <!-- Code examples -->
+        <div class="mt-12 bg-slate-800 rounded-lg p-6 max-w-4xl mx-auto">
+            <h2 class="text-2xl font-bold text-white mb-4">Exemples de Code CSS</h2>
+
+            <div class="space-y-4 text-sm">
+                <div class="bg-slate-900 p-4 rounded">
+                    <p class="text-purple-400 font-mono mb-2">/* 1. Bordure simple */</p>
+                    <pre class="text-gray-300 font-mono">border: 4px solid #9333ea;
+border-radius: 16px;</pre>
+                </div>
+
+                <div class="bg-slate-900 p-4 rounded">
+                    <p class="text-purple-400 font-mono mb-2">/* 2. Gradient linéaire */</p>
+                    <pre class="text-gray-300 font-mono">border: 4px solid transparent;
+background: linear-gradient(white, white) padding-box,
+            linear-gradient(135deg, #9333ea, #ec4899) border-box;
+border-radius: 16px;</pre>
+                </div>
+
+                <div class="bg-slate-900 p-4 rounded">
+                    <p class="text-purple-400 font-mono mb-2">/* 4. Glow effect avec pulse */</p>
+                    <pre class="text-gray-300 font-mono">border: 4px solid #9333ea;
+box-shadow: 0 0 20px #9333ea,
+            0 0 40px #9333ea80,
+            inset 0 0 10px #9333ea40;
+animation: pulse-glow 2s ease-in-out infinite;
+
+@keyframes pulse-glow {
+  0%, 100% { /* glow normal */ }
+  50% { /* glow intense */ }
+}</pre>
+                </div>
+
+                <div class="bg-slate-900 p-4 rounded">
+                    <p class="text-purple-400 font-mono mb-2">/* 5. Fade out avec mask */</p>
+                    <pre class="text-gray-300 font-mono">border: 8px solid;
+border-image: linear-gradient(135deg,
+    #9333ea, #ec4899, transparent) 1;
+border-radius: 16px;</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card-container {
+    width: 300px;
+    max-width: 100%;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.card-container:hover {
+    transform: scale(1.05);
+}
+
+/* 1. Bordure simple solide */
+.border-example-1 {
+    border: 4px solid #9333ea;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+/* 2. Bordure gradient linéaire */
+.border-example-2 {
+    border: 4px solid transparent;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, #9333ea, #ec4899) border-box;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+/* 3. Bordure gradient radial */
+.border-example-3 {
+    border: 4px solid transparent;
+    background: linear-gradient(white, white) padding-box,
+                radial-gradient(circle at top left, #9333ea, #ec4899, #f59e0b) border-box;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+/* 4. Bordure avec glow animé */
+.border-example-4 {
+    border: 4px solid #9333ea;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 0 20px #9333ea,
+                0 0 40px rgba(147, 51, 234, 0.5),
+                inset 0 0 10px rgba(147, 51, 234, 0.25);
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 20px #9333ea,
+                    0 0 40px rgba(147, 51, 234, 0.5),
+                    inset 0 0 10px rgba(147, 51, 234, 0.25);
+    }
+    50% {
+        box-shadow: 0 0 30px #9333ea,
+                    0 0 60px rgba(147, 51, 234, 0.8),
+                    inset 0 0 20px rgba(147, 51, 234, 0.5);
+    }
+}
+
+/* 5. Bordure fade out */
+.border-example-5 {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.border-example-5::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    padding: 4px;
+    background: linear-gradient(135deg, #9333ea, #ec4899, transparent);
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}
+
+/* 6. Rainbow multi-gradient */
+.border-example-6 {
+    border: 4px solid transparent;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(90deg, #f59e0b, #ef4444, #ec4899, #9333ea, #3b82f6, #10b981, #f59e0b) border-box;
+    border-radius: 16px;
+    overflow: hidden;
+    animation: rainbow-rotate 3s linear infinite;
+    background-size: 200% 100%;
+}
+
+@keyframes rainbow-rotate {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+}
+
+/* 7. Double bordure */
+.border-example-7 {
+    border: 2px solid #9333ea;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 0 0 6px rgba(147, 51, 234, 0.3),
+                inset 0 0 0 2px rgba(236, 72, 153, 0.5);
+}
+
+/* 8. Pattern avec repeating-linear-gradient */
+.border-example-8 {
+    border: 6px solid transparent;
+    background: linear-gradient(white, white) padding-box,
+                repeating-linear-gradient(45deg, #9333ea 0px, #9333ea 10px, #ec4899 10px, #ec4899 20px) border-box;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+/* 9. Bordure personnalisable (géré dynamiquement en JS via ::before) */
+.border-example-custom {
+    /* Styles gérés dynamiquement */
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // State
+    const state = {
+        colors: ['#9333ea', '#ec4899'],
+        angle: 135,
+        width: 4,
+        radius: 16,
+        glow: {
+            enabled: false,
+            intensity: 50,
+            color: '#9333ea',
+            pulse: false
+        },
+        fade: {
+            enabled: false,
+            start: 50,
+            length: 50,
+            direction: 135
+        }
+    };
+
+    // Elements
+    const colorsList = document.getElementById('colorsList');
+    const addColorBtn = document.getElementById('addColor');
+    const customBorder = document.getElementById('customBorder');
+
+    const gradientAngleInput = document.getElementById('gradientAngle');
+    const gradientAngleValue = document.getElementById('gradientAngleValue');
+    const borderWidthInput = document.getElementById('borderWidth');
+    const borderWidthValue = document.getElementById('borderWidthValue');
+    const borderRadiusInput = document.getElementById('borderRadius');
+    const borderRadiusValue = document.getElementById('borderRadiusValue');
+
+    const glowEnabled = document.getElementById('glowEnabled');
+    const glowControls = document.getElementById('glowControls');
+    const glowIntensity = document.getElementById('glowIntensity');
+    const glowIntensityValue = document.getElementById('glowIntensityValue');
+    const glowColor = document.getElementById('glowColor');
+    const glowHeartbeat = document.getElementById('glowHeartbeat');
+
+    const fadeEnabled = document.getElementById('fadeEnabled');
+    const fadeControls = document.getElementById('fadeControls');
+    const fadeDirection = document.getElementById('fadeDirection');
+    const fadeDirectionValue = document.getElementById('fadeDirectionValue');
+    const fadeStart = document.getElementById('fadeStart');
+    const fadeStartValue = document.getElementById('fadeStartValue');
+    const fadeLength = document.getElementById('fadeLength');
+    const fadeLengthValue = document.getElementById('fadeLengthValue');
+
+    const exportConfigBtn = document.getElementById('exportConfig');
+    const configOutput = document.getElementById('configOutput');
+
+    // Initialize colors list
+    function renderColors() {
+        colorsList.innerHTML = '';
+        state.colors.forEach((color, index) => {
+            const colorItem = document.createElement('div');
+            colorItem.className = 'flex items-center gap-2';
+            colorItem.innerHTML = `
+                <span class="text-white text-sm w-8">#${index + 1}</span>
+                <input type="color" value="${color}" class="flex-1 h-10 rounded cursor-pointer" data-index="${index}">
+                ${state.colors.length > 2 ? `
+                    <button class="remove-color bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded" data-index="${index}">
+                        ×
+                    </button>
+                ` : ''}
+            `;
+            colorsList.appendChild(colorItem);
+        });
+
+        // Add event listeners
+        document.querySelectorAll('#colorsList input[type="color"]').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                state.colors[index] = e.target.value;
+                updateBorder();
+            });
+        });
+
+        document.querySelectorAll('.remove-color').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                state.colors.splice(index, 1);
+                renderColors();
+                updateBorder();
+            });
+        });
+    }
+
+    // Add color
+    addColorBtn.addEventListener('click', () => {
+        if (state.colors.length < 6) {
+            state.colors.push('#3b82f6');
+            renderColors();
+            updateBorder();
+        }
+    });
+
+    // Gradient angle
+    gradientAngleInput.addEventListener('input', (e) => {
+        state.angle = parseInt(e.target.value);
+        gradientAngleValue.textContent = state.angle + '°';
+        updateBorder();
+    });
+
+    // Border width
+    borderWidthInput.addEventListener('input', (e) => {
+        state.width = parseInt(e.target.value);
+        borderWidthValue.textContent = state.width + 'px';
+        updateBorder();
+    });
+
+    // Border radius
+    borderRadiusInput.addEventListener('input', (e) => {
+        state.radius = parseInt(e.target.value);
+        borderRadiusValue.textContent = state.radius + 'px';
+        updateBorder();
+    });
+
+    // Glow controls
+    glowEnabled.addEventListener('change', (e) => {
+        state.glow.enabled = e.target.checked;
+        glowControls.classList.toggle('opacity-50', !state.glow.enabled);
+        glowIntensity.disabled = !state.glow.enabled;
+        glowColor.disabled = !state.glow.enabled;
+        glowHeartbeat.disabled = !state.glow.enabled;
+        updateBorder();
+    });
+
+    glowIntensity.addEventListener('input', (e) => {
+        state.glow.intensity = parseInt(e.target.value);
+        glowIntensityValue.textContent = state.glow.intensity + '%';
+        updateBorder();
+    });
+
+    glowColor.addEventListener('input', (e) => {
+        state.glow.color = e.target.value;
+        updateBorder();
+    });
+
+    glowHeartbeat.addEventListener('change', (e) => {
+        state.glow.pulse = e.target.checked;
+        updateBorder();
+    });
+
+    // Fade controls
+    fadeEnabled.addEventListener('change', (e) => {
+        state.fade.enabled = e.target.checked;
+        fadeControls.classList.toggle('opacity-50', !state.fade.enabled);
+        fadeDirection.disabled = !state.fade.enabled;
+        fadeStart.disabled = !state.fade.enabled;
+        fadeLength.disabled = !state.fade.enabled;
+        updateBorder();
+    });
+
+    fadeDirection.addEventListener('input', (e) => {
+        state.fade.direction = parseInt(e.target.value);
+        fadeDirectionValue.textContent = state.fade.direction + '°';
+        updateBorder();
+    });
+
+    fadeStart.addEventListener('input', (e) => {
+        state.fade.start = parseInt(e.target.value);
+        fadeStartValue.textContent = state.fade.start + '%';
+        updateBorder();
+    });
+
+    fadeLength.addEventListener('input', (e) => {
+        state.fade.length = parseInt(e.target.value);
+        fadeLengthValue.textContent = state.fade.length + '%';
+        updateBorder();
+    });
+
+    // Export config
+    exportConfigBtn.addEventListener('click', () => {
+        const config = {
+            type: 'gradient',
+            colors: state.colors,
+            width: state.width,
+            radius: state.radius,
+            angle: state.angle,
+            glow: state.glow.enabled ? {
+                enabled: true,
+                intensity: state.glow.intensity,
+                color: state.glow.color,
+                pulse: state.glow.pulse
+            } : { enabled: false },
+            fade: state.fade.enabled ? {
+                enabled: true,
+                start: state.fade.start,
+                length: state.fade.length,
+                direction: state.fade.direction
+            } : { enabled: false }
+        };
+
+        const json = JSON.stringify(config, null, 2);
+        configOutput.textContent = json;
+        configOutput.classList.remove('hidden');
+
+        // Copy to clipboard
+        navigator.clipboard.writeText(json).then(() => {
+            exportConfigBtn.textContent = '✅ Copié !';
+            setTimeout(() => {
+                exportConfigBtn.textContent = '📋 Copier la config';
+            }, 2000);
+        });
+    });
+
+    // Update border style using ::before pseudo-element
+    function updateBorder() {
+        // Build gradient with colors (using gradient angle)
+        const gradient = `linear-gradient(${state.angle}deg, ${state.colors.join(', ')})`;
+
+        // Create dynamic styles for ::before pseudo-element
+        const styleId = 'dynamic-border-styles';
+        let styleEl = document.getElementById(styleId);
+
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = styleId;
+            document.head.appendChild(styleEl);
+        }
+
+        // Build mask for fade effect
+        let maskStyles = '';
+        if (state.fade.enabled) {
+            const fadeStartPercent = state.fade.start;
+            const fadeEndPercent = Math.min(100, fadeStartPercent + state.fade.length);
+
+            const maskGradient = `linear-gradient(${state.fade.direction}deg,
+                black 0%,
+                black ${fadeStartPercent}%,
+                transparent ${fadeEndPercent}%)`;
+
+            maskStyles = `
+                -webkit-mask-image: ${maskGradient};
+                mask-image: ${maskGradient};
+            `;
+        }
+
+        // Create border using ::before pseudo-element
+        styleEl.textContent = `
+            #customBorder {
+                position: relative;
+                display: inline-block;
+            }
+
+            #customBorder::before {
+                content: '';
+                position: absolute;
+                top: -${state.width}px;
+                left: -${state.width}px;
+                right: -${state.width}px;
+                bottom: -${state.width}px;
+                background: ${gradient};
+                border-radius: ${state.radius}px;
+                z-index: -1;
+                ${maskStyles}
+            }
+
+            #customBorder img {
+                display: block;
+                position: relative;
+                z-index: 1;
+                border-radius: ${Math.max(0, state.radius - state.width)}px;
+            }
+        `;
+
+        // Apply glow to ::before
+        let glowStyles = '';
+        if (state.glow.enabled) {
+            const glowSize = (state.glow.intensity / 100) * 60;
+
+            const normalShadow = `
+                0 0 ${glowSize * 0.5}px ${state.glow.color},
+                0 0 ${glowSize}px ${state.glow.color}80
+            `;
+
+            if (state.glow.pulse) {
+                // Create pulse keyframes
+                const pulseStyleId = 'dynamic-pulse-keyframes';
+                let pulseStyleEl = document.getElementById(pulseStyleId);
+
+                if (!pulseStyleEl) {
+                    pulseStyleEl = document.createElement('style');
+                    pulseStyleEl.id = pulseStyleId;
+                    document.head.appendChild(pulseStyleEl);
+                }
+
+                const peakShadow = `
+                    0 0 ${glowSize * 0.75}px ${state.glow.color},
+                    0 0 ${glowSize * 1.5}px ${state.glow.color}cc
+                `;
+
+                pulseStyleEl.textContent = `
+                    @keyframes dynamic-pulse {
+                        0%, 100% { box-shadow: ${normalShadow}; }
+                        50% { box-shadow: ${peakShadow}; }
+                    }
+                `;
+
+                glowStyles = `
+                    box-shadow: ${normalShadow};
+                    animation: dynamic-pulse 2s ease-in-out infinite;
+                `;
+            } else {
+                glowStyles = `
+                    box-shadow: ${normalShadow};
+                `;
+            }
+        }
+
+        // Update ::before with glow
+        styleEl.textContent = `
+            #customBorder {
+                position: relative;
+                display: inline-block;
+            }
+
+            #customBorder::before {
+                content: '';
+                position: absolute;
+                top: -${state.width}px;
+                left: -${state.width}px;
+                right: -${state.width}px;
+                bottom: -${state.width}px;
+                background: ${gradient};
+                border-radius: ${state.radius}px;
+                z-index: -1;
+                ${maskStyles}
+                ${glowStyles}
+            }
+
+            #customBorder img {
+                display: block;
+                position: relative;
+                z-index: 1;
+                border-radius: ${Math.max(0, state.radius - state.width)}px;
+            }
+        `;
+    }
+
+    // Initialize
+    renderColors();
+    updateBorder();
+});
+</script>
+{% endblock %}

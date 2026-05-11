@@ -34,10 +34,4 @@ class BaseController extends AbstractController
     {
         return $this->render('pages/coming_soon.html.twig');
     }
-
-    #[Route('/boosters', name: 'boosters')]
-    public function boosters(): Response
-    {
-        return $this->render('pages/coming_soon.html.twig');
-    }
 }

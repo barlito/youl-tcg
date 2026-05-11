@@ -1,0 +1,18 @@
+App\Entity\Booster:
+    booster_cyberpunk:
+        extension: '@extension_cyberpunk'
+        price: 100
+        quantity: 3
+        imageName: 'default_card.png'
+
+    booster_bleach:
+        extension: '@extension_bleach'
+        price: 100
+        quantity: 3
+        imageName: 'default_card.png'
+
+    booster_magic:
+        extension: '@extension_magic'
+        price: 150
+        quantity: 3
+        imageName: 'default_card.png'

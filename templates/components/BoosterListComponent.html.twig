@@ -1,0 +1,190 @@
+<div {{ attributes }}>
+    <!-- Hero Section -->
+    <section class="relative h-[40vh] overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-purple-900 via-slate-900 to-indigo-900"></div>
+        <div class="absolute inset-0 bg-[url('{{ asset('images/ytcg_background.png') }}')] bg-cover bg-center opacity-20"></div>
+
+        <div class="relative container mx-auto h-full flex flex-col justify-center items-center text-center px-4">
+            <h1 class="text-6xl font-bold text-white mb-4" style="text-shadow: 2px 2px 10px rgba(0,0,0,0.5)">
+                Boosters
+            </h1>
+            <p class="text-xl text-purple-200 mb-8">Ouvrez des boosters et collectionnez des cartes rares !</p>
+
+            <!-- Free Openings Counter -->
+            <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-2xl border border-purple-500/30 max-w-md w-full">
+                <div class="flex items-center justify-between">
+                    <div class="text-left">
+                        <p class="text-sm text-gray-400 uppercase tracking-wide">Ouvertures gratuites</p>
+                        <p class="text-3xl font-bold text-white mt-1">
+                            <span class="text-purple-400">{{ this.remainingOpenings }}</span>/2
+                        </p>
+                    </div>
+
+                    {% if this.nextAvailableTime %}
+                        <div class="text-right">
+                            <p class="text-sm text-gray-400 uppercase tracking-wide">Prochain dans</p>
+                            <p class="text-2xl font-bold text-white mt-1"
+                               data-controller="countdown"
+                               data-countdown-target-value="{{ this.nextAvailableTime.format('c') }}">--:--:--</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if this.remainingOpenings > 0 %}
+                    <div class="mt-4 bg-green-500/20 text-green-400 text-sm py-2 px-3 rounded-lg text-center border border-green-500/30">
+                        ✨ Vous pouvez ouvrir {{ this.remainingOpenings }} booster{{ this.remainingOpenings > 1 ? 's' : '' }} !
+                    </div>
+                {% else %}
+                    <div class="mt-4 bg-orange-500/20 text-orange-400 text-sm py-2 px-3 rounded-lg text-center border border-orange-500/30">
+                        ⏳ Revenez plus tard pour ouvrir plus de boosters
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Boosters Grid -->
+    <main class="py-12 bg-gradient-to-b from-slate-900 to-slate-950 min-h-screen">
+        <div class="container mx-auto px-4">
+            {% if this.boosters is empty %}
+                <div class="bg-slate-800/50 backdrop-blur-sm p-12 rounded-2xl text-center border border-slate-700">
+                    <div class="text-6xl mb-4">📦</div>
+                    <p class="text-white text-2xl font-bold mb-2">Aucun booster disponible</p>
+                    <p class="text-gray-400">Revenez bientôt pour découvrir de nouveaux boosters !</p>
+                </div>
+            {% else %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {% for booster in this.boosters %}
+                        <div class="group relative">
+                            <!-- Glow effect on hover -->
+                            <div class="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl opacity-0 group-hover:opacity-75 transition duration-300 blur"></div>
+
+                            <div class="relative bg-slate-800 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 transform group-hover:-translate-y-2">
+                                <!-- Extension Image -->
+                                <div class="relative h-48 overflow-hidden bg-gradient-to-br from-purple-900 to-indigo-900">
+                                    {% if booster.extension.imageName %}
+                                        <img src="{{ asset('images/extensions/' ~ booster.extension.imageName) }}"
+                                             alt="{{ booster.extension.name }}"
+                                             class="w-full h-full object-cover opacity-60"
+                                             onerror="this.style.display='none'">
+                                    {% endif %}
+                                    <div class="absolute inset-0 bg-gradient-to-t from-slate-800 to-transparent"></div>
+                                    <div class="absolute bottom-4 left-4 right-4">
+                                        <h3 class="text-2xl font-bold text-white">{{ booster.extension.name }}</h3>
+                                    </div>
+                                </div>
+
+                                <!-- Content -->
+                                <div class="p-6">
+                                    <p class="text-gray-400 mb-4 line-clamp-2">{{ booster.extension.description }}</p>
+
+                                    <!-- Stats -->
+                                    <div class="flex items-center justify-between mb-4 text-sm">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-purple-400">🎴</span>
+                                            <span class="text-white font-semibold">{{ booster.quantity }} cartes</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-yellow-400">💰</span>
+                                            <span class="text-green-400 font-bold">{{ booster.price }} YC</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Open Button -->
+                                    <button
+                                        data-action="live#action"
+                                        data-live-action-param="openBooster"
+                                        data-live-booster-id-param="{{ booster.id }}"
+                                        class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:hover:scale-100"
+                                        {% if this.remainingOpenings == 0 %}disabled{% endif %}
+                                    >
+                                        <span data-loading="hide">
+                                            {% if this.remainingOpenings > 0 %}
+                                                ✨ Ouvrir gratuitement
+                                            {% else %}
+                                                🔒 Aucune ouverture disponible
+                                            {% endif %}
+                                        </span>
+                                        <span data-loading="show" class="hidden">
+                                            <svg class="animate-spin h-5 w-5 mx-auto inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Modal -->
+    {% if showModal %}
+        <div class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn"
+             data-action="click->live#action"
+             data-live-action-param="closeModal">
+            <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto border border-purple-500/30 transition-all duration-300 scale-100 opacity-100"
+                 data-action="click->live#$stopPropagation">
+                <!-- Header -->
+                <div class="sticky top-0 bg-gradient-to-r from-purple-900 to-pink-900 p-6 rounded-t-2xl z-10">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-3xl font-bold text-white">🎉 Félicitations !</h2>
+                            <p class="text-purple-200 mt-1">Voici vos cartes obtenues</p>
+                        </div>
+                        <button data-action="live#action"
+                                data-live-action-param="closeModal"
+                                class="text-white hover:text-purple-300 transition-colors">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cards Container -->
+                <div class="p-8 grid grid-cols-1 md:grid-cols-3 gap-6" data-controller="card-init">
+                    {% for card in openedCards %}
+                        <div class="transform transition-all duration-300 hover:scale-105">
+                            <div class="bg-gray-500 rounded-lg shadow-lg p-4">
+                                <div id="card-{{ card.id }}-{{ random() }}" class="card interactive">
+                                    <div class="card__translater">
+                                        <div class="card__rotator">
+                                            <div class="card__front">
+                                                <img src="/images/cards/{{ card.imageName }}"
+                                                     alt="{{ card.name }}"
+                                                     onerror="this.src='/images/cards/default_card.png'">
+                                                <div class="card__shine"></div>
+                                                <div class="card__glare"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 text-center">
+                                    <h3 class="text-xl font-bold text-white">{{ card.name }}</h3>
+                                    {% if card.uniqueFlag %}
+                                        <span class="inline-block mt-2 px-3 py-1 bg-yellow-500 text-yellow-900 text-xs font-bold rounded-full">★ UNIQUE ★</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Footer -->
+                <div class="sticky bottom-0 bg-slate-800/95 backdrop-blur-sm p-6 rounded-b-2xl border-t border-slate-700">
+                    <div class="text-center">
+                        <p class="text-gray-300 mb-2">Ouvertures gratuites restantes</p>
+                        <p class="text-3xl font-bold">
+                            <span class="text-purple-400">{{ this.remainingOpenings }}</span>
+                            <span class="text-white">/2</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>

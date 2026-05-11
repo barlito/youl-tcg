@@ -7,8 +7,10 @@ namespace App\Controller\Admin;
 use App\Admin\Field\ImageField as VichImageField;
 use App\Entity\Card;
 use App\Enum\Entity\CardStatusEnum;
+use App\Form\BorderConfig\BorderConfigType;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
@@ -49,6 +51,12 @@ class CardCrudController extends AbstractCrudController
         ;
     }
 
+    public function configureAssets(Assets $assets): Assets
+    {
+        return $assets
+            ->addAssetMapperEntry('app');
+    }
+
     public function configureActions(Actions $actions): Actions
     {
         return $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
@@ -82,5 +90,11 @@ class CardCrudController extends AbstractCrudController
         ;
         yield AssociationField::new('extension');
         yield VichImageField::new('imageFile')->onlyOnForms();
+
+        yield Field::new('borderConfig', 'Override bordure')
+            ->setFormType(BorderConfigType::class)
+            ->setHelp('Laissez vide pour utiliser la bordure par défaut de l\'extension')
+            ->onlyOnForms()
+        ;
     }
 }

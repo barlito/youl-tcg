@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\DTO\BorderConfig\BorderConfigDTO;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\CardRepository;
 use Barlito\Utils\Traits\IdUuidTrait;
@@ -57,6 +58,9 @@ class Card
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $imageFoilName = null;
+
+    #[ORM\Column(type: 'json', nullable: true, options: ['jsonb' => true])]
+    private ?BorderConfigDTO $borderConfig = null;
 
     public function getName(): string
     {
@@ -189,7 +193,7 @@ class Card
      */
     public function setFoilImageFile(?File $imageFoilFile = null): void
     {
-        $this->imageMaskFile = $imageFoilFile;
+        $this->imageFoilFile = $imageFoilFile;
 
         if (null !== $imageFoilFile) {
             // It is required that at least one field changes if you are using doctrine
@@ -211,5 +215,17 @@ class Card
     public function getImageFoilName(): ?string
     {
         return $this->imageFoilName;
+    }
+
+    public function getBorderConfig(): ?BorderConfigDTO
+    {
+        return $this->borderConfig;
+    }
+
+    public function setBorderConfig(?BorderConfigDTO $borderConfig): static
+    {
+        $this->borderConfig = $borderConfig;
+
+        return $this;
     }
 }

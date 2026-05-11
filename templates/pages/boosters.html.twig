@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+    YTCG - Boosters
+{% endblock %}
+
+{% block importmap %}
+    {{ parent() }}
+    {{ importmap('card') }}
+{% endblock %}
+
+{% block body %}
+    {{ component('BoosterListComponent') }}
+{% endblock %}
