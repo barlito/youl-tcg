@@ -16,10 +16,6 @@ return [
         'path' => './assets/app.js',
         'entrypoint' => true,
     ],
-    'card' => [
-        'path' => './assets/scripts/card/card.js',
-        'entrypoint' => true,
-    ],
     'flowbite' => [
         'version' => '3.1.2',
     ],

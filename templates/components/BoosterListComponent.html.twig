@@ -142,11 +142,11 @@
                 </div>
 
                 <!-- Cards Container -->
-                <div class="p-8 grid grid-cols-1 md:grid-cols-3 gap-6" data-controller="card-init">
+                <div class="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
                     {% for card in openedCards %}
                         <div class="transform transition-all duration-300 hover:scale-105">
                             <div class="bg-gray-500 rounded-lg shadow-lg p-4">
-                                <div id="card-{{ card.id }}-{{ random() }}" class="card interactive">
+                                <div id="card-{{ card.id }}-{{ random() }}" class="card interactive" data-controller="card">
                                     <div class="card__translater">
                                         <div class="card__rotator">
                                             <div class="card__front">
