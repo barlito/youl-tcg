@@ -1,63 +1,85 @@
-# barlito/php-starter
+# Youl TCG
+
+A Trading Card Game web app set in the Youls universe. Users authenticate
+via Discord SSO, open booster packs, build a collection, and trade cards
+with other players.
 
 [![Starter workflow](https://github.com/barlito/php-starter/actions/workflows/symfony_starter.yaml/badge.svg?branch=master)](https://github.com/barlito/php-starter/actions/workflows/symfony_starter.yaml)
 
-Todo : 
-- Add phpstan 
-- Add rector 
-- Add a disabled GitHub workflow for deployment
+## Stack
 
-Requirements
--------
-- [barlito/traefik-base](https://github.com/barlito/traefik-base)
+- **Backend:** Symfony 7.2 (PHP 8.2+), Doctrine ORM 3, PostgreSQL 13
+- **Frontend:** AssetMapper (no npm build), Tailwind, Flowbite, Stimulus,
+  Symfony UX Live Components
+- **Auth:** Discord OAuth2 + JWT cookie (via [Lexik JWT Bundle](https://github.com/lexik/LexikJWTAuthenticationBundle))
+- **Admin:** EasyAdmin 4
+- **Runtime:** FrankenPHP behind Traefik, deployed as a Docker Swarm stack
+  (`ytcg`) using [barlito/traefik-base](https://github.com/barlito/traefik-base)
+
+## Requirements
+
 - [Castor](https://castor.jolicode.com/)
+- Docker (Swarm-capable host)
+- [barlito/traefik-base](https://github.com/barlito/traefik-base) deployed
+  so the `traefik_traefik_proxy` external network exists
 
-Description
--------
+## Getting started
 
-This project allow to install a Symfony skeleton app and run a swarm stack
-using [barlito/traefik-base](https://github.com/barlito/traefik-base).
+```bash
+# 1. Bring up the stack (php, db, adminer)
+make docker.deploy
 
-The project use also [barlito/php-make-rules](https://github.com/barlito/php-make-rules)
-as a submodule and use all Make rules available in the repository.
+# 2. Install dependencies (run inside the container)
+docker exec -it $(docker ps --filter name=ytcg_php -q) composer install
 
-[Castor](https://castor.jolicode.com/) is used with alongside Makefile ro handle
-specific tasks.
+# 3. Generate JWT keys
+castor generate-jwt-key-pair
 
-php-starter project aim to help devs to build and deploy
-a Symfony applications easily.
-It provides a good base with quality & tests tools installed and ready to use.
+# 4. Create the DB and run migrations
+make db.create
+make db.migration
 
-How to use
--------
-
-### Setup
-- Remove .git folder and init a new one
+# 5. Load fixtures (dev only)
+make db.fixtures.load
 ```
-  rm -rf .git \ 
-  git init
+
+The app is then served on `https://ytcg.local.barlito.fr` (configure your
+hosts file or DNS).
+
+## Development workflow
+
+```bash
+# Code quality (cs-fix + cs-check + phpmd + phpstan)
+make quality
+
+# Tests
+make test
+
+# Create a new Doctrine migration after entity changes
+make db.diff
 ```
-- Run castor `set-stack-name` command to set up the stack name, image name,
-router labels and project URL in Makefile, Castor main file and docker-compose
+
+See [CLAUDE.md](./CLAUDE.md) for the full developer guide (architecture
+deep dive, domain model, conventions, gotchas).
+
+## Project layout
+
 ```
-  castor barlito:castor:set-stack-name my_stack_name
-``` 
+src/
+├─ Entity/                  Doctrine entities (anemic by design)
+├─ Enum/                    Status, rarity, type enums
+├─ Repository/              Doctrine repositories
+├─ Domain/                  Pure-PHP business logic (testable, no Doctrine)
+├─ Application/             Orchestrators that touch the DB and events
+├─ Controller/              HTTP entry points
+├─ Twig/Components/         Live + Twig Components
+├─ EventListener/           JWT auth flow listeners
+└─ Service/                 Cross-cutting utilities
+```
 
-### Installing Symfony
-- To install symfony you need first to deploy the stack:  
-  `make docker.deploy`
-- Then you need to install Symfony:  
-  `make symfony.install`
+## Repository conventions
 
-Now if you go to your project URL, you should get the Symfony welcome page.
-
-### Dev Deploy
-- You can deploy only the stack with:   
-  `make docker.deploy`   
-This rule will only deploy the docker stack from the docker-compose.yml.
-
-- You can deploy with a composer install, db creation,
-doctrine migration and fixtures with:  
-  `make deploy`   
-Before run this rule you will need to set up the doctrine bundle,
-connection to the DB in env and a fixtures bundle.
+- Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, etc.)
+- PSR-12 via PHP CS Fixer (config in `vendor/barlito/utils`)
+- PHPStan level 6 (config in `phpstan.dist.neon`)
+- Migrations are committed; never edit a migration already on master

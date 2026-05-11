@@ -222,7 +222,8 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 ### Modifying Card Display
 
 - **CSS changes**: Edit `assets/styles/cards/base.css`
-- **JavaScript interactions**: Edit `assets/scripts/card/card.js`
+- **JavaScript interactions**: Edit `assets/controllers/card_controller.js`
+  (Stimulus controller auto-attached via `data-controller="card"`)
 - **Template structure**: Edit `templates/components/CardComponent.html.twig`
 - **Card selection logic**: Modify `CardRepository::findRandomCardId()`
 
@@ -236,15 +237,17 @@ All JWT listeners must:
 
 ### Testing Strategy
 
-- Unit tests in `tests/Unit/` (if applicable)
-- Functional tests in `tests/Functional/`
-- Test database uses SQLite memory for speed
+- Unit tests in `tests/Unit/` (pure PHP, no Doctrine — for `src/Domain/`)
+- Functional tests in `tests/Functional/` (Symfony WebTestCase + Foundry)
+- Test database is the same Postgres instance as dev — override
+  `DATABASE_URL` in `.env.test.local` to point at a separate test DB
 - PHPUnit configured in `phpunit.xml.dist`
 
 ### Code Quality Standards
 
 - PSR-12 coding standard via PHP CS Fixer
 - PHPMD ruleset from `vendor/barlito/utils/config/phpmd.xml`
+- PHPStan level 6 (config in `phpstan.dist.neon`)
 - Declare strict types: `declare(strict_types=1);`
 - Use typed properties and return types
 - Enum over constants for fixed value sets
@@ -262,4 +265,5 @@ All JWT listeners must:
 ## TODO
 
 - [ ] Add healthcheck to PHP service in docker-compose-prod.yml
-- [ ] Add PHPStan to CI/CD pipeline
+- [ ] Wire PHPStan into the GitHub Actions workflow (the local `make quality`
+      runs it; CI doesn't yet)
