@@ -9,10 +9,6 @@ services:
             JWT_PUBLIC_KEY: "${JWT_PUBLIC_KEY}"
             JWT_SECRET_KEY: "${JWT_SECRET_KEY}"
             JWT_PASSPHRASE: "${JWT_PASSPHRASE}"
-        logging:
-            driver: loki
-            options:
-                loki-url: "http://176.31.100.99:3100/loki/api/v1/push"
         tty: true
         deploy:
             labels:
