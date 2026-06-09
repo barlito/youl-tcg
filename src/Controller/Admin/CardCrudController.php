@@ -54,7 +54,8 @@ class CardCrudController extends AbstractCrudController
     public function configureAssets(Assets $assets): Assets
     {
         return $assets
-            ->addAssetMapperEntry('app');
+            ->addAssetMapperEntry('app')
+        ;
     }
 
     public function configureActions(Actions $actions): Actions
