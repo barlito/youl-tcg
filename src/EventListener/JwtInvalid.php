@@ -18,9 +18,9 @@ use Symfony\Component\Security\Core\Exception\UserNotFoundException;
 readonly class JwtInvalid
 {
     public function __construct(
-        private readonly EntityManagerInterface $entityManager,
-        private readonly TokenExtractorInterface $tokenExtractor,
-        private readonly JWTTokenManagerInterface $jwtManager,
+        private EntityManagerInterface $entityManager,
+        private TokenExtractorInterface $tokenExtractor,
+        private JWTTokenManagerInterface $jwtManager,
     ) {
     }
 
@@ -38,7 +38,7 @@ readonly class JwtInvalid
         }
 
         if ($event->getException()->getPrevious() instanceof UserNotFoundException) {
-            $user = (new DiscordUser())
+            $user = new DiscordUser()
                 ->setDiscordId($payload['discordId'])
                 ->setUsername($payload['username'])
                 ->setRoles($payload['roles'])

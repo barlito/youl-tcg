@@ -6,22 +6,13 @@ namespace App\Twig\Extension;
 
 use App\Entity\Card;
 use App\Service\BorderService;
-use Twig\Extension\AbstractExtension;
-use Twig\TwigFunction;
+use Twig\Attribute\AsTwigFunction;
 
-class BorderExtension extends AbstractExtension
+class BorderExtension
 {
     public function __construct(
         private readonly BorderService $borderService,
     ) {
-    }
-
-    public function getFunctions(): array
-    {
-        return [
-            new TwigFunction('card_border_css', [$this, 'getCardBorderCSS'], ['is_safe' => ['html']]),
-            new TwigFunction('card_border_config', [$this, 'getCardBorderConfig']),
-        ];
     }
 
     /**
@@ -30,6 +21,7 @@ class BorderExtension extends AbstractExtension
      * Usage in Twig:
      * <style>{{ card_border_css(card, 'my-card-id') }}</style>
      */
+    #[AsTwigFunction(name: 'card_border_css', isSafe: ['html'])]
     public function getCardBorderCSS(Card $card, string $elementId = 'card-border'): string
     {
         return $this->borderService->generateInlineCSS($card, $elementId);
@@ -41,6 +33,7 @@ class BorderExtension extends AbstractExtension
      * Usage in Twig:
      * {% set borderConfig = card_border_config(card) %}
      */
+    #[AsTwigFunction(name: 'card_border_config')]
     public function getCardBorderConfig(Card $card): array
     {
         $config = $this->borderService->resolveBorderConfig($card);

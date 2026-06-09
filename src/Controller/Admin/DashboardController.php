@@ -22,11 +22,13 @@ class DashboardController extends AbstractDashboardController
     }
 
     #[Route('/admin', name: 'admin')]
+    #[\Override]
     public function index(): Response
     {
         return $this->redirect($this->adminUrlGenerator->setController(CardCrudController::class)->generateUrl());
     }
 
+    #[\Override]
     public function configureDashboard(): Dashboard
     {
         return Dashboard::new()
@@ -36,6 +38,7 @@ class DashboardController extends AbstractDashboardController
         ;
     }
 
+    #[\Override]
     public function configureAssets(): Assets
     {
         return Assets::new()
@@ -43,6 +46,7 @@ class DashboardController extends AbstractDashboardController
         ;
     }
 
+    #[\Override]
     public function configureMenuItems(): iterable
     {
         yield MenuItem::linkToDashboard('Dashboard', 'fa fa-home');

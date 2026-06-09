@@ -17,8 +17,8 @@ readonly class JwtNotFound
 {
     public function __construct(
         #[Autowire(env: 'REFRESH_TOKEN_URL')]
-        private readonly string $refreshTokenUrl,
-        private readonly UrlGeneratorInterface $urlGenerator,
+        private string $refreshTokenUrl,
+        private UrlGeneratorInterface $urlGenerator,
     ) {
     }
 

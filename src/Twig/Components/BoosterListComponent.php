@@ -71,14 +71,12 @@ final class BoosterListComponent extends AbstractController
             $cards = $this->boosterService->openBooster($user, $booster);
 
             // Transform cards to array for LiveProp
-            $this->openedCards = array_map(function (Card $card) {
-                return [
-                    'id' => $card->getId(),
-                    'name' => $card->getName(),
-                    'imageName' => $card->getImageName(),
-                    'uniqueFlag' => $card->isUnique(),
-                ];
-            }, $cards);
+            $this->openedCards = array_map(fn (Card $card): array => [
+                'id' => $card->getId(),
+                'name' => $card->getName(),
+                'imageName' => $card->getImageName(),
+                'uniqueFlag' => $card->isUnique(),
+            ], $cards);
 
             $this->showModal = true;
         } catch (\RuntimeException $e) {

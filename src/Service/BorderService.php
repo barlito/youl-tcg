@@ -16,12 +16,12 @@ class BorderService
     public function resolveBorderConfig(Card $card): BorderConfigDTO
     {
         // 1. Try card override
-        if (null !== $card->getBorderConfig()) {
+        if ($card->getBorderConfig() instanceof BorderConfigDTO) {
             return $card->getBorderConfig();
         }
 
         // 2. Try extension default
-        if ($card->getExtension() && null !== $card->getExtension()->getBorderConfig()) {
+        if ($card->getExtension() && $card->getExtension()->getBorderConfig() instanceof BorderConfigDTO) {
             return $card->getExtension()->getBorderConfig();
         }
 

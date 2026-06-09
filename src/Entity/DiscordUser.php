@@ -27,13 +27,13 @@ class DiscordUser implements UserInterface
     #[ORM\Column]
     private array $roles = [];
 
-    #[ORM\OneToMany(mappedBy: 'discordUser', targetEntity: UserCard::class)]
+    #[ORM\OneToMany(targetEntity: UserCard::class, mappedBy: 'discordUser')]
     private Collection $userCards;
 
-    #[ORM\OneToMany(mappedBy: 'discordUser', targetEntity: UserBooster::class)]
+    #[ORM\OneToMany(targetEntity: UserBooster::class, mappedBy: 'discordUser')]
     private Collection $userBoosters;
 
-    #[ORM\OneToMany(mappedBy: 'discordUser', targetEntity: BoosterOpening::class)]
+    #[ORM\OneToMany(targetEntity: BoosterOpening::class, mappedBy: 'discordUser')]
     private Collection $boosterOpenings;
 
     public function __construct()

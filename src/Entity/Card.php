@@ -39,7 +39,7 @@ class Card
     #[Assert\Valid]
     #[Assert\NotBlank]
     #[ORM\ManyToOne(fetch: 'EAGER', inversedBy: 'cards')]
-    private ?Extension $extension;
+    private ?Extension $extension = null;
 
     #[Vich\UploadableField(mapping: 'cards', fileNameProperty: 'imageName')]
     private ?File $imageFile = null;
@@ -162,7 +162,7 @@ class Card
     {
         $this->imageMaskFile = $imageMaskFile;
 
-        if (null !== $imageMaskFile) {
+        if ($imageMaskFile instanceof File) {
             // It is required that at least one field changes if you are using doctrine
             // otherwise the event listeners won't be called and the file is lost
             $this->updatedAt = new \DateTimeImmutable();
@@ -195,7 +195,7 @@ class Card
     {
         $this->imageFoilFile = $imageFoilFile;
 
-        if (null !== $imageFoilFile) {
+        if ($imageFoilFile instanceof File) {
             // It is required that at least one field changes if you are using doctrine
             // otherwise the event listeners won't be called and the file is lost
             $this->updatedAt = new \DateTimeImmutable();

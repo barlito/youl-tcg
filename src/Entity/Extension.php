@@ -17,7 +17,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 #[ORM\Entity(repositoryClass: ExtensionRepository::class)]
-class Extension
+class Extension implements \Stringable
 {
     use IdUuidTrait;
     use TimestampableEntity;
@@ -157,11 +157,9 @@ class Extension
 
     public function removeCard(Card $card): static
     {
-        if ($this->cards->removeElement($card)) {
-            // set the owning side to null (unless already changed)
-            if ($card->getExtension() === $this) {
-                $card->setExtension(null);
-            }
+        // set the owning side to null (unless already changed)
+        if ($this->cards->removeElement($card) && $card->getExtension() === $this) {
+            $card->setExtension(null);
         }
 
         return $this;
@@ -187,11 +185,9 @@ class Extension
 
     public function removeBooster(Booster $booster): static
     {
-        if ($this->boosters->removeElement($booster)) {
-            // set the owning side to null (unless already changed)
-            if ($booster->getExtension() === $this) {
-                $booster->setExtension(null);
-            }
+        // set the owning side to null (unless already changed)
+        if ($this->boosters->removeElement($booster) && $booster->getExtension() === $this) {
+            $booster->setExtension(null);
         }
 
         return $this;

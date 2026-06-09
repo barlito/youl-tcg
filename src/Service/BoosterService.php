@@ -18,8 +18,8 @@ use Doctrine\ORM\EntityManagerInterface;
 
 class BoosterService
 {
-    private const MAX_FREE_BOOSTERS_PER_DAY = 2;
-    private const FREE_BOOSTER_RESET_HOURS = 24;
+    private const int MAX_FREE_BOOSTERS_PER_DAY = 2;
+    private const int FREE_BOOSTER_RESET_HOURS = 24;
 
     public function __construct(
         private readonly BoosterOpeningRepository $boosterOpeningRepository,
@@ -62,7 +62,7 @@ class BoosterService
         // Find the oldest opening in the last 24 hours
         $oldestOpening = $this->boosterOpeningRepository->getOldestOpeningInLast24Hours($user);
 
-        if (null === $oldestOpening) {
+        if (!$oldestOpening instanceof BoosterOpening) {
             return null;
         }
 
@@ -102,7 +102,7 @@ class BoosterService
             // Generate 3 random cards from the booster's extension with seeded RNG
             $cards = $this->generateRandomCards($booster, 3);
 
-            if (empty($cards)) {
+            if ([] === $cards) {
                 throw new \RuntimeException('No cards available in this booster extension');
             }
 
