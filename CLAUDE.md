@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Youl TCG** is a Trading Card Game (TCG) application built with Symfony 7.2. Users authenticate via Discord OAuth2 and can view/collect trading cards organized into extensions. The application features advanced 3D interactive card rendering with JavaScript-based animations.
+**Youl TCG** is a Trading Card Game (TCG) application built with Symfony 7.4. Users authenticate via Discord OAuth2 and can view/collect trading cards organized into extensions. The application features advanced 3D interactive card rendering with JavaScript-based animations.
 
 ## Development Environment
 
 ### Stack & Tools
-- **Framework:** Symfony 7.2 (PHP 8.2+)
-- **Database:** PostgreSQL 13 (production), SQLite (dev)
+- **Framework:** Symfony 7.4 (PHP 8.4)
+- **Database:** PostgreSQL 18 (dev & production)
 - **Web Server:** FrankenPHP (Caddy-based)
 - **Authentication:** JWT (cookie-based) + Discord OAuth2
 - **Admin Panel:** EasyAdminBundle 4.11
@@ -247,7 +247,7 @@ All JWT listeners must:
 
 - PSR-12 coding standard via PHP CS Fixer
 - PHPMD ruleset from `vendor/barlito/utils/config/phpmd.xml`
-- PHPStan level 6 (config in `phpstan.dist.neon`)
+- PHPStan level 8 via la config partagée barlito/utils (`phpstan.dist.neon` + `phpstan-baseline.neon` pour la dette héritée)
 - Declare strict types: `declare(strict_types=1);`
 - Use typed properties and return types
 - Enum over constants for fixed value sets
@@ -264,6 +264,6 @@ All JWT listeners must:
 
 ## TODO
 
-- [ ] Add healthcheck to PHP service in docker-compose-prod.yml
-- [ ] Wire PHPStan into the GitHub Actions workflow (the local `make quality`
-      runs it; CI doesn't yet)
+- [x] Healthcheck PHP : porté par le `HEALTHCHECK` du Dockerfile (utilisé par
+      Swarm pour le rolling update avec rollback)
+- [x] PHPStan branché dans le workflow GitHub Actions (code-quality)

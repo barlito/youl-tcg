@@ -8,7 +8,7 @@ with other players.
 
 ## Stack
 
-- **Backend:** Symfony 7.2 (PHP 8.2+), Doctrine ORM 3, PostgreSQL 13
+- **Backend:** Symfony 7.4 (PHP 8.4), Doctrine ORM 3, PostgreSQL 18
 - **Frontend:** AssetMapper (no npm build), Tailwind, Flowbite, Stimulus,
   Symfony UX Live Components
 - **Auth:** Discord OAuth2 + JWT cookie (via [Lexik JWT Bundle](https://github.com/lexik/LexikJWTAuthenticationBundle))
