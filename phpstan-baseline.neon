@@ -1,0 +1,151 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Method App\\\\Admin\\\\Field\\\\ImageField\\:\\:new\\(\\) has parameter \\$label with no type specified\\.$#"
+			count: 1
+			path: src/Admin/Field/ImageField.php
+
+		-
+			message: "#^Property App\\\\DTO\\\\BorderConfig\\\\BorderConfigDTO\\:\\:\\$colors type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/DTO/BorderConfig/BorderConfigDTO.php
+
+		-
+			message: "#^Method App\\\\Entity\\\\Booster\\:\\:getHoloRate\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Entity/Booster.php
+
+		-
+			message: "#^Method App\\\\Entity\\\\Booster\\:\\:getRarityRate\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Entity/Booster.php
+
+		-
+			message: "#^Method App\\\\Entity\\\\Booster\\:\\:setHoloRate\\(\\) has parameter \\$holoRate with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Entity/Booster.php
+
+		-
+			message: "#^Method App\\\\Entity\\\\Booster\\:\\:setRarityRate\\(\\) has parameter \\$rarityRate with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Entity/Booster.php
+
+		-
+			message: "#^Property App\\\\Entity\\\\Booster\\:\\:\\$holoRate type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Entity/Booster.php
+
+		-
+			message: "#^Property App\\\\Entity\\\\Booster\\:\\:\\$rarityRate type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Entity/Booster.php
+
+		-
+			message: "#^Property App\\\\Entity\\\\Booster\\:\\:\\$updatedAt \\(DateTime\\|null\\) does not accept DateTimeImmutable\\.$#"
+			count: 1
+			path: src/Entity/Booster.php
+
+		-
+			message: "#^Method App\\\\Entity\\\\BoosterOpening\\:\\:getBoosterOpeningCards\\(\\) return type with generic interface Doctrine\\\\Common\\\\Collections\\\\Collection does not specify its types\\: TKey, T$#"
+			count: 1
+			path: src/Entity/BoosterOpening.php
+
+		-
+			message: "#^Property App\\\\Entity\\\\BoosterOpening\\:\\:\\$boosterOpeningCards with generic interface Doctrine\\\\Common\\\\Collections\\\\Collection does not specify its types\\: TKey, T$#"
+			count: 1
+			path: src/Entity/BoosterOpening.php
+
+		-
+			message: "#^Property App\\\\Entity\\\\Card\\:\\:\\$updatedAt \\(DateTime\\|null\\) does not accept DateTimeImmutable\\.$#"
+			count: 3
+			path: src/Entity/Card.php
+
+		-
+			message: "#^Method App\\\\Entity\\\\DiscordUser\\:\\:getUserBoosters\\(\\) return type with generic interface Doctrine\\\\Common\\\\Collections\\\\Collection does not specify its types\\: TKey, T$#"
+			count: 1
+			path: src/Entity/DiscordUser.php
+
+		-
+			message: "#^Method App\\\\Entity\\\\DiscordUser\\:\\:getUserCards\\(\\) return type with generic interface Doctrine\\\\Common\\\\Collections\\\\Collection does not specify its types\\: TKey, T$#"
+			count: 1
+			path: src/Entity/DiscordUser.php
+
+		-
+			message: "#^Method App\\\\Entity\\\\DiscordUser\\:\\:setRoles\\(\\) has parameter \\$roles with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Entity/DiscordUser.php
+
+		-
+			message: "#^Property App\\\\Entity\\\\DiscordUser\\:\\:\\$boosterOpenings with generic interface Doctrine\\\\Common\\\\Collections\\\\Collection does not specify its types\\: TKey, T$#"
+			count: 1
+			path: src/Entity/DiscordUser.php
+
+		-
+			message: "#^Property App\\\\Entity\\\\DiscordUser\\:\\:\\$roles type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Entity/DiscordUser.php
+
+		-
+			message: "#^Property App\\\\Entity\\\\DiscordUser\\:\\:\\$userBoosters with generic interface Doctrine\\\\Common\\\\Collections\\\\Collection does not specify its types\\: TKey, T$#"
+			count: 1
+			path: src/Entity/DiscordUser.php
+
+		-
+			message: "#^Property App\\\\Entity\\\\DiscordUser\\:\\:\\$userCards with generic interface Doctrine\\\\Common\\\\Collections\\\\Collection does not specify its types\\: TKey, T$#"
+			count: 1
+			path: src/Entity/DiscordUser.php
+
+		-
+			message: "#^Parameter \\#1 \\$extension of method App\\\\Entity\\\\Booster\\:\\:setExtension\\(\\) expects App\\\\Entity\\\\Extension, null given\\.$#"
+			count: 1
+			path: src/Entity/Extension.php
+
+		-
+			message: "#^Parameter \\#1 \\$extension of method App\\\\Entity\\\\Card\\:\\:setExtension\\(\\) expects App\\\\Entity\\\\Extension, null given\\.$#"
+			count: 1
+			path: src/Entity/Extension.php
+
+		-
+			message: "#^Property App\\\\Entity\\\\Extension\\:\\:\\$boosters with generic interface Doctrine\\\\Common\\\\Collections\\\\Collection does not specify its types\\: TKey, T$#"
+			count: 1
+			path: src/Entity/Extension.php
+
+		-
+			message: "#^Property App\\\\Entity\\\\Extension\\:\\:\\$cards with generic interface Doctrine\\\\Common\\\\Collections\\\\Collection does not specify its types\\: TKey, T$#"
+			count: 1
+			path: src/Entity/Extension.php
+
+		-
+			message: "#^Property App\\\\Entity\\\\Extension\\:\\:\\$updatedAt \\(DateTime\\|null\\) does not accept DateTimeImmutable\\.$#"
+			count: 1
+			path: src/Entity/Extension.php
+
+		-
+			message: "#^Method App\\\\Repository\\\\CardRepository\\:\\:findRandomCardId\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repository/CardRepository.php
+
+		-
+			message: "#^Left side of && is always true\\.$#"
+			count: 1
+			path: src/Service/BorderService.php
+
+		-
+			message: "#^Method App\\\\Service\\\\BorderService\\:\\:generateBorderStyles\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Service/BorderService.php
+
+		-
+			message: "#^Method App\\\\Twig\\\\Components\\\\BoosterListComponent\\:\\:getBoosters\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Twig/Components/BoosterListComponent.php
+
+		-
+			message: "#^Property App\\\\Twig\\\\Components\\\\BoosterListComponent\\:\\:\\$openedCards type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Twig/Components/BoosterListComponent.php
+
+		-
+			message: "#^Method App\\\\Twig\\\\Extension\\\\BorderExtension\\:\\:getCardBorderConfig\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Twig/Extension/BorderExtension.php
