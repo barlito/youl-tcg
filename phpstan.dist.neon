@@ -1,13 +1,12 @@
 includes:
-    - vendor/phpstan/phpstan-symfony/extension.neon
-    - vendor/phpstan/phpstan-doctrine/extension.neon
+    - vendor/barlito/utils/config/phpstan.neon
     - phpstan-baseline.neon
 
 parameters:
-    level: 6
     paths:
         - src
+
     excludePaths:
         - src/Kernel.php
-    bootstrapFiles:
-        - vendor/autoload.php
+
+    tmpDir: var/cache/phpstan

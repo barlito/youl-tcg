@@ -126,6 +126,9 @@
             "config/packages/nelmio_alice.yaml"
         ]
     },
+    "phpstan/phpstan": {
+        "version": "2.2.2"
+    },
     "phpunit/phpunit": {
         "version": "9.6",
         "recipe": {
@@ -277,6 +280,18 @@
             "bin/phpunit",
             "phpunit.xml.dist",
             "tests/bootstrap.php"
+        ]
+    },
+    "symfony/property-info": {
+        "version": "7.4",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "7.3",
+            "ref": "dae70df71978ae9226ae915ffd5fad817f5ca1f7"
+        },
+        "files": [
+            "config/packages/property_info.yaml"
         ]
     },
     "symfony/routing": {
@@ -447,6 +462,19 @@
         },
         "files": [
             "config/packages/vich_uploader.yaml"
+        ]
+    },
+    "zenstruck/foundry": {
+        "version": "2.10",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "2.7",
+            "ref": "9bd824886195ebe64a24438db1b6d17eb833ac56"
+        },
+        "files": [
+            "config/packages/zenstruck_foundry.yaml",
+            "src/Story/AppStory.php"
         ]
     }
 }
