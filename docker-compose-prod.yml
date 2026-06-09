@@ -5,16 +5,27 @@ services:
             - ytcg_caddy_data:/data
             - ytcg_public_data:/app/public/images
         environment:
-            DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@ytcg_db:5432/ytcg?serverVersion=13&charset=utf8"
+            DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@ytcg_db:5432/ytcg?serverVersion=18&charset=utf8"
             JWT_PUBLIC_KEY: "${JWT_PUBLIC_KEY}"
             JWT_SECRET_KEY: "${JWT_SECRET_KEY}"
             JWT_PASSPHRASE: "${JWT_PASSPHRASE}"
+            TZ: Europe/Paris
         logging:
             driver: loki
             options:
                 loki-url: "http://176.31.100.99:3100/loki/api/v1/push"
         tty: true
         deploy:
+            replicas: 1
+            update_config:
+                order: stop-first
+                parallelism: 1
+                monitor: 30s
+                failure_action: rollback
+                max_failure_ratio: 0
+            rollback_config:
+                parallelism: 1
+                order: stop-first
             labels:
                 - traefik.enable=true
 
@@ -32,12 +43,17 @@ services:
             - ytcg_internal
 
     db:
-        image: postgres:13
+        image: postgres:18
         environment:
             POSTGRES_PASSWORD: ${DB_PASSWORD}
             POSTGRES_DB: ytcg
+            TZ: Europe/Paris
+            PGTZ: Europe/Paris
         volumes:
-            - ytcg_db_data:/var/lib/postgresql/data:rw
+            # postgres:18 a déplacé PGDATA : on monte /var/lib/postgresql (et plus .../data)
+            - ytcg_db_data:/var/lib/postgresql:rw
+            # Dumps pg_dump écrits par `make db.backup` avant chaque migration
+            - /srv/ytcg/backups:/backups
         healthcheck:
             test: [ "CMD-SHELL", "pg_isready -U postgres"]
             interval: 10s

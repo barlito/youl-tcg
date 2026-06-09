@@ -5,13 +5,17 @@ services:
             context: .
             dockerfile: .docker/Dockerfile
             target: frankenphp_dev
+            args:
+                USER_ID: ${USER_ID:-1000}
+                GROUP_ID: ${GROUP_ID:-1000}
         environment:
             SERVER_NAME: "ytcg.local.barlito.fr"
             CADDY_GLOBAL_OPTIONS: "local_certs"
+            TZ: Europe/Paris
         volumes:
             - ./:/app
             - ./.docker/franken/Caddyfile:/etc/caddy/Caddyfile
-            - ~/.composer:/root/.cache/composer:delegated
+            - ~/.composer:/home/www/.composer:delegated
             - ytcg_caddy_data:/data
             - ytcg_caddy_config:/config
         tty: true
@@ -35,12 +39,15 @@ services:
             - ytcg_internal
 
     db:
-        image: postgres:13
+        image: postgres:18
         environment:
             POSTGRES_PASSWORD: root
             POSTGRES_DB: ytcg
+            TZ: Europe/Paris
+            PGTZ: Europe/Paris
         volumes:
-            - ytcg_db_data:/var/lib/postgresql/data:rw
+            # postgres:18 a déplacé PGDATA : on monte /var/lib/postgresql (et plus .../data)
+            - ytcg_db_data:/var/lib/postgresql:rw
         healthcheck:
             test: [ "CMD-SHELL", "pg_isready -U postgres"]
             interval: 10s
