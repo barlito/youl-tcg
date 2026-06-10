@@ -1,0 +1,23 @@
+App\Entity\Booster:
+    booster_cyberpunk:
+        extension: '@extension_cyberpunk'
+        imageName: 'default_card.png'
+        holoRate: 10
+        rarityRates:
+            - { common: 100 }
+            - { common: 100 }
+            - { common: 60, rare: 30, legendary: 10 }
+    booster_bleach:
+        extension: '@extension_bleach'
+        imageName: 'default_card.png'
+        holoRate: 100
+        rarityRates:
+            - { common: 70, rare: 30 }
+            - { rare: 100 }
+    booster_magic:
+        extension: '@extension_magic'
+        imageName: 'default_card.png'
+        holoRate: 0
+        rarityRates:
+            - { common: 100 }
+            - { common: 50, uncommon: 30, rare: 15, legendary: 5 }
