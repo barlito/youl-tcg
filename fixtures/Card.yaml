@@ -6,18 +6,21 @@ App\Entity\Card:
         unique: true
         imageName: 'default_card.png'
         status: 2
+        rarity: 'legendary'
     card_rogue:
         name: 'Cyberpunk Rogue'
         extension: '@extension_cyberpunk'
         description: 'Rogue is the queen of the Afterlife. She is a key figure in the game Cyberpunk 2077.'
         unique: false
         imageName: 'default_card.png'
+        rarity: 'rare'
     card_ichigo:
         name: 'Bleach Ichigo Kurosaki'
         extension: '@extension_bleach'
         description: 'Ichigo Kurosaki is the main character of the Bleach series. He is a teenager with the ability to see ghosts who gains the powers of a Soul Reaper after a fateful encounter with another Soul Reaper, Rukia Kuchiki.'
         unique: false
         imageName: 'default_card.png'
+        rarity: 'rare'
     card_cp_barlito:
         name: 'Cyberpunk Barlito'
         extension: '@extension_cyberpunk'
@@ -25,6 +28,7 @@ App\Entity\Card:
         unique: false
         imageName: 'default_card.png'
         status: 2
+        rarity: 'common'
     card_cp_farf:
         name: 'Cyberpunk Farf'
         extension: '@extension_cyberpunk'
@@ -32,6 +36,7 @@ App\Entity\Card:
         unique: true
         imageName: 'default_card.png'
         status: 2
+        rarity: 'rare'
     card_magic_king_julian:
         name: 'Magic King Julian'
         extension: '@extension_magic'
@@ -39,3 +44,4 @@ App\Entity\Card:
         unique: true
         imageName: 'default_card.png'
         status: 2
+        rarity: 'legendary'
