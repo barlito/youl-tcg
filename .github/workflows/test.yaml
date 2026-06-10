@@ -33,6 +33,11 @@ jobs:
       - name: Generate JWT key pair
         run: castor generate-jwt-key-pair
 
+      - name: Prepare test database
+        run: |
+          make doctrine.migrate.ci
+          make doctrine.load_fixtures.ci
+
       - name: Run phpunit
         run: make phpunit
 
