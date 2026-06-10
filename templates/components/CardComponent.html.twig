@@ -1,5 +1,5 @@
 <div class="bg-gray-500 rounded-lg shadow-lg p-4">
-    <div id="{{ card.id }}" class="card interactive" data-controller="card">
+    <div id="{{ card.id }}" class="card interactive{{ card.type ? ' ' ~ card.type.value }}" data-rarity="{{ card.rarity.value }}" data-controller="card">
         <div class="card__translater">
             <div class="card__rotator">
                 <div class="card__front">

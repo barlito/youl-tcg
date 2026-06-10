@@ -6,7 +6,9 @@ namespace App\Controller\Admin;
 
 use App\Admin\Field\ImageField as VichImageField;
 use App\Entity\Card;
+use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
+use App\Enum\Entity\CardTypeEnum;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -48,6 +50,7 @@ class CardCrudController extends AbstractCrudController
     {
         return $filters
             ->add('extension')
+            ->add('rarity')
         ;
     }
 
@@ -79,6 +82,12 @@ class CardCrudController extends AbstractCrudController
         yield Field::new('description');
         yield ChoiceField::new('status')
             ->setChoices(CardStatusEnum::cases())
+        ;
+        yield ChoiceField::new('rarity')
+            ->setChoices(CardRarityEnum::cases())
+        ;
+        yield ChoiceField::new('type')
+            ->setChoices(CardTypeEnum::cases())
         ;
         yield BooleanField::new('unique')
             ->setLabel('Unique Flag')

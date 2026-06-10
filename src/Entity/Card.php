@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
+use App\Enum\Entity\CardTypeEnum;
 use App\Repository\CardRepository;
 use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\ORM\Mapping as ORM;
@@ -31,6 +33,12 @@ class Card
 
     #[ORM\Column(options: ['default' => CardStatusEnum::DRAFT])]
     private CardStatusEnum $status = CardStatusEnum::DRAFT;
+
+    #[ORM\Column(options: ['default' => CardRarityEnum::COMMON])]
+    private CardRarityEnum $rarity = CardRarityEnum::COMMON;
+
+    #[ORM\Column(nullable: true)]
+    private ?CardTypeEnum $type = null;
 
     #[ORM\Column]
     private bool $uniqueFlag = false;
@@ -90,6 +98,30 @@ class Card
     public function setStatus(CardStatusEnum $status): Card
     {
         $this->status = $status;
+
+        return $this;
+    }
+
+    public function getRarity(): CardRarityEnum
+    {
+        return $this->rarity;
+    }
+
+    public function setRarity(CardRarityEnum $rarity): static
+    {
+        $this->rarity = $rarity;
+
+        return $this;
+    }
+
+    public function getType(): ?CardTypeEnum
+    {
+        return $this->type;
+    }
+
+    public function setType(?CardTypeEnum $type): static
+    {
+        $this->type = $type;
 
         return $this;
     }
