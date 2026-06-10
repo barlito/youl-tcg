@@ -11,11 +11,15 @@ use App\Exception\Booster\DailyClaimLimitReachedException;
 use App\Repository\BoosterClaimRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Daily free booster claims: every player can claim DAILY_LIMIT boosters per
  * day, the quota resets at midnight Europe/Paris. Claimed boosters land in
  * the UserBooster inventory and can be opened later.
+ *
+ * The limit can be switched off via BOOSTER_DAILY_LIMIT_ENABLED=false
+ * (dev convenience to test openings repeatedly).
  */
 final readonly class BoosterClaimService
 {
@@ -28,11 +32,17 @@ final readonly class BoosterClaimService
         private UserInventoryService $userInventoryService,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        #[Autowire(env: 'bool:BOOSTER_DAILY_LIMIT_ENABLED')]
+        private bool $dailyLimitEnabled = true,
     ) {
     }
 
     public function getRemainingClaims(DiscordUser $discordUser): int
     {
+        if (!$this->dailyLimitEnabled) {
+            return self::DAILY_LIMIT;
+        }
+
         $claimsToday = $this->boosterClaimRepository->countSince($discordUser, $this->startOfToday());
 
         return max(0, self::DAILY_LIMIT - $claimsToday);

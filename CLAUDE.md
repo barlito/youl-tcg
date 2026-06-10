@@ -125,7 +125,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 ### Booster Opening Flow (`src/Service/Booster/`)
 
-1. **BoosterClaimService::claim()** — checks the daily quota, credits `UserBooster` via UserInventoryService, persists a `BoosterClaim`
+1. **BoosterClaimService::claim()** — checks the daily quota, credits `UserBooster` via UserInventoryService, persists a `BoosterClaim`. The quota can be bypassed with `BOOSTER_DAILY_LIMIT_ENABLED=false` (default in `.env.dev`, for repeated opening tests)
 2. **BoosterOpeningService::open()** — one transaction: pessimistic-locked inventory debit, seeded `CardDrawer::draw()` (per-slot weighted rarity roll, uniform pick in the tier, fallback to the nearest tier with cards, holo roll), duplicate aggregation, `UserCard` credit, audit persistence
 3. **RandomService** (`src/Service/Random/`) — seedable `Random\Randomizer` wrapper; the seed is stored on `BoosterOpening`
 4. UI: **BoosterHub** Live Component (`src/Twig/Components/`) renders `/boosters`; the reveal animation is driven by `assets/controllers/booster_opening_controller.js`

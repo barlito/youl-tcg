@@ -85,6 +85,40 @@ final class BoosterClaimServiceTest extends TestCase
         $this->assertQuotaWindowStartsAt('2026-06-09 22:00:00', clockNow: '2026-06-10 12:00:00');
     }
 
+    public function testDisabledLimitAlwaysReportsFullQuota(): void
+    {
+        $claimRepository = $this->createMock(BoosterClaimRepository::class);
+        $claimRepository->expects($this->never())->method('countSince');
+
+        $service = new BoosterClaimService(
+            $claimRepository,
+            $this->createStub(UserInventoryService::class),
+            $this->createStub(EntityManagerInterface::class),
+            new MockClock('2026-06-10 12:00:00', 'UTC'),
+            dailyLimitEnabled: false,
+        );
+
+        $this->assertSame(BoosterClaimService::DAILY_LIMIT, $service->getRemainingClaims(new DiscordUser()));
+    }
+
+    public function testDisabledLimitNeverBlocksClaims(): void
+    {
+        $inventory = $this->createMock(UserInventoryService::class);
+        $inventory->expects($this->exactly(BoosterClaimService::DAILY_LIMIT + 3))->method('creditBooster');
+
+        $service = new BoosterClaimService(
+            $this->claimRepositoryCounting(1000),
+            $inventory,
+            $this->createStub(EntityManagerInterface::class),
+            new MockClock('2026-06-10 12:00:00', 'UTC'),
+            dailyLimitEnabled: false,
+        );
+
+        for ($i = 0; $i < BoosterClaimService::DAILY_LIMIT + 3; ++$i) {
+            $service->claim(new DiscordUser(), new Booster());
+        }
+    }
+
     public function testNextResetTimeIsTheUpcomingMidnightParis(): void
     {
         $service = new BoosterClaimService(
