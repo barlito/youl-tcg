@@ -26,6 +26,9 @@ class UserCard
     #[ORM\Column]
     private int $quantity = 0;
 
+    #[ORM\Column(options: ['default' => 0])]
+    private int $holoQuantity = 0;
+
     public function getDiscordUser(): DiscordUser
     {
         return $this->discordUser;
@@ -58,6 +61,18 @@ class UserCard
     public function setQuantity(int $quantity): static
     {
         $this->quantity = $quantity;
+
+        return $this;
+    }
+
+    public function getHoloQuantity(): int
+    {
+        return $this->holoQuantity;
+    }
+
+    public function setHoloQuantity(int $holoQuantity): static
+    {
+        $this->holoQuantity = $holoQuantity;
 
         return $this;
     }
