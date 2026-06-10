@@ -19,3 +19,13 @@ services:
             - '../src/DependencyInjection/'
             - '../src/Entity/'
             - '../src/Kernel.php'
+
+when@test:
+    services:
+        _defaults:
+            autowire: true
+            autoconfigure: true
+
+        # exposed for integration tests (would otherwise be inlined/removed)
+        App\Service\Booster\BoosterOpeningService:
+            public: true
