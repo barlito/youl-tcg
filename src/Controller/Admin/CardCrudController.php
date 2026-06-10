@@ -35,6 +35,7 @@ class CardCrudController extends AbstractCrudController
         return Card::class;
     }
 
+    #[\Override]
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
@@ -42,6 +43,7 @@ class CardCrudController extends AbstractCrudController
         ;
     }
 
+    #[\Override]
     public function configureFilters(Filters $filters): Filters
     {
         return $filters
@@ -49,6 +51,7 @@ class CardCrudController extends AbstractCrudController
         ;
     }
 
+    #[\Override]
     public function configureActions(Actions $actions): Actions
     {
         return $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
@@ -57,12 +60,13 @@ class CardCrudController extends AbstractCrudController
     /**
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
+    #[\Override]
     public function configureFields(string $pageName): iterable
     {
         yield ImageField::new('imageName')
             ->hideOnForm()
             ->addCssFiles($this->assetMapper->getAsset('styles/admin/image.css')->publicPath)
-            ->formatValue(function ($value, $entity) {
+            ->formatValue(function ($value, $entity): ?string {
                 if (!$entity instanceof Card) {
                     throw new UnexpectedTypeException($entity, Card::class);
                 }

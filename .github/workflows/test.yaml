@@ -8,30 +8,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: 'true'
 
       - name: Setup castor
-        uses: castor-php/setup-castor@v0.1.0
+        uses: castor-php/setup-castor@v1.0.0
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Cache Composer Dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: ~/.composer/files
           key: composer-${{ hashFiles('**/composer.lock') }}
 
       - name: Deploy stack
-        run: make deploy.ci github_token=${{ secrets.GITHUB_TOKEN }}
+        run: USER_ID=$(id -u) GROUP_ID=$(id -g) make deploy.ci github_token=${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate JWT key pair
         run: castor generate-jwt-key-pair
 
       - name: Run phpunit
         run: make phpunit
-
-      #      - name: Run behat
-      #        run: make behat
 
       - name: Undeploy stack
         run: make docker.undeploy.ci

@@ -23,6 +23,7 @@ class ExtensionCrudController extends AbstractCrudController
         return Extension::class;
     }
 
+    #[\Override]
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
@@ -30,6 +31,7 @@ class ExtensionCrudController extends AbstractCrudController
         ;
     }
 
+    #[\Override]
     public function configureActions(Actions $actions): Actions
     {
         return $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
@@ -38,6 +40,7 @@ class ExtensionCrudController extends AbstractCrudController
     /**
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
+    #[\Override]
     public function configureFields(string $pageName): iterable
     {
         yield Field::new('id')->onlyOnDetail();
