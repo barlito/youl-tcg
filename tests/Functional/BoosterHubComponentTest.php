@@ -17,10 +17,13 @@ final class BoosterHubComponentTest extends WebTestCase
     use InteractsWithLiveComponents;
     use JwtAuthTrait;
 
+    // Juju has no UserBooster fixture, unlike Barlito who starts with a stocked inventory.
+    private const string USER_WITHOUT_INVENTORY = '195659530363731968';
+
     public function testClaimBoosterCreditsTheInventoryAndDecrementsTheQuota(): void
     {
         $client = static::createClient();
-        $user = $this->authenticateClient($client);
+        $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
         $booster = $this->firstPublishedBooster();
 
         $component = $this->createLiveComponent(BoosterHub::class, client: $client);
@@ -39,7 +42,7 @@ final class BoosterHubComponentTest extends WebTestCase
     public function testOpeningAClaimedBoosterFillsTheCollectionAndTheModal(): void
     {
         $client = static::createClient();
-        $user = $this->authenticateClient($client);
+        $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
         $booster = $this->firstPublishedBooster();
 
         $component = $this->createLiveComponent(BoosterHub::class, client: $client);
@@ -65,7 +68,7 @@ final class BoosterHubComponentTest extends WebTestCase
     public function testOpeningWithoutInventoryReportsAnError(): void
     {
         $client = static::createClient();
-        $this->authenticateClient($client);
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
         $booster = $this->firstPublishedBooster();
 
         $component = $this->createLiveComponent(BoosterHub::class, client: $client);
