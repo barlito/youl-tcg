@@ -7,7 +7,7 @@ namespace App\Tests\Unit\Service;
 use App\Entity\Booster;
 use App\Entity\DiscordUser;
 use App\Exception\Booster\DailyClaimLimitReachedException;
-use App\Repository\BoosterClaimRepository;
+use App\Service\Booster\BoosterClaimQuotaInterface;
 use App\Service\Booster\BoosterClaimService;
 use App\Service\Booster\UserInventoryService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -16,22 +16,6 @@ use Symfony\Component\Clock\MockClock;
 
 final class BoosterClaimServiceTest extends TestCase
 {
-    public function testRemainingClaimsCountsDownFromTheDailyLimit(): void
-    {
-        $user = new DiscordUser();
-
-        foreach ([0 => 2, 1 => 1, 2 => 0, 3 => 0] as $claimsToday => $expectedRemaining) {
-            $service = new BoosterClaimService(
-                $this->claimRepositoryCounting($claimsToday),
-                $this->createStub(UserInventoryService::class),
-                $this->createStub(EntityManagerInterface::class),
-                new MockClock('2026-06-10 12:00:00', 'UTC'),
-            );
-
-            $this->assertSame($expectedRemaining, $service->getRemainingClaims($user));
-        }
-    }
-
     public function testClaimCreditsTheInventoryAndPersistsAnAuditRow(): void
     {
         $clock = new MockClock('2026-06-10 12:00:00', 'UTC');
@@ -45,7 +29,7 @@ final class BoosterClaimServiceTest extends TestCase
         $entityManager->expects($this->once())->method('persist');
         $entityManager->expects($this->once())->method('flush');
 
-        $service = new BoosterClaimService($this->claimRepositoryCounting(0), $inventory, $entityManager, $clock);
+        $service = new BoosterClaimService($this->quotaWithRemaining(2), $inventory, $entityManager, $clock);
 
         $claim = $service->claim($user, $booster);
 
@@ -54,13 +38,13 @@ final class BoosterClaimServiceTest extends TestCase
         $this->assertEquals($clock->now(), $claim->getClaimedAt());
     }
 
-    public function testClaimThrowsOnceTheDailyLimitIsReached(): void
+    public function testClaimThrowsOnceTheQuotaIsExhausted(): void
     {
         $inventory = $this->createMock(UserInventoryService::class);
         $inventory->expects($this->never())->method('creditBooster');
 
         $service = new BoosterClaimService(
-            $this->claimRepositoryCounting(BoosterClaimService::DAILY_LIMIT),
+            $this->quotaWithRemaining(0),
             $inventory,
             $this->createStub(EntityManagerInterface::class),
             new MockClock('2026-06-10 12:00:00', 'UTC'),
@@ -71,98 +55,29 @@ final class BoosterClaimServiceTest extends TestCase
         $service->claim(new DiscordUser(), new Booster());
     }
 
-    public function testQuotaWindowStartsAtMidnightParisInWinter(): void
+    public function testQuotaAccessorsDelegateToThePolicy(): void
     {
-        // 2026-01-15 23:30 UTC is already 2026-01-16 00:30 in Paris (UTC+1):
-        // the window must start at 23:00 UTC = midnight Paris of the new day.
-        $this->assertQuotaWindowStartsAt('2026-01-15 23:00:00', clockNow: '2026-01-15 23:30:00');
-    }
-
-    public function testQuotaWindowStartsAtMidnightParisInSummer(): void
-    {
-        // 2026-06-10 12:00 UTC = 14:00 Paris (UTC+2): the window must start
-        // at 2026-06-09 22:00 UTC = midnight Paris the same day.
-        $this->assertQuotaWindowStartsAt('2026-06-09 22:00:00', clockNow: '2026-06-10 12:00:00');
-    }
-
-    public function testDisabledLimitAlwaysReportsFullQuota(): void
-    {
-        $claimRepository = $this->createMock(BoosterClaimRepository::class);
-        $claimRepository->expects($this->never())->method('countSince');
+        $resetTime = new \DateTimeImmutable('2026-06-11 00:00:00');
+        $quota = $this->createStub(BoosterClaimQuotaInterface::class);
+        $quota->method('getRemainingClaims')->willReturn(1);
+        $quota->method('getNextResetTime')->willReturn($resetTime);
 
         $service = new BoosterClaimService(
-            $claimRepository,
-            $this->createStub(UserInventoryService::class),
-            $this->createStub(EntityManagerInterface::class),
-            new MockClock('2026-06-10 12:00:00', 'UTC'),
-            dailyLimitEnabled: false,
-        );
-
-        $this->assertSame(BoosterClaimService::DAILY_LIMIT, $service->getRemainingClaims(new DiscordUser()));
-    }
-
-    public function testDisabledLimitNeverBlocksClaims(): void
-    {
-        $inventory = $this->createMock(UserInventoryService::class);
-        $inventory->expects($this->exactly(BoosterClaimService::DAILY_LIMIT + 3))->method('creditBooster');
-
-        $service = new BoosterClaimService(
-            $this->claimRepositoryCounting(1000),
-            $inventory,
-            $this->createStub(EntityManagerInterface::class),
-            new MockClock('2026-06-10 12:00:00', 'UTC'),
-            dailyLimitEnabled: false,
-        );
-
-        for ($i = 0; $i < BoosterClaimService::DAILY_LIMIT + 3; ++$i) {
-            $service->claim(new DiscordUser(), new Booster());
-        }
-    }
-
-    public function testNextResetTimeIsTheUpcomingMidnightParis(): void
-    {
-        $service = new BoosterClaimService(
-            $this->claimRepositoryCounting(0),
+            $quota,
             $this->createStub(UserInventoryService::class),
             $this->createStub(EntityManagerInterface::class),
             new MockClock('2026-06-10 12:00:00', 'UTC'),
         );
 
-        $nextReset = $service->getNextResetTime()->setTimezone(new \DateTimeZone('UTC'));
-
-        // Midnight Paris on June 11th is 22:00 UTC on June 10th.
-        $this->assertSame('2026-06-10 22:00:00', $nextReset->format('Y-m-d H:i:s'));
+        $this->assertSame(1, $service->getRemainingClaims(new DiscordUser()));
+        $this->assertSame($resetTime, $service->getNextResetTime());
     }
 
-    private function assertQuotaWindowStartsAt(string $expectedUtcWindowStart, string $clockNow): void
+    private function quotaWithRemaining(int $remaining): BoosterClaimQuotaInterface
     {
-        $claimRepository = $this->createMock(BoosterClaimRepository::class);
-        $claimRepository->expects($this->once())
-            ->method('countSince')
-            ->with(
-                $this->anything(),
-                $this->callback(
-                    static fn (\DateTimeImmutable $since): bool => $expectedUtcWindowStart === $since->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s'),
-                ),
-            )
-            ->willReturn(0)
-        ;
+        $quota = $this->createStub(BoosterClaimQuotaInterface::class);
+        $quota->method('getRemainingClaims')->willReturn($remaining);
 
-        $service = new BoosterClaimService(
-            $claimRepository,
-            $this->createStub(UserInventoryService::class),
-            $this->createStub(EntityManagerInterface::class),
-            new MockClock($clockNow, 'UTC'),
-        );
-
-        $this->assertSame(BoosterClaimService::DAILY_LIMIT, $service->getRemainingClaims(new DiscordUser()));
-    }
-
-    private function claimRepositoryCounting(int $claimsToday): BoosterClaimRepository
-    {
-        $claimRepository = $this->createStub(BoosterClaimRepository::class);
-        $claimRepository->method('countSince')->willReturn($claimsToday);
-
-        return $claimRepository;
+        return $quota;
     }
 }

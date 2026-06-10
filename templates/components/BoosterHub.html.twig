@@ -15,7 +15,7 @@
                     <div class="text-left">
                         <p class="text-sm text-gray-400 uppercase tracking-wide">Boosters gratuits du jour</p>
                         <p class="text-3xl font-bold text-white mt-1">
-                            <span class="text-purple-400">{{ this.remainingClaims }}</span>/{{ constant('App\\Service\\Booster\\BoosterClaimService::DAILY_LIMIT') }}
+                            <span class="text-purple-400">{{ this.remainingClaims }}</span>/{{ constant('App\\Service\\Booster\\BoosterClaimQuotaInterface::DAILY_LIMIT') }}
                         </p>
                     </div>
 

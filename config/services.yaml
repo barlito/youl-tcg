@@ -20,6 +20,11 @@ services:
             - '../src/Entity/'
             - '../src/Kernel.php'
 
+    # Explicit alias: in dev the UnlimitedBoosterClaimQuota decorator also
+    # implements the interface, which breaks the automatic alias. Pointing at
+    # the decorated service id resolves to the decorator chain when present.
+    App\Service\Booster\BoosterClaimQuotaInterface: '@App\Service\Booster\DailyBoosterClaimQuota'
+
 when@test:
     services:
         _defaults:
