@@ -1,0 +1,176 @@
+<div {{ attributes }}>
+    {# Hero / quota section #}
+    <section class="relative h-[40vh] overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-purple-900 via-slate-900 to-indigo-900"></div>
+        <div class="absolute inset-0 bg-[url('{{ asset('images/ytcg_background.png') }}')] bg-cover bg-center opacity-20"></div>
+
+        <div class="relative container mx-auto h-full flex flex-col justify-center items-center text-center px-4">
+            <h1 class="text-6xl font-bold text-white mb-4" style="text-shadow: 2px 2px 10px rgba(0,0,0,0.5)">
+                Boosters
+            </h1>
+            <p class="text-xl text-purple-200 mb-8">Récupérez vos boosters gratuits et collectionnez des cartes rares !</p>
+
+            <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-2xl border border-purple-500/30 max-w-md w-full">
+                <div class="flex items-center justify-between">
+                    <div class="text-left">
+                        <p class="text-sm text-gray-400 uppercase tracking-wide">Boosters gratuits du jour</p>
+                        <p class="text-3xl font-bold text-white mt-1">
+                            <span class="text-purple-400">{{ this.remainingClaims }}</span>/{{ constant('App\\Service\\Booster\\BoosterClaimService::DAILY_LIMIT') }}
+                        </p>
+                    </div>
+
+                    {% if this.remainingClaims == 0 %}
+                        <div class="text-right">
+                            <p class="text-sm text-gray-400 uppercase tracking-wide">Prochains boosters dans</p>
+                            <p class="text-2xl font-bold text-white mt-1"
+                               data-controller="countdown"
+                               data-countdown-target-value="{{ this.nextResetTime.format('c') }}">--:--:--</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if this.remainingClaims > 0 %}
+                    <div class="mt-4 bg-green-500/20 text-green-400 text-sm py-2 px-3 rounded-lg text-center border border-green-500/30">
+                        ✨ Vous pouvez récupérer {{ this.remainingClaims }} booster{{ this.remainingClaims > 1 ? 's' : '' }} !
+                    </div>
+                {% else %}
+                    <div class="mt-4 bg-orange-500/20 text-orange-400 text-sm py-2 px-3 rounded-lg text-center border border-orange-500/30">
+                        ⏳ Revenez demain pour de nouveaux boosters
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    {# Boosters grid #}
+    <main class="py-12 bg-gradient-to-b from-slate-900 to-slate-950 min-h-screen">
+        <div class="container mx-auto px-4">
+            {% if error %}
+                <div class="mb-8 bg-red-500/20 text-red-400 py-3 px-4 rounded-xl text-center border border-red-500/30 font-semibold">
+                    ⚠️ {{ error }}
+                </div>
+            {% endif %}
+
+            {% if this.boosters is empty %}
+                <div class="bg-slate-800/50 backdrop-blur-sm p-12 rounded-2xl text-center border border-slate-700">
+                    <div class="text-6xl mb-4">📦</div>
+                    <p class="text-white text-2xl font-bold mb-2">Aucun booster disponible</p>
+                    <p class="text-gray-400">Revenez bientôt pour découvrir de nouveaux boosters !</p>
+                </div>
+            {% else %}
+                {% set inventory = this.inventory %}
+                {% set remainingClaims = this.remainingClaims %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {% for booster in this.boosters %}
+                        {% set owned = inventory[booster.id]|default(0) %}
+                        <div class="group relative">
+                            <div class="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl opacity-0 group-hover:opacity-75 transition duration-300 blur"></div>
+
+                            <div class="relative bg-slate-800 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 transform group-hover:-translate-y-2">
+                                <div class="relative h-48 overflow-hidden bg-gradient-to-br from-purple-900 to-indigo-900">
+                                    {% if booster.extension.imageName %}
+                                        <img src="{{ asset('images/extensions/' ~ booster.extension.imageName) }}"
+                                             alt="{{ booster.extension.name }}"
+                                             class="w-full h-full object-cover opacity-60"
+                                             onerror="this.style.display='none'">
+                                    {% endif %}
+                                    <div class="absolute inset-0 bg-gradient-to-t from-slate-800 to-transparent"></div>
+                                    <div class="absolute bottom-4 left-4 right-4 flex items-end justify-between">
+                                        <h3 class="text-2xl font-bold text-white">{{ booster.extension.name }}</h3>
+                                        <span class="bg-purple-600/80 text-white text-sm font-bold px-3 py-1 rounded-full whitespace-nowrap">
+                                            x{{ owned }} possédé{{ owned > 1 ? 's' : '' }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="p-6">
+                                    <p class="text-gray-400 mb-4 line-clamp-2">{{ booster.extension.description }}</p>
+
+                                    <div class="flex items-center justify-between mb-4 text-sm">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-purple-400">🎴</span>
+                                            <span class="text-white font-semibold">{{ booster.cardCount }} cartes</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <button
+                                            data-action="live#action"
+                                            data-live-action-param="claimBooster"
+                                            data-live-booster-id-param="{{ booster.id }}"
+                                            class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed disabled:opacity-50 shadow-lg"
+                                            {% if remainingClaims == 0 %}disabled{% endif %}
+                                        >
+                                            <span data-loading="hide">🎁 Récupérer</span>
+                                            <span data-loading="show" class="hidden">⏳</span>
+                                        </button>
+                                        <button
+                                            data-action="live#action"
+                                            data-live-action-param="openBooster"
+                                            data-live-booster-id-param="{{ booster.id }}"
+                                            class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed disabled:opacity-50 shadow-lg"
+                                            {% if owned == 0 %}disabled{% endif %}
+                                        >
+                                            <span data-loading="hide">✨ Ouvrir</span>
+                                            <span data-loading="show" class="hidden">
+                                                <svg class="animate-spin h-5 w-5 mx-auto inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </main>
+
+    {# Opening modal #}
+    {% if opening %}
+        <div class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+             data-live-id="opening-{{ opening.id }}">
+            <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto border border-purple-500/30">
+                <div class="sticky top-0 bg-gradient-to-r from-purple-900 to-pink-900 p-6 rounded-t-2xl z-10">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-3xl font-bold text-white">🎉 Félicitations !</h2>
+                            <p class="text-purple-200 mt-1">Voici vos cartes obtenues</p>
+                        </div>
+                        <button data-action="live#action"
+                                data-live-action-param="closeModal"
+                                class="text-white hover:text-purple-300 transition-colors">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {% for openingCard in opening.boosterOpeningCards %}
+                        {% for copy in 1..openingCard.quantity %}
+                            {{ include('components/CardComponent.html.twig', {
+                                card: openingCard.card,
+                                holo: copy <= openingCard.holoQuantity,
+                            }) }}
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+
+                <div class="sticky bottom-0 bg-slate-800/95 backdrop-blur-sm p-6 rounded-b-2xl border-t border-slate-700">
+                    <div class="text-center">
+                        <button data-action="live#action"
+                                data-live-action-param="closeModal"
+                                class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg">
+                            Ajouter à ma collection
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>

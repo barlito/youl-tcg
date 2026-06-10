@@ -38,6 +38,6 @@ class BaseController extends AbstractController
     #[Route('/boosters', name: 'boosters')]
     public function boosters(): Response
     {
-        return $this->render('pages/coming_soon.html.twig');
+        return $this->render('pages/boosters.html.twig');
     }
 }
