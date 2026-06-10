@@ -8,7 +8,6 @@ backup_path=/srv/ytcg/backups
 # Config paths
 config_cs_fixer=vendor/barlito/utils/config/.php-cs-fixer.dist.php
 config_phpcs=vendor/barlito/utils/config/phpcs.xml.dist
-config_phpmd=vendor/barlito/utils/config/phpmd.xml
 
 # Include all make rules from submodule
 include make/entrypoint.mk

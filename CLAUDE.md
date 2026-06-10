@@ -54,10 +54,8 @@ make cs-fix
 # PHP CodeSniffer (uses vendor/barlito/utils/config/phpcs.xml.dist)
 make cs-check
 
-# PHPMD (uses vendor/barlito/utils/config/phpmd.xml)
-make phpmd
-
-# Run all quality checks
+# Run all quality checks (composer validate, phpcs, cs-fixer, phpstan, rector)
+# Note: phpmd is disabled everywhere until pdepend supports PHP 8.4 syntax
 make quality
 ```
 
@@ -259,7 +257,7 @@ All JWT listeners must:
 ### Code Quality Standards
 
 - PSR-12 coding standard via PHP CS Fixer
-- PHPMD ruleset from `vendor/barlito/utils/config/phpmd.xml`
+- PHPStan level 8 (baseline in `phpstan-baseline.neon` — never add new entries)
 - Declare strict types: `declare(strict_types=1);`
 - Use typed properties and return types
 - Enum over constants for fixed value sets
