@@ -150,13 +150,20 @@
                     </div>
                 </div>
 
-                <div class="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="p-8 grid grid-cols-1 md:grid-cols-3 gap-6"
+                     data-controller="booster-opening"
+                     data-action="click->booster-opening#skip"
+                     data-live-ignore>
                     {% for openingCard in opening.boosterOpeningCards %}
                         {% for copy in 1..openingCard.quantity %}
-                            {{ include('components/CardComponent.html.twig', {
-                                card: openingCard.card,
-                                holo: copy <= openingCard.holoQuantity,
-                            }) }}
+                            <div data-booster-opening-target="card">
+                                {{ include('components/CardComponent.html.twig', {
+                                    card: openingCard.card,
+                                    holo: copy <= openingCard.holoQuantity,
+                                    facedown: true,
+                                    id: 'opening-card-' ~ loop.parent.loop.index ~ '-' ~ copy,
+                                }) }}
+                            </div>
                         {% endfor %}
                     {% endfor %}
                 </div>

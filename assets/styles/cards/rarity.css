@@ -1,0 +1,88 @@
+/**
+
+  Rarity glow + booster opening reveal states.
+  Loaded after cards/base.css, relies on its .card / .card__rotator structure.
+
+**/
+
+.card[data-rarity="common"]    { --rarity-glow: hsl(0, 0%, 75%); }
+.card[data-rarity="uncommon"]  { --rarity-glow: hsl(96, 81%, 55%); }
+.card[data-rarity="rare"]      { --rarity-glow: hsl(220, 90%, 60%); }
+.card[data-rarity="legendary"] { --rarity-glow: hsl(45, 95%, 55%); }
+
+/* Face-down card waiting to be revealed (booster opening modal). */
+.card.facedown {
+  pointer-events: none;
+}
+
+.card.facedown .card__rotator {
+  transform: rotateY(180deg);
+}
+
+.card__back {
+  background: radial-gradient(circle at 50% 40%, hsl(263, 45%, 28%), hsl(240, 40%, 12%) 75%);
+  display: grid;
+  place-items: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: rotateY(180deg) translateZ(1px);
+}
+
+.card__back img {
+  width: 55% !important;
+  aspect-ratio: auto !important;
+  filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.8));
+}
+
+/* Revealed card: glow tinted by rarity. */
+.card.revealed .card__rotator {
+  box-shadow:
+    0 0 3px -1px white,
+    0 0 3px 1px var(--card-edge),
+    0 0 14px 2px var(--rarity-glow),
+    0px 10px 20px -5px black,
+    0 0 40px -25px var(--rarity-glow),
+    0 0 60px -20px var(--rarity-glow);
+}
+
+.card.revealed[data-rarity="legendary"] .card__rotator {
+  animation: legendary-pulse 2s ease-in-out infinite;
+}
+
+@keyframes legendary-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 3px -1px white,
+      0 0 3px 1px var(--card-edge),
+      0 0 14px 2px var(--rarity-glow),
+      0px 10px 20px -5px black,
+      0 0 40px -25px var(--rarity-glow),
+      0 0 60px -20px var(--rarity-glow);
+  }
+  50% {
+    box-shadow:
+      0 0 3px -1px white,
+      0 0 5px 2px var(--card-edge),
+      0 0 24px 6px var(--rarity-glow),
+      0px 10px 20px -5px black,
+      0 0 50px -15px var(--rarity-glow),
+      0 0 80px -10px var(--rarity-glow);
+  }
+}
+
+/* Holo badge under the card name. */
+.holo-badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: hsl(263, 70%, 20%);
+  background: linear-gradient(110deg, #b8e1ff, #e3b8ff 30%, #ffd6e8 55%, #c8ffe0 80%, #b8e1ff);
+  background-size: 200% 100%;
+  animation: holo-shimmer 2.5s linear infinite;
+}
+
+@keyframes holo-shimmer {
+  to { background-position: 200% 0; }
+}
