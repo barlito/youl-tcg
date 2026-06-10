@@ -37,6 +37,12 @@ db.backup:
 		echo "ℹ  DB container introuvable, backup skippé (1er deploy ?)"; \
 	fi
 
+# Tailwind est requis pour rendre base.html.twig (TailwindCssAssetCompiler lève
+# une exception si var/tailwind/tailwind.built.css est absent) — nécessaire en CI
+# avant les tests fonctionnels qui rendent des pages.
+tailwind.build:
+	docker exec -t $(app_container_id) bin/console tailwind:build --minify
+
 # Smoke test : curl GET / → fail si non-2xx. Sert de garde-fou post-deploy/update.
 smoke.test:
 	@echo "🩺 Smoke test https://$(prod_host)/..."
