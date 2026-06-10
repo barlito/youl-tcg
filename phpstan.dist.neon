@@ -1,0 +1,12 @@
+includes:
+    - vendor/barlito/utils/config/phpstan.neon
+    - phpstan-baseline.neon
+
+parameters:
+    paths:
+        - src
+
+    excludePaths:
+        - src/Kernel.php
+
+    tmpDir: var/cache/phpstan

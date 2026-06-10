@@ -1,4 +1,4 @@
-FROM dunglas/frankenphp:1-php8.3 AS frankenphp_upstream
+FROM dunglas/frankenphp:1-php8.4 AS frankenphp_upstream
 
 ### Base Image ###############################################################
 FROM frankenphp_upstream AS frankenphp_base
@@ -9,8 +9,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3-tools \
     vim \
 	acl \
-#    supervisor \
 	&& rm -rf /var/lib/apt/lists/*
+
+# Create non-root user with configurable UID/GID
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+RUN groupadd -g ${GROUP_ID} www && \
+    useradd -u ${USER_ID} -g www -m -s /bin/bash www && \
+    chown -R www:www /app /data /config
 
 # add additional extensions here:
 RUN install-php-extensions \
@@ -20,10 +27,8 @@ RUN install-php-extensions \
 	opcache \
     apcu \
 	pdo_pgsql
-#    pcntl \
-#    bcmath \
-#    amqp
 
+ENV COMPOSER_HOME=/home/www/.composer
 # https://getcomposer.org/doc/03-cli.md#composer-allow-superuser
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV SERVER_NAME=":80"
@@ -36,11 +41,19 @@ CMD [ "frankenphp", "run", "--config", "/etc/caddy/Caddyfile" ]
 
 ### Dev Image ################################################################
 FROM frankenphp_base AS frankenphp_dev
+
 RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
+
+USER www
+
 CMD [ "frankenphp", "run", "--config", "/etc/caddy/Caddyfile", "--watch" ]
 
 ### Prod Image ###############################################################
 FROM frankenphp_base AS frankenphp_prod
+
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
+
 ENV APP_ENV=prod
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 COPY --link .docker/php/app.prod.ini $PHP_INI_DIR/conf.d/
@@ -65,3 +78,7 @@ RUN set -eux; \
 
 RUN php bin/console tailwind:build --minify; \
     php bin/console asset-map:compile;
+
+RUN chown -R www:www var public/images 2>/dev/null || true
+
+USER www

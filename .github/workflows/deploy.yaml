@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       re-deploy:
+        description: "Full re-deploy (undeploy + redeploy) au lieu d'un rolling update"
         required: true
         type: boolean
         default: false
@@ -14,6 +15,7 @@ jobs:
 
     env:
       DOCKER_HOST: ssh://${{ vars.SERVER_USERNAME }}@${{ vars.SERVER_HOST }}:${{ vars.SERVER_PORT }}
+      # Substitués dans docker-compose-prod.yml au moment du stack deploy
       DB_USER: ${{ secrets.DB_USER }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
@@ -21,12 +23,12 @@ jobs:
       JWT_PASSPHRASE: ${{ secrets.JWT_PASSPHRASE }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: 'true'
 
       - name: Setup castor
-        uses: castor-php/setup-castor@v0.1.0
+        uses: castor-php/setup-castor@v1.0.0
 
       - name: Set up SSH
         run: |
@@ -36,18 +38,27 @@ jobs:
           ssh-keyscan -p ${{ vars.SERVER_PORT }} ${{ vars.SERVER_HOST }} >> ~/.ssh/known_hosts
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_READ_WRITE_DELETE_ACCESS_TOKEN }}
 
-      - name: Re-Deploy Service
+      - name: Re-Deploy Stack
         if: inputs.re-deploy
         run: |
-          make undeploy
+          # `|| true` pour tolérer "rien à supprimer" sur le tout premier deploy
+          # (docker stack rm exit non-zero si le stack n'existe pas encore)
+          make undeploy || true
           TAG=$GITHUB_REF_NAME make deploy.prod
 
-      - name: Update Service
+      - name: Update main service + migrate
         if: ${{ ! inputs.re-deploy }}
         run: |
-          make update.service service_update_args="--image barlito/youl-tcg:$GITHUB_REF_NAME ytcg_php"
+          make db.backup
+          make docker.service.update args="--image barlito/youl-tcg:$GITHUB_REF_NAME ytcg_php"
+          castor barlito:castor:wait-php-container
+          make doctrine.migrate
+
+      - name: Smoke test
+        if: ${{ ! inputs.re-deploy }}
+        run: make smoke.test

@@ -5,13 +5,16 @@ services:
             context: .
             dockerfile: .docker/Dockerfile
             target: frankenphp_dev
+            args:
+                USER_ID: ${USER_ID:-1000}
+                GROUP_ID: ${GROUP_ID:-1000}
         environment:
-            SERVER_NAME: "ytcg.local.barlito.fr"
-            CADDY_GLOBAL_OPTIONS: "local_certs"
+            SERVER_NAME: ":80"
+            TZ: Europe/Paris
         volumes:
             - ./:/app
             - ./.docker/franken/Caddyfile:/etc/caddy/Caddyfile
-            - ~/.composer:/root/.cache/composer:delegated
+            - ~/.composer:/home/www/.composer:delegated
             - ytcg_caddy_data:/data
             - ytcg_caddy_config:/config
         tty: true
@@ -23,24 +26,24 @@ services:
 
                 - traefik.http.routers.ytcg.rule=Host(`ytcg.local.barlito.fr`)
                 - traefik.http.routers.ytcg.entrypoints=http
-#                - traefik.http.routers.ytcg.middlewares=tls-redirectscheme
 
-                - traefik.tcp.routers.ytcg-secure.rule=HostSNI(`ytcg.local.barlito.fr`)
-                - traefik.tcp.routers.ytcg-secure.entrypoints=https
-                - traefik.tcp.routers.ytcg-secure.tls=true
-                - traefik.tcp.routers.ytcg-secure.tls.passthrough=true
-                - traefik.tcp.services.ytcg-secure.loadbalancer.server.port=443
+                - traefik.http.routers.ytcg-secure.rule=Host(`ytcg.local.barlito.fr`)
+                - traefik.http.routers.ytcg-secure.entrypoints=https
+                - traefik.http.routers.ytcg-secure.tls=true
         networks:
             - traefik_traefik_proxy
             - ytcg_internal
 
     db:
-        image: postgres:13
+        image: postgres:18
         environment:
             POSTGRES_PASSWORD: root
             POSTGRES_DB: ytcg
+            TZ: Europe/Paris
+            PGTZ: Europe/Paris
         volumes:
-            - ytcg_db_data:/var/lib/postgresql/data:rw
+            # postgres:18 a déplacé PGDATA : on monte /var/lib/postgresql (et plus .../data)
+            - ytcg_db_data:/var/lib/postgresql:rw
         healthcheck:
             test: [ "CMD-SHELL", "pg_isready -U postgres"]
             interval: 10s

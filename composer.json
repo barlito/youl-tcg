@@ -1,15 +1,17 @@
 {
+    "name": "barlito/youl-tcg",
+    "description": "Youl TCG — trading card game web app (Symfony)",
     "type": "project",
     "license": "proprietary",
     "minimum-stability": "stable",
     "prefer-stable": true,
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.4",
         "ext-ctype": "*",
         "ext-iconv": "*",
-        "barlito/utils": "^1.6",
+        "barlito/utils": "^2.0",
         "beberlei/doctrineextensions": "^1.5",
-        "doctrine/dbal": "^3",
+        "doctrine/dbal": "^3 || ^4",
         "doctrine/doctrine-bundle": "^2.12",
         "doctrine/doctrine-fixtures-bundle": "^3.6",
         "doctrine/doctrine-migrations-bundle": "^3.3",
@@ -18,17 +20,17 @@
         "knpuniversity/oauth2-client-bundle": "^2.18",
         "lexik/jwt-authentication-bundle": "^3.1",
         "stof/doctrine-extensions-bundle": "^1.12",
-        "symfony/asset-mapper": "7.2.*",
-        "symfony/cache": "7.2.*",
-        "symfony/console": "7.2.*",
-        "symfony/dotenv": "7.2.*",
+        "symfony/asset-mapper": "7.4.*",
+        "symfony/cache": "7.4.*",
+        "symfony/console": "7.4.*",
+        "symfony/dotenv": "7.4.*",
         "symfony/flex": "^2",
-        "symfony/framework-bundle": "7.2.*",
+        "symfony/framework-bundle": "7.4.*",
         "symfony/monolog-bundle": "^3.0",
-        "symfony/runtime": "7.2.*",
+        "symfony/runtime": "7.4.*",
         "symfony/ux-twig-component": "^2.23",
-        "symfony/validator": "7.2.*",
-        "symfony/yaml": "7.2.*",
+        "symfony/validator": "7.4.*",
+        "symfony/yaml": "7.4.*",
         "symfonycasts/tailwind-bundle": "^0.7.1",
         "tales-from-a-dev/flowbite-bundle": "^0.7.1",
         "vich/uploader-bundle": "^2.4",
@@ -38,7 +40,8 @@
         "allow-plugins": {
             "php-http/discovery": true,
             "symfony/flex": true,
-            "symfony/runtime": true
+            "symfony/runtime": true,
+            "phpstan/extension-installer": true
         },
         "sort-packages": true
     },
@@ -81,23 +84,28 @@
     "extra": {
         "symfony": {
             "allow-contrib": false,
-            "require": "7.2.*"
+            "require": "7.4.*"
         }
     },
     "require-dev": {
-        "roave/security-advisories": "dev-latest",
-        "friendsofphp/php-cs-fixer": "^3.60",
-        "hautelook/alice-bundle": "^2.14",
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "hautelook/alice-bundle": "^2.16",
         "phpmd/phpmd": "^2.15",
-        "phpunit/phpunit": "^9.5",
-        "squizlabs/php_codesniffer": "^3.10",
-        "symfony/browser-kit": "7.2.*",
-        "symfony/css-selector": "7.2.*",
-        "symfony/debug-bundle": "7.2.*",
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan": "^2.2",
+        "phpstan/phpstan-doctrine": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-symfony": "^2.0",
+        "phpunit/phpunit": "^12.5",
+        "rector/rector": "^2.4",
+        "roave/security-advisories": "dev-latest",
+        "squizlabs/php_codesniffer": "^4.0",
+        "symfony/browser-kit": "7.4.*",
+        "symfony/css-selector": "7.4.*",
+        "symfony/debug-bundle": "7.4.*",
         "symfony/maker-bundle": "^1.60",
-        "symfony/phpunit-bridge": "^7.1",
-        "symfony/stopwatch": "7.2.*",
-        "symfony/var-dumper": "7.2.*",
-        "symfony/web-profiler-bundle": "7.2.*"
+        "symfony/stopwatch": "7.4.*",
+        "symfony/var-dumper": "7.4.*",
+        "symfony/web-profiler-bundle": "7.4.*"
     }
 }
