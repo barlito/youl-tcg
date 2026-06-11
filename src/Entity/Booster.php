@@ -120,7 +120,7 @@ class Booster implements \Stringable
         $this->imageFile = $imageFile;
 
         if ($imageFile instanceof File) {
-            $this->updatedAt = new \DateTimeImmutable();
+            $this->updatedAt = new \DateTime();
         }
     }
 
