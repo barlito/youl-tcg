@@ -38,6 +38,9 @@ jobs:
           make doctrine.migrate.ci
           make doctrine.load_fixtures.ci
 
+      - name: Build Tailwind CSS
+        run: make tailwind.build
+
       - name: Run phpunit
         run: make phpunit
 

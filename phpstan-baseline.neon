@@ -55,20 +55,8 @@ parameters:
 			path: src/Doctrine/DBAL/FunctionNode/Random.php
 
 		-
-			message: '#^Property App\\Entity\\Booster\:\:\$updatedAt \(DateTime\|null\) does not accept DateTimeImmutable\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: src/Entity/Booster.php
-
-		-
 			message: '#^Method App\\Entity\\Card\:\:getExtension\(\) should return App\\Entity\\Extension but returns App\\Entity\\Extension\|null\.$#'
 			identifier: return.type
-			count: 1
-			path: src/Entity/Card.php
-
-		-
-			message: '#^Property App\\Entity\\Card\:\:\$imageFoilFile \(Symfony\\Component\\HttpFoundation\\File\\File\|null\) is never assigned Symfony\\Component\\HttpFoundation\\File\\File so it can be removed from the property type\.$#'
-			identifier: property.unusedType
 			count: 1
 			path: src/Entity/Card.php
 
@@ -76,12 +64,6 @@ parameters:
 			message: '#^Property App\\Entity\\Card\:\:\$imageName type mapping mismatch\: property can contain string\|null but database expects string\.$#'
 			identifier: doctrine.columnType
 			count: 1
-			path: src/Entity/Card.php
-
-		-
-			message: '#^Property App\\Entity\\Card\:\:\$updatedAt \(DateTime\|null\) does not accept DateTimeImmutable\.$#'
-			identifier: assign.propertyType
-			count: 3
 			path: src/Entity/Card.php
 
 		-
