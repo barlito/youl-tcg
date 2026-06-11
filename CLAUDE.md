@@ -98,7 +98,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 **Core Entities:**
 - **Card**: Trading cards with multi-image support (main image, mask, foil)
-  - Fields: name, description, status (DRAFT/PUBLISHED), rarity (CardRarityEnum: common/uncommon/rare/legendary), type (CardTypeEnum, nullable, matches the CSS type glow classes), uniqueFlag
+  - Fields: name, description, status (DRAFT/PUBLISHED), rarity (CardRarityEnum: common/uncommon/rare/epic/legendary — white/green/blue/purple/orange glows), type (CardTypeEnum, nullable, matches the CSS type glow classes), uniqueFlag
   - Uses VichUploaderBundle for file uploads
   - ManyToOne with Extension
 

@@ -40,7 +40,7 @@ App\Entity\Card:
         unique: true
         imageName: 'default_card.png'
         status: 2
-        rarity: 'rare'
+        rarity: 'epic'
         type: 'water'
     card_magic_king_julian:
         name: 'Magic King Julian'

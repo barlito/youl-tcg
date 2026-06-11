@@ -5,10 +5,13 @@
 
 **/
 
-.card[data-rarity="common"]    { --rarity-glow: hsl(0, 0%, 75%); }
-.card[data-rarity="uncommon"]  { --rarity-glow: hsl(96, 81%, 55%); }
-.card[data-rarity="rare"]      { --rarity-glow: hsl(220, 90%, 60%); }
-.card[data-rarity="legendary"] { --rarity-glow: hsl(45, 95%, 55%); }
+/* Tiers alignés sur la direction "Violet Arcade" :
+   blanc / vert / bleu / violet / orange. */
+.card[data-rarity="common"]    { --rarity-glow: hsl(0, 0%, 92%); }
+.card[data-rarity="uncommon"]  { --rarity-glow: hsl(140, 70%, 63%); }
+.card[data-rarity="rare"]      { --rarity-glow: hsl(212, 100%, 66%); }
+.card[data-rarity="epic"]      { --rarity-glow: hsl(277, 87%, 57%); }
+.card[data-rarity="legendary"] { --rarity-glow: hsl(33, 100%, 59%); }
 
 /* Face-down card waiting to be revealed (booster opening modal). */
 .card.facedown {
