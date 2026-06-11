@@ -4,19 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Youl TCG** is a Trading Card Game (TCG) application built with Symfony 7.2. Users authenticate via Discord OAuth2 and can view/collect trading cards organized into extensions. The application features advanced 3D interactive card rendering with JavaScript-based animations.
+**Youl TCG** is a Trading Card Game (TCG) application built with Symfony 7.4 LTS. Users authenticate via Discord OAuth2, claim free daily boosters, open them with an animated card reveal and collect trading cards organized into extensions. The application features advanced 3D interactive card rendering with JavaScript-based animations.
 
 ## Development Environment
 
 ### Stack & Tools
-- **Framework:** Symfony 7.2 (PHP 8.2+)
-- **Database:** PostgreSQL 13 (production), SQLite (dev)
-- **Web Server:** FrankenPHP (Caddy-based)
+- **Framework:** Symfony 7.4 LTS (PHP 8.4)
+- **Database:** PostgreSQL 18
+- **Web Server:** FrankenPHP (Caddy-based, non-root user `www`)
 - **Authentication:** JWT (cookie-based) + Discord OAuth2
-- **Admin Panel:** EasyAdminBundle 4.11
+- **Admin Panel:** EasyAdminBundle 4.x
+- **Frontend interactivity:** Stimulus + symfony/ux-live-component (AssetMapper, no build step)
 - **Task Runner:** Castor + Makefile (uses barlito/php-make-rules submodule)
 - **Container Orchestration:** Docker Swarm (stack name: `ytcg`)
-- **Reverse Proxy:** Traefik (external traefik_traefik_proxy network)
+- **Reverse Proxy:** Traefik (external traefik_traefik_proxy network, TLS terminated by Traefik)
 
 ### Common Commands
 
@@ -53,10 +54,8 @@ make cs-fix
 # PHP CodeSniffer (uses vendor/barlito/utils/config/phpcs.xml.dist)
 make cs-check
 
-# PHPMD (uses vendor/barlito/utils/config/phpmd.xml)
-make phpmd
-
-# Run all quality checks
+# Run all quality checks (composer validate, phpcs, cs-fixer, phpstan, rector)
+# Note: phpmd is disabled everywhere until pdepend supports PHP 8.4 syntax
 make quality
 ```
 
@@ -99,7 +98,8 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 **Core Entities:**
 - **Card**: Trading cards with multi-image support (main image, mask, foil)
-  - Fields: name, description, status (DRAFT/PUBLISHED), uniqueFlag
+  - Fields: name, description, status (DRAFT/PUBLISHED), rarity (CardRarityEnum: common/uncommon/rare/epic/legendary — white/green/blue/purple/orange glows), uniqueFlag
+  - No "type" field: visual customization (glow, borders, CSS aspects) will be an extension-level config overridable per card (future phase)
   - Uses VichUploaderBundle for file uploads
   - ManyToOne with Extension
 
@@ -108,8 +108,8 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
   - OneToMany with Card and Booster
 
 - **Booster**: Booster packs containing cards
-  - Fields: price, quantity, rarityRate[], holoRate[]
-  - ManyToOne with Extension
+  - Fields: rarityRates (JSON, one `{rarity: weight}` map per card slot — the slot count IS the card count), holoRate (0-100 % holo chance per drawn card), imageName
+  - ManyToOne with Extension; boosters are free (no currency in v2)
 
 **User System:**
 - **DiscordUser**: Main user entity (implements UserInterface)
@@ -117,8 +117,19 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
   - Discord OAuth2 integration for authentication
   - OneToMany with UserCard and UserBooster
 
-- **UserCard**: User card inventory (composite key: DiscordUser + Card)
-- **UserBooster**: User booster inventory (composite key: DiscordUser + Booster)
+- **UserCard**: User card inventory (composite key: DiscordUser + Card, quantity + holoQuantity)
+- **UserBooster**: User unopened booster inventory (composite key: DiscordUser + Booster)
+
+**Audit Entities (booster opening):**
+- **BoosterClaim**: one row per daily free claim; the daily quota (2/day, reset midnight Europe/Paris) is a COUNT since midnight — no mutable counter anywhere
+- **BoosterOpening** + **BoosterOpeningCard**: opening history with the RNG seed (reproducible draws); duplicates aggregated per card (composite PK)
+
+### Booster Opening Flow (`src/Service/Booster/`)
+
+1. **BoosterClaimService::claim()** — asks the quota policy (`BoosterClaimQuotaInterface` / `DailyBoosterClaimQuota`) for remaining claims, credits `UserBooster` via UserInventoryService, persists a `BoosterClaim`. In dev only, the `UnlimitedBoosterClaimQuota` decorator (`#[When(env: 'dev')]`) lifts the limit unless `BOOSTER_DAILY_LIMIT_ENABLED=true` is set in `.env.dev` — prod code carries no bypass
+2. **BoosterOpeningService::open()** — one transaction: pessimistic-locked inventory debit, seeded `CardDrawer::draw()` (per-slot weighted rarity roll, uniform pick in the tier, fallback to the nearest tier with cards, holo roll), duplicate aggregation, `UserCard` credit, audit persistence
+3. **RandomService** (`src/Service/Random/`) — seedable `Random\Randomizer` wrapper; the seed is stored on `BoosterOpening`
+4. UI: **not implemented yet** — the booster opening pages arrive with the phase 2 "Violet Arcade" design (`/boosters` is still coming_soon). The engine is fully tested at the service level.
 
 **Common Traits:**
 - `IdUuidTrait` (from barlito/utils): UUID primary keys
@@ -139,28 +150,25 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 **Frontend (`src/Controller/`):**
 - **BaseController**: Homepage with 3 random published cards (cached daily)
-  - Routes: `/` (homepage), `/extensions` (coming soon), `/boosters` (coming soon)
+  - Routes: `/` (homepage), `/extensions` (coming soon), `/boosters` (coming soon — phase 2 design)
   - Uses custom `CardRepository::findRandomCardId()` with RANDOM() DQL function
 
 **Admin (`src/Controller/Admin/`):**
 - **DashboardController**: EasyAdmin dashboard entry
-- **CardCrudController**: Card management with custom ImageField
+- **CardCrudController**: Card management with custom ImageField (rarity/type choice fields)
 - **ExtensionCrudController**: Extension management
+- **BoosterCrudController**: Booster management (rarityRates edited as JSON via CodeEditorField, validated by the ValidRarityRates constraint)
 - Access: Requires ROLE_ADMIN
 
 ### Frontend Architecture
 
 **3D Card Rendering System:**
-- **CSS**: `assets/styles/cards/base.css` (347 lines of advanced 3D CSS)
+- **CSS**: `assets/styles/cards/base.css` (advanced 3D CSS)
   - Hardware-accelerated transforms with perspective
   - Multi-layer effects: shine, glare, foil masks
   - Type-specific glows (water, fire, grass, etc.)
-
-- **JavaScript**: `assets/scripts/card/card.js`
-  - Real-time mouse-tracking 3D rotation
-  - Anime.js animations for smooth transitions
-  - Touch event support
-  - Key functions: `computePositions()`, `updateCard()`, `resetElement()`
+- **JavaScript (Stimulus controllers in `assets/controllers/`):**
+  - `card_controller.js`: real-time mouse-tracking 3D rotation (anime.js); attached via `data-controller="card"`, so dynamically rendered cards (Live Components) work too
 
 **Asset Pipeline:**
 - Uses Symfony AssetMapper (no Webpack/build step)
@@ -174,6 +182,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - `cards`: Main card artwork → `/public/images/cards/`
 - `masks`: Foil/holo masks → `/public/images/masks/`
 - `foils`: Foil textures → `/public/images/foils/`
+- `boosters`: Booster images → `/public/images/boosters/`
 - `extensions`: Extension images → `/public/images/extensions/`
 
 **Upload Routes:**
@@ -221,8 +230,8 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 ### Modifying Card Display
 
-- **CSS changes**: Edit `assets/styles/cards/base.css`
-- **JavaScript interactions**: Edit `assets/scripts/card/card.js`
+- **CSS changes**: Edit `assets/styles/cards/base.css` (3D core)
+- **JavaScript interactions**: Edit `assets/controllers/card_controller.js`
 - **Template structure**: Edit `templates/components/CardComponent.html.twig`
 - **Card selection logic**: Modify `CardRepository::findRandomCardId()`
 
@@ -244,7 +253,7 @@ All JWT listeners must:
 ### Code Quality Standards
 
 - PSR-12 coding standard via PHP CS Fixer
-- PHPMD ruleset from `vendor/barlito/utils/config/phpmd.xml`
+- PHPStan level 8 (baseline in `phpstan-baseline.neon` — never add new entries)
 - Declare strict types: `declare(strict_types=1);`
 - Use typed properties and return types
 - Enum over constants for fixed value sets
