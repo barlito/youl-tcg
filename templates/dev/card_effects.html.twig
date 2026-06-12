@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+    DEV — Effets de cartes
+{% endblock %}
+
+{% block body %}
+    <style>
+        /* Force le glow "active" en permanence (sans survol) pour comparer les couleurs.
+           Copie du box-shadow de `.card.active .card__rotator` dans cards/base.css. */
+        .force-glow .card .card__rotator {
+            box-shadow:
+                0 0 3px -1px white,
+                0 0 3px 1px var(--card-edge),
+                0 0 12px 2px var(--card-glow),
+                0px 10px 20px -5px black,
+                0 0 40px -30px var(--card-glow),
+                0 0 50px -20px var(--card-glow);
+        }
+    </style>
+
+    <main class="container mx-auto py-10 px-4">
+        <div class="mb-8">
+            <p class="text-sm font-mono uppercase tracking-widest text-purple-400">dev only · /dev/card-effects</p>
+            <h1 class="text-4xl font-bold text-white mt-1">Effets de cartes — palette de glows</h1>
+            <p class="text-gray-300 mt-2 max-w-3xl">
+                Le glow d'une carte = la variable CSS <code class="text-purple-300">--card-glow</code>, héritée ici
+                d'un simple wrapper (<code class="text-purple-300">style="--card-glow: …"</code>) — n'importe quelle
+                couleur fonctionne. C'est le mécanisme que la future <strong>config visuelle par extension</strong>
+                (override par carte) pilotera. Le glow est forcé en permanence ; <strong>survole une carte</strong>
+                pour le 3D interactif + glare.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {% for demo in demos %}
+                <div class="force-glow" style="--card-glow: {{ demo.glow }};">
+                    {{ include('components/CardComponent.html.twig', { card: demo.card }) }}
+                    <div class="mt-2 flex items-center gap-2 px-1">
+                        <span class="inline-block w-4 h-4 rounded-full border border-white/30" style="background: {{ demo.glow }};"></span>
+                        <code class="text-sm text-gray-200">{{ demo.label }}</code>
+                        <span class="text-xs text-gray-400 font-mono">{{ demo.glow }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-12 bg-slate-800/60 border border-slate-700 rounded-xl p-6 max-w-3xl">
+            <h2 class="text-xl font-bold text-white mb-3">Notes</h2>
+            <ul class="text-gray-300 space-y-2 list-disc list-inside">
+                <li><strong>Plus de champ <code>Card.type</code></strong> : la custom visuelle (glow, borders, aspects CSS) sera une config au niveau Extension, overridable par carte (phase future). Les classes <code>.card.water</code>… de base.css sont un legacy à nettoyer à ce moment-là.</li>
+                <li><strong>Calques holo/foil</strong> : <code>.card__shine</code> est vide — le rendu façon poke-holo arrive avec la phase 2 (cf. RAPPORT-CARTES-HOLO).</li>
+                <li><strong>Glow par rareté</strong> (<code>data-rarity</code> posé, sans CSS) — arrive avec l'UI d'ouverture phase 2.</li>
+            </ul>
+        </div>
+    </main>
+{% endblock %}
