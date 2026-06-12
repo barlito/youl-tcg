@@ -29,8 +29,8 @@ final class HomepageTest extends WebTestCase
         $this->client = self::createClient();
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
 
-        // The homepage caches the day cards and the ticker counters: without
-        // this, values leak from one test (or one local run) to the next.
+        // The homepage caches the day cards: without this, ids leak from one
+        // test (or one local run) to the next.
         self::getContainer()->get('cache.app')->clear();
     }
 

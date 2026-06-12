@@ -38,19 +38,13 @@ class BaseController extends AbstractController
             $cards = $cardRepository->findBy(['id' => $cardsIds]);
         }
 
-        $packsOpenedCount = $cache->get('home_packs_opened', function (ItemInterface $item) use ($boosterOpeningRepository): int {
-            $item->expiresAfter(300);
-
-            return $boosterOpeningRepository->countAll();
-        });
-
         $extensions = $extensionRepository->findPublishedWithPublishedCardCount();
 
         return $this->render('pages/homepage.html.twig', [
             'cards' => $cards,
             'extensions' => $extensions,
             'cardsTotal' => array_sum(array_column($extensions, 'cardCount')),
-            'packsOpenedCount' => $packsOpenedCount,
+            'packsOpenedCount' => $boosterOpeningRepository->countAll(),
         ]);
     }
 
