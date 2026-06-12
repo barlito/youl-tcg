@@ -36,9 +36,12 @@ class BaseController extends AbstractController
             return $boosterOpeningRepository->countAll();
         });
 
+        $extensions = $extensionRepository->findPublishedWithPublishedCardCount();
+
         return $this->render('pages/homepage.html.twig', [
             'cards' => $cards,
-            'extensions' => $extensionRepository->findPublishedWithPublishedCardCount(),
+            'extensions' => $extensions,
+            'cardsTotal' => array_sum(array_column($extensions, 'cardCount')),
             'packsOpenedCount' => $packsOpenedCount,
         ]);
     }
