@@ -14,7 +14,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 
 /**
- * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ * @extends AbstractCrudController<Extension>
+ *
+ * @SuppressWarnings("PHPMD.CouplingBetweenObjects")
  */
 class ExtensionCrudController extends AbstractCrudController
 {
@@ -38,7 +40,7 @@ class ExtensionCrudController extends AbstractCrudController
     }
 
     /**
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * @SuppressWarnings("PHPMD.UnusedFormalParameter")
      */
     #[\Override]
     public function configureFields(string $pageName): iterable

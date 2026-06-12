@@ -12,6 +12,7 @@ use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\TokenExtractor\TokenExtractorInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Exception\UserNotFoundException;
 
 #[AsEventListener(event: Events::JWT_INVALID, method: 'onJwtInvalid')]
@@ -27,7 +28,12 @@ readonly class JwtInvalid
     /** Create the user blindfolded, we trust the token provider */
     public function onJwtInvalid(JWTInvalidEvent $event): void
     {
-        $token = $this->tokenExtractor->extract($event->getRequest());
+        $request = $event->getRequest();
+        if (!$request instanceof Request) {
+            return;
+        }
+
+        $token = $this->tokenExtractor->extract($request);
         if (false === $token) {
             return;
         }
@@ -47,6 +53,6 @@ readonly class JwtInvalid
             $this->entityManager->flush();
         }
 
-        $event->setResponse(new RedirectResponse($event->getRequest()->getUri()));
+        $event->setResponse(new RedirectResponse($request->getUri()));
     }
 }

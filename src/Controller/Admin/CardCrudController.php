@@ -23,7 +23,9 @@ use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 use Vich\UploaderBundle\Templating\Helper\UploaderHelper;
 
 /**
- * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ * @extends AbstractCrudController<Card>
+ *
+ * @SuppressWarnings("PHPMD.CouplingBetweenObjects")
  */
 class CardCrudController extends AbstractCrudController
 {
@@ -60,14 +62,17 @@ class CardCrudController extends AbstractCrudController
     }
 
     /**
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * @SuppressWarnings("PHPMD.UnusedFormalParameter")
      */
     #[\Override]
     public function configureFields(string $pageName): iterable
     {
+        $imageCss = $this->assetMapper->getAsset('styles/admin/image.css')
+            ?? throw new \LogicException('Asset "styles/admin/image.css" not found in the asset map.');
+
         yield ImageField::new('imageName')
             ->hideOnForm()
-            ->addCssFiles($this->assetMapper->getAsset('styles/admin/image.css')->publicPath)
+            ->addCssFiles($imageCss->publicPath)
             ->formatValue(function ($value, $entity): ?string {
                 if (!$entity instanceof Card) {
                     throw new UnexpectedTypeException($entity, Card::class);
