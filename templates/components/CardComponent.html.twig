@@ -1,4 +1,8 @@
-<div id="{{ card.id }}" class="card interactive" data-rarity="{{ card.rarity.value }}" data-controller="card">
+{%- set maskUrl = card.imageMaskName ? vich_uploader_asset(card, 'imageMaskFile') : null -%}
+{%- set foilUrl = card.imageFoilName ? vich_uploader_asset(card, 'imageFoilFile') : null -%}
+<div id="{{ card.id }}" class="card interactive{{ maskUrl ? ' masked' }}" data-rarity="{{ card.rarity.value }}"
+     data-controller="card"
+     {%- if maskUrl or foilUrl %} style="{{ maskUrl ? "--mask: url('#{maskUrl}');" }}{{ foilUrl ? " --foil: url('#{foilUrl}');" }}"{% endif %}>
     <div class="card__translater">
         <div class="card__rotator">
             <div class="card__front">

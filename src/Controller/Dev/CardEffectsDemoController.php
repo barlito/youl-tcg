@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Dev;
 
 use App\Entity\Card;
+use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\CardRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -12,10 +13,11 @@ use Symfony\Component\DependencyInjection\Attribute\When;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Dev-only showcase of card visual effects: the same card rendered with
- * different glow colors (--card-glow inherited from a wrapper), 3D tilt and
- * glare on hover. Previews the future extension-level visual config
- * (default glow/borders per extension, overridable per card).
+ * Dev-only showcase of card visual effects: the same card rendered at the
+ * five rarity tiers (glow + holo recipe keyed by data-rarity, see
+ * assets/styles/cards/holo.css), plus free-color overrides previewing the
+ * future extension-level visual config (default glow per extension,
+ * overridable per card).
  *
  * The service only exists in the dev container (#[When]) and the route is
  * declared in config/routes.yaml under when@dev (a #[Route] attribute would
@@ -25,21 +27,10 @@ use Symfony\Component\HttpFoundation\Response;
 class CardEffectsDemoController extends AbstractController
 {
     /**
-     * Demo glow palette. The first ten mirror the legacy .card.<type> colors
-     * still present in assets/styles/cards/base.css; the last entries show
-     * that any color works (the future config will be a free value).
+     * Free glow overrides: any color works (--card-glow inherited from a
+     * wrapper beats the data-rarity default).
      */
-    private const array GLOW_PALETTE = [
-        'azur (ex water)' => 'hsl(192, 97%, 60%)',
-        'braise (ex fire)' => 'hsl(9, 81%, 59%)',
-        'sève (ex grass)' => 'hsl(96, 81%, 65%)',
-        'volt (ex lightning)' => 'hsl(54, 87%, 63%)',
-        'nébule (ex psychic)' => 'hsl(281, 62%, 58%)',
-        'terre (ex fighting)' => 'rgb(145, 90, 39)',
-        'abysse (ex darkness)' => 'hsl(189, 77%, 27%)',
-        'chrome (ex metal)' => 'hsl(184, 20%, 70%)',
-        'or (ex dragon)' => 'hsl(51, 60%, 35%)',
-        'rose (ex fairy)' => 'hsl(323, 100%, 89%)',
+    private const array GLOW_OVERRIDES = [
         'violet arcade' => '#a435f0',
         'magenta arcade' => '#ff3db0',
     ];
@@ -49,29 +40,38 @@ class CardEffectsDemoController extends AbstractController
         $referenceCard = $cardRepository->findOneBy(['status' => CardStatusEnum::PUBLISHED])
             ?? throw $this->createNotFoundException('No published card found, load the fixtures first.');
 
-        $demos = [];
+        $rarityDemos = [];
+        foreach (CardRarityEnum::cases() as $rarity) {
+            $rarityDemos[] = [
+                'card' => $this->variant($referenceCard, $rarity->value, \sprintf('data-rarity: %s', $rarity->value))
+                    ->setRarity($rarity),
+                'rarity' => $rarity->value,
+            ];
+        }
 
-        foreach (self::GLOW_PALETTE as $label => $glow) {
-            $demos[] = [
-                'card' => $this->variant($referenceCard, $label, $glow),
+        $overrideDemos = [];
+        foreach (self::GLOW_OVERRIDES as $label => $glow) {
+            $overrideDemos[] = [
+                'card' => $this->variant($referenceCard, $label, \sprintf('--card-glow: %s', $glow)),
                 'label' => $label,
                 'glow' => $glow,
             ];
         }
 
         return $this->render('dev/card_effects.html.twig', [
-            'demos' => $demos,
+            'rarityDemos' => $rarityDemos,
+            'overrideDemos' => $overrideDemos,
         ]);
     }
 
     /**
      * Transient clone, never persisted: same artwork, demo label.
      */
-    private function variant(Card $referenceCard, string $label, string $glow): Card
+    private function variant(Card $referenceCard, string $label, string $description): Card
     {
         $variant = clone $referenceCard;
         $variant->setName(ucfirst($label));
-        $variant->setDescription(\sprintf('--card-glow: %s', $glow));
+        $variant->setDescription($description);
 
         return $variant;
     }
