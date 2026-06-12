@@ -37,7 +37,7 @@ class CollectionController extends AbstractController
                 'extension' => $item['extension'],
                 'total' => $item['cardCount'],
                 'owned' => $owned,
-                'pct' => $item['cardCount'] > 0 ? (int) round($owned / $item['cardCount'] * 100) : 0,
+                'percentage' => $item['cardCount'] > 0 ? (int) round($owned / $item['cardCount'] * 100) : 0,
             ];
         }, $extensions);
 
