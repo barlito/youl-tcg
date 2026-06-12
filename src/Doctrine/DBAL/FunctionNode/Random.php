@@ -19,7 +19,7 @@ final class Random extends FunctionNode
     }
 
     /**
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * @SuppressWarnings("PHPMD.UnusedFormalParameter")
      */
     public function getSql(SqlWalker $sqlWalker): string
     {

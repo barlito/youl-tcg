@@ -47,7 +47,7 @@ class Card
     #[Vich\UploadableField(mapping: 'cards', fileNameProperty: 'imageName')]
     private ?File $imageFile = null;
 
-    #[ORM\Column(type: 'string', length: 255)]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $imageName = null;
 
     #[Vich\UploadableField(mapping: 'masks', fileNameProperty: 'imageMaskName')]
@@ -124,6 +124,8 @@ class Card
 
     public function getExtension(): Extension
     {
+        \assert($this->extension instanceof Extension);
+
         return $this->extension;
     }
 

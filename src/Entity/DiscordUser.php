@@ -24,12 +24,21 @@ class DiscordUser implements UserInterface
     #[ORM\Column(length: 255)]
     private string $username;
 
+    /**
+     * @var list<string>
+     */
     #[ORM\Column]
     private array $roles = [];
 
+    /**
+     * @var Collection<int, UserCard>
+     */
     #[ORM\OneToMany(targetEntity: UserCard::class, mappedBy: 'discordUser')]
     private Collection $userCards;
 
+    /**
+     * @var Collection<int, UserBooster>
+     */
     #[ORM\OneToMany(targetEntity: UserBooster::class, mappedBy: 'discordUser')]
     private Collection $userBoosters;
 
@@ -64,7 +73,7 @@ class DiscordUser implements UserInterface
     }
 
     /**
-     * @return Collection<UserCard>
+     * @return Collection<int, UserCard>
      */
     public function getUserCards(): Collection
     {
@@ -82,7 +91,7 @@ class DiscordUser implements UserInterface
     }
 
     /**
-     * @return Collection<UserBooster>
+     * @return Collection<int, UserBooster>
      */
     public function getUserBoosters(): Collection
     {
@@ -106,11 +115,15 @@ class DiscordUser implements UserInterface
      */
     public function getUserIdentifier(): string
     {
+        \assert('' !== $this->username);
+
         return $this->username;
     }
 
     /**
      * @see UserInterface
+     *
+     * @return list<string>
      */
     public function getRoles(): array
     {
@@ -118,9 +131,12 @@ class DiscordUser implements UserInterface
         // guarantee every user at least has ROLE_USER
         $roles[] = RoleEnum::ROLE_USER->value;
 
-        return array_unique($roles);
+        return array_values(array_unique($roles));
     }
 
+    /**
+     * @param list<string> $roles
+     */
     public function setRoles(array $roles): static
     {
         $this->roles = $roles;

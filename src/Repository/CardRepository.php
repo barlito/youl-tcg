@@ -13,11 +13,6 @@ use Doctrine\Persistence\ManagerRegistry;
 
 /**
  * @extends ServiceEntityRepository<Card>
- *
- * @method Card|null find($id, $lockMode = null, $lockVersion = null)
- * @method Card|null findOneBy(array $criteria, array $orderBy = null)
- * @method Card[]    findAll()
- * @method Card[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
 class CardRepository extends ServiceEntityRepository
 {
@@ -26,9 +21,12 @@ class CardRepository extends ServiceEntityRepository
         parent::__construct($registry, Card::class);
     }
 
+    /**
+     * @return list<mixed> published card ids
+     */
     public function findRandomCardId(int $maxResult): array
     {
-        return $this->createQueryBuilder('c')
+        return array_values($this->createQueryBuilder('c')
             ->select('c.id')
             ->join('c.extension', 'e')
             ->andWhere('c.status = :status')
@@ -38,7 +36,6 @@ class CardRepository extends ServiceEntityRepository
             ->orderBy('RANDOM()')
             ->setMaxResults($maxResult)
             ->getQuery()
-            ->getSingleColumnResult()
-        ;
+            ->getSingleColumnResult());
     }
 }

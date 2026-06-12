@@ -253,7 +253,7 @@ All JWT listeners must:
 ### Code Quality Standards
 
 - PSR-12 coding standard via PHP CS Fixer
-- PHPStan level 8 (baseline in `phpstan-baseline.neon` — never add new entries)
+- PHPStan level 8, **zero baseline** (never reintroduce one)
 - Declare strict types: `declare(strict_types=1);`
 - Use typed properties and return types
 - Enum over constants for fixed value sets

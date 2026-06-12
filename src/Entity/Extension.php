@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Validator\Constraints as Assert;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
+#[Vich\Uploadable]
 #[ORM\Entity(repositoryClass: ExtensionRepository::class)]
 class Extension implements \Stringable
 {
@@ -31,16 +32,22 @@ class Extension implements \Stringable
     #[ORM\Column(options: ['default' => ExtensionStatusEnum::DRAFT])]
     private ExtensionStatusEnum $status = ExtensionStatusEnum::DRAFT;
 
-    #[Vich\UploadableField(mapping: 'cards', fileNameProperty: 'imageName')]
+    #[Vich\UploadableField(mapping: 'extensions', fileNameProperty: 'imageName')]
     private ?File $imageFile = null;
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $imageName = null;
 
+    /**
+     * @var Collection<int, Card>
+     */
     #[Assert\Valid]
     #[ORM\OneToMany(targetEntity: Card::class, mappedBy: 'extension')]
     private Collection $cards;
 
+    /**
+     * @var Collection<int, Booster>
+     */
     #[Assert\Valid]
     #[ORM\OneToMany(targetEntity: Booster::class, mappedBy: 'extension')]
     private Collection $boosters;
@@ -103,7 +110,7 @@ class Extension implements \Stringable
     {
         $this->imageFile = $imageFile;
 
-        $this->updatedAt = new \DateTimeImmutable();
+        $this->updatedAt = new \DateTime();
     }
 
     public function getImageFile(): ?File
@@ -139,16 +146,6 @@ class Extension implements \Stringable
         return $this;
     }
 
-    public function removeCard(Card $card): static
-    {
-        // set the owning side to null (unless already changed)
-        if ($this->cards->removeElement($card) && $card->getExtension() === $this) {
-            $card->setExtension(null);
-        }
-
-        return $this;
-    }
-
     /**
      * @return Collection<int, Booster>
      */
@@ -162,16 +159,6 @@ class Extension implements \Stringable
         if (!$this->boosters->contains($booster)) {
             $this->boosters->add($booster);
             $booster->setExtension($this);
-        }
-
-        return $this;
-    }
-
-    public function removeBooster(Booster $booster): static
-    {
-        // set the owning side to null (unless already changed)
-        if ($this->boosters->removeElement($booster) && $booster->getExtension() === $this) {
-            $booster->setExtension(null);
         }
 
         return $this;

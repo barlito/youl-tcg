@@ -1,6 +1,5 @@
 includes:
     - vendor/barlito/utils/config/phpstan.neon
-    - phpstan-baseline.neon
 
 parameters:
     paths:
