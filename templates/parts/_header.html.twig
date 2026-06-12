@@ -1,22 +1,47 @@
-<header class="w-full opacity-90 bg-gradient-to-b from-gray-900 to-transparent text-white">
-    <div class="p-2 mx-4">
-        <div class="flex justify-between">
-            <div class="flex items-center">
-                <img src="{{ asset('images/ytcg_logo.png') }}" alt="Logo" class="h-16 mr-4">
-                <h1 class="text-2xl font-bold">Youl TCG</h1>
-            </div>
-            <div class="flex space-x-4 items-center text-xl text-white">
-                {{ _self.nav_link('homepage', 'Home') }}
-                {{ _self.nav_link('extensions', 'Cards') }}
-                {{ _self.nav_link('boosters', 'Boosters') }}
-            </div>
-            <div class="flex space-x-4 items-center text-xl text-white font-extrabold">
-{#                <a href="#" class>{{ app.user.username }}</a>#}
-            </div>
+<header class="border-b border-hairline">
+    <div class="flex items-center justify-between px-6 py-5 lg:px-14">
+        <a href="{{ path('homepage') }}" class="flex items-center gap-3.5">
+            <img src="{{ asset('images/ytcg_logo.png') }}" alt="Logo YOUL"
+                 class="h-12 w-12 object-contain [filter:drop-shadow(0_0_14px_#a435f0aa)]">
+            <span class="flex flex-col gap-1 leading-none">
+                <span class="skew-brand font-display text-[26px] font-bold tracking-[-0.04em] text-ink-strong">YOUL</span>
+                <span class="font-mono text-[9px] tracking-[.28em] text-primary">TRADING CARD GAME</span>
+            </span>
+        </a>
+
+        <nav class="hidden items-center gap-7 font-display text-sm font-semibold uppercase tracking-[.1em] md:flex">
+            {{ _self.nav_link('homepage', 'Accueil') }}
+            {{ _self.nav_link('extensions', 'Univers') }}
+            {{ _self.nav_link('boosters', 'Boosters') }}
+            {{ _self.nav_soon('Échanges') }}
+            {{ _self.nav_soon('Duels') }}
+        </nav>
+
+        <div class="flex items-center gap-4">
+            {% if is_granted('ROLE_ADMIN') %}
+                <a href="{{ path('admin') }}" class="chip-mono text-ink-dim hover:text-primary">Admin</a>
+            {% endif %}
+            {% if app.user %}
+                <span class="flex items-center gap-2.5 border border-hairline bg-surface py-1 pl-1 pr-3.5">
+                    <span class="flex h-7 w-7 items-center justify-center bg-gradient-to-br from-primary to-magenta font-display text-sm font-bold text-black">
+                        {{ app.user.username|first|upper }}
+                    </span>
+                    <span class="font-mono text-xs text-ink">{{ app.user.username }}</span>
+                </span>
+                <a href="{{ path('app_logout') }}" class="chip-mono text-ink-dim hover:text-magenta">Quitter</a>
+            {% endif %}
         </div>
     </div>
 </header>
 
 {% macro nav_link(route, label) %}
-    <a href="{{ path(route) }}" class="{{ app.request.get('_route') == route ? 'active' : '' }}">{{ label }}</a>
+    <a href="{{ path(route) }}"
+       class="text-ink-muted hover:text-ink-strong {{ app.request.get('_route') == route ? 'active' : '' }}">{{ label }}</a>
+{% endmacro %}
+
+{% macro nav_soon(label) %}
+    <span class="flex items-center gap-1.5 text-ink-dim" aria-disabled="true">
+        {{ label }}
+        <span class="font-mono text-[9px] tracking-[.15em] text-soon">SOON</span>
+    </span>
 {% endmacro %}

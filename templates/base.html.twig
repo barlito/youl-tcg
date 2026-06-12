@@ -2,11 +2,16 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}YTCG{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}YOUL TCG{% endblock %}</title>
     <link rel="icon"
           href="{{ asset('images/ytcg_logo.png') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
     {% block stylesheets %}
         <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+        <link rel="stylesheet" href="{{ asset('styles/theme.css') }}">
         <link rel="stylesheet" href="{{ asset('styles/cards/base.css') }}">
     {% endblock %}
 
@@ -16,11 +21,15 @@
         {% endblock %}
     {% endblock %}
 </head>
-<body class="min-h-screen bg-gray-700">
+<body class="min-h-screen bg-bg font-sans text-ink antialiased">
+<div class="scanlines" aria-hidden="true"></div>
 {% block header %}
     {{ include('parts/_header.html.twig') }}
 {% endblock %}
 {% block body %}
+{% endblock %}
+{% block footer %}
+    {{ include('parts/_footer.html.twig') }}
 {% endblock %}
 </body>
 </html>

@@ -2,6 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
-.active{
-    @apply font-bold underline underline-offset-auto decoration-gray-600
+@layer components {
+    /* Bouton primaire arcade : plein, biseauté, typo display condensée */
+    .btn-arcade {
+        @apply inline-block bg-primary px-6 py-3.5 font-display text-sm font-bold uppercase tracking-[.15em] text-white;
+        clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+    }
+
+    .btn-arcade:hover {
+        @apply bg-magenta;
+    }
+
+    /* Bouton secondaire : transparent, hairline */
+    .btn-ghost {
+        @apply inline-block border border-white/20 px-6 py-3.5 font-display text-sm font-bold uppercase tracking-[.15em] text-white;
+    }
+
+    .btn-ghost:hover {
+        @apply border-primary text-primary;
+    }
+
+    /* Eyebrow de section : "01 / CONCEPT" */
+    .eyebrow {
+        @apply font-mono text-[11px] uppercase tracking-[.25em] text-magenta;
+    }
+
+    /* Petites étiquettes monospace (codes, méta) */
+    .chip-mono {
+        @apply font-mono text-[10px] uppercase tracking-[.15em];
+    }
+}
+
+.active {
+    @apply text-primary;
 }

@@ -1,15 +1,21 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}
-    YTCG - Coming Soon TM
+    YOUL TCG — Coming soon
 {% endblock %}
 
 {% block body %}
-    <main class="my-10">
-        <div class="container mx-auto">
-            <div class="relative h-[80vh] overflow-hidden rounded-3xl">
-                <img src="{{ asset('images/coming_soon.png') }}" class="absolute block w-full -translate-x-1/2 -translate-y-[26rem] top-1/2 left-1/2 mx-auto" alt="YTCG Coming soon">
-            </div>
+    <main class="relative px-6 py-24 lg:px-14">
+        <div class="glow-ambient" aria-hidden="true"></div>
+        <div class="relative mx-auto max-w-3xl border border-dashed border-hairline px-8 py-20 text-center">
+            <p class="eyebrow">En construction</p>
+            <h1 class="mt-6 font-display text-7xl font-bold uppercase leading-[.9] tracking-[-0.05em] text-ink-strong md:text-8xl">
+                Soon<span class="text-primary">.</span>
+            </h1>
+            <p class="mt-8 text-ink-muted">
+                Cette page arrive avec une prochaine mise à jour. Reviens vite.
+            </p>
+            <a href="{{ path('homepage') }}" class="btn-arcade mt-10">Retour à l'accueil ▸</a>
         </div>
     </main>
 {% endblock %}

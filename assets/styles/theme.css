@@ -1,0 +1,96 @@
+/*
+ * Violet Arcade — design tokens & textures partagées.
+ *
+ * Fichier volontairement hors Tailwind : les variables et les sélecteurs
+ * d'attribut (ex. [data-rarity=…] dans cards/holo.css) ne doivent pas
+ * dépendre de la purge du compiler.
+ */
+
+:root {
+    --bg: #0b0712;
+    --surface: #160e22;
+    --primary: #a435f0;
+    --magenta: #ff3db0;
+    --gradient-brand: linear-gradient(90deg, #a435f0, #ff3db0);
+
+    --text: #f0e8f7;
+    --text-strong: #fff;
+    --text-muted: #b9a8cf;
+    --text-dim: #6a5a8a;
+
+    --hairline: #a435f033;
+    --live: #5be584;
+    --soon: #ffd24a;
+
+    /* Raretés — 5 tiers (mythic/secret du design remappés sur epic/legendary) */
+    --rarity-common: #9aa3b2;
+    --rarity-uncommon: #5be584;
+    --rarity-rare: #54a8ff;
+    --rarity-epic: #a435f0;
+    --rarity-legendary: #ff8a2b;
+}
+
+/* --- Textures ------------------------------------------------------------ */
+
+.scanlines {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent 0 2px, #00000030 2px 3px);
+    opacity: .4;
+}
+
+.glow-ambient {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, #a435f033, transparent 60%);
+    filter: blur(60px);
+}
+
+.hazard-stripes {
+    background-image: repeating-linear-gradient(45deg, #000 0 12px, transparent 12px 24px);
+}
+
+/* --- Formes -------------------------------------------------------------- */
+
+/* Boutons à coins biseautés (pas de border-radius dans ce design) */
+.notched {
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+
+.notched-lg {
+    clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+}
+
+/* Coin bas-gauche coupé (grande tuile magazine) */
+.notched-corner {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+}
+
+/* Octogone (avatar) — deux coins opposés coupés */
+.notched-avatar {
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+
+.skew-brand {
+    transform: skewX(-6deg);
+}
+
+/* --- Animations ---------------------------------------------------------- */
+
+@keyframes floatY {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-14px); }
+}
+
+@keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100%); }
+}
+
+@keyframes holoSpark {
+    0%, 100% { opacity: .2; transform: scale(.6); }
+    50% { opacity: 1; transform: scale(1.4); }
+}
