@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Repository\BoosterOpeningRepository;
 use App\Repository\CardRepository;
+use App\Repository\ExtensionRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -14,18 +16,35 @@ use Symfony\Contracts\Cache\ItemInterface;
 class BaseController extends AbstractController
 {
     #[Route('/', name: 'homepage')]
-    public function homepage(CardRepository $cardRepository, CacheInterface $cache): Response
-    {
-        $cardsIds = $cache->get('daycards', function (ItemInterface $item) use ($cardRepository): array {
+    public function homepage(
+        CardRepository $cardRepository,
+        ExtensionRepository $extensionRepository,
+        BoosterOpeningRepository $boosterOpeningRepository,
+        CacheInterface $cache,
+    ): Response {
+        $pickDayCards = function (ItemInterface $item) use ($cardRepository): array {
             $item->expiresAt(new \DateTime('tomorrow'));
 
             return $cardRepository->findRandomCardId(3);
-        });
+        };
 
+        $cardsIds = $cache->get('daycards', $pickDayCards);
         $cards = $cardRepository->findBy(['id' => $cardsIds]);
+
+        // Stale cache (a cached card got unpublished or deleted): redraw.
+        if (\count($cards) !== \count($cardsIds)) {
+            $cache->delete('daycards');
+            $cardsIds = $cache->get('daycards', $pickDayCards);
+            $cards = $cardRepository->findBy(['id' => $cardsIds]);
+        }
+
+        $extensions = $extensionRepository->findPublishedWithPublishedCardCount();
 
         return $this->render('pages/homepage.html.twig', [
             'cards' => $cards,
+            'extensions' => $extensions,
+            'cardsTotal' => array_sum(array_column($extensions, 'cardCount')),
+            'packsOpenedCount' => $boosterOpeningRepository->countAll(),
         ]);
     }
 

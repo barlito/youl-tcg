@@ -85,9 +85,10 @@
     50% { transform: translateY(-14px); }
 }
 
+/* La piste contient deux copies du contenu : -50% boucle sans couture */
 @keyframes marquee {
     from { transform: translateX(0); }
-    to { transform: translateX(-100%); }
+    to { transform: translateX(-50%); }
 }
 
 @keyframes holoSpark {

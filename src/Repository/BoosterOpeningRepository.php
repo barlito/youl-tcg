@@ -17,4 +17,9 @@ class BoosterOpeningRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, BoosterOpening::class);
     }
+
+    public function countAll(): int
+    {
+        return $this->count([]);
+    }
 }
