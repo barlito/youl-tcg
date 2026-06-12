@@ -55,15 +55,21 @@
         {% set tickerItems = [
             "✦ %s packs ouverts"|format(packsOpenedCount|number_format(0, ',', ' ')),
             '✦ %d univers'|format(extensions|length),
+            '✦ %d cartes à collectionner'|format(cardsTotal),
             '✦ 2 packs / jour',
             '✦ 5 paliers de rareté',
         ] %}
+        {# La boucle marquee = 2 copies de la piste, translateX(-50%). Chaque
+           copie répète les items 3× pour rester plus large que le viewport :
+           sans ça, du vide apparaît pendant le défilement. #}
         <section class="overflow-hidden border-y-2 border-black bg-primary py-6 text-black" data-testid="ticker">
-            <div class="flex w-max" style="animation: marquee 30s linear infinite;">
+            <div class="flex w-max" style="animation: marquee 60s linear infinite;">
                 {% for copy in range(0, 1) %}
                     <div class="flex shrink-0 items-center" {{ copy == 1 ? 'aria-hidden="true"' }}>
-                        {% for item in tickerItems %}
-                            <span class="whitespace-nowrap px-6 font-display text-2xl font-bold uppercase tracking-[-0.02em]">{{ item }}</span>
+                        {% for repeat in range(0, 2) %}
+                            {% for item in tickerItems %}
+                                <span class="whitespace-nowrap px-6 font-display text-2xl font-bold uppercase tracking-[-0.02em]">{{ item }}</span>
+                            {% endfor %}
                         {% endfor %}
                     </div>
                 {% endfor %}
