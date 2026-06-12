@@ -3,3 +3,8 @@ controllers:
         path: ../src/Controller/
         namespace: App\Controller
     type: attribute
+
+when@dev:
+    dev_card_effects:
+        path: /dev/card-effects
+        controller: App\Controller\Dev\CardEffectsDemoController
