@@ -12,10 +12,10 @@
             <div class="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.1fr_1fr]">
                 <div>
                     <span class="inline-block bg-primary px-2.5 py-1 font-mono text-[11px] font-bold tracking-[.15em] text-black">★ PRESS START</span>
-                    <h1 class="mt-6 font-display text-7xl font-bold uppercase leading-[.85] tracking-[-0.06em] text-ink-strong md:text-8xl xl:text-[124px]">
+                    {# Taille fluide : « Collectionne. » doit tenir entier sur sa ligne #}
+                    <h1 class="mt-6 font-display text-[clamp(2.75rem,5.2vw,5.25rem)] font-bold uppercase leading-[.9] tracking-[-0.04em] text-ink-strong">
                         Ouvre.<br>
-                        <span class="text-primary">Collec-</span><br>
-                        tionne.<br>
+                        <span class="text-primary">Collectionne.</span><br>
                         <span class="bg-gradient-to-r from-primary to-magenta bg-clip-text text-transparent">Frime.</span>
                     </h1>
                     <p class="mt-7 max-w-md text-[17px] leading-normal text-ink-muted">
@@ -27,14 +27,14 @@
                         <a href="#univers" class="btn-ghost">Voir les univers</a>
                     </div>
                 </div>
-                <div class="relative hidden h-[540px] lg:block" aria-hidden="false">
-                    <img src="{{ asset('images/ytcg_logo.png') }}" alt=""
-                         class="absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 opacity-25 blur-sm saturate-150"
-                         aria-hidden="true">
+                <div class="relative hidden h-[560px] lg:block" aria-hidden="false">
+                    {# Logo net au-dessus des cartes (plus de watermark flou) #}
+                    <img src="{{ asset('images/ytcg_logo.png') }}" alt="Logo YOUL"
+                         class="absolute left-1/2 top-0 h-40 w-auto -translate-x-1/2 [filter:drop-shadow(0_0_30px_#a435f088)]">
                     {% set heroSpots = [
-                        {left: '-2.5rem', top: '2.5rem', rotation: '-8deg', delay: '0s', z: 1},
-                        {left: '6.5rem', top: '-0.5rem', rotation: '6deg', delay: '.4s', z: 2},
-                        {left: '15.5rem', top: '5rem', rotation: '-2deg', delay: '.8s', z: 1},
+                        {left: '-2.5rem', top: '12rem', rotation: '-8deg', delay: '0s', z: 1},
+                        {left: '6.5rem', top: '9rem', rotation: '6deg', delay: '.4s', z: 2},
+                        {left: '15.5rem', top: '14.5rem', rotation: '-2deg', delay: '.8s', z: 1},
                     ] %}
                     {% for card in cards %}
                         {% set spot = heroSpots[loop.index0 % heroSpots|length] %}
