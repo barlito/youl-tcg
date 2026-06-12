@@ -22,6 +22,7 @@
         "stof/doctrine-extensions-bundle": "^1.12",
         "symfony/asset-mapper": "7.4.*",
         "symfony/cache": "7.4.*",
+        "symfony/clock": "7.4.*",
         "symfony/console": "7.4.*",
         "symfony/dotenv": "7.4.*",
         "symfony/flex": "^2",
@@ -89,6 +90,7 @@
         }
     },
     "require-dev": {
+        "dama/doctrine-test-bundle": "^8.6",
         "friendsofphp/php-cs-fixer": "^3.95",
         "hautelook/alice-bundle": "^2.16",
         "phpmd/phpmd": "^2.15",
