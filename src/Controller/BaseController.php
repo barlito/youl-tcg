@@ -22,13 +22,21 @@ class BaseController extends AbstractController
         BoosterOpeningRepository $boosterOpeningRepository,
         CacheInterface $cache,
     ): Response {
-        $cardsIds = $cache->get('daycards', function (ItemInterface $item) use ($cardRepository): array {
+        $pickDayCards = function (ItemInterface $item) use ($cardRepository): array {
             $item->expiresAt(new \DateTime('tomorrow'));
 
             return $cardRepository->findRandomCardId(3);
-        });
+        };
 
+        $cardsIds = $cache->get('daycards', $pickDayCards);
         $cards = $cardRepository->findBy(['id' => $cardsIds]);
+
+        // Stale cache (a cached card got unpublished or deleted): redraw.
+        if (\count($cards) !== \count($cardsIds)) {
+            $cache->delete('daycards');
+            $cardsIds = $cache->get('daycards', $pickDayCards);
+            $cards = $cardRepository->findBy(['id' => $cardsIds]);
+        }
 
         $packsOpenedCount = $cache->get('home_packs_opened', function (ItemInterface $item) use ($boosterOpeningRepository): int {
             $item->expiresAfter(300);
