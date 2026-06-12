@@ -46,3 +46,8 @@
 ###> lexik/jwt-authentication-bundle ###
 /config/jwt/*.pem
 ###< lexik/jwt-authentication-bundle ###
+
+###> Claude Code (settings locaux et handoffs design uniquement) ###
+/.claude/settings.local.json
+/.claude/design_handoff_youl/
+###< Claude Code ###

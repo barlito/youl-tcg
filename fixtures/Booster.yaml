@@ -6,7 +6,7 @@ App\Entity\Booster:
         rarityRates:
             - { common: 100 }
             - { common: 100 }
-            - { common: 60, rare: 30, legendary: 10 }
+            - { common: 55, rare: 25, epic: 15, legendary: 5 }
     booster_bleach:
         extension: '@extension_bleach'
         imageName: 'default_card.png'

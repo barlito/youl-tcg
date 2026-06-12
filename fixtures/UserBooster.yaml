@@ -1,0 +1,9 @@
+App\Entity\UserBooster:
+    user_booster_barlito_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        booster: '@booster_cyberpunk'
+        quantity: 3
+    user_booster_barlito_bleach:
+        discordUser: '@discord_user_barlito'
+        booster: '@booster_bleach'
+        quantity: 1

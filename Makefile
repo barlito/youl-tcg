@@ -8,7 +8,6 @@ backup_path=/srv/ytcg/backups
 # Config paths
 config_cs_fixer=vendor/barlito/utils/config/.php-cs-fixer.dist.php
 config_phpcs=vendor/barlito/utils/config/phpcs.xml.dist
-config_phpmd=vendor/barlito/utils/config/phpmd.xml
 
 # Include all make rules from submodule
 include make/entrypoint.mk
@@ -37,6 +36,12 @@ db.backup:
 	else \
 		echo "ℹ  DB container introuvable, backup skippé (1er deploy ?)"; \
 	fi
+
+# Tailwind est requis pour rendre base.html.twig (TailwindCssAssetCompiler lève
+# une exception si var/tailwind/tailwind.built.css est absent) — nécessaire en CI
+# avant les tests fonctionnels qui rendent des pages.
+tailwind.build:
+	docker exec -t $(app_container_id) bin/console tailwind:build --minify
 
 # Smoke test : curl GET / → fail si non-2xx. Sert de garde-fou post-deploy/update.
 smoke.test:
