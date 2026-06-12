@@ -13,6 +13,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Uid\Uuid;
 
 final class HomepageTest extends WebTestCase
 {
@@ -91,15 +92,37 @@ final class HomepageTest extends WebTestCase
         $this->authenticateClient($this->client);
 
         // Prime the cache as if no published card existed when it was built.
-        $pool = self::getContainer()->get('cache.app');
-        \assert($pool instanceof CacheItemPoolInterface);
-        $item = $pool->getItem('daycards');
-        $item->set([]);
-        $pool->save($item);
+        $this->primeDayCardsCache([]);
 
         $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
+    }
+
+    public function testStaleDayCardsCacheIsRedrawn(): void
+    {
+        $this->authenticateClient($this->client);
+
+        // Ids that no longer exist (e.g. fixtures reloaded since the cache
+        // was built): the homepage must drop the cache and redraw.
+        $this->primeDayCardsCache([(string) Uuid::v4(), (string) Uuid::v4(), (string) Uuid::v4()]);
+
+        $crawler = $this->client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        $this->assertCount(3, $crawler->filter('.card'));
+    }
+
+    /**
+     * @param list<string> $cardIds
+     */
+    private function primeDayCardsCache(array $cardIds): void
+    {
+        $pool = self::getContainer()->get('cache.app');
+        \assert($pool instanceof CacheItemPoolInterface);
+        $item = $pool->getItem('daycards');
+        $item->set($cardIds);
+        $pool->save($item);
     }
 
     private function createOpenings(DiscordUser $user, int $count): void

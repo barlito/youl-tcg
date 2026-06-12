@@ -9,11 +9,12 @@
         {# ------------------------------------------------------------ Hero #}
         <section class="relative overflow-hidden px-6 pb-12 pt-16 lg:px-14 lg:pt-20">
             <div class="glow-ambient" aria-hidden="true"></div>
-            <div class="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.1fr_1fr]">
+            <div class="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.1fr_1fr] 2xl:max-w-[88rem]">
                 <div>
                     <span class="inline-block bg-primary px-2.5 py-1 font-mono text-[11px] font-bold tracking-[.15em] text-black">★ PRESS START</span>
-                    {# Taille fluide : « Collectionne. » doit tenir entier sur sa ligne #}
-                    <h1 class="mt-6 font-display text-[clamp(2.75rem,5.2vw,5.25rem)] font-bold uppercase leading-[.9] tracking-[-0.04em] text-ink-strong">
+                    {# Taille fluide : « Collectionne. » doit tenir entier sur sa ligne
+                       (le conteneur s'élargit en 2xl pour laisser le titre grossir) #}
+                    <h1 class="mt-6 font-display text-[clamp(2.75rem,4.8vw,6rem)] font-bold uppercase leading-[.9] tracking-[-0.05em] text-ink-strong">
                         Ouvre.<br>
                         <span class="text-primary">Collectionne.</span><br>
                         <span class="bg-gradient-to-r from-primary to-magenta bg-clip-text text-transparent">Frime.</span>
@@ -27,14 +28,14 @@
                         <a href="#univers" class="btn-ghost">Voir les univers</a>
                     </div>
                 </div>
-                <div class="relative hidden h-[560px] lg:block" aria-hidden="false">
+                <div class="relative hidden h-[640px] lg:block" aria-hidden="false">
                     {# Logo net au-dessus des cartes (plus de watermark flou) #}
                     <img src="{{ asset('images/ytcg_logo.png') }}" alt="Logo YOUL"
-                         class="absolute left-1/2 top-0 h-40 w-auto -translate-x-1/2 [filter:drop-shadow(0_0_30px_#a435f088)]">
+                         class="absolute left-1/2 top-0 h-64 w-auto -translate-x-1/2 [filter:drop-shadow(0_0_40px_#a435f0aa)]">
                     {% set heroSpots = [
-                        {left: '-2.5rem', top: '12rem', rotation: '-8deg', delay: '0s', z: 1},
-                        {left: '6.5rem', top: '9rem', rotation: '6deg', delay: '.4s', z: 2},
-                        {left: '15.5rem', top: '14.5rem', rotation: '-2deg', delay: '.8s', z: 1},
+                        {left: '-2.5rem', top: '17rem', rotation: '-8deg', delay: '0s', z: 1},
+                        {left: '6.5rem', top: '14rem', rotation: '6deg', delay: '.4s', z: 2},
+                        {left: '15.5rem', top: '19rem', rotation: '-2deg', delay: '.8s', z: 1},
                     ] %}
                     {% for card in cards %}
                         {% set spot = heroSpots[loop.index0 % heroSpots|length] %}
