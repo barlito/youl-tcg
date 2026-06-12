@@ -31,12 +31,6 @@ parameters:
 			path: src/Controller/Admin/CardCrudController.php
 
 		-
-			message: '#^Method App\\Controller\\Admin\\DashboardController\:\:__construct\(\) has parameter \$adminUrls with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Controller/Admin/DashboardController.php
-
-		-
 			message: '#^Class App\\Controller\\Admin\\ExtensionCrudController extends generic class EasyCorp\\Bundle\\EasyAdminBundle\\Controller\\AbstractCrudController but does not specify its types\: TEntity$#'
 			identifier: missingType.generics
 			count: 1
@@ -59,48 +53,6 @@ parameters:
 			identifier: phpDoc.parseError
 			count: 1
 			path: src/Doctrine/DBAL/FunctionNode/Random.php
-
-		-
-			message: '#^Method App\\Entity\\Booster\:\:getHoloRate\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Entity/Booster.php
-
-		-
-			message: '#^Method App\\Entity\\Booster\:\:getRarityRate\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Entity/Booster.php
-
-		-
-			message: '#^Method App\\Entity\\Booster\:\:setHoloRate\(\) has parameter \$holoRate with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Entity/Booster.php
-
-		-
-			message: '#^Method App\\Entity\\Booster\:\:setRarityRate\(\) has parameter \$rarityRate with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Entity/Booster.php
-
-		-
-			message: '#^Property App\\Entity\\Booster\:\:\$holoRate type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Entity/Booster.php
-
-		-
-			message: '#^Property App\\Entity\\Booster\:\:\$imageName \(string\) does not accept string\|null\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: src/Entity/Booster.php
-
-		-
-			message: '#^Property App\\Entity\\Booster\:\:\$rarityRate type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Entity/Booster.php
 
 		-
 			message: '#^Property App\\Entity\\Booster\:\:\$updatedAt \(DateTime\|null\) does not accept DateTimeImmutable\.$#'

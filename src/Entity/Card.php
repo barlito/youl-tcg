@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\CardRepository;
 use Barlito\Utils\Traits\IdUuidTrait;
@@ -31,6 +32,9 @@ class Card
 
     #[ORM\Column(options: ['default' => CardStatusEnum::DRAFT])]
     private CardStatusEnum $status = CardStatusEnum::DRAFT;
+
+    #[ORM\Column(options: ['default' => CardRarityEnum::COMMON])]
+    private CardRarityEnum $rarity = CardRarityEnum::COMMON;
 
     #[ORM\Column]
     private bool $uniqueFlag = false;
@@ -90,6 +94,18 @@ class Card
     public function setStatus(CardStatusEnum $status): Card
     {
         $this->status = $status;
+
+        return $this;
+    }
+
+    public function getRarity(): CardRarityEnum
+    {
+        return $this->rarity;
+    }
+
+    public function setRarity(CardRarityEnum $rarity): static
+    {
+        $this->rarity = $rarity;
 
         return $this;
     }

@@ -5,27 +5,27 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Admin\Field\ImageField as VichImageField;
-use App\Entity\Card;
-use App\Enum\Entity\CardRarityEnum;
-use App\Enum\Entity\CardStatusEnum;
+use App\Entity\Booster;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 use Vich\UploaderBundle\Templating\Helper\UploaderHelper;
 
 /**
- * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ * @extends AbstractCrudController<Booster>
+ *
+ * @SuppressWarnings("PHPMD.CouplingBetweenObjects")
  */
-class CardCrudController extends AbstractCrudController
+class BoosterCrudController extends AbstractCrudController
 {
     public function __construct(private readonly UploaderHelper $uploaderHelper, private readonly AssetMapperInterface $assetMapper)
     {
@@ -33,7 +33,7 @@ class CardCrudController extends AbstractCrudController
 
     public static function getEntityFqcn(): string
     {
-        return Card::class;
+        return Booster::class;
     }
 
     #[\Override]
@@ -49,7 +49,6 @@ class CardCrudController extends AbstractCrudController
     {
         return $filters
             ->add('extension')
-            ->add('rarity')
         ;
     }
 
@@ -60,36 +59,41 @@ class CardCrudController extends AbstractCrudController
     }
 
     /**
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * @SuppressWarnings("PHPMD.UnusedFormalParameter")
      */
     #[\Override]
     public function configureFields(string $pageName): iterable
     {
+        $imageCss = $this->assetMapper->getAsset('styles/admin/image.css')
+            ?? throw new \LogicException('Asset "styles/admin/image.css" not found in the asset map.');
+
         yield ImageField::new('imageName')
             ->hideOnForm()
-            ->addCssFiles($this->assetMapper->getAsset('styles/admin/image.css')->publicPath)
+            ->addCssFiles($imageCss->publicPath)
             ->formatValue(function ($value, $entity): ?string {
-                if (!$entity instanceof Card) {
-                    throw new UnexpectedTypeException($entity, Card::class);
+                if (!$entity instanceof Booster) {
+                    throw new UnexpectedTypeException($entity, Booster::class);
                 }
 
                 return $this->uploaderHelper->asset($entity, 'imageFile');
             })
         ;
         yield Field::new('id')->onlyOnDetail();
-        yield Field::new('name');
-        yield Field::new('description');
-        yield ChoiceField::new('status')
-            ->setChoices(CardStatusEnum::cases())
-        ;
-        yield ChoiceField::new('rarity')
-            ->setChoices(CardRarityEnum::cases())
-        ;
-        yield BooleanField::new('unique')
-            ->setLabel('Unique Flag')
-            ->renderAsSwitch(false)
-        ;
         yield AssociationField::new('extension');
+        yield IntegerField::new('cardCount')
+            ->setLabel('Cards')
+            ->hideOnForm()
+        ;
+        yield IntegerField::new('holoRate')
+            ->setHelp('Chance (0-100 %) for each drawn card to be holo')
+        ;
+        yield CodeEditorField::new('rarityRatesJson')
+            ->setLabel('Rarity rates')
+            ->setLanguage('js')
+            ->onlyOnForms()
+            ->setHelp('One weight map per card slot. Example: [{"common": 100}, {"common": 100}, {"common": 60, "rare": 30, "legendary": 10}]')
+        ;
+        yield Field::new('rarityRates')->onlyOnDetail();
         yield VichImageField::new('imageFile')->onlyOnForms();
     }
 }
