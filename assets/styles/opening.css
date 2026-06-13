@@ -43,6 +43,13 @@
 
 .opening.is-shake { animation: opening-screenShake .5s; }
 
+/*
+ * `[hidden]` (display:none) is a low-priority UA rule — the stages below set an
+ * explicit `display` (flex grid, Tailwind `flex`) which would otherwise win and
+ * leak every stage at once (the summary showing before the pack is opened).
+ */
+.opening [hidden] { display: none !important; }
+
 /* ambient violet glow behind the stage */
 .opening::before {
     content: "";
