@@ -1,0 +1,122 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+    YOUL TCG — Ma collection
+{% endblock %}
+
+{% block body %}
+    <main>
+        {# ----------------------------------------------------- Bandeau user #}
+        <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
+            <div class="glow-ambient" aria-hidden="true"></div>
+            <div class="relative mx-auto grid max-w-7xl items-center gap-8 md:grid-cols-[auto_1fr_auto]">
+                <div class="notched-avatar h-[100px] w-[100px] bg-gradient-to-br from-primary to-magenta p-[3px]">
+                    <div class="notched-avatar flex h-full w-full items-center justify-center bg-bg font-display text-[44px] font-bold text-primary">
+                        {{ app.user.username|first|upper }}
+                    </div>
+                </div>
+
+                <div>
+                    <h1 class="font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
+                        {{ app.user.username }}
+                    </h1>
+                    <p class="mt-1.5 font-mono text-xs text-ink-dim">joueur depuis {{ app.user.createdAt|date('m/Y') }}</p>
+
+                    <div class="mt-4 max-w-md" data-testid="global-completion">
+                        <div class="chip-mono mb-1 flex justify-between text-ink-muted">
+                            <span>Complétion</span>
+                            <span>{{ ownedTotalDistinct }} / {{ totalPublished }} cartes · {{ completionPct }}%</span>
+                        </div>
+                        <div class="h-2 border border-hairline bg-surface">
+                            <div class="h-full bg-gradient-to-r from-primary to-magenta shadow-[0_0_10px_#a435f0]"
+                                 style="width: {{ completionPct }}%;"></div>
+                        </div>
+                    </div>
+                    <p class="chip-mono mt-2 text-ink-dim">Cartes possédées · {{ ownedTotalQuantity }}</p>
+                </div>
+
+                <div class="flex flex-col items-start gap-2.5 md:items-end">
+                    <div class="bg-primary px-5 py-3.5 text-black" data-testid="daily-packs">
+                        <p class="font-mono text-[10px] font-bold tracking-[.2em]">PACKS / JOUR</p>
+                        <p class="mt-1 font-display text-3xl font-bold leading-none">
+                            {{ remainingClaims }}<span class="text-lg opacity-50"> / {{ dailyLimit }}</span>
+                        </p>
+                    </div>
+                    <a href="{{ path('boosters') }}"
+                       class="border border-primary bg-black px-5 py-3.5 font-display text-[13px] font-bold uppercase tracking-[.15em] text-primary">
+                        Ouvrir un pack ▸
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        {# ----------------------------------------- Complétion par univers #}
+        <section class="border-b border-hairline px-6 py-8 lg:px-12">
+            <div class="mx-auto max-w-7xl">
+                <p class="eyebrow">Complétion par univers</p>
+                <div class="mt-4 flex flex-col md:flex-row" data-testid="completion-strip">
+                    {% for universe in universes %}
+                        <div class="flex-1 p-5 {{ not loop.last ? 'md:border-r md:border-hairline' }}"
+                             style="border-top: 3px solid var(--primary);">
+                            <p class="font-display text-sm font-bold uppercase text-ink-strong">{{ universe.extension.name }}</p>
+                            <p class="mt-3 font-display text-4xl font-bold tracking-[-0.04em] text-primary">{{ universe.percentage }}%</p>
+                            <p class="chip-mono mt-1 text-ink-dim">{{ universe.owned }}/{{ universe.total }} cartes</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        {# --------------------------------------------------------- Filtres #}
+        <section class="px-6 pb-4 pt-8 lg:px-12">
+            <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4">
+                <nav class="flex flex-wrap" data-testid="filters">
+                    {{ _self.filter_tab(path('collection'), 'Tout', ownedTotalDistinct, currentExtension is null) }}
+                    {% for universe in universes %}
+                        {{ _self.filter_tab(
+                            path('collection', { extension: universe.extension.id }),
+                            universe.extension.name,
+                            universe.owned,
+                            currentExtension is not null and currentExtension.id == universe.extension.id,
+                        ) }}
+                    {% endfor %}
+                </nav>
+                <span class="font-mono text-[11px] tracking-[.15em] text-ink-dim">TRI: RÉCENTS ↓</span>
+            </div>
+        </section>
+
+        {# ---------------------------------------------------------- Grille #}
+        <section class="px-6 pb-24 pt-6 lg:px-12">
+            <div class="mx-auto max-w-7xl">
+                {% if userCards is not empty %}
+                    <div class="grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5" data-testid="collection-grid">
+                        {% for userCard in userCards %}
+                            <div class="relative">
+                                {{ include('components/CardComponent.html.twig', { card: userCard.card }) }}
+                                <div class="pointer-events-none absolute -right-2 -top-2 z-10 flex gap-1.5">
+                                    <span class="chip-mono bg-black/90 px-2 py-1 font-bold text-white">×{{ userCard.quantity }}</span>
+                                    {% if userCard.holoQuantity > 0 %}
+                                        <span class="chip-mono bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black">✦{{ userCard.holoQuantity }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="border border-dashed border-hairline px-8 py-20 text-center text-ink-dim" data-testid="empty-state">
+                        <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Vide.</p>
+                        <p class="mt-3 text-sm">Aucune carte de cet univers. Ouvre un pack.</p>
+                        <a href="{{ path('boosters') }}" class="btn-arcade mt-8">Ouvrir un pack ▸</a>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+{% endblock %}
+
+{% macro filter_tab(url, label, count, isActive) %}
+    <a href="{{ url }}"
+       class="border border-hairline px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.1em] {{ isActive ? 'bg-primary text-black' : 'text-ink-muted hover:text-ink-strong' }}">
+        {{ label }} · {{ count }}
+    </a>
+{% endmacro %}
