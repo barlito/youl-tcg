@@ -7,7 +7,7 @@
 {% block body %}
     <style>
         /* Force le glow "active" en permanence (sans survol) pour comparer les couleurs.
-           Copie du box-shadow de `.card.active .card__rotator` dans cards/base.css. */
+           Copie du box-shadow de `.card.interacting .card__rotator` dans cards/holo.css. */
         .force-glow .card .card__rotator {
             box-shadow:
                 0 0 3px -1px white,
@@ -21,36 +21,53 @@
 
     <main class="container mx-auto py-10 px-4">
         <div class="mb-8">
-            <p class="text-sm font-mono uppercase tracking-widest text-purple-400">dev only · /dev/card-effects</p>
-            <h1 class="text-4xl font-bold text-white mt-1">Effets de cartes — palette de glows</h1>
-            <p class="text-gray-300 mt-2 max-w-3xl">
-                Le glow d'une carte = la variable CSS <code class="text-purple-300">--card-glow</code>, héritée ici
-                d'un simple wrapper (<code class="text-purple-300">style="--card-glow: …"</code>) — n'importe quelle
-                couleur fonctionne. C'est le mécanisme que la future <strong>config visuelle par extension</strong>
-                (override par carte) pilotera. Le glow est forcé en permanence ; <strong>survole une carte</strong>
-                pour le 3D interactif + glare.
+            <p class="eyebrow">dev only · /dev/card-effects</p>
+            <h1 class="mt-1 font-display text-4xl font-bold text-ink-strong">Effets de cartes — raretés &amp; holo</h1>
+            <p class="mt-2 max-w-3xl text-ink-muted">
+                Chaque carte reçoit son glow (<code class="text-primary">--card-glow</code>) et sa recette holo
+                (calques de <code class="text-primary">card__shine</code>) via <code class="text-primary">data-rarity</code> —
+                cf. <code class="text-primary">assets/styles/cards/holo.css</code>. Le glow est forcé en permanence ;
+                <strong>survole une carte</strong> pour le 3D + springs + holo.
             </p>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {% for demo in demos %}
-                <div class="force-glow" style="--card-glow: {{ demo.glow }};">
+        <h2 class="mb-4 font-display text-2xl font-bold text-ink-strong">Les 5 paliers</h2>
+        <div class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-5">
+            {% for demo in rarityDemos %}
+                <div class="force-glow">
                     {{ include('components/CardComponent.html.twig', { card: demo.card }) }}
                     <div class="mt-2 flex items-center gap-2 px-1">
-                        <span class="inline-block w-4 h-4 rounded-full border border-white/30" style="background: {{ demo.glow }};"></span>
-                        <code class="text-sm text-gray-200">{{ demo.label }}</code>
-                        <span class="text-xs text-gray-400 font-mono">{{ demo.glow }}</span>
+                        <span class="inline-block h-4 w-4 rounded-full border border-white/30" style="background: var(--rarity-{{ demo.rarity }});"></span>
+                        <code class="text-sm text-ink">{{ demo.rarity }}</code>
                     </div>
                 </div>
             {% endfor %}
         </div>
 
-        <div class="mt-12 bg-slate-800/60 border border-slate-700 rounded-xl p-6 max-w-3xl">
-            <h2 class="text-xl font-bold text-white mb-3">Notes</h2>
-            <ul class="text-gray-300 space-y-2 list-disc list-inside">
-                <li><strong>Plus de champ <code>Card.type</code></strong> : la custom visuelle (glow, borders, aspects CSS) sera une config au niveau Extension, overridable par carte (phase future). Les classes <code>.card.water</code>… de base.css sont un legacy à nettoyer à ce moment-là.</li>
-                <li><strong>Calques holo/foil</strong> : <code>.card__shine</code> est vide — le rendu façon poke-holo arrive avec la phase 2 (cf. RAPPORT-CARTES-HOLO).</li>
-                <li><strong>Glow par rareté</strong> (<code>data-rarity</code> posé, sans CSS) — arrive avec l'UI d'ouverture phase 2.</li>
+        <h2 class="mb-4 mt-12 font-display text-2xl font-bold text-ink-strong">Override libre du glow</h2>
+        <p class="mb-4 max-w-3xl text-ink-muted">
+            Un wrapper <code class="text-primary">style="--card-glow: …"</code> écrase la couleur du palier :
+            c'est le mécanisme que la future <strong>config visuelle par extension</strong> (override par carte) pilotera.
+        </p>
+        <div class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
+            {% for demo in overrideDemos %}
+                <div class="force-glow" style="--card-glow: {{ demo.glow }};">
+                    {{ include('components/CardComponent.html.twig', { card: demo.card }) }}
+                    <div class="mt-2 flex items-center gap-2 px-1">
+                        <span class="inline-block h-4 w-4 rounded-full border border-white/30" style="background: {{ demo.glow }};"></span>
+                        <code class="text-sm text-ink">{{ demo.label }}</code>
+                        <span class="font-mono text-xs text-ink-dim">{{ demo.glow }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-12 max-w-3xl border border-hairline bg-surface/60 p-6">
+            <h2 class="mb-3 font-display text-xl font-bold text-ink-strong">Notes</h2>
+            <ul class="list-inside list-disc space-y-2 text-ink-muted">
+                <li><strong>Masques/foils Vich</strong> : une carte avec <code class="text-primary">imageMaskName</code>/<code class="text-primary">imageFoilName</code> reçoit la classe <code class="text-primary">masked</code> et les variables <code class="text-primary">--mask</code>/<code class="text-primary">--foil</code> (cf. CardComponent) — uploade un masque en admin pour le voir ici.</li>
+                <li><strong>Springs</strong> : la rotation est lissée par une boucle rAF maison (plus d'anime.js) ; les calques d'effet sont éteints hors interaction (perf grille).</li>
+                <li><strong>Config visuelle extension → carte</strong> : chantier futur — ces overrides en sont la préfiguration.</li>
             </ul>
         </div>
     </main>

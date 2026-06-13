@@ -1,0 +1,164 @@
+/*
+ * Calques holo par rareté — pilotés par les variables que card_controller.js
+ * écrit à chaque frame (--background-x/y, --pointer-x/y, --pointer-from-center,
+ * --card-opacity).
+ *
+ * Recettes maison (gradients + blend modes), intensité croissante
+ * common → legendary. Hors interaction, tout est éteint : le contrôleur pose
+ * .interacting pendant l'animation et la retire une fois la carte stabilisée —
+ * indispensable pour la grille collection (color-dodge × 20 cartes).
+ */
+
+.card {
+    --card-opacity: 0;
+    --holo-intensity: .6;
+}
+
+/* ------------------------------------------------ Perf : éteint hors survol */
+
+.card:not(.interacting) .card__shine,
+.card:not(.interacting) .card__glare {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* ----------------------------------------- Glow et intensité par rareté */
+
+.card[data-rarity="common"] {
+    --holo-intensity: .25;
+    --card-glow: var(--rarity-common);
+}
+
+.card[data-rarity="uncommon"] {
+    --holo-intensity: .45;
+    --card-glow: var(--rarity-uncommon);
+}
+
+.card[data-rarity="rare"] {
+    --holo-intensity: .7;
+    --card-glow: var(--rarity-rare);
+}
+
+.card[data-rarity="epic"] {
+    --holo-intensity: .9;
+    --card-glow: var(--rarity-epic);
+}
+
+.card[data-rarity="legendary"] {
+    --holo-intensity: 1;
+    --card-glow: var(--rarity-legendary);
+}
+
+/* Glow pendant l'interaction (même recette que .card.active dans base.css) */
+.card.interacting .card__rotator {
+    box-shadow:
+        0 0 3px -1px white,
+        0 0 3px 1px var(--card-edge),
+        0 0 12px 2px var(--card-glow),
+        0 10px 20px -5px black,
+        0 0 40px -30px var(--card-glow),
+        0 0 50px -20px var(--card-glow);
+}
+
+/* --------------------------- common / uncommon : balayage diagonal simple */
+/* Pas de color-dodge sur les tiers bas : un overlay suffit et coûte rien. */
+
+.card[data-rarity="common"] .card__shine,
+.card[data-rarity="uncommon"] .card__shine {
+    background-image: linear-gradient(
+        115deg,
+        transparent 35%,
+        rgba(255, 255, 255, .5) 50%,
+        transparent 65%
+    );
+    background-size: 250% 250%;
+    background-position: var(--background-x, 50%) var(--background-y, 50%);
+    mix-blend-mode: overlay;
+    filter: none;
+    opacity: calc(var(--card-opacity) * var(--holo-intensity) * 2);
+}
+
+.card[data-rarity="uncommon"] .card__shine {
+    background-image: linear-gradient(
+        115deg,
+        transparent 35%,
+        rgba(91, 229, 132, .4) 47%,
+        rgba(255, 255, 255, .45) 53%,
+        transparent 65%
+    );
+}
+
+/* ------------------- rare / epic / legendary : sunpillars + radial foil */
+
+.card[data-rarity="rare"] .card__shine,
+.card[data-rarity="epic"] .card__shine,
+.card[data-rarity="legendary"] .card__shine {
+    background-image:
+        var(--foil, linear-gradient(transparent, transparent)),
+        repeating-linear-gradient(
+            90deg,
+            var(--sunpillar-clr-1) 0%,
+            var(--sunpillar-clr-2) 5%,
+            var(--sunpillar-clr-3) 10%,
+            var(--sunpillar-clr-4) 15%,
+            var(--sunpillar-clr-5) 20%,
+            var(--sunpillar-clr-6) 25%,
+            var(--sunpillar-clr-1) 30%
+        ),
+        radial-gradient(
+            farthest-corner circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
+            rgba(255, 255, 255, .7) 5%,
+            rgba(150, 150, 150, .3) 40%,
+            rgba(0, 0, 0, .9) 110%
+        );
+    background-size: cover, 500% 100%, 100% 100%;
+    background-position: center, var(--background-x, 50%) center, center;
+    background-blend-mode: color-dodge, color-dodge, normal;
+    filter:
+        brightness(calc(.55 + var(--pointer-from-center, 0) * .4))
+        contrast(2.2)
+        saturate(.9);
+    mix-blend-mode: color-dodge;
+    opacity: calc(var(--card-opacity) * var(--holo-intensity));
+}
+
+/* epic / legendary : arc-en-ciel conique accroché au pointeur */
+
+.card[data-rarity="epic"] .card__shine::before,
+.card[data-rarity="legendary"] .card__shine::before {
+    content: '';
+    background-image: conic-gradient(
+        from calc(var(--pointer-from-left, .5) * 360deg) at var(--pointer-x, 50%) var(--pointer-y, 50%),
+        var(--sunpillar-clr-6),
+        var(--sunpillar-clr-1),
+        var(--sunpillar-clr-2),
+        var(--sunpillar-clr-3),
+        var(--sunpillar-clr-4),
+        var(--sunpillar-clr-5),
+        var(--sunpillar-clr-6)
+    );
+    mix-blend-mode: color-dodge;
+    filter: saturate(1.4);
+    opacity: calc(var(--card-opacity) * .35);
+}
+
+/* legendary : glitter en trame croisée + glare renforcé */
+
+.card[data-rarity="legendary"] .card__shine::after {
+    content: '';
+    background-image:
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, .25) 0 1px, transparent 1px 4px),
+        repeating-linear-gradient(-45deg, rgba(255, 255, 255, .18) 0 1px, transparent 1px 3px);
+    background-position: var(--background-x, 50%) var(--background-y, 50%);
+    mix-blend-mode: overlay;
+    opacity: calc(var(--card-opacity) * .8);
+}
+
+.card[data-rarity="legendary"] .card__glare {
+    background-image: radial-gradient(
+        farthest-corner circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
+        rgba(255, 255, 255, .9) 8%,
+        rgba(255, 255, 255, .7) 20%,
+        rgba(0, 0, 0, .55) 90%
+    );
+}

@@ -1,166 +1,144 @@
 import { Controller } from '@hotwired/stimulus';
-import anime from '../scripts/card/lib/anime.es.js';
-import { round, clamp, adjust } from '../scripts/card/mathHelper.js';
+import { clamp, adjust } from '../scripts/card/mathHelper.js';
 
 /**
  * 3D card controller — mouse-tracking rotation, shine and glare effects.
  *
  * Auto-attached to any `.card.interactive` element via `data-controller="card"`.
- * Replaces the legacy assets/scripts/card/card.js which only ran once at page
- * load (and therefore missed cards rendered later by Live Components).
+ * The motion is smoothed by hand-rolled springs (semi-implicit Euler) in a
+ * single rAF loop: one style write per frame, and the loop fully stops once
+ * the card has settled — the effect layers are then hidden (see holo.css),
+ * which keeps a grid of dozens of cards cheap.
  */
+
+const SPRING_STIFFNESS = 160;
+const SPRING_DAMPING = 22;
+// Clamp dt so a backgrounded tab doesn't make the integration explode.
+const MAX_DT = 0.032;
+const SETTLE_THRESHOLD = 0.01;
+
 export default class extends Controller {
     connect() {
+        this.rotator = this.element.querySelector('.card__rotator');
+        this.springs = {
+            rotateX: this._spring(0),
+            rotateY: this._spring(0),
+            glareX: this._spring(50),
+            glareY: this._spring(50),
+            opacity: this._spring(0),
+        };
+        this.pointerInside = false;
+        this.frame = null;
+        this.lastTime = 0;
+
         this._onPointerMove = (event) => this._handlePointerMove(event);
-        this._onMouseOut = (event) => this._handleMouseOut(event);
+        this._onPointerLeave = () => this._handlePointerLeave();
         this.element.addEventListener('pointermove', this._onPointerMove);
-        this.element.addEventListener('mouseout', this._onMouseOut);
+        this.element.addEventListener('pointerleave', this._onPointerLeave);
     }
 
     disconnect() {
         this.element.removeEventListener('pointermove', this._onPointerMove);
-        this.element.removeEventListener('mouseout', this._onMouseOut);
-        if (this._resetAnimation) {
-            this._resetAnimation.pause();
-            this._resetAnimation = null;
-        }
+        this.element.removeEventListener('pointerleave', this._onPointerLeave);
+        this._stopLoop();
+    }
+
+    _spring(value) {
+        return { value, velocity: 0, target: value };
     }
 
     _handlePointerMove(event) {
-        const { pointerX, pointerY } = this._eventPosition(event);
-        this._computePositions(pointerX, pointerY);
-    }
-
-    _handleMouseOut(event) {
-        const { pointerX, pointerY } = this._eventPosition(event);
-        this._resetCard(pointerX, pointerY);
-    }
-
-    _eventPosition(event) {
-        let pointerX = event.clientX;
-        let pointerY = event.clientY;
-
-        if (event.type === 'touchmove') {
-            pointerX = event.touches[0].clientX;
-            pointerY = event.touches[0].clientY;
-        }
-
-        return { pointerX, pointerY };
-    }
-
-    _positions(pointerX, pointerY) {
         const rect = this.element.getBoundingClientRect();
-        const absolute = {
-            x: pointerX - rect.left,
-            y: pointerY - rect.top,
-        };
-        const percent = {
-            x: clamp(round((100 / rect.width) * absolute.x)),
-            y: clamp(round((100 / rect.height) * absolute.y)),
-        };
-        const center = {
-            x: percent.x - 50,
-            y: percent.y - 50,
-        };
-
-        return { absolute, percent, center };
-    }
-
-    _computePositions(pointerX, pointerY) {
-        const { percent, center } = this._positions(pointerX, pointerY);
-
-        const background = {
-            x: adjust(percent.x, 0, 100, 37, 63),
-            y: adjust(percent.y, 0, 100, 33, 67),
-        };
-        const rotate = {
-            x: round(-(center.x / 3.5)) / 2,
-            y: round(center.y / 2) / 2,
-        };
-        const glare = {
-            x: round(percent.x),
-            y: round(percent.y),
-            o: 1,
-        };
-
-        this._updateCard(background, rotate, glare, false);
-    }
-
-    _resetCard(pointerX, pointerY) {
-        this._resetAnimation = anime({
-            targets: this.element.querySelector('.card__rotator'),
-            rotateX: {
-                value: 0,
-                easing: 'easeOutBack',
-                delay: 100,
-                endDelay: 100,
-                duration: 800,
-            },
-            rotateY: {
-                value: 0,
-                easing: 'easeOutBack',
-                delay: 100,
-                endDelay: 100,
-                duration: 800,
-            },
-            update: (anim) => {
-                const progress = anim.progress;
-                const { percent, center } = this._positions(pointerX, pointerY);
-
-                const diffX = 50 - percent.x;
-                const diffY = 50 - percent.y;
-                const newX = percent.x + (diffX * progress / 100);
-                const newY = percent.y + (diffY * progress / 100);
-
-                this._updateCard(
-                    {
-                        x: adjust(newX, 0, 100, 37, 63),
-                        y: adjust(newY, 0, 100, 33, 67),
-                    },
-                    {
-                        x: round(-(center.x / 3.5)),
-                        y: round(center.y / 2),
-                    },
-                    {
-                        x: round(newX),
-                        y: round(newY),
-                        o: 1 - (progress / 50),
-                    },
-                    true,
-                );
-            },
-        });
-    }
-
-    _updateCard(background, rotate, glare, isReset) {
-        if (this._resetAnimation && !isReset) {
-            this._resetAnimation.pause();
+        if (!rect.width || !rect.height) {
+            return;
         }
 
+        const percentX = clamp((100 / rect.width) * (event.clientX - rect.left));
+        const percentY = clamp((100 / rect.height) * (event.clientY - rect.top));
+
+        this.pointerInside = true;
+        this.springs.rotateX.target = (percentY - 50) / 4;
+        this.springs.rotateY.target = -(percentX - 50) / 7;
+        this.springs.glareX.target = percentX;
+        this.springs.glareY.target = percentY;
+        this.springs.opacity.target = 1;
+
+        this._startLoop();
+    }
+
+    _handlePointerLeave() {
+        this.pointerInside = false;
+        this.springs.rotateX.target = 0;
+        this.springs.rotateY.target = 0;
+        this.springs.glareX.target = 50;
+        this.springs.glareY.target = 50;
+        this.springs.opacity.target = 0;
+
+        this._startLoop();
+    }
+
+    _startLoop() {
+        if (this.frame !== null) {
+            return;
+        }
+        this.element.classList.add('interacting');
+        this.lastTime = performance.now();
+        this.frame = requestAnimationFrame((now) => this._tick(now));
+    }
+
+    _stopLoop() {
+        if (this.frame !== null) {
+            cancelAnimationFrame(this.frame);
+            this.frame = null;
+        }
+    }
+
+    _tick(now) {
+        const dt = Math.min((now - this.lastTime) / 1000, MAX_DT);
+        this.lastTime = now;
+
+        let energy = 0;
+        for (const spring of Object.values(this.springs)) {
+            const acceleration = -SPRING_STIFFNESS * (spring.value - spring.target)
+                - SPRING_DAMPING * spring.velocity;
+            spring.velocity += acceleration * dt;
+            spring.value += spring.velocity * dt;
+            energy += Math.abs(spring.velocity) + Math.abs(spring.value - spring.target);
+        }
+
+        this._render();
+
+        if (!this.pointerInside && energy < SETTLE_THRESHOLD) {
+            this._stopLoop();
+            this.element.classList.remove('interacting');
+
+            return;
+        }
+
+        this.frame = requestAnimationFrame((nextNow) => this._tick(nextNow));
+    }
+
+    _render() {
+        const { rotateX, rotateY, glareX, glareY, opacity } = this.springs;
         const pointerFromCenter = clamp(
-            Math.sqrt((glare.y - 50) ** 2 + (glare.x - 50) ** 2) / 50,
+            Math.sqrt((glareY.value - 50) ** 2 + (glareX.value - 50) ** 2) / 50,
             0,
             1,
         );
 
-        const el = this.element;
-        el.style.setProperty('--pointer-x', glare.x + '%');
-        el.style.setProperty('--pointer-y', glare.y + '%');
-        el.style.setProperty('--pointer-from-center', pointerFromCenter);
-        el.style.setProperty('--pointer-from-top', glare.y / 100);
-        el.style.setProperty('--pointer-from-left', glare.x / 100);
-        el.style.setProperty('--card-opacity', glare.o);
-        el.style.setProperty('--background-x', background.x + '%');
-        el.style.setProperty('--background-y', background.y + '%');
-        el.style.setProperty('--card-scale', '1');
-        el.style.setProperty('--translate-x', '0px');
-        el.style.setProperty('--translate-y', '0px');
+        const style = this.element.style;
+        style.setProperty('--pointer-x', `${glareX.value}%`);
+        style.setProperty('--pointer-y', `${glareY.value}%`);
+        style.setProperty('--pointer-from-center', `${pointerFromCenter}`);
+        style.setProperty('--pointer-from-top', `${glareY.value / 100}`);
+        style.setProperty('--pointer-from-left', `${glareX.value / 100}`);
+        style.setProperty('--card-opacity', `${clamp(opacity.value, 0, 1)}`);
+        style.setProperty('--background-x', `${adjust(glareX.value, 0, 100, 37, 63)}%`);
+        style.setProperty('--background-y', `${adjust(glareY.value, 0, 100, 33, 67)}%`);
+        style.setProperty('--card-scale', '1');
+        style.setProperty('--translate-x', '0px');
+        style.setProperty('--translate-y', '0px');
 
-        if (!isReset) {
-            el.querySelector('.card__rotator').style.setProperty(
-                'transform',
-                `rotateX(${rotate.y}deg) rotateY(${rotate.x}deg)`,
-            );
-        }
+        this.rotator.style.transform = `rotateX(${rotateX.value}deg) rotateY(${rotateY.value}deg)`;
     }
 }
