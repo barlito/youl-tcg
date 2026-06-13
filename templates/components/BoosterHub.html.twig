@@ -113,10 +113,19 @@
             <div class="opening"
                  data-controller="booster-opening"
                  data-booster-opening-count-value="{{ revealCards|length }}"
+                 data-action="pack3d:opened->booster-opening#openAtOnce"
                  data-live-ignore>
 
                 {# ---------- SEALED — the pack, swipe to slice ---------- #}
                 <div class="opening__sealed" data-booster-opening-target="sealed">
+                    {# 3D pack (progressive enhancement); hides the 2D pack below once ready #}
+                    <div class="opening__3d"
+                         data-controller="pack-opening-3d"
+                         data-pack-opening-3d-model-value="/models/pack-wide.gltf"
+                         data-pack-opening-3d-texture-value="/models/opening.png"
+                         data-action="pointerdown->pack-opening-3d#dragStart pointermove->pack-opening-3d#dragMove pointerup->pack-opening-3d#dragEnd pointercancel->pack-opening-3d#dragEnd">
+                        <canvas data-pack-opening-3d-target="canvas"></canvas>
+                    </div>
                     <div class="opening__pack-wrap"
                          data-booster-opening-target="pack"
                          data-action="pointerdown->booster-opening#dragStart pointermove->booster-opening#dragMove pointerup->booster-opening#dragEnd pointercancel->booster-opening#dragEnd">

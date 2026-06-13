@@ -70,6 +70,22 @@
 .opening__tearing,
 .opening__reveal { position: relative; z-index: 2; text-align: center; }
 
+/* ============================================= SEALED — 3D pack (enhancement) */
+.opening__3d {
+    display: none; /* shown by the controller once WebGL + model are ready */
+    width: min(78vw, 360px);
+    height: min(64vh, 480px);
+    margin: 0 auto;
+    cursor: grab;
+    touch-action: none;
+}
+.opening__3d.is-ready { display: block; }
+.opening__3d.is-ready:active { cursor: grabbing; }
+.opening__3d canvas { display: block; width: 100%; height: 100%; }
+
+/* once the 3D pack is up, drop the 2D fallback pack */
+.opening__sealed:has(.opening__3d.is-ready) .opening__pack-wrap { display: none; }
+
 /* ====================================================== SEALED — the pack */
 .opening__pack-wrap {
     display: inline-block;

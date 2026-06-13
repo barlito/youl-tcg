@@ -104,7 +104,12 @@ final class BoosterHubComponentTest extends WebTestCase
         $component->call('claimBooster', ['boosterId' => (string) $booster->getId()]);
         $component->call('openBooster', ['boosterId' => (string) $booster->getId()]);
 
-        $crawler = new Crawler((string) $component->render());
+        $rendered = (string) $component->render();
+        // 3D pack enhancement is wired in (falls back to the 2D swipe client-side).
+        $this->assertStringContainsString('pack-opening-3d', $rendered);
+        $this->assertStringContainsString('/models/pack-wide.gltf', $rendered);
+
+        $crawler = new Crawler($rendered);
         $rarities = $crawler->filter('.opening__reveal-card')->each(
             static fn (Crawler $node): string => (string) $node->attr('data-rarity'),
         );
