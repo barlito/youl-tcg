@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controller\Dev;
 
+use App\Dto\VisualConfig;
 use App\Entity\Card;
+use App\Entity\Extension;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\CardRepository;
@@ -15,9 +17,9 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Dev-only showcase of card visual effects: the same card rendered at the
  * five rarity tiers (glow + holo recipe keyed by data-rarity, see
- * assets/styles/cards/holo.css), plus free-color overrides previewing the
- * future extension-level visual config (default glow per extension,
- * overridable per card).
+ * assets/styles/cards/holo.css), plus free-color overrides exercising the
+ * real visual-config cascade (Card::visualConfigOverride beating the
+ * data-rarity default through CardVisualResolver).
  *
  * The service only exists in the dev container (#[When]) and the route is
  * declared in config/routes.yaml under when@dev (a #[Route] attribute would
@@ -27,8 +29,8 @@ use Symfony\Component\HttpFoundation\Response;
 class CardEffectsDemoController extends AbstractController
 {
     /**
-     * Free glow overrides: any color works (--card-glow inherited from a
-     * wrapper beats the data-rarity default).
+     * Free glow overrides: any color works (a per-card override beats the
+     * extension default and the data-rarity default).
      */
     private const array GLOW_OVERRIDES = [
         'violet arcade' => '#a435f0',
@@ -40,10 +42,14 @@ class CardEffectsDemoController extends AbstractController
         $referenceCard = $cardRepository->findOneBy(['status' => CardStatusEnum::PUBLISHED])
             ?? throw $this->createNotFoundException('No published card found, load the fixtures first.');
 
+        // A bare transient extension so the rarity showcase shows pure
+        // data-rarity defaults, free of any extension-level glow config.
+        $bareExtension = new Extension()->setName('Demo')->setDescription('Demo');
+
         $rarityDemos = [];
         foreach (CardRarityEnum::cases() as $rarity) {
             $rarityDemos[] = [
-                'card' => $this->variant($referenceCard, $rarity->value, \sprintf('data-rarity: %s', $rarity->value))
+                'card' => $this->variant($referenceCard, $bareExtension, $rarity->value)
                     ->setRarity($rarity),
                 'rarity' => $rarity->value,
             ];
@@ -52,7 +58,8 @@ class CardEffectsDemoController extends AbstractController
         $overrideDemos = [];
         foreach (self::GLOW_OVERRIDES as $label => $glow) {
             $overrideDemos[] = [
-                'card' => $this->variant($referenceCard, $label, \sprintf('--card-glow: %s', $glow)),
+                'card' => $this->variant($referenceCard, $bareExtension, $label)
+                    ->setVisualConfigOverride(new VisualConfig(glow: $glow)),
                 'label' => $label,
                 'glow' => $glow,
             ];
@@ -65,13 +72,13 @@ class CardEffectsDemoController extends AbstractController
     }
 
     /**
-     * Transient clone, never persisted: same artwork, demo label.
+     * Transient clone, never persisted: same artwork, bare extension, demo label.
      */
-    private function variant(Card $referenceCard, string $label, string $description): Card
+    private function variant(Card $referenceCard, Extension $extension, string $label): Card
     {
         $variant = clone $referenceCard;
         $variant->setName(ucfirst($label));
-        $variant->setDescription($description);
+        $variant->setExtension($extension);
 
         return $variant;
     }

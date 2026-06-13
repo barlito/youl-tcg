@@ -2,22 +2,19 @@ App\Entity\Booster:
     booster_cyberpunk:
         extension: '@extension_cyberpunk'
         imageName: 'default_card.png'
-        holoRate: 10
         rarityRates:
-            - { common: 100 }
-            - { common: 100 }
-            - { common: 55, rare: 25, epic: 15, legendary: 5 }
+            - { rarities: { common: 100 }, holoChance: 5 }
+            - { rarities: { common: 100 }, holoChance: 5 }
+            - { rarities: { common: 55, rare: 25, epic: 15, legendary: 5 }, holoChance: 35 }
     booster_bleach:
         extension: '@extension_bleach'
         imageName: 'default_card.png'
-        holoRate: 100
         rarityRates:
-            - { common: 70, rare: 30 }
-            - { rare: 100 }
+            - { rarities: { common: 70, rare: 30 }, holoChance: 50 }
+            - { rarities: { rare: 100 }, holoChance: 100 }
     booster_magic:
         extension: '@extension_magic'
         imageName: 'default_card.png'
-        holoRate: 0
         rarityRates:
-            - { common: 100 }
-            - { common: 50, uncommon: 30, rare: 15, legendary: 5 }
+            - { rarities: { common: 100 }, holoChance: 0 }
+            - { rarities: { common: 50, uncommon: 30, rare: 15, legendary: 5 }, holoChance: 25 }

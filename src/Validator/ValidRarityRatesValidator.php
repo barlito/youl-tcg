@@ -35,7 +35,7 @@ final class ValidRarityRatesValidator extends ConstraintValidator
 
     private function validateSlot(ValidRarityRates $constraint, int $slotNumber, mixed $slot): void
     {
-        if (!\is_array($slot) || [] === $slot) {
+        if (!\is_array($slot) || !\array_key_exists('rarities', $slot) || !\array_key_exists('holoChance', $slot)) {
             $this->context->buildViolation($constraint->invalidSlotMessage)
                 ->setParameter('{{ slot }}', (string) $slotNumber)
                 ->addViolation()
@@ -44,7 +44,22 @@ final class ValidRarityRatesValidator extends ConstraintValidator
             return;
         }
 
-        foreach ($slot as $rarity => $weight) {
+        $this->validateRarities($constraint, $slotNumber, $slot['rarities']);
+        $this->validateHoloChance($constraint, $slotNumber, $slot['holoChance']);
+    }
+
+    private function validateRarities(ValidRarityRates $constraint, int $slotNumber, mixed $rarities): void
+    {
+        if (!\is_array($rarities) || [] === $rarities) {
+            $this->context->buildViolation($constraint->invalidRaritiesMessage)
+                ->setParameter('{{ slot }}', (string) $slotNumber)
+                ->addViolation()
+            ;
+
+            return;
+        }
+
+        foreach ($rarities as $rarity => $weight) {
             if (null === CardRarityEnum::tryFrom((string) $rarity)) {
                 $this->context->buildViolation($constraint->invalidRarityMessage)
                     ->setParameter('{{ slot }}', (string) $slotNumber)
@@ -61,6 +76,16 @@ final class ValidRarityRatesValidator extends ConstraintValidator
                     ->addViolation()
                 ;
             }
+        }
+    }
+
+    private function validateHoloChance(ValidRarityRates $constraint, int $slotNumber, mixed $holoChance): void
+    {
+        if (!\is_int($holoChance) || $holoChance < 0 || $holoChance > 100) {
+            $this->context->buildViolation($constraint->invalidHoloChanceMessage)
+                ->setParameter('{{ slot }}', (string) $slotNumber)
+                ->addViolation()
+            ;
         }
     }
 }

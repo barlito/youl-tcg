@@ -72,9 +72,9 @@ final class BoosterOpeningServiceTest extends KernelTestCase
         $this->assertSame(2, $userCards[0]->getQuantity());
     }
 
-    public function testFullHoloRateCreditsHoloQuantities(): void
+    public function testFullHoloChanceCreditsHoloQuantities(): void
     {
-        $scenario = $this->createScenario(boosterQuantity: 1, holoRate: 100, rarityRates: [['common' => 100], ['common' => 100]]);
+        $scenario = $this->createScenario(boosterQuantity: 1, holoChance: 100, rarityRates: [['common' => 100], ['common' => 100]]);
 
         $this->openingService->open($scenario['user'], $scenario['booster']);
 
@@ -86,9 +86,9 @@ final class BoosterOpeningServiceTest extends KernelTestCase
         $this->assertSame(2, $userCards[0]->getHoloQuantity());
     }
 
-    public function testZeroHoloRateCreditsNoHolo(): void
+    public function testZeroHoloChanceCreditsNoHolo(): void
     {
-        $scenario = $this->createScenario(boosterQuantity: 1, holoRate: 0);
+        $scenario = $this->createScenario(boosterQuantity: 1, holoChance: 0);
 
         $this->openingService->open($scenario['user'], $scenario['booster']);
 
@@ -134,13 +134,13 @@ final class BoosterOpeningServiceTest extends KernelTestCase
     }
 
     /**
-     * @param list<array<string, int>>|null $rarityRates
+     * @param list<array<string, int>>|null $rarityRates plain weight maps, wrapped per-slot with $holoChance
      *
      * @return array{user: DiscordUser, booster: Booster}
      */
     private function createScenario(
         int $boosterQuantity,
-        int $holoRate = 10,
+        int $holoChance = 10,
         ?array $rarityRates = null,
         bool $withPublishedCards = true,
     ): array {
@@ -171,10 +171,13 @@ final class BoosterOpeningServiceTest extends KernelTestCase
             }
         }
 
+        $weightMaps = $rarityRates ?? [['common' => 100], ['common' => 100], ['common' => 60, 'rare' => 30, 'legendary' => 10]];
         $booster = new Booster()
             ->setExtension($extension)
-            ->setHoloRate($holoRate)
-            ->setRarityRates($rarityRates ?? [['common' => 100], ['common' => 100], ['common' => 60, 'rare' => 30, 'legendary' => 10]])
+            ->setRarityRates(array_map(
+                static fn (array $rarities): array => ['rarities' => $rarities, 'holoChance' => $holoChance],
+                $weightMaps,
+            ))
         ;
         $booster->setImageName('default_card.png');
         $this->entityManager->persist($booster);

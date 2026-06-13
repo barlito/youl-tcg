@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Admin\Field\ImageField as VichImageField;
 use App\Entity\Extension;
 use App\Enum\Entity\ExtensionStatusEnum;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -11,6 +12,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 
 /**
@@ -51,5 +53,21 @@ class ExtensionCrudController extends AbstractCrudController
         yield ChoiceField::new('status')
             ->setChoices(ExtensionStatusEnum::cases())
         ;
+        yield VichImageField::new('imageFoilFile')
+            ->setLabel('Default foil texture')
+            ->setHelp('Holo foil fallback for cards of this extension that have none')
+            ->onlyOnForms()
+        ;
+        yield VichImageField::new('imageMaskFile')
+            ->setLabel('Default holo mask')
+            ->onlyOnForms()
+        ;
+        yield CodeEditorField::new('visualConfigJson')
+            ->setLabel('Visual config')
+            ->setLanguage('js')
+            ->onlyOnForms()
+            ->setHelp('Default visuals for the extension cards. Example: {"glow": "#a435f0", "borderColor": "#ff3db0"}')
+        ;
+        yield Field::new('visualConfigJson')->setLabel('Visual config')->onlyOnDetail();
     }
 }

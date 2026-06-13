@@ -7,6 +7,8 @@ App\Entity\Card:
         imageName: 'default_card.png'
         status: 2
         rarity: 'legendary'
+        alwaysHolo: true
+        visualConfigOverrideJson: '{"glow": "#ff3db0"}'
     card_rogue:
         name: 'Cyberpunk Rogue'
         extension: '@extension_cyberpunk'
@@ -45,3 +47,4 @@ App\Entity\Card:
         imageName: 'default_card.png'
         status: 2
         rarity: 'legendary'
+        alwaysHolo: true

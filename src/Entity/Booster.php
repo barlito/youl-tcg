@@ -11,7 +11,6 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 use Symfony\Component\HttpFoundation\File\File;
-use Symfony\Component\Validator\Constraints as Assert;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 #[Vich\Uploadable]
@@ -22,21 +21,17 @@ class Booster implements \Stringable
     use TimestampableEntity;
 
     /**
-     * One weight map per card slot, keys are CardRarityEnum values.
-     * Example for a 3-card booster: [{common: 100}, {common: 100}, {common: 60, rare: 30, legendary: 10}].
+     * One slot per card the booster yields. Each slot carries its own rarity
+     * weight map (keys are CardRarityEnum values) and its own holo chance
+     * (0-100 %) rolled independently for the card drawn in that slot.
+     * Example for a 2-card booster:
+     * [{rarities: {common: 100}, holoChance: 5}, {rarities: {common: 60, rare: 40}, holoChance: 30}].
      *
-     * @var list<array<string, int>>
+     * @var list<array{rarities: array<string, int>, holoChance: int}>
      */
     #[ValidRarityRates]
     #[ORM\Column(type: Types::JSON, options: ['default' => '[]'])]
     private array $rarityRates = [];
-
-    /**
-     * Chance (0-100 %) for each drawn card to be holo.
-     */
-    #[Assert\Range(min: 0, max: 100)]
-    #[ORM\Column(options: ['default' => 10])]
-    private int $holoRate = 10;
 
     #[Vich\UploadableField(mapping: 'boosters', fileNameProperty: 'imageName')]
     private ?File $imageFile = null;
@@ -54,7 +49,7 @@ class Booster implements \Stringable
     }
 
     /**
-     * @return list<array<string, int>>
+     * @return list<array{rarities: array<string, int>, holoChance: int}>
      */
     public function getRarityRates(): array
     {
@@ -62,7 +57,7 @@ class Booster implements \Stringable
     }
 
     /**
-     * @param list<array<string, int>> $rarityRates
+     * @param list<array{rarities: array<string, int>, holoChance: int}> $rarityRates
      */
     public function setRarityRates(array $rarityRates): static
     {
@@ -94,18 +89,6 @@ class Booster implements \Stringable
         }
 
         $this->rarityRates = \is_array($decoded) ? array_values($decoded) : [];
-    }
-
-    public function getHoloRate(): int
-    {
-        return $this->holoRate;
-    }
-
-    public function setHoloRate(int $holoRate): static
-    {
-        $this->holoRate = $holoRate;
-
-        return $this;
     }
 
     /**

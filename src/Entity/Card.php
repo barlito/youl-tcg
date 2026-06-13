@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Dto\VisualConfig;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\CardRepository;
 use Barlito\Utils\Traits\IdUuidTrait;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 use Symfony\Component\HttpFoundation\File\File;
@@ -39,6 +41,13 @@ class Card
     #[ORM\Column]
     private bool $uniqueFlag = false;
 
+    /**
+     * When true the card is always drawn holo, whatever the slot's holoChance
+     * (e.g. legendaries that should always shine).
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $alwaysHolo = false;
+
     #[Assert\Valid]
     #[Assert\NotBlank]
     #[ORM\ManyToOne(fetch: 'EAGER', inversedBy: 'cards')]
@@ -61,6 +70,15 @@ class Card
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $imageFoilName = null;
+
+    /**
+     * Per-card visual overrides (glow / border / css class); each set field
+     * beats the extension's default in the resolution cascade.
+     *
+     * @var array<string, string>
+     */
+    #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
+    private array $visualConfigOverride = [];
 
     public function getName(): string
     {
@@ -118,6 +136,18 @@ class Card
     public function setUnique(bool $uniqueFlag): static
     {
         $this->uniqueFlag = $uniqueFlag;
+
+        return $this;
+    }
+
+    public function isAlwaysHolo(): bool
+    {
+        return $this->alwaysHolo;
+    }
+
+    public function setAlwaysHolo(bool $alwaysHolo): static
+    {
+        $this->alwaysHolo = $alwaysHolo;
 
         return $this;
     }
@@ -229,5 +259,36 @@ class Card
     public function getImageFoilName(): ?string
     {
         return $this->imageFoilName;
+    }
+
+    public function getVisualConfigOverride(): VisualConfig
+    {
+        return VisualConfig::fromArray($this->visualConfigOverride);
+    }
+
+    public function setVisualConfigOverride(VisualConfig $visualConfig): static
+    {
+        $this->visualConfigOverride = $visualConfig->toArray();
+
+        return $this;
+    }
+
+    public function getVisualConfigOverrideJson(): string
+    {
+        return json_encode($this->visualConfigOverride, \JSON_PRETTY_PRINT | \JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * Invalid JSON resolves to no override.
+     */
+    public function setVisualConfigOverrideJson(string $json): void
+    {
+        try {
+            $decoded = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            $decoded = null;
+        }
+
+        $this->visualConfigOverride = VisualConfig::fromArray(\is_array($decoded) ? $decoded : [])->toArray();
     }
 }

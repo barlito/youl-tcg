@@ -136,8 +136,7 @@ final class HomepageTest extends WebTestCase
 
         $booster = new Booster()
             ->setExtension($extension)
-            ->setHoloRate(0)
-            ->setRarityRates([['common' => 100]])
+            ->setRarityRates([['rarities' => ['common' => 100], 'holoChance' => 0]])
         ;
         $booster->setImageName('default_card.png');
         $this->entityManager->persist($booster);

@@ -95,23 +95,52 @@ final class CardDrawerTest extends TestCase
         }
     }
 
-    public function testZeroHoloRateNeverDrawsHolo(): void
+    public function testZeroHoloChanceNeverDrawsHolo(): void
     {
         $drawer = $this->createDrawer([$this->card('Common card', CardRarityEnum::COMMON)]);
-        $booster = $this->booster([['common' => 100]], holoRate: 0);
+        $booster = $this->booster([['common' => 100]], holoChance: 0);
 
         for ($i = 0; $i < 200; ++$i) {
             $this->assertFalse($drawer->draw($booster)[0]->holo);
         }
     }
 
-    public function testFullHoloRateAlwaysDrawsHolo(): void
+    public function testFullHoloChanceAlwaysDrawsHolo(): void
     {
         $drawer = $this->createDrawer([$this->card('Common card', CardRarityEnum::COMMON)]);
-        $booster = $this->booster([['common' => 100]], holoRate: 100);
+        $booster = $this->booster([['common' => 100]], holoChance: 100);
 
         for ($i = 0; $i < 200; ++$i) {
             $this->assertTrue($drawer->draw($booster)[0]->holo);
+        }
+    }
+
+    public function testAlwaysHoloCardIsHoloEvenWithZeroChance(): void
+    {
+        $card = $this->card('Legendary card', CardRarityEnum::LEGENDARY)->setAlwaysHolo(true);
+        $drawer = $this->createDrawer([$card]);
+        $booster = $this->booster([['legendary' => 100]], holoChance: 0);
+
+        for ($i = 0; $i < 200; ++$i) {
+            $this->assertTrue($drawer->draw($booster)[0]->holo);
+        }
+    }
+
+    public function testHoloChanceIsResolvedPerSlot(): void
+    {
+        $drawer = $this->createDrawer([$this->card('Common card', CardRarityEnum::COMMON)]);
+        $booster = new Booster()
+            ->setExtension($this->extension())
+            ->setRarityRates([
+                ['rarities' => ['common' => 100], 'holoChance' => 0],
+                ['rarities' => ['common' => 100], 'holoChance' => 100],
+            ])
+        ;
+
+        for ($i = 0; $i < 200; ++$i) {
+            $drawnCards = $drawer->draw($booster);
+            $this->assertFalse($drawnCards[0]->holo);
+            $this->assertTrue($drawnCards[1]->holo);
         }
     }
 
@@ -181,14 +210,21 @@ final class CardDrawerTest extends TestCase
     }
 
     /**
-     * @param list<array<string, int>> $rarityRates
+     * Wraps plain rarity weight maps into the per-slot shape
+     * ({rarities, holoChance}), applying the same holo chance to every slot.
+     *
+     * @param list<array<string, int>> $raritySlots
      */
-    private function booster(array $rarityRates, int $holoRate = 10): Booster
+    private function booster(array $raritySlots, int $holoChance = 10): Booster
     {
+        $rarityRates = array_map(
+            static fn (array $rarities): array => ['rarities' => $rarities, 'holoChance' => $holoChance],
+            $raritySlots,
+        );
+
         return new Booster()
             ->setExtension($this->extension())
             ->setRarityRates($rarityRates)
-            ->setHoloRate($holoRate)
         ;
     }
 
