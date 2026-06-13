@@ -76,6 +76,27 @@ class UserCardRepository extends ServiceEntityRepository
     }
 
     /**
+     * Ids of the distinct cards the user owns (any quantity), used to flag
+     * freshly obtained cards after a booster opening.
+     *
+     * @return list<string>
+     */
+    public function findOwnedCardIds(DiscordUser $discordUser): array
+    {
+        /** @var list<array{cardId: string}> $rows */
+        $rows = $this->createQueryBuilder('uc')
+            ->select('IDENTITY(uc.card) AS cardId')
+            ->andWhere('uc.discordUser = :user')
+            ->andWhere('uc.quantity > 0 OR uc.holoQuantity > 0')
+            ->setParameter('user', $discordUser)
+            ->getQuery()
+            ->getResult()
+        ;
+
+        return array_map(static fn (array $row): string => (string) $row['cardId'], $rows);
+    }
+
+    /**
      * Total number of cards owned, holo included (collection banner stat).
      */
     public function sumOwnedQuantities(DiscordUser $discordUser): int

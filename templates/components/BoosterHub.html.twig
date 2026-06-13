@@ -1,0 +1,160 @@
+<div {{ attributes }}>
+    <main>
+        {# ----------------------------------------------------- Hero / quota #}
+        <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
+            <div class="glow-ambient" aria-hidden="true"></div>
+            <div class="relative mx-auto flex max-w-7xl flex-col gap-8 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <p class="eyebrow">03 / Ouverture</p>
+                    <h1 class="mt-2 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
+                        Boosters
+                    </h1>
+                    <p class="mt-2 max-w-md text-sm text-ink-muted">
+                        Récupère tes packs gratuits du jour et ouvre-les pour compléter ta collection.
+                    </p>
+                </div>
+
+                <div class="flex flex-col items-start gap-2.5 md:items-end">
+                    <div class="bg-primary px-5 py-3.5 text-black" data-testid="daily-packs">
+                        <p class="font-mono text-[10px] font-bold tracking-[.2em]">PACKS / JOUR</p>
+                        <p class="mt-1 font-display text-3xl font-bold leading-none">
+                            {{ this.remainingClaims }}<span class="text-lg opacity-50"> / {{ constant('App\\Service\\Booster\\BoosterClaimQuotaInterface::DAILY_LIMIT') }}</span>
+                        </p>
+                    </div>
+
+                    {% if this.remainingClaims == 0 %}
+                        <p class="chip-mono text-ink-dim">
+                            Prochains packs dans
+                            <span class="text-primary"
+                                  data-controller="countdown"
+                                  data-countdown-target-value="{{ this.nextResetTime.format('c') }}">--:--:--</span>
+                        </p>
+                    {% else %}
+                        <p class="chip-mono text-live">✦ {{ this.remainingClaims }} pack{{ this.remainingClaims > 1 ? 's' }} à récupérer</p>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        {% if error %}
+            <div class="mx-auto mt-6 max-w-7xl px-6 lg:px-12">
+                <div class="border border-magenta/50 bg-magenta/10 px-4 py-3 font-mono text-xs text-magenta" data-testid="hub-error">
+                    ⚠ {{ error }}
+                </div>
+            </div>
+        {% endif %}
+
+        {# ----------------------------------------------------- Packs grid #}
+        <section class="px-6 pb-24 pt-10 lg:px-12">
+            <div class="mx-auto max-w-7xl">
+                {% if this.boosters is empty %}
+                    <div class="border border-dashed border-hairline px-8 py-20 text-center text-ink-dim">
+                        <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Aucun pack.</p>
+                        <p class="mt-3 text-sm">Reviens bientôt, de nouveaux univers arrivent.</p>
+                    </div>
+                {% else %}
+                    {% set inventory = this.inventory %}
+                    {% set remainingClaims = this.remainingClaims %}
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3" data-testid="boosters-grid">
+                        {% for booster in this.boosters %}
+                            {% set owned = inventory[booster.id]|default(0) %}
+                            <article class="group flex flex-col border border-hairline bg-surface">
+                                <div class="relative aspect-[16/10] overflow-hidden border-b border-hairline bg-bg">
+                                    <img src="{{ booster.imageName ? vich_uploader_asset(booster) : (booster.extension.imageName ? vich_uploader_asset(booster.extension) : asset('images/cards/default_card.png')) }}"
+                                         alt="{{ booster.extension.name }}"
+                                         class="h-full w-full object-cover opacity-80 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-100"
+                                         onerror="this.onerror=null;this.src='{{ asset('images/cards/default_card.png') }}';">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-bg via-bg/20 to-transparent"></div>
+                                    <span class="chip-mono absolute right-3 top-3 bg-black/80 px-2 py-1 font-bold text-ink-strong">×{{ owned }}</span>
+                                </div>
+
+                                <div class="flex flex-1 flex-col p-5">
+                                    <h3 class="font-display text-xl font-bold uppercase tracking-[-0.02em] text-ink-strong">{{ booster.extension.name }}</h3>
+                                    <p class="chip-mono mt-1 text-ink-dim">{{ booster.cardCount }} cartes</p>
+                                    <p class="mt-2 line-clamp-2 text-sm text-ink-muted">{{ booster.extension.description }}</p>
+
+                                    <div class="mt-auto grid grid-cols-2 gap-3 pt-5">
+                                        <button type="button"
+                                                data-action="live#action"
+                                                data-live-action-param="claimBooster"
+                                                data-live-booster-id-param="{{ booster.id }}"
+                                                class="border border-primary bg-black px-4 py-3 font-display text-xs font-bold uppercase tracking-[.12em] text-primary transition hover:bg-primary hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
+                                                {% if remainingClaims == 0 %}disabled{% endif %}>
+                                            <span data-loading="hide">Récupérer</span>
+                                            <span data-loading="show" class="hidden">···</span>
+                                        </button>
+                                        <button type="button"
+                                                data-action="live#action"
+                                                data-live-action-param="openBooster"
+                                                data-live-booster-id-param="{{ booster.id }}"
+                                                class="btn-arcade w-full text-center disabled:cursor-not-allowed disabled:opacity-40"
+                                                {% if owned == 0 %}disabled{% endif %}>
+                                            <span data-loading="hide">Ouvrir ▸</span>
+                                            <span data-loading="show" class="hidden">···</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+
+    {# --------------------------------------------------- Loot summary modal #}
+    {% if opening %}
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+             data-live-id="opening-{{ opening.id }}"
+             data-testid="opening-summary">
+            <div class="flex max-h-[90vh] w-full max-w-5xl flex-col border border-hairline bg-bg">
+                <header class="flex items-center justify-between border-b border-hairline bg-surface px-6 py-5">
+                    <div>
+                        <p class="eyebrow">Ton butin</p>
+                        <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-[-0.03em] text-ink-strong">
+                            {{ opening.booster.extension.name }}
+                        </h2>
+                    </div>
+                    <button type="button"
+                            data-action="live#action"
+                            data-live-action-param="closeModal"
+                            class="font-mono text-2xl leading-none text-ink-dim transition hover:text-ink-strong"
+                            aria-label="Fermer">×</button>
+                </header>
+
+                <div class="flex flex-wrap gap-2 border-b border-hairline px-6 py-4" data-testid="rarity-tally">
+                    {% for tier in this.raritySummary %}
+                        <span class="chip-mono border border-hairline px-2.5 py-1 font-bold"
+                              style="color: var(--rarity-{{ tier.rarity.value }});">
+                            {{ tier.rarity.value }} · {{ tier.count }}
+                        </span>
+                    {% endfor %}
+                </div>
+
+                <div class="grid grid-cols-2 gap-5 overflow-y-auto px-6 py-6 sm:grid-cols-3 md:grid-cols-4">
+                    {% for openingCard in opening.boosterOpeningCards %}
+                        {% for copy in 1..openingCard.quantity %}
+                            <div class="relative">
+                                {{ include('components/CardComponent.html.twig', {
+                                    card: openingCard.card,
+                                    holo: copy <= openingCard.holoQuantity,
+                                    id: 'loot-' ~ loop.parent.loop.index ~ '-' ~ copy,
+                                }) }}
+                                {% if (openingCard.card.id ~ '') in newCardIds %}
+                                    <span class="chip-mono absolute -left-2 -top-2 z-10 bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black">NOUVEAU</span>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+
+                <footer class="border-t border-hairline bg-surface px-6 py-5 text-center">
+                    <button type="button"
+                            data-action="live#action"
+                            data-live-action-param="closeModal"
+                            class="btn-arcade">Ajouter à ma collection ▸</button>
+                </footer>
+            </div>
+        </div>
+    {% endif %}
+</div>
