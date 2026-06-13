@@ -1,0 +1,418 @@
+/*
+ * Pack opening reveal — sealed → swipe-to-slice → tearing → whiteout → reveal.
+ *
+ * Driven by assets/controllers/booster_opening_controller.js (no anime.js):
+ * the controller sets `data-phase` on `.opening`, a `--tp` (tear progress 0..1)
+ * while the pack is being sliced, `--reveal-color` per revealed card, and
+ * toggles a handful of state classes. Everything else is CSS.
+ *
+ * CRITICAL: every entrance animation that has a start delay uses
+ * `animation-fill-mode: both` — with `forwards` the element would flash its base
+ * style during the delay (off-centre bloom/beam). See the design handoff.
+ */
+
+/* ------------------------------------------------------------------ keyframes */
+@keyframes opening-slitOpen   { 0% { transform: scaleY(0); opacity: 0; } 30% { opacity: 1; } 100% { transform: scaleY(1); opacity: 1; } }
+@keyframes opening-flapTearOff{ 0% { transform: translate(0,0) rotate(0); opacity: 1; } 14% { transform: translate(0,-10px) rotate(-3deg); } 55% { opacity: 1; } 100% { transform: translate(560px,-150px) rotate(46deg) scale(.9); opacity: 0; } }
+@keyframes opening-packBurst  { 0% { filter: brightness(1); } 60% { filter: brightness(1.55); } 100% { filter: brightness(2.5) saturate(1.2); opacity: .82; } }
+@keyframes opening-beamRise   { 0% { transform: translate(-50%,0) scaleY(0); opacity: 0; } 25% { opacity: 1; } 100% { transform: translate(-50%,0) scaleY(1); opacity: .9; } }
+@keyframes opening-coreBloom  { 0% { transform: translate(-50%,-50%) scale(.15); opacity: 0; } 20% { opacity: .9; } 100% { transform: translate(-50%,-50%) scale(1.85); opacity: 1; } }
+@keyframes opening-raysSpin   { 0% { transform: translate(-50%,-50%) rotate(0); } 100% { transform: translate(-50%,-50%) rotate(360deg); } }
+@keyframes opening-fadeIn6    { from { opacity: 0; } to { opacity: .6; } }
+@keyframes opening-particlefly{ 0% { transform: translate(-50%,-50%) rotate(var(--ang)) translateX(0); opacity: 1; } 100% { transform: translate(-50%,-50%) rotate(var(--ang)) translateX(var(--dist)); opacity: 0; } }
+@keyframes opening-whiteout   { 0% { opacity: 0; } 45% { opacity: 0; } 78% { opacity: .9; } 100% { opacity: 1; } }
+@keyframes opening-fadeWhite  { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes opening-cardReveal { 0% { transform: translateY(40px) scale(.7) rotateY(90deg); opacity: 0; } 60% { opacity: 1; } 100% { transform: translateY(0) scale(1) rotateY(0); opacity: 1; } }
+@keyframes opening-cardRevealBig { 0% { transform: translateY(60px) scale(.5) rotateY(180deg); opacity: 0; filter: brightness(3); } 40% { opacity: 1; } 70% { transform: translateY(0) scale(1.12) rotateY(0); filter: brightness(1.4); } 100% { transform: translateY(0) scale(1) rotateY(0); filter: brightness(1); } }
+@keyframes opening-auraPulse  { 0% { transform: translate(-50%,-50%) scale(.4); opacity: 0; } 40% { opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.1); opacity: 1; } }
+@keyframes opening-labelSlam  { 0% { transform: translateX(-50%) scale(2.4); opacity: 0; filter: blur(8px); } 60% { transform: translateX(-50%) scale(.92); opacity: 1; filter: blur(0); } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
+@keyframes opening-screenShake{ 0%,100% { transform: translate(0,0); } 25% { transform: translate(-6px,3px); } 50% { transform: translate(6px,-3px); } 75% { transform: translate(-4px,-2px); } }
+@keyframes opening-nudgeX     { 0%,100% { transform: translateX(0); } 50% { transform: translateX(7px); } }
+@keyframes opening-summaryIn  { 0% { transform: translateY(14px) scale(.92); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+
+/* --------------------------------------------------------------------- stage */
+.opening {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-height: min(90vh, 760px);
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.opening.is-shake { animation: opening-screenShake .5s; }
+
+/* ambient violet glow behind the stage */
+.opening::before {
+    content: "";
+    position: absolute;
+    top: -20%;
+    left: 50%;
+    width: 1000px;
+    height: 700px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse, #a435f022 0%, transparent 60%);
+    filter: blur(40px);
+    pointer-events: none;
+}
+
+/* stage visibility is driven by [hidden] toggled from the controller */
+.opening__sealed,
+.opening__tearing,
+.opening__reveal { position: relative; z-index: 2; text-align: center; }
+
+/* ====================================================== SEALED — the pack */
+.opening__pack-wrap {
+    display: inline-block;
+    cursor: grab;
+    touch-action: none;
+    animation: floatY 4s ease-in-out infinite;
+}
+.opening__pack-wrap.is-cutting { cursor: grabbing; animation: none; }
+
+.opening__pack {
+    position: relative;
+    width: 300px;
+    height: 430px;
+    filter: drop-shadow(0 30px 50px #000a);
+}
+
+.opening__pack-body {
+    position: absolute;
+    inset: 0;
+    top: 30px;
+    overflow: hidden;
+    border: 1px solid #a435f055;
+    border-radius: 10px;
+    background: linear-gradient(160deg, #2a1356 0%, #14092e 45%, #2a0f44 100%);
+}
+.opening__pack-body img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: .85;
+}
+.opening__pack-body::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    mix-blend-mode: color-dodge;
+    opacity: .5;
+    background: linear-gradient(115deg, transparent 35%, #ff3db077 48%, #00f0ff55 52%, transparent 65%);
+    background-size: 300% 300%;
+    animation: packShimmer 4s linear infinite;
+}
+.opening__pack-banner {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    padding: 16px 18px 20px;
+    background: linear-gradient(180deg, transparent, #0b0712 80%);
+    text-align: left;
+}
+.opening__pack-banner .code { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: .25em; color: #ff3db0; }
+.opening__pack-banner .name { margin-top: 4px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 22px; line-height: 1; text-transform: uppercase; letter-spacing: -.02em; color: #fff; }
+
+/* top crimp flap that slides off as you slice (driven by --tp) */
+.opening__pack-flap {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 4;
+    height: 50px;
+    transform-origin: left center;
+    transform: translate(calc(var(--tp, 0) * 135px), calc(var(--tp, 0) * -10px)) rotate(calc(var(--tp, 0) * 7deg));
+    transition: transform 70ms linear, opacity 70ms linear;
+    background: linear-gradient(180deg, #2c1758 0%, #170c30 100%);
+    box-shadow: inset 0 2px 0 #ffffff22, inset 0 -3px 7px #00000077;
+    clip-path: polygon(0 0,100% 0,100% 84%,97% 100%,94% 85%,91% 100%,88% 84%,85% 100%,82% 85%,79% 100%,76% 84%,73% 100%,70% 85%,67% 100%,64% 84%,61% 100%,58% 85%,55% 100%,52% 84%,49% 100%,46% 85%,43% 100%,40% 84%,37% 100%,34% 85%,31% 100%,28% 84%,25% 100%,22% 85%,19% 100%,16% 84%,13% 100%,10% 85%,7% 100%,4% 84%,1% 100%,0 88%);
+}
+
+/* light slit opening along the tear line */
+.opening__pack-slit {
+    position: absolute;
+    top: 44px;
+    left: 6px;
+    right: 6px;
+    z-index: 3;
+    height: calc(6px + var(--tp, 0) * 28px);
+    opacity: calc(var(--tp, 0) * 1.4);
+    background: linear-gradient(180deg, #fff, #e9d5ff 50%, transparent);
+    filter: blur(5px);
+    pointer-events: none;
+    transition: height 70ms linear, opacity 70ms linear;
+}
+
+/* glowing torn edge racing left → right with the cut */
+.opening__pack-edge {
+    position: absolute;
+    top: 46px;
+    left: 0;
+    z-index: 5;
+    width: calc(min(100%, var(--tp, 0) * 120%));
+    height: 2px;
+    opacity: .9;
+    background: #fff;
+    box-shadow: 0 0 10px #fff, 0 0 22px #e9d5ff;
+    pointer-events: none;
+    transition: width 70ms linear;
+}
+
+/* perforation guide line — only while untouched */
+.opening__pack-guide {
+    position: absolute;
+    top: 48px;
+    left: 12px;
+    right: 12px;
+    z-index: 5;
+    border-top: 2px dotted #c79bff99;
+    pointer-events: none;
+}
+.is-cutting .opening__pack-guide { display: none; }
+
+/* CUTTER — the bright point of light riding the cut under your finger */
+.opening__pack-cutter {
+    position: absolute;
+    top: 46px;
+    left: calc(min(98%, var(--tp, 0) * 100%));
+    z-index: 6;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    pointer-events: none;
+    transition: left 60ms linear;
+}
+.is-cutting .opening__pack-cutter { opacity: 1; }
+.opening__pack-cutter .dot {
+    width: 13px;
+    height: 13px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 0 14px 5px #fff, 0 0 30px 12px #e9d5ff, 0 0 50px 20px #a435f088;
+}
+.opening__pack-cutter .cross-h,
+.opening__pack-cutter .cross-v {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.opening__pack-cutter .cross-h { width: 46px; height: 2px; background: linear-gradient(90deg, transparent, #fff 45%, #fff 55%, transparent); }
+.opening__pack-cutter .cross-v { width: 2px; height: 20px; background: linear-gradient(180deg, transparent, #fff, transparent); }
+
+.opening__hint {
+    margin-top: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: .15em;
+    color: #b9a8cf;
+}
+.opening__hint .arrow { display: inline-block; animation: opening-nudgeX 1.3s ease-in-out infinite; }
+
+.opening__skip {
+    margin-top: 16px;
+    padding: 14px 28px;
+    border: 1px solid #a435f066;
+    background: transparent;
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+.opening__skip:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ===================================================== TEARING — burst fx */
+.opening__beam {
+    position: absolute;
+    left: 50%;
+    top: 4%;
+    z-index: 2;
+    width: 150px;
+    height: 480px;
+    transform-origin: 50% 0%;
+    background: linear-gradient(180deg, #fff 0%, #ecd9ff 42%, transparent 92%);
+    filter: blur(11px);
+    mix-blend-mode: screen;
+    pointer-events: none;
+    animation: opening-beamRise .9s .12s cubic-bezier(.2,.8,.2,1) both;
+}
+.opening__rays {
+    position: absolute;
+    left: 50%;
+    top: 44%;
+    z-index: 2;
+    width: 780px;
+    height: 780px;
+    pointer-events: none;
+    background: repeating-conic-gradient(from 0deg, #ffffff44 0deg 4deg, transparent 4deg 16deg);
+    mask-image: radial-gradient(circle, #000 6%, transparent 58%);
+    -webkit-mask-image: radial-gradient(circle, #000 6%, transparent 58%);
+    animation: opening-raysSpin 9s linear infinite, opening-fadeIn6 .6s .15s ease-out backwards;
+}
+.opening__bloom {
+    position: absolute;
+    left: 50%;
+    top: 44%;
+    z-index: 3;
+    width: 540px;
+    height: 540px;
+    border-radius: 50%;
+    mix-blend-mode: screen;
+    pointer-events: none;
+    background: radial-gradient(circle, #fff 0%, #f0ddff 26%, #c9a0ff55 48%, transparent 72%);
+    animation: opening-coreBloom 1.05s .22s ease-out both;
+}
+.opening__particles span {
+    position: absolute;
+    left: 50%;
+    top: 40%;
+    z-index: 4;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    box-shadow: 0 0 10px currentColor;
+    animation: opening-particlefly 1s ease-out both;
+}
+
+/* ============================================ WHITEOUT / FLASH overlays */
+.opening__whiteout,
+.opening__flash {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    opacity: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 44%, #ffffff, #ead8ff 42%, transparent 82%);
+}
+.opening__whiteout.is-tearing { animation: opening-whiteout 1.15s ease-in forwards; }
+.opening__whiteout.is-bridge  { animation: opening-fadeWhite .6s ease-out forwards; }
+.opening__flash { transition: opacity .5s ease-out; }
+.opening__flash.is-on { opacity: var(--flash, .3); }
+
+/* ================================================= REVEAL — one card at a time */
+.opening__reveal {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+}
+.opening__reveal-fx {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+.opening__aura {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 700px;
+    height: 700px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    opacity: 0;
+    background: radial-gradient(circle, color-mix(in srgb, var(--reveal-color, #fff) 18%, transparent) 0%, transparent 60%);
+}
+.is-shiny .opening__aura { background: radial-gradient(circle, color-mix(in srgb, var(--reveal-color, #fff) 40%, transparent) 0%, transparent 60%); }
+.opening__aura.is-on { animation: opening-auraPulse 1.6s ease-out forwards; }
+
+.opening__label {
+    position: absolute;
+    top: 4%;
+    left: 50%;
+    z-index: 3;
+    transform: translateX(-50%);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 40px;
+    text-transform: uppercase;
+    letter-spacing: -.02em;
+    white-space: nowrap;
+    color: var(--reveal-color, #fff);
+    text-shadow: 0 0 30px var(--reveal-color, #fff);
+    opacity: 0;
+    pointer-events: none;
+}
+.opening__label.is-on { animation: opening-labelSlam .6s cubic-bezier(.2,1.4,.4,1) forwards; }
+
+.opening__reveal-cards {
+    position: relative;
+    z-index: 2;
+    margin-top: 64px;
+    display: grid;
+    place-items: center;
+}
+/* all reveal cards stacked in the same cell; only the current one shows */
+.opening__reveal-card {
+    grid-area: 1 / 1;
+    display: none;
+    transform: scale(var(--reveal-card-scale, 1.4));
+    transform-origin: center;
+}
+.opening__reveal-card.is-current { display: block; }
+.opening__reveal-card.is-entering { animation: opening-cardReveal .6s cubic-bezier(.2,.8,.2,1); }
+.opening__reveal-card[data-shiny="1"].is-entering { animation: opening-cardRevealBig .9s cubic-bezier(.2,.8,.2,1); }
+
+.opening__progress {
+    z-index: 2;
+    margin-top: 40px;
+    display: flex;
+    gap: 8px;
+}
+.opening__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #ffffff22;
+    transition: all .3s;
+}
+.opening__dot.is-done { background: var(--dot-color, #fff); }
+.opening__dot.is-current { width: 28px; background: var(--dot-color, #fff); box-shadow: 0 0 10px var(--dot-color, #fff); }
+
+.opening__next {
+    z-index: 2;
+    margin-top: 24px;
+    padding: 12px 26px;
+    border: 1px solid #a435f066;
+    background: transparent;
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+.opening__next:hover { border-color: var(--primary); }
+.opening__counter {
+    z-index: 2;
+    margin-top: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    color: #6a5a8a;
+}
+
+/* ===================================================================== SUMMARY */
+.opening__summary { animation: opening-summaryIn .4s ease-out both; }
+
+/* reveal card scale shrinks a touch on short viewports */
+@media (max-height: 760px) {
+    .opening__reveal-card { --reveal-card-scale: 1.1; }
+    .opening__reveal-cards { margin-top: 48px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .opening__pack-wrap,
+    .opening__pack-body::after { animation: none; }
+}

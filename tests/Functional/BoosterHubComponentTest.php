@@ -6,10 +6,12 @@ namespace App\Tests\Functional;
 
 use App\Entity\UserBooster;
 use App\Entity\UserCard;
+use App\Enum\Entity\CardRarityEnum;
 use App\Repository\BoosterRepository;
 use App\Twig\Components\BoosterHub;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 final class BoosterHubComponentTest extends WebTestCase
@@ -90,6 +92,34 @@ final class BoosterHubComponentTest extends WebTestCase
         $component->call('openBooster', ['boosterId' => (string) $booster->getId()]);
 
         $this->assertSame('Tu ne possèdes pas ce booster.', $component->component()->error);
+    }
+
+    public function testRevealRendersCardsOrderedRarestLast(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $booster = $this->firstPublishedBooster();
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        $component->call('claimBooster', ['boosterId' => (string) $booster->getId()]);
+        $component->call('openBooster', ['boosterId' => (string) $booster->getId()]);
+
+        $crawler = new Crawler((string) $component->render());
+        $rarities = $crawler->filter('.opening__reveal-card')->each(
+            static fn (Crawler $node): string => (string) $node->attr('data-rarity'),
+        );
+
+        $this->assertCount($booster->getCardCount(), $rarities);
+
+        $rank = array_flip(array_map(
+            static fn (CardRarityEnum $rarity): string => $rarity->value,
+            CardRarityEnum::ascending(),
+        ));
+        $ranks = array_map(static fn (string $rarity): int => $rank[$rarity], $rarities);
+        $sortedRanks = $ranks;
+        sort($sortedRanks);
+
+        $this->assertSame($sortedRanks, $ranks, 'Reveal cards must be ordered from common to rarest (climax last).');
     }
 
     public function testOpeningWithoutInventoryReportsAnError(): void
