@@ -11,10 +11,12 @@ import { Controller } from '@hotwired/stimulus';
  *
  * Flow: once the pack has been opened server-side this controller arms the pack
  * (a `pack3d:arm` window event) so it can be peeled. Peeling fires
- * `pack3d:opened` → `startReveal()`, which reveals the drawn cards one at a time
- * in the centre showcase (rarest last, the last one a face-down climax flip) and
- * lights up the matching card in the right-hand set list. When every card is up
- * it surfaces the "open another / back" footer.
+ * `pack3d:opened` → `startReveal()`, which presents the drawn cards one at a time
+ * in the centre showcase, each face-DOWN with the remaining cards stacked behind
+ * it (packs.com style). Clicking the card flips it (3D rotateY) to reveal the
+ * face — per-card state machine 'back' → 'flipping' → 'face' — which lights up the
+ * matching card in the right-hand set list. Cards run common → rarest (climax
+ * last); when the last one is up it surfaces the "open another / back" footer.
  *
  * No anime.js: plain `setTimeout` timelines + CSS animations.
  */
@@ -36,9 +38,12 @@ const RARITY_LABEL = {
 const RARITY_RANK = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4 };
 const SHINY = new Set(['rare', 'epic', 'legendary']);
 
+// must match the .opening__flip CSS transition duration
+const FLIP_MS = 560;
+
 export default class extends Controller {
     static targets = [
-        'showcase', 'aura', 'label', 'card', 'next', 'counter',
+        'showcase', 'aura', 'label', 'card', 'flip', 'stack', 'next', 'counter',
         'slot', 'best', 'revealedCount', 'flash', 'foot', 'cta',
     ];
 
@@ -92,21 +97,32 @@ export default class extends Controller {
         this.timers = [];
         this.phase = 'idle';
         this.revealIndex = -1;
+        this.cardState = 'back'; // back → flipping → face, per current card
         this.bestRank = -1;
         if (this.hasShowcaseTarget) {
             this.showcaseTarget.hidden = true;
             this.showcaseTarget.style.pointerEvents = '';
         }
+        // every card face-down again, nothing current
+        this.cardTargets?.forEach((node) => node.classList.remove('is-current', 'is-pop'));
+        this.flipTargets?.forEach((flip) => flip.classList.remove('is-flipped'));
+        if (this.hasLabelTarget) {
+            this.labelTarget.textContent = '';
+            this.labelTarget.classList.remove('is-on');
+        }
+        this._updateStack(0);
         if (this.hasFootTarget) {
             this.footTarget.hidden = true;
         }
-        // restore the in-showcase prompt + the tear CTA that _end() hides
+        // the "carte suivante" button only surfaces once a card has been flipped
         if (this.hasNextTarget) {
-            this.nextTarget.hidden = false;
+            this.nextTarget.hidden = true;
         }
         if (this.hasCounterTarget) {
             this.counterTarget.hidden = false;
+            this.counterTarget.textContent = '';
         }
+        // restore the tear CTA that _end() hides
         if (this.hasCtaTarget) {
             this.ctaTarget.hidden = false;
         }
@@ -135,38 +151,95 @@ export default class extends Controller {
     }
 
     // ----------------------------------------------------- reveal sequence
+    // packs.com flow: each card is presented face-DOWN; the player clicks the card
+    // to flip it (3D rotateY) and reveal the face, then advances to the next one.
+    // Per-card state machine: 'back' → 'flipping' → 'face'.
     startReveal() {
         if (this.phase !== 'idle' || !this.hasCountValue || this.countValue === 0) {
             return;
         }
         this.phase = 'reveal';
         this.showcaseTarget.hidden = false;
-
-        if (this.countValue <= 1) {
-            this._revealLast();
-        } else {
-            this._revealCard(0);
+        // the pack is open now — drop the tear instruction / "ouvrir d'un coup" CTA
+        if (this.hasCtaTarget) {
+            this.ctaTarget.hidden = true;
         }
+
+        this._present(0);
     }
 
-    advance(event) {
+    // single entry point for clicks on the showcase: flip the current card, or
+    // (once it is face-up) advance to the next one.
+    tap() {
         if (this.phase !== 'reveal') {
             return;
         }
-        if (event) {
-            event.stopPropagation();
-        }
-
-        const next = this.revealIndex + 1;
-        if (next >= this.lastIndex) {
-            this._revealLast();
-        } else {
-            this._revealCard(next);
+        if (this.cardState === 'back') {
+            this._flip();
+        } else if (this.cardState === 'face') {
+            this.advance();
         }
     }
 
-    _revealCard(index, big = false) {
+    // "Carte suivante" button (accessibility alternative to clicking the card);
+    // only meaningful once the current card has been flipped face-up.
+    advance(event) {
+        if (this.phase !== 'reveal' || this.cardState !== 'face') {
+            return;
+        }
+        if (event) {
+            event.stopPropagation(); // don't let the button click bubble to tap()
+        }
+
+        const next = this.revealIndex + 1;
+        if (next <= this.lastIndex) {
+            this._present(next);
+        }
+    }
+
+    // show card `index` face-down, with the remaining cards stacked behind it
+    _present(index) {
         this.revealIndex = index;
+        this.cardState = 'back';
+
+        this.cardTargets.forEach((node, i) => node.classList.toggle('is-current', i === index));
+        const card = this.cardTargets[index];
+        const flip = this.flipTargets[index];
+        card.classList.remove('is-pop');
+        flip.classList.remove('is-flipped'); // back toward the player
+        this._retrigger(card, 'is-entering');
+
+        // neutral centre while it sits face-down
+        this.labelTarget.classList.remove('is-on');
+        this.labelTarget.textContent = '';
+        this.element.classList.remove('is-shiny');
+
+        if (this.hasNextTarget) {
+            this.nextTarget.hidden = true;
+        }
+        // cards still waiting behind this one
+        this._updateStack(this.lastIndex - index);
+
+        if (this.hasCounterTarget) {
+            this.counterTarget.textContent = `${index + 1} / ${this.countValue} · CLIQUE POUR RÉVÉLER`;
+        }
+    }
+
+    // flip the current card face-up, then run the reveal payoff
+    _flip() {
+        if (this.cardState !== 'back') {
+            return;
+        }
+        this.cardState = 'flipping';
+        this.flipTargets[this.revealIndex].classList.add('is-flipped');
+        this._after(FLIP_MS, () => this._onRevealed());
+    }
+
+    // the card has landed face-up: light it up, sync the set list, surface "next"
+    _onRevealed() {
+        this.cardState = 'face';
+        const index = this.revealIndex;
+        const isLast = index === this.lastIndex;
         const card = this.cardTargets[index];
         const { rarity, cardId } = card.dataset;
         const color = RARITY_COLOR[rarity] || '#ffffff';
@@ -175,15 +248,17 @@ export default class extends Controller {
         this.element.style.setProperty('--reveal-color', color);
         this.element.classList.toggle('is-shiny', shiny);
 
-        this.cardTargets.forEach((node, i) => node.classList.toggle('is-current', i === index));
-        this._retrigger(card, 'is-entering');
+        // a punchier landing for shinies and the rarest-last climax
+        if (shiny || isLast) {
+            card.classList.remove('is-entering'); // free the animation slot for the pop
+            this._retrigger(card, 'is-pop');
+        }
         this._retrigger(this.auraTarget, 'is-on');
-
         this.labelTarget.textContent = card.dataset.label;
         this._retrigger(this.labelTarget, 'is-on');
 
-        if (big || rarity === 'epic' || rarity === 'legendary') {
-            this._flash(big ? 0.6 : 0.42, big ? 220 : 180);
+        if (isLast || rarity === 'epic' || rarity === 'legendary') {
+            this._flash(isLast ? 0.6 : 0.42, isLast ? 220 : 180);
         } else if (rarity === 'rare') {
             this._flash(0.24, 140);
         }
@@ -191,19 +266,27 @@ export default class extends Controller {
         this._lightSlot(cardId);
         this._bumpBest(rarity);
         this._updateRevealedCount(index + 1);
+        this._updateStack(this.lastIndex - index);
 
-        if (this.hasCounterTarget) {
-            this.counterTarget.textContent = `${index + 1} / ${this.countValue} · CLIQUE POUR CONTINUER`;
+        if (isLast) {
+            // rarest card is last: it stays on screen and the loot/actions surface
+            this._end();
+        } else if (this.hasNextTarget) {
+            this.nextTarget.hidden = false;
+            if (this.hasCounterTarget) {
+                this.counterTarget.textContent = `${index + 1} / ${this.countValue} · CLIQUE POUR CONTINUER`;
+            }
         }
     }
 
-    // ----------------------------------------------------- climax (rarest last)
-    // The rarest card is last: reveal it with the big entrance and finish right
-    // away — the card stays on screen and the loot (set list + actions) is already
-    // there, so there's no extra "voir le butin" step.
-    _revealLast() {
-        this._revealCard(this.lastIndex, true);
-        this._end();
+    // a stacked deck of card backs peeking behind the current card (up to 3 layers)
+    _updateStack(remaining) {
+        if (!this.hasStackTarget) {
+            return;
+        }
+        const layers = Array.from(this.stackTarget.children);
+        layers.forEach((layer, i) => { layer.hidden = i >= remaining; });
+        this.stackTarget.hidden = remaining <= 0;
     }
 
     _end() {
@@ -229,9 +312,12 @@ export default class extends Controller {
         }
     }
 
-    // reduced motion / fallback: everything revealed instantly, no peel needed
+    // reduced motion / fallback: everything revealed instantly, no peel/flip needed
     _revealAllAtOnce() {
         this.phase = 'done';
+        this.cardState = 'face';
+        this.flipTargets.forEach((flip) => flip.classList.add('is-flipped'));
+        this._updateStack(0);
         this.cardTargets.forEach((card) => {
             this._lightSlot(card.dataset.cardId);
             this._bumpBest(card.dataset.rarity);

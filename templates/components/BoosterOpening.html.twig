@@ -42,11 +42,18 @@
 
                 {# showcase overlay: the big card reveal, one at a time, rarest last #}
                 <div class="opening__showcase" data-booster-opening-target="showcase"
-                     data-action="click->booster-opening#advance" hidden>
+                     data-action="click->booster-opening#tap" hidden>
                     <div class="opening__aura" data-booster-opening-target="aura"></div>
                     <div class="opening__label" data-booster-opening-target="label"></div>
 
                     <div class="opening__reveal-cards">
+                        {# physical stack of the remaining cards' backs, peeking behind the current one #}
+                        <div class="opening__stack" data-booster-opening-target="stack" aria-hidden="true">
+                            <span class="opening__stack-layer"></span>
+                            <span class="opening__stack-layer"></span>
+                            <span class="opening__stack-layer"></span>
+                        </div>
+
                         {% for reveal in revealCards %}
                             {% set rarity = reveal.card.rarity.value %}
                             <div class="opening__reveal-card"
@@ -55,17 +62,25 @@
                                  data-rarity="{{ rarity }}"
                                  data-shiny="{{ rarity in ['rare', 'epic', 'legendary'] ? '1' : '0' }}"
                                  data-label="{{ rarityLabels[rarity]|default(rarity) }}{{ raritySuffix[rarity]|default('') }}">
-                                {{ include('components/CardComponent.html.twig', {
-                                    card: reveal.card,
-                                    holo: reveal.holo,
-                                    id: 'reveal-' ~ loop.index,
-                                }) }}
+                                {# flip scene: back faces the player until they click to reveal the front #}
+                                <div class="opening__flip" data-booster-opening-target="flip">
+                                    <div class="opening__flip-face opening__flip-front">
+                                        {{ include('components/CardComponent.html.twig', {
+                                            card: reveal.card,
+                                            holo: reveal.holo,
+                                            id: 'reveal-' ~ loop.index,
+                                        }) }}
+                                    </div>
+                                    <div class="opening__flip-face opening__flip-back">
+                                        <img src="{{ asset('images/card-back.svg') }}" alt="" draggable="false">
+                                    </div>
+                                </div>
                             </div>
                         {% endfor %}
                     </div>
 
                     <button type="button" class="opening__next" data-booster-opening-target="next"
-                            data-action="booster-opening#advance">Carte suivante ▸</button>
+                            data-action="booster-opening#advance" hidden>Carte suivante ▸</button>
                     <p class="opening__counter" data-booster-opening-target="counter"></p>
 
                     {# end-of-opening actions, grouped with the revealed card #}
@@ -144,6 +159,8 @@
                          data-owned="{{ isOwned ? '1' : '0' }}"
                          style="--slot-rar: var(--rarity-{{ card.rarity.value }});">
                         <div class="opening__slot-img">
+                            <span class="opening__slot-back" aria-hidden="true"
+                                  style="background-image: url('{{ asset('images/card-back.svg') }}');"></span>
                             <img src="{{ vich_uploader_asset(card) }}" alt="{{ isOwned ? card.name : '' }}"
                                  onerror="this.onerror=null;this.src='{{ asset('images/cards/default_card.png') }}';">
                             {% if info %}
@@ -152,7 +169,7 @@
                                 {% if info.new %}<span class="opening__slot-new">NOUVEAU</span>{% endif %}
                             {% endif %}
                         </div>
-                        <p class="opening__slot-name">{{ isOwned ? card.name : '???' }}</p>
+                        <p class="opening__slot-name">{{ isOwned ? card.name : 'Non révélée' }}</p>
                     </div>
                 {% endfor %}
             </div>

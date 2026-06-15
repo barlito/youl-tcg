@@ -13,8 +13,10 @@
  */
 
 /* ------------------------------------------------------------------ keyframes */
-@keyframes opening-cardReveal { 0% { transform: translateY(40px) scale(.7) rotateY(90deg); opacity: 0; } 60% { opacity: 1; } 100% { transform: translateY(0) scale(1) rotateY(0); opacity: 1; } }
-@keyframes opening-cardRevealBig { 0% { transform: translateY(60px) scale(.5) rotateY(180deg); opacity: 0; filter: brightness(3); } 40% { opacity: 1; } 70% { transform: translateY(0) scale(1.12) rotateY(0); filter: brightness(1.4); } 100% { transform: translateY(0) scale(1) rotateY(0); filter: brightness(1); } }
+/* face-down card entrance (the flip itself does the rotateY reveal) */
+@keyframes opening-cardEnter { 0% { transform: translateY(34px) scale(.86); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+/* payoff "pop" once a shiny / the rarest-last card has flipped face-up */
+@keyframes opening-cardPop { 0% { transform: scale(1); filter: brightness(1); } 35% { transform: scale(1.1); filter: brightness(1.55); } 100% { transform: scale(1); filter: brightness(1); } }
 @keyframes opening-auraPulse { 0% { transform: translate(-50%,-50%) scale(.4); opacity: 0; } 40% { opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.1); opacity: 1; } }
 @keyframes opening-labelSlam { 0% { transform: scale(2.4); opacity: 0; filter: blur(8px); } 60% { transform: scale(.92); opacity: 1; filter: blur(0); } 100% { transform: scale(1); opacity: 1; } }
 @keyframes opening-slotPop { 0% { transform: scale(.82); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
@@ -85,7 +87,7 @@
 .opening__pack-stage {
     position: relative;
     width: min(58vw, 740px);
-    aspect-ratio: .74;
+    aspect-ratio: .92;
 }
 @media (max-width: 900px) {
     .opening__pack-stage { width: min(90vw, 540px); }
@@ -100,23 +102,17 @@
     touch-action: none;
 }
 .opening__3d:active { cursor: grabbing; }
-.opening__3d canvas { position: relative; z-index: 1; display: block; width: 100%; height: 100%; }
-
-/* soft contact shadow grounding the pack (canvas is alpha) */
-.opening__3d::before {
-    content: "";
-    position: absolute;
-    left: 50%;
-    bottom: 4%;
-    z-index: 0;
-    width: 62%;
-    height: 16%;
-    transform: translateX(-50%);
-    border-radius: 50%;
-    background: radial-gradient(ellipse, #000a 0%, transparent 70%);
-    filter: blur(14px);
-    pointer-events: none;
+.opening__3d canvas {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    /* fade the bottom so the model's folded seal blends off-frame (packs.com crops it) */
+    -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
 }
+
 /* soft halo BEHIND the pack so it pops — fades fully to transparent well inside
  * the stage box, so (unlike a darkening vignette) it never paints a rectangle */
 .opening__3d::after {
@@ -157,7 +153,7 @@
 
 .opening__label {
     z-index: 3;
-    margin-bottom: 16px;
+    margin-bottom: 44px;
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
     font-size: clamp(24px, 3.4vw, 38px);
@@ -182,16 +178,70 @@
     grid-area: 1 / 1;
     width: 100%;
     display: none;
-    transform: scale(1.05);
+    perspective: 1500px;
     transform-origin: center;
 }
 .opening__reveal-card.is-current { display: block; }
-.opening__reveal-card.is-entering { animation: opening-cardReveal .6s cubic-bezier(.2,.8,.2,1); }
-.opening__reveal-card[data-shiny="1"].is-entering { animation: opening-cardRevealBig .9s cubic-bezier(.2,.8,.2,1); }
+.opening__reveal-card.is-entering { animation: opening-cardEnter .45s cubic-bezier(.2,.8,.2,1) both; }
+.opening__reveal-card.is-pop { animation: opening-cardPop .6s ease-out; }
+
+/* ---- 3D flip scene: back faces the player, click flips it to the front ---- */
+.opening__flip {
+    position: relative;
+    width: 100%;
+    transform-style: preserve-3d;
+    transform: rotateY(180deg); /* back toward the player until revealed */
+    transition: transform .56s cubic-bezier(.4,.05,.2,1);
+}
+.opening__flip.is-flipped { transform: rotateY(0deg); }
+.opening__flip-face {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+.opening__flip-front { position: relative; }
+/* belt-and-suspenders against the nested 3D card bleeding through while face-down:
+ * backface-visibility hides it once flipping, this hides it fully at rest */
+.opening__flip:not(.is-flipped) .opening__flip-front { visibility: hidden; }
+.opening__flip-back {
+    position: absolute;
+    inset: 0;
+    transform: rotateY(180deg);
+    display: grid;
+    place-items: center;
+}
+.opening__flip-back img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 18px 42px #000a);
+}
+
+/* ---- stacked deck of the remaining cards' backs, peeking behind ---- */
+.opening__stack {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    aspect-ratio: var(--card-aspect, .718);
+    transform: translate(-50%, -50%);
+    z-index: -1; /* behind the current card within .opening__reveal-cards */
+    pointer-events: none;
+}
+.opening__stack-layer {
+    position: absolute;
+    inset: 0;
+    border-radius: 5% / 3.6%;
+    background: #140a26 center/cover no-repeat url('/images/card-back.svg');
+    border: 1px solid #ffffff14;
+    box-shadow: 0 10px 30px #0007;
+}
+.opening__stack-layer:nth-child(1) { transform: translate(7px, 9px) scale(.985); opacity: .85; }
+.opening__stack-layer:nth-child(2) { transform: translate(15px, 19px) scale(.97); opacity: .6; }
+.opening__stack-layer:nth-child(3) { transform: translate(23px, 29px) scale(.955); opacity: .4; }
 
 .opening__next {
     z-index: 2;
-    margin-top: 22px;
+    margin-top: 48px;
     padding: 12px 26px;
     border: 1px solid #a435f066;
     background: #0b0712aa;
@@ -215,6 +265,8 @@
 
 /* --------------------------------------------------- CTA / instruction line */
 .opening__cta {
+    /* small pull toward the pack (the stage still has a little empty room below) */
+    margin-top: -16px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -312,21 +364,24 @@
 }
 .opening__slot.is-popping .opening__slot-img { animation: opening-slotPop .5s ease-out; }
 
-/* mystery slots: cards you don't own (and haven't owned) stay hidden behind a "?"
- * until you get them — revealed live in this opening, or already in your collection */
+/* mystery slots: cards you don't own (and haven't owned) sit behind a card back
+ * until you get them — revealed live in this opening, or already in your collection.
+ * On reveal the back fades out and cross-dissolves into the real card art. */
 .opening__slot-img img { transition: opacity .4s ease; }
 .opening__slot[data-owned="0"]:not(.is-revealed) .opening__slot-img img { opacity: 0; }
-.opening__slot[data-owned="0"]:not(.is-revealed) .opening__slot-img::after {
-    content: "?";
+.opening__slot-back {
     position: absolute;
     inset: 0;
-    display: grid;
-    place-items: center;
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 800;
-    font-size: clamp(22px, 3vw, 34px);
-    color: #ffffff1f;
+    z-index: 1;
+    background-color: #140a26;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity .4s ease;
+    pointer-events: none;
 }
+.opening__slot[data-owned="0"]:not(.is-revealed) .opening__slot-back { opacity: 1; }
 
 .opening__slot-img {
     position: relative;
@@ -399,7 +454,7 @@
  * showcase, which is pointer-events:none once done — so re-enable them here) */
 .opening__foot {
     z-index: 3;
-    margin-top: 22px;
+    margin-top: 34px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
