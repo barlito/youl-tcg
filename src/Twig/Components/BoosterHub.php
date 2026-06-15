@@ -5,16 +5,12 @@ declare(strict_types=1);
 namespace App\Twig\Components;
 
 use App\Entity\Booster;
-use App\Entity\BoosterOpening;
-use App\Entity\Card;
 use App\Entity\DiscordUser;
-use App\Enum\Entity\CardRarityEnum;
 use App\Exception\Booster\BoosterException;
 use App\Repository\BoosterRepository;
+use App\Repository\CardRepository;
 use App\Repository\UserBoosterRepository;
-use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterClaimService;
-use App\Service\Booster\BoosterOpeningService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Uid\Uuid;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -23,34 +19,19 @@ use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
-/**
- * @SuppressWarnings("PHPMD.CouplingBetweenObjects")
- */
 #[AsLiveComponent]
 final class BoosterHub extends AbstractController
 {
     use DefaultActionTrait;
 
     #[LiveProp]
-    public ?BoosterOpening $opening = null;
-
-    /**
-     * Card ids that the user did not own before the last opening (NOUVEAU badge).
-     *
-     * @var list<string>
-     */
-    #[LiveProp]
-    public array $newCardIds = [];
-
-    #[LiveProp]
     public ?string $error = null;
 
     public function __construct(
         private readonly BoosterRepository $boosterRepository,
+        private readonly CardRepository $cardRepository,
         private readonly UserBoosterRepository $userBoosterRepository,
-        private readonly UserCardRepository $userCardRepository,
         private readonly BoosterClaimService $boosterClaimService,
-        private readonly BoosterOpeningService $boosterOpeningService,
     ) {
     }
 
@@ -82,6 +63,27 @@ final class BoosterHub extends AbstractController
     }
 
     /**
+     * Booster ids whose extension has at least one published card, i.e. the
+     * boosters that can actually be opened. Boosters over an empty extension
+     * are surfaced as "à venir" rather than letting the user hit a draw error.
+     *
+     * @return array<string, true> booster id => true
+     */
+    public function getDrawableBoosterIds(): array
+    {
+        $extensionIds = array_flip($this->cardRepository->findExtensionIdsWithPublishedCards());
+
+        $drawable = [];
+        foreach ($this->getBoosters() as $booster) {
+            if (isset($extensionIds[(string) $booster->getExtension()->getId()])) {
+                $drawable[(string) $booster->getId()] = true;
+            }
+        }
+
+        return $drawable;
+    }
+
+    /**
      * @return array<string, int> booster id => owned quantity
      */
     public function getInventory(): array
@@ -93,66 +95,6 @@ final class BoosterHub extends AbstractController
         }
 
         return $inventory;
-    }
-
-    /**
-     * Per-rarity count of the last opening, ordered from common to legendary.
-     *
-     * @return list<array{rarity: CardRarityEnum, count: int}>
-     */
-    public function getRaritySummary(): array
-    {
-        if (!$this->opening instanceof BoosterOpening) {
-            return [];
-        }
-
-        $counts = [];
-        foreach ($this->opening->getBoosterOpeningCards() as $openingCard) {
-            $rarity = $openingCard->getCard()->getRarity()->value;
-            $counts[$rarity] = ($counts[$rarity] ?? 0) + $openingCard->getQuantity();
-        }
-
-        $summary = [];
-        foreach (CardRarityEnum::ascending() as $rarity) {
-            if (isset($counts[$rarity->value])) {
-                $summary[] = ['rarity' => $rarity, 'count' => $counts[$rarity->value]];
-            }
-        }
-
-        return $summary;
-    }
-
-    /**
-     * Individual drawn cards in reveal order: rarest revealed last (the climax),
-     * holo copies flagged so the CardComponent lights up its holo layers.
-     *
-     * @return list<array{card: Card, holo: bool}>
-     */
-    public function getRevealCards(): array
-    {
-        if (!$this->opening instanceof BoosterOpening) {
-            return [];
-        }
-
-        $rank = array_flip(array_map(
-            static fn (CardRarityEnum $rarity): string => $rarity->value,
-            CardRarityEnum::ascending(),
-        ));
-
-        $cards = [];
-        foreach ($this->opening->getBoosterOpeningCards() as $openingCard) {
-            $card = $openingCard->getCard();
-            for ($copy = 0; $copy < $openingCard->getQuantity(); ++$copy) {
-                $cards[] = ['card' => $card, 'holo' => $copy < $openingCard->getHoloQuantity()];
-            }
-        }
-
-        usort(
-            $cards,
-            static fn (array $a, array $b): int => $rank[$a['card']->getRarity()->value] <=> $rank[$b['card']->getRarity()->value],
-        );
-
-        return $cards;
     }
 
     #[LiveAction]
@@ -173,47 +115,6 @@ final class BoosterHub extends AbstractController
         } catch (BoosterException $exception) {
             $this->error = $exception->getUserMessage();
         }
-    }
-
-    #[LiveAction]
-    public function openBooster(#[LiveArg] string $boosterId): void
-    {
-        $this->error = null;
-
-        $booster = $this->findBooster($boosterId);
-
-        if (!$booster instanceof Booster) {
-            $this->error = 'Booster introuvable.';
-
-            return;
-        }
-
-        $user = $this->getDiscordUser();
-        $ownedBefore = $this->userCardRepository->findOwnedCardIds($user);
-
-        try {
-            $this->opening = $this->boosterOpeningService->open($user, $booster);
-        } catch (BoosterException $exception) {
-            $this->error = $exception->getUserMessage();
-
-            return;
-        }
-
-        $this->newCardIds = [];
-        foreach ($this->opening->getBoosterOpeningCards() as $openingCard) {
-            $cardId = (string) $openingCard->getCard()->getId();
-            if (!\in_array($cardId, $ownedBefore, true)) {
-                $this->newCardIds[] = $cardId;
-            }
-        }
-    }
-
-    #[LiveAction]
-    public function closeModal(): void
-    {
-        $this->opening = null;
-        $this->newCardIds = [];
-        $this->error = null;
     }
 
     /**

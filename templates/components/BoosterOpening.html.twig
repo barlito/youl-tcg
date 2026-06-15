@@ -1,0 +1,164 @@
+<div {{ attributes }}>
+    {% set booster = this.booster %}
+    {% set extension = booster.extension %}
+    {% set catalog = this.extensionCatalog %}
+    {% set opening = this.opening %}
+    {% set drawn = this.drawnByCardId %}
+    {% set revealCards = this.revealCards %}
+    {% set ownedCount = this.ownedCount %}
+    {% set ownedCardIds = this.ownedCardIds %}
+    {% set newCardIds = this.newCardIds %}
+    {% set rarityLabels = { common: 'Commune', uncommon: 'Peu commune', rare: 'Rare', epic: 'Épique', legendary: 'Légendaire' } %}
+    {% set raritySuffix = { rare: ' !', epic: ' !!', legendary: ' !!!' } %}
+
+    <div class="opening opening--page"
+         data-controller="booster-opening"
+         {% if opening %}data-booster-opening-count-value="{{ revealCards|length }}"{% endif %}
+         data-action="pack3d:opened->booster-opening#startReveal pack3d:ready->booster-opening#syncPack">
+
+        {# ====================================================== LEFT: the pack #}
+        <section class="opening__pack-col">
+            <a href="{{ path('boosters') }}" class="opening__back">← Tous les packs</a>
+
+            {% if error %}
+                <div class="opening__err" data-testid="opening-error">⚠ {{ error }}</div>
+            {% endif %}
+
+            <div class="opening__pack-stage">
+                {# 3D pack — data-live-ignore so the WebGL context survives the open() re-render #}
+                <div class="opening__3d"
+                     data-live-ignore
+                     data-controller="pack-opening-3d"
+                     data-pack-opening-3d-model-value="/models/pack-wide.gltf"
+                     data-pack-opening-3d-texture-value="composite"
+                     data-pack-opening-3d-bg-url-value="{{ extension.imageName ? vich_uploader_asset(extension) : '' }}"
+                     data-pack-opening-3d-fallback-url-value="{{ asset('images/ytcg_background.png') }}"
+                     data-pack-opening-3d-logo-url-value="{{ asset('images/ytcg_logo.png') }}"
+                     data-pack-opening-3d-extension-name-value="{{ extension.name }}"
+                     data-pack-opening-3d-card-count-value="{{ booster.cardCount }}"
+                     data-action="pointerdown->pack-opening-3d#dragStart pointermove->pack-opening-3d#dragMove pointerup->pack-opening-3d#dragEnd pointercancel->pack-opening-3d#dragEnd pack3d:arm@window->pack-opening-3d#arm pack3d:commit@window->pack-opening-3d#openAtOnce pack3d:reset@window->pack-opening-3d#reseal">
+                    <canvas data-pack-opening-3d-target="canvas"></canvas>
+                </div>
+
+                {# showcase overlay: the big card reveal, one at a time, rarest last #}
+                <div class="opening__showcase" data-booster-opening-target="showcase"
+                     data-action="click->booster-opening#advance" hidden>
+                    <div class="opening__aura" data-booster-opening-target="aura"></div>
+                    <div class="opening__label" data-booster-opening-target="label"></div>
+
+                    <div class="opening__reveal-cards">
+                        {% for reveal in revealCards %}
+                            {% set rarity = reveal.card.rarity.value %}
+                            <div class="opening__reveal-card"
+                                 data-booster-opening-target="card"
+                                 data-card-id="{{ reveal.card.id }}"
+                                 data-rarity="{{ rarity }}"
+                                 data-shiny="{{ rarity in ['rare', 'epic', 'legendary'] ? '1' : '0' }}"
+                                 data-label="{{ rarityLabels[rarity]|default(rarity) }}{{ raritySuffix[rarity]|default('') }}">
+                                {{ include('components/CardComponent.html.twig', {
+                                    card: reveal.card,
+                                    holo: reveal.holo,
+                                    id: 'reveal-' ~ loop.index,
+                                }) }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <button type="button" class="opening__next" data-booster-opening-target="next"
+                            data-action="booster-opening#advance">Carte suivante ▸</button>
+                    <p class="opening__counter" data-booster-opening-target="counter"></p>
+
+                    {# end-of-opening actions, grouped with the revealed card #}
+                    {% if opening %}
+                        <footer class="opening__foot" data-booster-opening-target="foot" hidden>
+                            {% if ownedCount > 0 %}
+                                <button type="button" data-action="live#action" data-live-action-param="reset" class="btn-arcade">
+                                    Ouvrir un autre ▸
+                                </button>
+                                <a href="{{ path('boosters') }}" class="opening__skip">← Tous les packs</a>
+                            {% else %}
+                                <a href="{{ path('boosters') }}" class="btn-arcade">Retour aux packs ▸</a>
+                            {% endif %}
+                        </footer>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# state-driven CTA / instruction #}
+            <div class="opening__cta" data-booster-opening-target="cta">
+                {% if opening is null %}
+                    {% if ownedCount > 0 %}
+                        <button type="button" data-action="live#action" data-live-action-param="open"
+                                class="btn-arcade" data-testid="open-pack">
+                            <span data-loading="hide">Ouvrir ce pack ▸</span>
+                            <span data-loading="show" class="hidden">···</span>
+                        </button>
+                        <p class="opening__hint">Tu possèdes {{ ownedCount }} pack{{ ownedCount > 1 ? 's' }} de cette extension.</p>
+                    {% else %}
+                        <p class="opening__hint">Tu ne possèdes plus de pack de cette extension.</p>
+                        <a href="{{ path('boosters') }}" class="opening__skip">← Retour aux packs</a>
+                    {% endif %}
+                {% else %}
+                    <p class="opening__hint" data-booster-opening-target="hint">
+                        TIRE LE RUBAN VERS LA DROITE&nbsp;<span class="arrow">→</span>&nbsp;POUR DÉCHIRER
+                    </p>
+                    <button type="button" class="opening__skip" data-action="booster-opening#forceOpen">
+                        … ou clique pour ouvrir d'un coup
+                    </button>
+                {% endif %}
+            </div>
+
+        </section>
+
+        {# ============================================ RIGHT: the set contents #}
+        <aside class="opening__panel" data-testid="opening-aside">
+            <header class="opening__panel-head">
+                <p class="opening__panel-title">{{ extension.name }}</p>
+                <p class="opening__panel-sub">
+                    {{ booster.cardCount }} cartes / pack · {{ catalog|length }} dans l'extension
+                </p>
+                <p class="opening__panel-best">
+                    Meilleure trouvaille
+                    <span data-booster-opening-target="best">—</span>
+                </p>
+                {% if opening %}
+                    <p class="opening__panel-best">
+                        Révélé
+                        <span><span data-booster-opening-target="revealedCount">0</span> / {{ revealCards|length }}</span>
+                    </p>
+                {% endif %}
+            </header>
+
+            <div class="opening__slots" data-testid="opening-slots">
+                {% for card in catalog %}
+                    {% set info = drawn[card.id ~ '']|default(null) %}
+                    {# "owned" for masking = had it BEFORE this opening (so freshly drawn
+                       cards stay a mystery until the reveal lights them up) #}
+                    {% set isOwned = (ownedCardIds[card.id ~ ''] is defined) and (card.id ~ '' not in newCardIds) %}
+                    <div class="opening__slot"
+                         data-booster-opening-target="slot"
+                         data-card-id="{{ card.id }}"
+                         data-card-name="{{ card.name }}"
+                         data-rarity="{{ card.rarity.value }}"
+                         data-drawn="{{ info ? '1' : '0' }}"
+                         data-owned="{{ isOwned ? '1' : '0' }}"
+                         style="--slot-rar: var(--rarity-{{ card.rarity.value }});">
+                        <div class="opening__slot-img">
+                            <img src="{{ vich_uploader_asset(card) }}" alt="{{ isOwned ? card.name : '' }}"
+                                 onerror="this.onerror=null;this.src='{{ asset('images/cards/default_card.png') }}';">
+                            {% if info %}
+                                {% if info.holoQuantity > 0 %}<span class="opening__slot-holo">HOLO</span>{% endif %}
+                                {% if info.quantity > 1 %}<span class="opening__slot-qty">×{{ info.quantity }}</span>{% endif %}
+                                {% if info.new %}<span class="opening__slot-new">NOUVEAU</span>{% endif %}
+                            {% endif %}
+                        </div>
+                        <p class="opening__slot-name">{{ isOwned ? card.name : '???' }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+
+        </aside>
+
+        <div class="opening__flash" data-booster-opening-target="flash"></div>
+    </div>
+</div>

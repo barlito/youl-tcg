@@ -4,5 +4,14 @@
         <img src="{{ asset('images/ytcg_logo.png') }}" alt="" class="h-8 w-8 object-contain">
         <span>YOUL · YOULS TRADING CARD GAME · {{ 'now'|date('Y') }}</span>
     </div>
-    <span>fan-made · non-officiel</span>
+    <div class="flex items-center gap-5" data-controller="crt-toggle">
+        <label class="flex cursor-pointer select-none items-center gap-2 transition hover:text-ink">
+            <input type="checkbox" checked
+                   data-crt-toggle-target="checkbox"
+                   data-action="change->crt-toggle#toggle"
+                   style="accent-color: #a435f0;">
+            CRT
+        </label>
+        <span>fan-made · non-officiel</span>
+    </div>
 </footer>
