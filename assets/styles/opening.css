@@ -90,18 +90,20 @@
 .opening__pack-stage {
     position: relative;
     /* Size from the smallest of width AND height budgets (single dimension, so the
-     * aspect ratio is never distorted). The `58vh * 0.92` term caps the height to
-     * the viewport so the pack + CTA stay on screen on short displays. */
-    width: min(56vw, 700px, calc(58vh * 0.92));
+     * aspect ratio is never distorted). The `78vh * 0.92` term caps the height to
+     * the viewport so the pack + CTA stay on screen; the height budget is what
+     * usually wins on a desktop, giving a packs.com-sized canvas (~900-1100px on a
+     * tall screen) instead of the cramped ~640px the old 58vh/700px cap produced. */
+    width: min(54vw, 1180px, calc(78vh * 0.92));
     aspect-ratio: .92;
     /* lift the optical centre toward ~44% of the view (it sat ~52% — centred below
-     * the 64px header — which read as "hanging low" with a big void on top) */
-    margin-top: clamp(-96px, -7vh, -24px);
+     * the 64px header); gentler now that the stage is much taller */
+    margin-top: clamp(-64px, -3.5vh, -12px);
 }
 @media (max-width: 900px) {
     .opening__pack-stage {
-        width: min(86vw, 520px, calc(50vh * 0.92));
-        margin-top: -8px;
+        width: min(92vw, 640px, calc(56vh * 0.92));
+        margin-top: -6px;
     }
 }
 
@@ -120,7 +122,11 @@
     display: block;
     width: 100%;
     height: 100%;
-    /* fade the bottom so the model's folded seal blends off-frame (packs.com crops it) */
+    /* Fade the bottom so the model's folded seal blends off-frame (packs.com crops
+     * it). The cut is a PROPORTION of the canvas height: since the stage keeps a
+     * fixed .92 aspect, enlarging it scales the canvas uniformly and this fade
+     * stays pinned to the same spot on the model — no need to retune when the pack
+     * grows. (The mesh is also sunk in JS so the seal mostly runs off-canvas.) */
     -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
 }

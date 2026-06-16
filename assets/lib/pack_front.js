@@ -8,9 +8,14 @@
 export const PACK_FRONT_W = 840;
 export const PACK_FRONT_H = 1300;
 
-export function drawPackFront(c, { hero = null, logo = null, name = 'YOUL', count = 5, fallback = false }) {
+export function drawPackFront(c, { hero = null, logo = null, name = 'YOUL', count = 5, fallback = false, scale = 1 }) {
     const fw = PACK_FRONT_W;
     const fh = PACK_FRONT_H;
+
+    // draw at base 840×1300 coords; `scale` lets the caller render at a higher
+    // resolution (the 3D pack stretches this into a tall UV rect, so it needs the
+    // extra pixels to stay crisp) while the grid tiles draw at 1× and downscale
+    c.scale(scale, scale);
 
     c.fillStyle = '#180a33';
     c.fillRect(0, 0, fw, fh);
@@ -29,20 +34,6 @@ export function drawPackFront(c, { hero = null, logo = null, name = 'YOUL', coun
     vignette.addColorStop(1, 'rgba(11,7,18,0.6)');
     c.fillStyle = vignette;
     c.fillRect(0, 0, fw, fh);
-
-    // subtle holographic sheen
-    c.save();
-    c.globalCompositeOperation = 'screen';
-    c.globalAlpha = 0.1;
-    const sheen = c.createLinearGradient(0, 0, fw, fh);
-    sheen.addColorStop(0, '#ff3db0');
-    sheen.addColorStop(0.5, '#5be4ff');
-    sheen.addColorStop(1, '#a435f0');
-    c.fillStyle = sheen;
-    for (let i = -fh; i < fw; i += 120) {
-        c.fillRect(i, 0, 46, fh);
-    }
-    c.restore();
 
     // brand logo on the fallback front (no extension artwork)
     if (fallback && logo) {

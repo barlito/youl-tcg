@@ -183,10 +183,11 @@ export default class extends Controller {
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         this.pack.position.sub(center);
-        // fill most of the frame (packs.com immersion); headroom kept for the peel
-        // flap + idle bob so the pack never clips at the canvas edges
-        const fit = 4.6 / Math.max(size.x, size.y, size.z);
+        // packs.com framing: zoom in and drop the pack so its top stays in frame
+        // while the (less pretty) folded bottom seal falls off the bottom edge
+        const fit = 6 / Math.max(size.x, size.y, size.z);
         this.pack.scale.setScalar(fit);
+        this.pack.position.y -= 1.2; // sink it so the top fills the frame and the bottom seal runs off-canvas
         this.pivot = new THREE.Group();
         this.pivot.add(this.pack);
         this.scene.add(this.pivot);
@@ -227,6 +228,7 @@ export default class extends Controller {
             const texture = await new THREE.TextureLoader().loadAsync(value);
             texture.flipY = false; // glTF UV convention
             texture.colorSpace = THREE.SRGBColorSpace;
+            texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
 
             return texture;
         }
@@ -286,8 +288,12 @@ export default class extends Controller {
                 for (let x = 0; x < w; x++) {
                     // x-derivative of gentle vertical creases → R channel
                     const crease = Math.sin((x / w) * Math.PI * 26) * 32;
-                    // dense crimp ridges near the very top edge → extra wobble
-                    const crimp = y < 24 ? Math.sin((x / w) * Math.PI * 80) * 70 : 0;
+                    // Faint crimp ridges fading in toward the very top edge. Kept
+                    // subtle and feathered (no hard cutoff) so the tear band blends
+                    // with the body instead of catching a bright specular rim — the
+                    // old amplitude (70) + sharp y<24 cutoff lit a pale line along it.
+                    const crimpFalloff = Math.max(0, 1 - y / 28); // 1 at the top → 0 by ~28px
+                    const crimp = Math.sin((x / w) * Math.PI * 80) * 16 * crimpFalloff;
                     const i = (y * w + x) * 4;
                     data[i] = Math.max(0, Math.min(255, 128 + crease + crimp));
                     data[i + 1] = 128; // flat in Y
@@ -385,15 +391,19 @@ export default class extends Controller {
             ? await this._loadImage(this.logoUrlValue)
             : null;
 
+        // render the front at 3× — it gets stretched into a tall UV rect, so the
+        // extra resolution keeps the wordmark/logo/art from looking pixelated
+        const scale = 3;
         const front = document.createElement('canvas');
-        front.width = PACK_FRONT_W;
-        front.height = PACK_FRONT_H;
+        front.width = PACK_FRONT_W * scale;
+        front.height = PACK_FRONT_H * scale;
         drawPackFront(front.getContext('2d'), {
             hero,
             logo,
             name: this.hasExtensionNameValue ? this.extensionNameValue : '',
             count: this.hasCardCountValue && this.cardCountValue ? this.cardCountValue : 5,
             fallback,
+            scale,
         });
 
         const sheet = document.createElement('canvas');
@@ -420,6 +430,9 @@ export default class extends Controller {
         const texture = new THREE.CanvasTexture(sheet);
         texture.flipY = false;
         texture.colorSpace = THREE.SRGBColorSpace;
+        // the pack is always tilted in 3D — without anisotropy the angled surface
+        // samples the texture poorly and looks pixelated/aliased even at high res
+        texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
 
         return texture;
     }
@@ -486,11 +499,23 @@ export default class extends Controller {
 
     // lean toward the cursor anywhere on screen, normalised against the pack centre
     _trackPointer(event) {
-        const rect = this.element.getBoundingClientRect();
+        const zone = this._zoneEl || (this._zoneEl = this.element.closest('.opening__pack-col') || this.element);
+        const rect = zone.getBoundingClientRect();
+        // only react to the cursor inside the opening zone (left column) — hovering
+        // the set list on the right must not tilt the pack
+        if (
+            event.clientX < rect.left || event.clientX > rect.right
+            || event.clientY < rect.top || event.clientY > rect.bottom
+        ) {
+            this.pointer.x = 0;
+            this.pointer.y = 0;
+
+            return;
+        }
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
-        this.pointer.x = Math.max(-1, Math.min(1, (event.clientX - centerX) / (window.innerWidth / 2)));
-        this.pointer.y = Math.max(-1, Math.min(1, (event.clientY - centerY) / (window.innerHeight / 2)));
+        this.pointer.x = Math.max(-1, Math.min(1, (event.clientX - centerX) / (rect.width / 2)));
+        this.pointer.y = Math.max(-1, Math.min(1, (event.clientY - centerY) / (rect.height / 2)));
     }
 
     dragEnd() {
