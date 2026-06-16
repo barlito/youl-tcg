@@ -142,14 +142,14 @@ export default class extends Controller {
         // glossy plastic-film reflections + a key/rim rig. The env hotspot lives
         // top-left, so tilting the pack sweeps a specular highlight across it.
         this.scene.environment = this._buildEnvironment();
-        // Key light kept more frontal (lower Y) so it no longer rakes across the top
-        // tear band and lights it as a bright edge. Rim light dimmed for the same
-        // reason — it was the main source of the pale fringe along the seam.
-        const key = new THREE.DirectionalLight(0xffffff, 1.8);
-        key.position.set(-2.5, 1.6, 5);
+        // glossy foil rig. Key kept slightly more frontal (Y 3.5→2.4) so it doesn't
+        // rake the top edge as hard, but otherwise the punchy original values — the
+        // pale rim that looked like a "border" came from the texture frame, not here.
+        const key = new THREE.DirectionalLight(0xffffff, 2.2);
+        key.position.set(-2.5, 2.4, 4.5);
         this.scene.add(key);
-        const rim = new THREE.DirectionalLight(0xc9a0ff, 0.5);
-        rim.position.set(3, 0.6, -2);
+        const rim = new THREE.DirectionalLight(0xc9a0ff, 1.2);
+        rim.position.set(3, 1.2, -2);
         this.scene.add(rim);
         this.scene.add(new THREE.AmbientLight(0xffffff, 0.3));
 
@@ -171,11 +171,11 @@ export default class extends Controller {
                 emissive: 0xffffff,
                 emissiveMap: texture,
                 emissiveIntensity: 1,
-                metalness: 0.5,
-                roughness: 0.32,
-                clearcoat: 0.7,
-                clearcoatRoughness: 0.38,
-                envMapIntensity: 1.1,
+                metalness: 0.6,
+                roughness: 0.28,
+                clearcoat: 1,
+                clearcoatRoughness: 0.22,
+                envMapIntensity: 1.4,
                 side: THREE.DoubleSide,
             });
             if (normalMap) {
@@ -418,6 +418,7 @@ export default class extends Controller {
             count: this.hasCardCountValue && this.cardCountValue ? this.cardCountValue : 5,
             fallback,
             scale,
+            border: false, // the chrome frame becomes a parasitic light rim on the 3D pack
         });
 
         const sheet = document.createElement('canvas');

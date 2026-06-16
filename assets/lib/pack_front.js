@@ -8,7 +8,7 @@
 export const PACK_FRONT_W = 840;
 export const PACK_FRONT_H = 1300;
 
-export function drawPackFront(c, { hero = null, logo = null, name = 'YOUL', count = 5, fallback = false, scale = 1 }) {
+export function drawPackFront(c, { hero = null, logo = null, name = 'YOUL', count = 5, fallback = false, scale = 1, border = true }) {
     const fw = PACK_FRONT_W;
     const fh = PACK_FRONT_H;
 
@@ -66,11 +66,15 @@ export function drawPackFront(c, { hero = null, logo = null, name = 'YOUL', coun
     c.fillText('CARTES', fw - 55, 100);
     c.textAlign = 'center';
 
-    // chrome border
-    c.strokeStyle = 'rgba(201,160,255,.55)';
-    c.lineWidth = 10;
-    roundRect(c, 5, 5, fw - 10, fh - 10, 28);
-    c.stroke();
+    // chrome border — subtle frame on the small grid tiles, but on the big 3D pack
+    // it reads as a parasitic light rim around the artwork, so callers there pass
+    // border:false (the real pack edge comes from the 3D mesh, not the texture)
+    if (border) {
+        c.strokeStyle = 'rgba(201,160,255,.55)';
+        c.lineWidth = 10;
+        roundRect(c, 5, 5, fw - 10, fh - 10, 28);
+        c.stroke();
+    }
 }
 
 function roundRect(c, x, y, w, h, r) {
