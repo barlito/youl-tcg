@@ -46,6 +46,12 @@ const IDLE_ROCK_AMP = 0.1; // gentle yaw rock (rad)
 const IDLE_ROCK_SPEED = 0.55;
 const BASE_TILT = 0.1; // slight resting lean so the pack never reads flat
 
+// framing: scaled pack height (world units) and the gap kept above the tear band.
+// The view is ~3.78 units tall (camera z=6, fov 35°), so a height of 5.2 fills the
+// frame and overflows the bottom (the seal), which the CSS mask fades out.
+const PACK_FILL_HEIGHT = 5.2;
+const PACK_TOP_MARGIN = 0.15;
+
 // Front-face UV rect baked into the GLTF (U 0.111..0.896, V 0.085..0.996),
 // in pixels on the 1618×6672 sheet with flipY=false → pixelY = (1-V)·H.
 const SHEET = { w: 1618, h: 6672 };
@@ -136,11 +142,14 @@ export default class extends Controller {
         // glossy plastic-film reflections + a key/rim rig. The env hotspot lives
         // top-left, so tilting the pack sweeps a specular highlight across it.
         this.scene.environment = this._buildEnvironment();
-        const key = new THREE.DirectionalLight(0xffffff, 2.2);
-        key.position.set(-2.5, 3.5, 4);
+        // Key light kept more frontal (lower Y) so it no longer rakes across the top
+        // tear band and lights it as a bright edge. Rim light dimmed for the same
+        // reason — it was the main source of the pale fringe along the seam.
+        const key = new THREE.DirectionalLight(0xffffff, 1.8);
+        key.position.set(-2.5, 1.6, 5);
         this.scene.add(key);
-        const rim = new THREE.DirectionalLight(0xc9a0ff, 1.3);
-        rim.position.set(3, 1.5, -2);
+        const rim = new THREE.DirectionalLight(0xc9a0ff, 0.5);
+        rim.position.set(3, 0.6, -2);
         this.scene.add(rim);
         this.scene.add(new THREE.AmbientLight(0xffffff, 0.3));
 
@@ -162,11 +171,11 @@ export default class extends Controller {
                 emissive: 0xffffff,
                 emissiveMap: texture,
                 emissiveIntensity: 1,
-                metalness: 0.6,
-                roughness: 0.28,
-                clearcoat: 1,
-                clearcoatRoughness: 0.18,
-                envMapIntensity: 1.4,
+                metalness: 0.5,
+                roughness: 0.32,
+                clearcoat: 0.7,
+                clearcoatRoughness: 0.38,
+                envMapIntensity: 1.1,
                 side: THREE.DoubleSide,
             });
             if (normalMap) {
@@ -183,11 +192,16 @@ export default class extends Controller {
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         this.pack.position.sub(center);
-        // packs.com framing: zoom in and drop the pack so its top stays in frame
-        // while the (less pretty) folded bottom seal falls off the bottom edge
-        const fit = 6 / Math.max(size.x, size.y, size.z);
+        // packs.com framing: scale on the pack's HEIGHT so the body fills the frame,
+        // then TOP-ALIGN it — the top (pretty tear band) sits just inside the frame
+        // and the taller body runs off the bottom edge, where the folded seal is
+        // masked out in CSS. Computing the sink from the camera frustum keeps the
+        // pack glued to the top whatever the screen/canvas size (no magic offset).
+        const fit = PACK_FILL_HEIGHT / size.y;
         this.pack.scale.setScalar(fit);
-        this.pack.position.y -= 1.2; // sink it so the top fills the frame and the bottom seal runs off-canvas
+        const halfPack = (size.y * fit) / 2;
+        const halfView = this.camera.position.z * Math.tan((this.camera.fov * Math.PI / 180) / 2);
+        this.pack.position.y -= halfPack - (halfView - PACK_TOP_MARGIN);
         this.pivot = new THREE.Group();
         this.pivot.add(this.pack);
         this.scene.add(this.pivot);

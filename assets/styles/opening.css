@@ -96,9 +96,9 @@
      * tall screen) instead of the cramped ~640px the old 58vh/700px cap produced. */
     width: min(54vw, 1180px, calc(78vh * 0.92));
     aspect-ratio: .92;
-    /* lift the optical centre toward ~44% of the view (it sat ~52% — centred below
-     * the 64px header); gentler now that the stage is much taller */
-    margin-top: clamp(-64px, -3.5vh, -12px);
+    /* small upward bias; the pack is now top-aligned inside the canvas (JS), so the
+     * heavy lifting is done there and we only nudge the stage up a touch */
+    margin-top: clamp(-48px, -2.5vh, -8px);
 }
 @media (max-width: 900px) {
     .opening__pack-stage {
