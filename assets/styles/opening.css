@@ -53,9 +53,12 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 18px;
-    padding: 28px 24px 36px;
+    gap: 12px;
+    /* trimmed top padding — the big void above the pack lived here */
+    padding: 12px 24px 20px;
     min-width: 0;
+    /* never grow past the viewport, or the CTA gets pushed below the fold */
+    min-height: 0;
 }
 
 .opening__back {
@@ -86,11 +89,20 @@
 
 .opening__pack-stage {
     position: relative;
-    width: min(58vw, 740px);
+    /* Size from the smallest of width AND height budgets (single dimension, so the
+     * aspect ratio is never distorted). The `58vh * 0.92` term caps the height to
+     * the viewport so the pack + CTA stay on screen on short displays. */
+    width: min(56vw, 700px, calc(58vh * 0.92));
     aspect-ratio: .92;
+    /* lift the optical centre toward ~44% of the view (it sat ~52% — centred below
+     * the 64px header — which read as "hanging low" with a big void on top) */
+    margin-top: clamp(-96px, -7vh, -24px);
 }
 @media (max-width: 900px) {
-    .opening__pack-stage { width: min(90vw, 540px); }
+    .opening__pack-stage {
+        width: min(86vw, 520px, calc(50vh * 0.92));
+        margin-top: -8px;
+    }
 }
 
 /* ----------------------------------------------------------- the 3D pack */
@@ -472,7 +484,12 @@
     z-index: 60;
     opacity: 0;
     pointer-events: none;
-    background: radial-gradient(circle at 35% 50%, #ffffff, #ead8ff 42%, transparent 82%);
+    /* white-hot core fading into the current card's rarity colour, so an epic
+     * (purple) and a legendary (orange) burst read distinctly */
+    background: radial-gradient(circle at 50% 46%,
+        #ffffff 0%,
+        color-mix(in srgb, var(--reveal-color, #ead8ff) 55%, #ffffff) 38%,
+        transparent 82%);
     transition: opacity .5s ease-out;
 }
 .opening__flash.is-on { opacity: var(--flash, .3); }

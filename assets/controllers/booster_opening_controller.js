@@ -257,8 +257,15 @@ export default class extends Controller {
         this.labelTarget.textContent = card.dataset.label;
         this._retrigger(this.labelTarget, 'is-on');
 
-        if (isLast || rarity === 'epic' || rarity === 'legendary') {
-            this._flash(isLast ? 0.6 : 0.42, isLast ? 220 : 180);
+        // Burst on EVERY epic / legendary, whatever its slot — not just the last
+        // card. Legendary gets the strongest hit; the climax still pops if it
+        // happens to be a lesser rarity. The burst is tinted by --reveal-color.
+        if (rarity === 'legendary') {
+            this._flash(0.62, 240);
+        } else if (rarity === 'epic') {
+            this._flash(0.44, 190);
+        } else if (isLast) {
+            this._flash(0.5, 200);
         } else if (rarity === 'rare') {
             this._flash(0.24, 140);
         }
