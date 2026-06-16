@@ -182,6 +182,10 @@
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
     font-size: clamp(24px, 3.4vw, 38px);
+    line-height: 1.1;
+    /* reserve one line even while empty (face-down) so the rarity label appearing
+     * on reveal doesn't grow the showcase and shove the card up */
+    min-height: 1.1em;
     text-transform: uppercase;
     letter-spacing: -.02em;
     white-space: nowrap;
@@ -277,7 +281,13 @@
     letter-spacing: .15em;
     text-transform: uppercase;
     cursor: pointer;
+    /* always keep its slot in the flow — fade only, never display:none, so the
+     * centred showcase height stays constant and the card doesn't jump up */
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity .2s ease;
 }
+.opening__next.is-shown { visibility: visible; opacity: 1; }
 .opening__next:hover { border-color: var(--primary); }
 .opening__counter {
     z-index: 2;
@@ -286,7 +296,10 @@
     font-size: 10px;
     letter-spacing: .15em;
     color: #6a5a8a;
+    transition: opacity .2s ease;
 }
+/* hidden at the end of the opening, but its slot stays reserved (no layout shift) */
+.opening__counter.is-hidden { visibility: hidden; opacity: 0; }
 
 /* --------------------------------------------------- CTA / instruction line */
 .opening__cta {

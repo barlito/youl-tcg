@@ -124,12 +124,14 @@ export default class extends Controller {
         if (this.hasFootTarget) {
             this.footTarget.hidden = true;
         }
-        // the "carte suivante" button only surfaces once a card has been flipped
+        // The "carte suivante" button and counter keep their slot in the flow at all
+        // times — we only fade them (is-shown / is-hidden), never display:none them,
+        // so the centred showcase height stays constant and the card never jumps.
         if (this.hasNextTarget) {
-            this.nextTarget.hidden = true;
+            this.nextTarget.classList.remove('is-shown');
         }
         if (this.hasCounterTarget) {
-            this.counterTarget.hidden = false;
+            this.counterTarget.classList.remove('is-hidden');
             this.counterTarget.textContent = '';
         }
         // restore the tear CTA that _end() hides
@@ -225,7 +227,7 @@ export default class extends Controller {
         this.element.classList.remove('is-shiny');
 
         if (this.hasNextTarget) {
-            this.nextTarget.hidden = true;
+            this.nextTarget.classList.remove('is-shown');
         }
         // cards still waiting behind this one
         this._updateStack(this.lastIndex - index);
@@ -289,7 +291,7 @@ export default class extends Controller {
             // rarest card is last: it stays on screen and the loot/actions surface
             this._end();
         } else if (this.hasNextTarget) {
-            this.nextTarget.hidden = false;
+            this.nextTarget.classList.add('is-shown');
             if (this.hasCounterTarget) {
                 this.counterTarget.textContent = `${index + 1} / ${this.countValue} · CLIQUE POUR CONTINUER`;
             }
@@ -311,10 +313,10 @@ export default class extends Controller {
         // keep the last card on screen; retire the in-showcase prompt + tear CTA
         // and surface the back / open-another actions under the booster
         if (this.hasNextTarget) {
-            this.nextTarget.hidden = true;
+            this.nextTarget.classList.remove('is-shown');
         }
         if (this.hasCounterTarget) {
-            this.counterTarget.hidden = true;
+            this.counterTarget.classList.add('is-hidden');
         }
         if (this.hasCtaTarget) {
             this.ctaTarget.hidden = true;
