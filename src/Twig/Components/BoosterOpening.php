@@ -78,8 +78,8 @@ final class BoosterOpening extends AbstractController
     }
 
     /**
-     * The extension's published cards ("set contents"), rarest last so the aside
-     * reads common → legendary like the reveal order.
+     * The extension's published cards ("set contents"), rarest FIRST then name —
+     * this is also the catalog order the aside numbers the cards by (n°1 = rarest).
      *
      * @return list<Card>
      */
@@ -90,8 +90,8 @@ final class BoosterOpening extends AbstractController
 
         usort(
             $cards,
-            static fn (Card $a, Card $b): int => [$rank[$a->getRarity()->value], $a->getName()]
-                <=> [$rank[$b->getRarity()->value], $b->getName()],
+            static fn (Card $a, Card $b): int => ($rank[$b->getRarity()->value] <=> $rank[$a->getRarity()->value])
+                ?: $a->getName() <=> $b->getName(),
         );
 
         return $cards;
