@@ -7,6 +7,7 @@ namespace App\Tests\Integration\Service;
 use App\Dto\VisualConfig;
 use App\Entity\Card;
 use App\Entity\Extension;
+use App\Enum\Card\CardEffectEnum;
 use App\Service\Card\CardVisualResolver;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -100,6 +101,22 @@ final class CardVisualResolverTest extends KernelTestCase
         $this->assertSame(0.9, $resolved->holoIntensity);
         $this->assertSame(1.1, $resolved->holoSaturation);
         $this->assertSame(0.3, $resolved->holoGlitter);
+    }
+
+    public function testHoloEffectCascadesCardOverExtension(): void
+    {
+        $extension = $this->extension()->setVisualConfig(new VisualConfig(holoEffect: CardEffectEnum::BASIC));
+        $card = $this->card($extension)->setVisualConfigOverride(new VisualConfig(holoEffect: CardEffectEnum::COSMOS));
+
+        $this->assertSame(CardEffectEnum::COSMOS, $this->resolver->resolve($card)->holoEffect);
+    }
+
+    public function testHoloEffectFallsBackToExtensionThenNull(): void
+    {
+        $extension = $this->extension()->setVisualConfig(new VisualConfig(holoEffect: CardEffectEnum::SECRET));
+
+        $this->assertSame(CardEffectEnum::SECRET, $this->resolver->resolve($this->card($extension))->holoEffect);
+        $this->assertNull($this->resolver->resolve($this->card($this->extension()))->holoEffect);
     }
 
     private function extension(): Extension

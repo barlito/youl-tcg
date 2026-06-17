@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Dto;
 
 use App\Dto\VisualConfig;
+use App\Enum\Card\CardEffectEnum;
 use PHPUnit\Framework\TestCase;
 
 final class VisualConfigTest extends TestCase
@@ -62,5 +63,28 @@ final class VisualConfigTest extends TestCase
     {
         $this->assertTrue((new VisualConfig())->isEmpty());
         $this->assertFalse((new VisualConfig(holoIntensity: 0.5))->isEmpty());
+        $this->assertFalse((new VisualConfig(holoEffect: CardEffectEnum::COSMOS))->isEmpty());
+    }
+
+    public function testParsesValidHoloEffect(): void
+    {
+        $config = VisualConfig::fromArray(['holoEffect' => 'cosmos']);
+
+        $this->assertSame(CardEffectEnum::COSMOS, $config->holoEffect);
+    }
+
+    public function testIgnoresInvalidHoloEffect(): void
+    {
+        $this->assertNull(VisualConfig::fromArray(['holoEffect' => 'nope'])->holoEffect);
+        $this->assertNull(VisualConfig::fromArray(['holoEffect' => 42])->holoEffect);
+        $this->assertNull(VisualConfig::fromArray([])->holoEffect);
+    }
+
+    public function testHoloEffectRoundTripsThroughToArray(): void
+    {
+        $array = (new VisualConfig(holoEffect: CardEffectEnum::RAINBOW))->toArray();
+
+        $this->assertSame(['holoEffect' => 'rainbow'], $array);
+        $this->assertSame(CardEffectEnum::RAINBOW, VisualConfig::fromArray($array)->holoEffect);
     }
 }
