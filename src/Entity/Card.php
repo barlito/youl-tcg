@@ -202,7 +202,7 @@ class Card
      * must be able to accept an instance of 'File' as the bundle will inject one here
      * during Doctrine hydration.
      */
-    public function setMaskImageFile(?File $imageMaskFile = null): void
+    public function setImageMaskFile(?File $imageMaskFile = null): void
     {
         $this->imageMaskFile = $imageMaskFile;
 
@@ -235,7 +235,7 @@ class Card
      * must be able to accept an instance of 'File' as the bundle will inject one here
      * during Doctrine hydration.
      */
-    public function setFoilImageFile(?File $imageFoilFile = null): void
+    public function setImageFoilFile(?File $imageFoilFile = null): void
     {
         $this->imageFoilFile = $imageFoilFile;
 
