@@ -64,6 +64,32 @@ shape, glitter density and saturation:
 Live preview + a side-by-side gallery of every preset: `/dev/card-effects`
 (dev-only playground, `CardEffectsDemoController` + `card_playground_controller.js`).
 
+## Bundled foil / mask textures (`public/images/holo/`)
+
+Original, procedurally-generated SVG textures (feTurbulence + gradients) shipped
+with the bundle — **no third-party assets, no licence strings attached**. Drop them
+in via `--foil` (the foil layer of `basic`/`cosmos`/rarity recipes) or `--mask`:
+
+| File | Use |
+|------|-----|
+| `glitter.svg` | sparse white sparkles — sparkle foil (`secret`, glitter trames) |
+| `galaxy.svg` | nebula + starfield — default foil of the `cosmos` preset |
+| `metal.svg` | brushed-metal streaks — metallic foil |
+| `rainbow.svg` | diagonal spectrum — rainbow foil |
+| `holo-lines.svg` | diagonal-band **mask** (classic reverse-holo lines) — example `--mask` |
+
+```html
+<!-- via inline vars (or upload the file as the card/extension foil in the BO) -->
+<div class="card interactive masked" data-rarity="rare"
+     style="--foil:url('/images/holo/metal.svg'); --mask:url('/images/holo/holo-lines.svg')"> … </div>
+```
+
+Note on masks: a mask defines *where* the foil shows. `holo-lines.svg` is a generic
+reusable example (striped reverse-holo); a production mask is usually authored to
+match a specific card's artwork. The per-card foils/masks uploaded in the BO live in
+`public/images/foils|masks/` (Vich, git-ignored); these shipped textures are kept
+separate in `public/images/holo/` so they're versioned with the bundle.
+
 ## Wiring the JS
 
 Non-framework app:

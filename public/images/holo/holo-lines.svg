@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Generic EXAMPLE holo mask: diagonal bands (classic "reverse holo lines").
+       White = where the foil shows through, transparent = matte. A real mask
+       should be authored to match a specific card's artwork; this is a reusable
+       starting point / demo asset. -->
+  <defs>
+    <pattern id="lines" width="36" height="36" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="36" height="36" fill="black"/>
+      <rect width="18" height="36" fill="white"/>
+    </pattern>
+  </defs>
+  <rect width="256" height="256" fill="url(#lines)"/>
+</svg>

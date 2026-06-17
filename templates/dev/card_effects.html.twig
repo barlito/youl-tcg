@@ -24,8 +24,9 @@
         .pg-control select { @apply border border-hairline bg-surface px-2 py-1 text-sm text-ink; }
     </style>
 
-    {% set demoFoil = asset('images/foils/' ~ ('i-made-a-drawing-of-rayquaza-i-hope-you-guys-like-it-v0-2i8ocnjqj6ye1-6a32914b50e27958875494.webp')) %}
-    {% set demoMask = asset('images/masks/' ~ ('i-made-a-drawing-of-rayquaza-i-hope-you-guys-like-it-v0-2i8ocnjqj6ye1-6a32922e2d0d7859354992.webp')) %}
+    {# shipped original holo textures (public/images/holo), not user uploads #}
+    {% set demoFoil = asset('images/holo/galaxy.svg') %}
+    {% set demoMask = asset('images/holo/holo-lines.svg') %}
 
     <main class="container mx-auto py-10 px-4">
         <div class="mb-8">

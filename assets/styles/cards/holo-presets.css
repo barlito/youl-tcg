@@ -117,6 +117,10 @@
  * clipped by the holo --mask when present (mask = the foil texture region).
  * Glitter density is driven by --holo-glitter, never by brightness. */
 
+/* ships with a real starfield texture out of the box; a card/extension foil
+ * upload (inline --foil) overrides it */
+.card.holo--cosmos { --foil: url('/images/holo/galaxy.svg'); }
+
 .card.holo--cosmos .card__shine {
     background-image:
         var(--foil, linear-gradient(transparent, transparent)),
