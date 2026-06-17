@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}
-    DEV — Effets de cartes
+    DEV — Playground effets de cartes
 {% endblock %}
 
 {% block body %}
@@ -17,21 +17,128 @@
                 0 0 40px -30px var(--card-glow),
                 0 0 50px -20px var(--card-glow);
         }
+
+        .pg-control { @apply flex flex-col gap-1; }
+        .pg-control label { @apply font-mono text-xs uppercase tracking-[.15em] text-ink-muted; }
+        .pg-control input[type="range"] { @apply w-full accent-primary; }
+        .pg-control select { @apply border border-hairline bg-surface px-2 py-1 text-sm text-ink; }
     </style>
+
+    {% set demoFoil = asset('images/foils/' ~ ('i-made-a-drawing-of-rayquaza-i-hope-you-guys-like-it-v0-2i8ocnjqj6ye1-6a32914b50e27958875494.webp')) %}
+    {% set demoMask = asset('images/masks/' ~ ('i-made-a-drawing-of-rayquaza-i-hope-you-guys-like-it-v0-2i8ocnjqj6ye1-6a32922e2d0d7859354992.webp')) %}
 
     <main class="container mx-auto py-10 px-4">
         <div class="mb-8">
             <p class="eyebrow">dev only · /dev/card-effects</p>
-            <h1 class="mt-1 font-display text-4xl font-bold text-ink-strong">Effets de cartes — raretés &amp; holo</h1>
+            <h1 class="mt-1 font-display text-4xl font-bold text-ink-strong">Playground — presets holo</h1>
             <p class="mt-2 max-w-3xl text-ink-muted">
-                Chaque carte reçoit son glow (<code class="text-primary">--card-glow</code>) et sa recette holo
-                (calques de <code class="text-primary">card__shine</code>) via <code class="text-primary">data-rarity</code> —
-                cf. <code class="text-primary">assets/styles/cards/holo.css</code>. Le glow est forcé en permanence ;
-                <strong>survole une carte</strong> pour le 3D + springs + holo.
+                Règle les molettes (<code class="text-primary">--holo-intensity / saturation / glitter</code>), choisis un
+                <strong>preset</strong> (<code class="text-primary">holo--*</code>, cf. <code class="text-primary">assets/styles/cards/holo-presets.css</code>)
+                et une rareté : la carte se met à jour en direct. <strong>Survole-la</strong> pour le 3D + holo.
             </p>
         </div>
 
-        <h2 class="mb-4 font-display text-2xl font-bold text-ink-strong">Les 5 paliers</h2>
+        {# ---------------------------------------------------------------- Playground #}
+        <div data-controller="card-playground"
+             class="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,320px)_1fr] lg:items-start">
+
+            <div class="force-glow">
+                {# Card markup inlined so we can attach the playground target + demo textures.
+                   Mirrors templates/components/CardComponent.html.twig structure. #}
+                <div data-card-playground-target="card"
+                     data-controller="card"
+                     data-demo-foil="{{ demoFoil }}"
+                     data-demo-mask="{{ demoMask }}"
+                     class="card interactive holo"
+                     data-rarity="legendary">
+                    <div class="card__translater">
+                        <div class="card__rotator">
+                            <div class="card__front">
+                                <img src="{{ vich_uploader_asset(playgroundCard) }}" alt="{{ playgroundCard.name }}"
+                                     onerror="this.onerror=null;this.src='{{ asset('images/cards/default_card.png') }}';">
+                                <div class="card__shine"></div>
+                                <div class="card__glare"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-5 border border-hairline bg-surface/60 p-6 sm:grid-cols-2">
+                <div class="pg-control">
+                    <label>Preset
+                        <select data-card-playground-target="effect" data-action="card-playground#apply">
+                            {% for effect in effects %}
+                                <option value="{{ effect.value }}"{{ effect.value == 'shine' ? ' selected' }}>{{ effect.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </div>
+
+                <div class="pg-control">
+                    <label>Rareté
+                        <select data-card-playground-target="rarity" data-action="card-playground#apply">
+                            {% for rarity in rarities %}
+                                <option value="{{ rarity.value }}"{{ rarity.value == 'legendary' ? ' selected' }}>{{ rarity.value }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </div>
+
+                <div class="pg-control">
+                    <label>Intensity · <span data-card-playground-target="intensityOut">0.52</span></label>
+                    <input type="range" min="0" max="1" step="0.02" value="0.52"
+                           data-card-playground-target="intensity" data-action="input->card-playground#apply">
+                </div>
+
+                <div class="pg-control">
+                    <label>Saturation · <span data-card-playground-target="saturationOut">0.95</span></label>
+                    <input type="range" min="0" max="3" step="0.05" value="0.95"
+                           data-card-playground-target="saturation" data-action="input->card-playground#apply">
+                </div>
+
+                <div class="pg-control">
+                    <label>Glitter · <span data-card-playground-target="glitterOut">0.50</span></label>
+                    <input type="range" min="0" max="2" step="0.05" value="0.5"
+                           data-card-playground-target="glitter" data-action="input->card-playground#apply">
+                </div>
+
+                <div class="pg-control justify-end">
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" class="accent-primary"
+                               data-card-playground-target="foil" data-action="card-playground#apply">
+                        Foil texture
+                    </label>
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" class="accent-primary"
+                               data-card-playground-target="mask" data-action="card-playground#apply">
+                        Holo mask
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        {# ---------------------------------------------------------------- Gallery presets #}
+        <h2 class="mb-4 mt-14 font-display text-2xl font-bold text-ink-strong">Tous les presets</h2>
+        <p class="mb-4 max-w-3xl text-ink-muted">
+            Chaque carte porte un <code class="text-primary">visualConfigOverride</code> avec un
+            <code class="text-primary">holoEffect</code> différent (rareté <em>rare</em> commune pour comparer
+            les recettes). Survole pour voir le holo.
+        </p>
+        <div class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-6">
+            {% for demo in presetDemos %}
+                <div class="force-glow">
+                    {{ include('components/CardComponent.html.twig', { card: demo.card }) }}
+                    <div class="mt-2 px-1">
+                        <code class="text-sm text-ink">{{ demo.effect.value }}</code>
+                        <p class="text-xs text-ink-dim">{{ demo.effect.label }}</p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {# ---------------------------------------------------------------- Rarity tiers #}
+        <h2 class="mb-4 mt-14 font-display text-2xl font-bold text-ink-strong">Les 5 paliers (défaut data-rarity)</h2>
         <div class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-5">
             {% for demo in rarityDemos %}
                 <div class="force-glow">
@@ -44,31 +151,12 @@
             {% endfor %}
         </div>
 
-        <h2 class="mb-4 mt-12 font-display text-2xl font-bold text-ink-strong">Override libre du glow</h2>
-        <p class="mb-4 max-w-3xl text-ink-muted">
-            Chaque carte porte un <code class="text-primary">visualConfigOverride</code> qui écrase la couleur du palier
-            via <code class="text-primary">CardVisualResolver</code> : c'est la <strong>cascade carte → extension → défaut</strong>
-            réelle (et non plus un simple wrapper CSS).
-        </p>
-        <div class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
-            {% for demo in overrideDemos %}
-                <div class="force-glow">
-                    {{ include('components/CardComponent.html.twig', { card: demo.card }) }}
-                    <div class="mt-2 flex items-center gap-2 px-1">
-                        <span class="inline-block h-4 w-4 rounded-full border border-white/30" style="background: {{ demo.glow }};"></span>
-                        <code class="text-sm text-ink">{{ demo.label }}</code>
-                        <span class="font-mono text-xs text-ink-dim">{{ demo.glow }}</span>
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
-
-        <div class="mt-12 max-w-3xl border border-hairline bg-surface/60 p-6">
+        <div class="mt-14 max-w-3xl border border-hairline bg-surface/60 p-6">
             <h2 class="mb-3 font-display text-xl font-bold text-ink-strong">Notes</h2>
             <ul class="list-inside list-disc space-y-2 text-ink-muted">
-                <li><strong>Masques/foils Vich</strong> : une carte avec <code class="text-primary">imageMaskName</code>/<code class="text-primary">imageFoilName</code> reçoit la classe <code class="text-primary">masked</code> et les variables <code class="text-primary">--mask</code>/<code class="text-primary">--foil</code> (cf. CardComponent) — uploade un masque en admin pour le voir ici.</li>
-                <li><strong>Springs</strong> : la rotation est lissée par une boucle rAF maison (plus d'anime.js) ; les calques d'effet sont éteints hors interaction (perf grille).</li>
-                <li><strong>Config visuelle extension → carte</strong> : câblée — <code class="text-primary">Extension.visualConfig</code> (défaut) overridable par <code class="text-primary">Card.visualConfigOverride</code>, résolus par <code class="text-primary">CardVisualResolver</code> (glow / border / classe CSS + foil/mask Vich en cascade).</li>
+                <li><strong>Presets</strong> : <code class="text-primary">shine</code>, <code class="text-primary">basic</code>, <code class="text-primary">reverse</code>, <code class="text-primary">cosmos</code>, <code class="text-primary">rainbow</code>, <code class="text-primary">secret</code> — un par classe <code class="text-primary">holo--*</code> dans <code class="text-primary">holo-presets.css</code>, sélectionnables au BO (clé JSON <code class="text-primary">holoEffect</code> ou ChoiceField côté extension).</li>
+                <li><strong>Anti-cramage</strong> : brightness &lt; 1 sur tous les calques color-dodge, pas d'escalade par rareté ; les presets diffèrent par forme de gradient, densité de glitter et saturation.</li>
+                <li><strong>Cascade</strong> : <code class="text-primary">Card.visualConfigOverride.holoEffect</code> &gt; <code class="text-primary">Extension.visualConfig.holoEffect</code> &gt; recette de rareté (aucun preset).</li>
             </ul>
         </div>
     </main>

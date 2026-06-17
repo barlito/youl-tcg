@@ -11,6 +11,7 @@ step are required. Grab three files, use the markup, done.
 | `assets/lib/card_tilt.js` | The driver: pointer tracking, spring-damped motion, writes the CSS variables. | none (vanilla ES module) |
 | `assets/styles/cards/base.css` | The 3D structure (perspective, rotator, faces, shine/glare boxes). | none (defines its own tokens) |
 | `assets/styles/cards/holo.css` | The foil / shine / glare / glitter recipes, per rarity. | reads the vars above; `--rarity-*` colours have built-in fallbacks |
+| `assets/styles/cards/holo-presets.css` | Named holo presets (`holo--shine/basic/reverse/cosmos/rainbow/secret`) overriding the rarity recipe. | same vars + tokens as `holo.css` |
 
 `base.css` already defines `--card-aspect`, `--card-radius`, `--card-edge`,
 `--card-back` and the `--sunpillar-*` rainbow palette, so the two CSS files are
@@ -37,6 +38,31 @@ self-contained.
 - Add `holo` to the class list for a card that should keep a soft holo veil **at
   rest** (not only on hover).
 - Add `masked` + `--mask: url(...)` to clip the foil to a holo mask (cosmos-style).
+- Add a `holo--<preset>` class (see below) to swap the rarity recipe for a named
+  preset; it still reads the same `--holo-*` knobs and pointer vars.
+
+## Holo presets (`holo-presets.css`)
+
+A preset is a single class on `.card` that **overrides** the shine/glare
+backgrounds of the rarity recipe. They follow the same anti-cramage rules
+(brightness < 1, no per-rarity brightness escalation) and only differ by gradient
+shape, glitter density and saturation:
+
+| Class | `holoEffect` value | Look |
+|-------|--------------------|------|
+| `holo--shine` | `shine` | sober diagonal sheen (overlay, safest) |
+| `holo--basic` | `basic` | linear sunpillar holo |
+| `holo--reverse` | `reverse` | artwork-dominant subtle grain + faint sweep |
+| `holo--cosmos` | `cosmos` | galaxy / starfield glitter, clipped by `--mask` when present |
+| `holo--rainbow` | `rainbow` | single conic rainbow swirl anchored to the pointer |
+| `holo--secret` | `secret` | denser double rainbow + tighter glitter |
+
+```html
+<div class="card interactive holo holo--cosmos" data-rarity="rare"> … </div>
+```
+
+Live preview + a side-by-side gallery of every preset: `/dev/card-effects`
+(dev-only playground, `CardEffectsDemoController` + `card_playground_controller.js`).
 
 ## Wiring the JS
 
@@ -99,9 +125,15 @@ and would otherwise blow bright artwork out to white.
 
 ## How this maps to the back office (this app only)
 
-The same three knobs (+ `glow`, `borderColor`, `cssClass`) live in the
-`VisualConfig` JSON edited in EasyAdmin, resolved **card → extension → rarity
-default** by `CardVisualResolver`, and emitted as the inline vars above by
-`CardComponent`. Foil/mask **textures** are Vich uploads on the Card/Extension and
-become `--foil` / `--mask`. So a non-technical admin tunes the foil layers and the
-holo strength without touching CSS.
+The same three knobs (+ `glow`, `borderColor`, `cssClass`, `holoEffect`) live in
+the `VisualConfig` JSON edited in EasyAdmin, resolved **card → extension → rarity
+default** by `CardVisualResolver`, and emitted as the inline vars / classes above
+by `CardComponent`. Foil/mask **textures** are Vich uploads on the Card/Extension
+and become `--foil` / `--mask`. So a non-technical admin tunes the foil layers and
+the holo strength without touching CSS.
+
+`holoEffect` is backed by the `CardEffectEnum`. On the **Extension** form it is a
+dedicated *Holo preset* dropdown (merged into the visual-config JSON); on the
+**Card** form it is set through the `holoEffect` key of the JSON override
+(`{"holoEffect": "cosmos"}`). The cascade is the usual card override → extension →
+none (pure rarity recipe).
