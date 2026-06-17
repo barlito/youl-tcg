@@ -16,13 +16,15 @@ final class ImageField implements FieldInterface
     /**
      * @param TranslatableInterface|string|false|null $label
      */
-    public static function new(string $propertyName, $label = null): self
+    public static function new(string $propertyName, $label = null, bool $allowDelete = true): self
     {
         return new self()
             ->setProperty($propertyName)
             ->setLabel($label)
             ->setFormType(VichImageType::class)
-            ->setFormTypeOption('allow_delete', false)
+            // allow_delete shows the "delete" checkbox so an admin can clear an
+            // uploaded image (foil / mask / artwork) from the edit form
+            ->setFormTypeOption('allow_delete', $allowDelete)
         ;
     }
 }
