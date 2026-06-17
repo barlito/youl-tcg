@@ -18,6 +18,9 @@ final readonly class ResolvedCardVisual
         public ?string $glow = null,
         public ?string $borderColor = null,
         public ?string $cssClass = null,
+        public ?float $holoIntensity = null,
+        public ?float $holoSaturation = null,
+        public ?float $holoGlitter = null,
     ) {
     }
 

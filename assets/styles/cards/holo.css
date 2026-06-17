@@ -11,7 +11,11 @@
 
 .card {
     --card-opacity: 0;
+    /* Holo knobs — defaulted per rarity below, overridable per card/extension via
+     * inline vars from the BO visual config (inline always wins over these). */
     --holo-intensity: .6;
+    --holo-saturation: 1;
+    --holo-glitter: .5;
 }
 
 /* ------------------------------------------------ Perf : éteint hors survol */
@@ -24,28 +28,41 @@
 
 /* ----------------------------------------- Glow et intensité par rareté */
 
+/*
+ * Rarities differ by SATURATION and GLITTER density, not by brightness/intensity
+ * escalation — an epic must stay as readable as an uncommon, just more chatoyant
+ * (poke-holo principle). Intensity is kept low and flat across the high tiers.
+ */
 .card[data-rarity="common"] {
     --holo-intensity: .25;
+    --holo-saturation: .8;
     --card-glow: var(--rarity-common);
 }
 
 .card[data-rarity="uncommon"] {
-    --holo-intensity: .45;
+    --holo-intensity: .4;
+    --holo-saturation: .9;
     --card-glow: var(--rarity-uncommon);
 }
 
 .card[data-rarity="rare"] {
-    --holo-intensity: .7;
+    --holo-intensity: .55;
+    --holo-saturation: 1;
+    --holo-glitter: .3;
     --card-glow: var(--rarity-rare);
 }
 
 .card[data-rarity="epic"] {
-    --holo-intensity: .9;
+    --holo-intensity: .6;
+    --holo-saturation: 1.2;
+    --holo-glitter: .5;
     --card-glow: var(--rarity-epic);
 }
 
 .card[data-rarity="legendary"] {
-    --holo-intensity: 1;
+    --holo-intensity: .68;
+    --holo-saturation: 1.4;
+    --holo-glitter: .8;
     --card-glow: var(--rarity-legendary);
 }
 
@@ -114,10 +131,16 @@
     background-size: cover, 500% 100%, 100% 100%;
     background-position: center, var(--background-x, 50%) center, center;
     background-blend-mode: color-dodge, color-dodge, normal;
+    /*
+     * brightness is KEPT BELOW 1 (max .72): color-dodge is additive and saturates
+     * bright artwork to white instantly, so we darken first to leave headroom. This
+     * is the single most important anti-cramage setting (poke-holo uses ~.75). The
+     * pointer only nudges it within a small band — it never reaches 1.
+     */
     filter:
-        brightness(calc(.55 + var(--pointer-from-center, 0) * .4))
-        contrast(2.2)
-        saturate(.9);
+        brightness(calc(.5 + var(--pointer-from-center, 0) * .22))
+        contrast(2)
+        saturate(var(--holo-saturation, 1));
     mix-blend-mode: color-dodge;
     opacity: calc(var(--card-opacity) * var(--holo-intensity));
 }
@@ -138,12 +161,17 @@
         var(--sunpillar-clr-6)
     );
     mix-blend-mode: color-dodge;
-    filter: saturate(1.4);
-    opacity: calc(var(--card-opacity) * .35);
+    filter: saturate(calc(var(--holo-saturation, 1) * 1.1)) brightness(.6);
+    /* gated by intensity + softened (was .35, which stacked onto the dodge and
+     * was a big part of the epic cramage) */
+    opacity: calc(var(--card-opacity) * var(--holo-intensity) * .3);
 }
 
-/* legendary : glitter en trame croisée + glare renforcé */
+/* epic / legendary : glitter en trame croisée (densité = --holo-glitter) + glare */
+/* overlay (pas color-dodge) : ça pétille sans cramer, et la densité différencie
+ * les raretés sans toucher au brightness. */
 
+.card[data-rarity="epic"] .card__shine::after,
 .card[data-rarity="legendary"] .card__shine::after {
     content: '';
     background-image:
@@ -151,7 +179,7 @@
         repeating-linear-gradient(-45deg, rgba(255, 255, 255, .18) 0 1px, transparent 1px 3px);
     background-position: var(--background-x, 50%) var(--background-y, 50%);
     mix-blend-mode: overlay;
-    opacity: calc(var(--card-opacity) * .8);
+    opacity: calc(var(--card-opacity) * var(--holo-glitter, .5));
 }
 
 .card[data-rarity="legendary"] .card__glare {

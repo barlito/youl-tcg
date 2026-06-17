@@ -36,6 +36,9 @@ final readonly class CardVisualResolver
             glow: $override->glow ?? $config->glow,
             borderColor: $override->borderColor ?? $config->borderColor,
             cssClass: $override->cssClass ?? $config->cssClass,
+            holoIntensity: $override->holoIntensity ?? $config->holoIntensity,
+            holoSaturation: $override->holoSaturation ?? $config->holoSaturation,
+            holoGlitter: $override->holoGlitter ?? $config->holoGlitter,
         );
     }
 

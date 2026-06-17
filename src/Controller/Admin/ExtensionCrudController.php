@@ -66,7 +66,7 @@ class ExtensionCrudController extends AbstractCrudController
             ->setLabel('Visual config')
             ->setLanguage('js')
             ->onlyOnForms()
-            ->setHelp('Default visuals for the extension cards. Example: {"glow": "#a435f0", "borderColor": "#ff3db0"}')
+            ->setHelp('Default visuals for the extension cards. Keys: glow, borderColor, cssClass, holoIntensity (0-1), holoSaturation (0-3), holoGlitter (0-2). Example: {"glow": "#a435f0", "borderColor": "#ff3db0", "holoIntensity": 0.6}')
         ;
         yield Field::new('visualConfigJson')->setLabel('Visual config')->onlyOnDetail();
     }
