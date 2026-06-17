@@ -75,7 +75,7 @@ class Card
      * Per-card visual overrides (glow / border / css class); each set field
      * beats the extension's default in the resolution cascade.
      *
-     * @var array<string, string>
+     * @var array<string, float|string>
      */
     #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
     private array $visualConfigOverride = [];
