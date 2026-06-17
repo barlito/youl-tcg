@@ -548,35 +548,6 @@
 @media (max-width: 560px) { .opening__set-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); } }
 
 .opening__card-tile { position: relative; min-width: 0; }
-.opening__card-no {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    z-index: 2;
-    padding: 1px 5px;
-    border-radius: 3px;
-    background: #000a;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 8px;
-    letter-spacing: .06em;
-    color: #cdbff0;
-    font-variant-numeric: tabular-nums;
-}
-.opening__card-owned {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    z-index: 2;
-    width: 16px;
-    height: 16px;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #5be584, #54a8ff);
-    color: #06210f;
-    font-size: 9px;
-    font-weight: 800;
-}
 .opening__card-art {
     position: relative;
     aspect-ratio: var(--card-aspect, .718);

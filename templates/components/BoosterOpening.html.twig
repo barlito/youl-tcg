@@ -196,10 +196,9 @@
                         </div>
                         <select class="opening__sort" aria-label="Trier"
                                 data-set-contents-target="sort" data-action="set-contents#sort">
-                            <option value="default">Numéro</option>
+                            <option value="default">Rareté</option>
                             <option value="name-asc">Nom (A→Z)</option>
                             <option value="name-desc">Nom (Z→A)</option>
-                            <option value="rarity">Rareté</option>
                         </select>
                     </div>
                 </header>
@@ -212,16 +211,11 @@
                             {% set isOwned = ownedCardIds[card.id ~ ''] is defined %}
                             {# cards the user doesn't own stay hidden behind a card back
                                (no art, no name, no rarity hint) — pure checklist mystery #}
-                            <article class="opening__card-tile{{ isOwned ? ' is-owned' : ' is-masked' }}"
+                            <article class="opening__card-tile{{ isOwned ? '' : ' is-masked' }}"
                                      data-set-contents-target="tile"
                                      data-name="{{ isOwned ? card.name|lower : '' }}"
-                                     data-number="{{ loop.index }}"
                                      data-rarity="{{ isOwned ? rarity : '' }}"
                                      {% if isOwned %}style="--tile-rar: var(--rarity-{{ rarity }});"{% endif %}>
-                                <span class="opening__card-no">{{ loop.index }}/{{ catalog|length }}</span>
-                                {% if isOwned %}
-                                    <span class="opening__card-owned" title="Dans ta collection">✓</span>
-                                {% endif %}
                                 <div class="opening__card-art">
                                     {% if isOwned %}
                                         <img loading="lazy" src="{{ vich_uploader_asset(card) }}" alt="{{ card.name }}"

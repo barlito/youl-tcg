@@ -8,7 +8,6 @@ import { Controller } from '@hotwired/stimulus';
  * hides the existing tiles.
  */
 
-const RANK = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4 };
 const DEBOUNCE_MS = 150;
 const SCROLL_TOP_AT = 240; // px scrolled before the "back to top" button shows
 
@@ -74,13 +73,9 @@ export default class extends Controller {
             case 'name-desc':
                 ordered = this.tileTargets.slice().sort((a, b) => b.dataset.name.localeCompare(a.dataset.name));
                 break;
-            case 'rarity':
-                // rarest first, ties broken by name for a stable, readable order
-                ordered = this.tileTargets.slice().sort((a, b) =>
-                    (RANK[b.dataset.rarity] ?? 0) - (RANK[a.dataset.rarity] ?? 0)
-                    || a.dataset.name.localeCompare(b.dataset.name));
-                break;
             default:
+                // "Rareté" — the server already renders the catalog rarest-first, so
+                // the original DOM order captured at connect IS the rarity order
                 ordered = this.defaultOrder;
         }
 
