@@ -39,6 +39,7 @@ final readonly class CardVisualResolver
             holoIntensity: $override->holoIntensity ?? $config->holoIntensity,
             holoSaturation: $override->holoSaturation ?? $config->holoSaturation,
             holoGlitter: $override->holoGlitter ?? $config->holoGlitter,
+            holoEffect: $override->holoEffect ?? $config->holoEffect,
         );
     }
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Dto;
 
+use App\Enum\Card\CardEffectEnum;
+
 /**
  * Visual customisation of a card: ambient glow colour, border accent colour
  * and an extra CSS class. Configured at the Extension level and overridable
@@ -25,6 +27,8 @@ final readonly class VisualConfig
         public ?float $holoIntensity = null,
         public ?float $holoSaturation = null,
         public ?float $holoGlitter = null,
+        // Holo effect preset overriding the rarity recipe (holo-presets.css).
+        public ?CardEffectEnum $holoEffect = null,
     ) {
     }
 
@@ -42,6 +46,8 @@ final readonly class VisualConfig
             holoIntensity: self::floatOrNull($data['holoIntensity'] ?? null, 0.0, 1.0),
             holoSaturation: self::floatOrNull($data['holoSaturation'] ?? null, 0.0, 3.0),
             holoGlitter: self::floatOrNull($data['holoGlitter'] ?? null, 0.0, 2.0),
+            // Invalid / unknown preset names fall through to null (pure rarity recipe).
+            holoEffect: CardEffectEnum::tryFromName(self::stringOrNull($data['holoEffect'] ?? null)),
         );
     }
 
@@ -58,6 +64,7 @@ final readonly class VisualConfig
                 'holoIntensity' => $this->holoIntensity,
                 'holoSaturation' => $this->holoSaturation,
                 'holoGlitter' => $this->holoGlitter,
+                'holoEffect' => $this->holoEffect?->value,
             ],
             static fn (string | float | null $value): bool => null !== $value,
         );
@@ -70,7 +77,8 @@ final readonly class VisualConfig
             && null === $this->cssClass
             && null === $this->holoIntensity
             && null === $this->holoSaturation
-            && null === $this->holoGlitter;
+            && null === $this->holoGlitter
+            && null === $this->holoEffect;
     }
 
     private static function stringOrNull(mixed $value): ?string
