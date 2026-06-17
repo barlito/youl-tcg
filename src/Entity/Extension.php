@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Dto\VisualConfig;
+use App\Enum\Card\CardEffectEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use App\Repository\ExtensionRepository;
 use Barlito\Utils\Traits\IdUuidTrait;
@@ -70,9 +71,9 @@ class Extension implements \Stringable
     private ?string $imageMaskName = null;
 
     /**
-     * Default visual configuration (glow / border / css class / holo tuning)
-     * applied to the extension's cards, each card may override individual
-     * fields.
+     * Default visual configuration (glow / border / css class / holo tuning &
+     * preset) applied to the extension's cards, each card may override
+     * individual fields.
      *
      * @var array<string, string|float>
      */
@@ -251,6 +252,29 @@ class Extension implements \Stringable
         }
 
         $this->visualConfig = VisualConfig::fromArray(\is_array($decoded) ? $decoded : [])->toArray();
+    }
+
+    /**
+     * Virtual field for the back office: the holo preset stored inside the
+     * visual config JSON, exposed as a selectable enum.
+     */
+    public function getHoloEffect(): ?CardEffectEnum
+    {
+        return $this->getVisualConfig()->holoEffect;
+    }
+
+    /**
+     * Merges the chosen preset into the existing visual config without
+     * clobbering the other keys (glow, holoIntensity, ...).
+     */
+    public function setHoloEffect(?CardEffectEnum $holoEffect): static
+    {
+        $this->visualConfig = array_filter(
+            array_merge($this->visualConfig, ['holoEffect' => $holoEffect?->value]),
+            static fn (mixed $value): bool => null !== $value,
+        );
+
+        return $this;
     }
 
     /**

@@ -114,7 +114,7 @@ class CardCrudController extends AbstractCrudController
             ->setLabel('Visual overrides')
             ->setLanguage('js')
             ->onlyOnForms()
-            ->setHelp('Optional per-card overrides. Keys: glow, borderColor, cssClass, holoIntensity (0-1), holoSaturation (0-3), holoGlitter (0-2). Example: {"glow": "#ff3db0", "holoIntensity": 0.7, "holoSaturation": 1.2}')
+            ->setHelp('Optional per-card overrides. Keys: glow, borderColor, cssClass, holoIntensity (0-1), holoSaturation (0-3), holoGlitter (0-2), holoEffect (preset: shine|basic|reverse|cosmos|rainbow|secret). Example: {"glow": "#ff3db0", "holoIntensity": 0.7, "holoEffect": "cosmos"}')
         ;
         yield Field::new('visualConfigOverrideJson')->setLabel('Visual overrides')->onlyOnDetail();
     }

@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Admin\Field\ImageField as VichImageField;
 use App\Entity\Extension;
+use App\Enum\Card\CardEffectEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -66,8 +67,29 @@ class ExtensionCrudController extends AbstractCrudController
             ->setLabel('Visual config')
             ->setLanguage('js')
             ->onlyOnForms()
-            ->setHelp('Default visuals for the extension cards. Keys: glow, borderColor, cssClass, holoIntensity (0-1), holoSaturation (0-3), holoGlitter (0-2). Example: {"glow": "#a435f0", "borderColor": "#ff3db0", "holoIntensity": 0.6}')
+            ->setHelp('Default visuals for the extension cards. Keys: glow, borderColor, cssClass, holoIntensity (0-1), holoSaturation (0-3), holoGlitter (0-2), holoEffect (preset). Example: {"glow": "#a435f0", "borderColor": "#ff3db0", "holoIntensity": 0.6}')
+        ;
+        // Declared AFTER the JSON editor so the chosen preset is merged on top of
+        // the freshly decoded JSON instead of being overwritten by it.
+        yield ChoiceField::new('holoEffect')
+            ->setLabel('Holo preset')
+            ->setHelp('Holo effect applied on top of the rarity recipe (overrides the holoEffect JSON key)')
+            ->setChoices($this->effectChoices())
+            ->onlyOnForms()
         ;
         yield Field::new('visualConfigJson')->setLabel('Visual config')->onlyOnDetail();
+    }
+
+    /**
+     * @return array<string, CardEffectEnum> label => enum case, for the ChoiceField
+     */
+    private function effectChoices(): array
+    {
+        $choices = [];
+        foreach (CardEffectEnum::cases() as $effect) {
+            $choices[$effect->label()] = $effect;
+        }
+
+        return $choices;
     }
 }
