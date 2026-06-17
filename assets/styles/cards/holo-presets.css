@@ -1,0 +1,252 @@
+/*
+ * Holo effect PRESETS — selectable per card / extension via the visual config
+ * cascade (App\Enum\Card\CardEffectEnum -> class `holo--<preset>` on .card).
+ *
+ * Each preset OVERRIDES the rarity recipe's .card__shine / .card__glare
+ * backgrounds while reusing the same knobs holo.css exposes:
+ *   --holo-intensity / --holo-saturation / --holo-glitter
+ *   --pointer-x/y, --pointer-from-center, --pointer-from-left/top,
+ *   --background-x/y, --card-opacity (written each frame by card_tilt.js).
+ *
+ * ANTI-CRAMAGE (same rules as holo.css):
+ *   - foil/holo layers keep brightness BELOW 1 (color-dodge is additive and
+ *     saturates bright artwork to white instantly);
+ *   - presets differ by gradient shape, glitter density and saturation,
+ *     NEVER by a brightness escalation;
+ *   - opacity is always gated by --card-opacity (zero at rest) AND
+ *     --holo-intensity, so the native artwork stays dominant.
+ *
+ * Spirit ported from poke-holo.simey.me. Inspired by, not copied: the recipes
+ * are rewritten to honour the project tokens and the brightness ceiling.
+ *
+ * The shared rule below resets the preset layers so each preset starts from a
+ * clean slate (no leftover ::before/::after from the rarity recipe leaking in).
+ */
+
+.card[class*="holo--"] .card__shine::before,
+.card[class*="holo--"] .card__shine::after {
+    content: none;
+}
+
+/* ---------------------------------------------------------------- shine
+ * The sober sheen: a single soft diagonal sweep, overlay (no color-dodge),
+ * the safest possible preset. Good default for low rarities / readability. */
+
+.card.holo--shine .card__shine {
+    background-image: linear-gradient(
+        110deg,
+        transparent 30%,
+        rgba(255, 255, 255, .35) 48%,
+        rgba(255, 255, 255, .55) 50%,
+        rgba(255, 255, 255, .35) 52%,
+        transparent 70%
+    );
+    background-size: 250% 250%;
+    background-position: var(--background-x, 50%) var(--background-y, 50%);
+    background-blend-mode: normal;
+    mix-blend-mode: overlay;
+    filter: saturate(var(--holo-saturation, 1));
+    opacity: calc(var(--card-opacity) * var(--holo-intensity) * 1.6);
+}
+
+.card.holo--shine .card__glare {
+    background-image: radial-gradient(
+        farthest-corner circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
+        rgba(255, 255, 255, .5) 8%,
+        rgba(255, 255, 255, .15) 35%,
+        rgba(0, 0, 0, .25) 90%
+    );
+}
+
+/* ---------------------------------------------------------------- basic
+ * Linear holo: repeating sunpillar bands swept by the pointer, color-dodge
+ * with the brightness ceiling. The classic "rainbow lines" foil. */
+
+.card.holo--basic .card__shine {
+    background-image:
+        var(--foil, linear-gradient(transparent, transparent)),
+        repeating-linear-gradient(
+            82deg,
+            var(--sunpillar-clr-1) 0%,
+            var(--sunpillar-clr-2) 4%,
+            var(--sunpillar-clr-3) 8%,
+            var(--sunpillar-clr-4) 12%,
+            var(--sunpillar-clr-5) 16%,
+            var(--sunpillar-clr-6) 20%,
+            var(--sunpillar-clr-1) 24%
+        );
+    background-size: cover, 400% 100%;
+    background-position: center, var(--background-x, 50%) center;
+    background-blend-mode: color-dodge, color-dodge;
+    /* brightness kept < 1 — see anti-cramage note above */
+    filter:
+        brightness(calc(.5 + var(--pointer-from-center, 0) * .2))
+        contrast(1.6)
+        saturate(var(--holo-saturation, 1));
+    mix-blend-mode: color-dodge;
+    opacity: calc(var(--card-opacity) * var(--holo-intensity));
+}
+
+/* ---------------------------------------------------------------- reverse
+ * Artwork-dominant: a very subtle grain + faint sweep that lets the native
+ * art show through (poke-holo "reverse holo"). Lowest visual footprint. */
+
+.card.holo--reverse .card__shine {
+    background-image:
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, .10) 0 1px, transparent 1px 5px),
+        repeating-linear-gradient(-45deg, rgba(255, 255, 255, .08) 0 1px, transparent 1px 4px),
+        linear-gradient(
+            115deg,
+            transparent 40%,
+            rgba(255, 255, 255, .25) 50%,
+            transparent 60%
+        );
+    background-size: auto, auto, 250% 250%;
+    background-position:
+        var(--background-x, 50%) var(--background-y, 50%),
+        var(--background-y, 50%) var(--background-x, 50%),
+        var(--background-x, 50%) var(--background-y, 50%);
+    background-blend-mode: overlay, overlay, overlay;
+    mix-blend-mode: overlay;
+    filter: saturate(var(--holo-saturation, 1));
+    opacity: calc(var(--card-opacity) * var(--holo-intensity) * .9);
+}
+
+/* ---------------------------------------------------------------- cosmos
+ * Galaxy / glitter: a starfield-ish glitter trame layered over the foil and
+ * clipped by the holo --mask when present (mask = the foil texture region).
+ * Glitter density is driven by --holo-glitter, never by brightness. */
+
+.card.holo--cosmos .card__shine {
+    background-image:
+        var(--foil, linear-gradient(transparent, transparent)),
+        radial-gradient(
+            farthest-corner circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
+            rgba(120, 90, 220, .5) 0%,
+            rgba(40, 30, 90, .35) 45%,
+            rgba(0, 0, 0, .85) 110%
+        ),
+        repeating-conic-gradient(
+            from calc(var(--pointer-from-left, .5) * 180deg) at 50% 50%,
+            var(--sunpillar-clr-3) 0deg,
+            var(--sunpillar-clr-5) 30deg,
+            var(--sunpillar-clr-1) 60deg
+        );
+    background-size: cover, 100% 100%, 200% 200%;
+    background-position: center, center, var(--background-x, 50%) var(--background-y, 50%);
+    background-blend-mode: color-dodge, color-dodge, color-burn;
+    filter:
+        brightness(.55)
+        contrast(1.7)
+        saturate(calc(var(--holo-saturation, 1) * 1.1));
+    mix-blend-mode: color-dodge;
+    opacity: calc(var(--card-opacity) * var(--holo-intensity));
+}
+
+/* cosmos glitter overlay — density = --holo-glitter, overlay (never crames) */
+.card.holo--cosmos .card__shine::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(rgba(255, 255, 255, .9) 8%, transparent 9%),
+        radial-gradient(rgba(255, 255, 255, .7) 6%, transparent 7%);
+    background-size: 7% 7%, 11% 11%;
+    background-position:
+        var(--background-x, 50%) var(--background-y, 50%),
+        var(--background-y, 50%) var(--background-x, 50%);
+    mix-blend-mode: overlay;
+    opacity: calc(var(--card-opacity) * var(--holo-glitter, .5) * 1.2);
+}
+
+/* clip the cosmos foil to the holo mask region when a card provides one */
+.card.masked.holo--cosmos .card__shine {
+    -webkit-mask-image: var(--mask);
+    mask-image: var(--mask);
+    -webkit-mask-size: cover;
+    mask-size: cover;
+}
+
+/* ---------------------------------------------------------------- rainbow
+ * Conic swirl anchored to the pointer: a single rotating rainbow, color-dodge
+ * with the brightness ceiling. More chromatic than basic, still readable. */
+
+.card.holo--rainbow .card__shine {
+    background-image: conic-gradient(
+        from calc(var(--pointer-from-left, .5) * 360deg) at var(--pointer-x, 50%) var(--pointer-y, 50%),
+        var(--sunpillar-clr-6),
+        var(--sunpillar-clr-1),
+        var(--sunpillar-clr-2),
+        var(--sunpillar-clr-3),
+        var(--sunpillar-clr-4),
+        var(--sunpillar-clr-5),
+        var(--sunpillar-clr-6)
+    );
+    background-size: 200% 200%;
+    background-position: var(--background-x, 50%) var(--background-y, 50%);
+    filter:
+        brightness(calc(.45 + var(--pointer-from-center, 0) * .2))
+        contrast(1.6)
+        saturate(var(--holo-saturation, 1));
+    mix-blend-mode: color-dodge;
+    opacity: calc(var(--card-opacity) * var(--holo-intensity));
+}
+
+.card.holo--rainbow .card__glare {
+    background-image: radial-gradient(
+        farthest-corner circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
+        rgba(255, 255, 255, .7) 8%,
+        rgba(255, 255, 255, .3) 30%,
+        rgba(0, 0, 0, .5) 90%
+    );
+}
+
+/* ---------------------------------------------------------------- secret
+ * Secret rare: a denser double rainbow (conic swirl + diagonal sunpillars)
+ * with a tighter glitter trame. The "top tier" look. Brightness still < 1;
+ * the extra richness comes from a second band + glitter, not from luminance. */
+
+.card.holo--secret .card__shine {
+    background-image:
+        conic-gradient(
+            from calc(var(--pointer-from-left, .5) * 360deg) at var(--pointer-x, 50%) var(--pointer-y, 50%),
+            var(--sunpillar-clr-2),
+            var(--sunpillar-clr-4),
+            var(--sunpillar-clr-6),
+            var(--sunpillar-clr-1),
+            var(--sunpillar-clr-3),
+            var(--sunpillar-clr-5),
+            var(--sunpillar-clr-2)
+        ),
+        repeating-linear-gradient(
+            72deg,
+            var(--sunpillar-clr-1) 0%,
+            var(--sunpillar-clr-3) 6%,
+            var(--sunpillar-clr-5) 12%,
+            var(--sunpillar-clr-1) 18%
+        );
+    background-size: 220% 220%, 350% 100%;
+    background-position:
+        var(--background-x, 50%) var(--background-y, 50%),
+        var(--background-x, 50%) center;
+    background-blend-mode: color-dodge, color-dodge;
+    filter:
+        brightness(calc(.42 + var(--pointer-from-center, 0) * .18))
+        contrast(1.7)
+        saturate(calc(var(--holo-saturation, 1) * 1.15));
+    mix-blend-mode: color-dodge;
+    opacity: calc(var(--card-opacity) * var(--holo-intensity));
+}
+
+/* secret glitter — denser trame than the rarity recipe, overlay (safe) */
+.card.holo--secret .card__shine::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, .18) 0 1px, transparent 1px 3px),
+        repeating-linear-gradient(-45deg, rgba(255, 255, 255, .14) 0 1px, transparent 1px 2px);
+    background-position: var(--background-x, 50%) var(--background-y, 50%);
+    mix-blend-mode: overlay;
+    opacity: calc(var(--card-opacity) * var(--holo-glitter, .5) * 1.3);
+}
