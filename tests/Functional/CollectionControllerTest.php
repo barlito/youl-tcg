@@ -14,7 +14,6 @@ use App\Enum\Entity\ExtensionStatusEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\Uid\Uuid;
 
 final class CollectionControllerTest extends WebTestCase
 {
@@ -97,7 +96,7 @@ final class CollectionControllerTest extends WebTestCase
 
     public function testExtensionFilterOnlyShowsItsCards(): void
     {
-        $crawler = $this->client->request('GET', '/collection?extension=' . $this->extensionA->getId());
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug());
 
         self::assertResponseIsSuccessful();
         $grid = $crawler->filter('[data-testid="collection-grid"]');
@@ -113,7 +112,7 @@ final class CollectionControllerTest extends WebTestCase
 
     public function testEmptyStateWhenNoCardOwnedInExtension(): void
     {
-        $crawler = $this->client->request('GET', '/collection?extension=' . $this->extensionB->getId());
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionB->getSlug());
 
         self::assertResponseIsSuccessful();
         $this->assertCount(0, $crawler->filter('[data-testid="collection-grid"]'));
@@ -122,14 +121,16 @@ final class CollectionControllerTest extends WebTestCase
 
     public function testUnknownExtensionIsNotFound(): void
     {
-        $this->client->request('GET', '/collection?extension=' . Uuid::v4());
+        // a well-formed but non-existent slug → controller 404
+        $this->client->request('GET', '/collection/this-extension-does-not-exist');
 
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testMalformedExtensionIsNotFound(): void
+    public function testMalformedSlugIsNotFound(): void
     {
-        $this->client->request('GET', '/collection?extension=not-a-uuid');
+        // chars outside the [a-z0-9-] route requirement → no route matches → 404
+        $this->client->request('GET', '/collection/Invalid_Slug');
 
         self::assertResponseStatusCodeSame(404);
     }

@@ -10,23 +10,22 @@ use App\Repository\ExtensionRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterClaimQuotaInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 class CollectionController extends AbstractController
 {
-    #[Route('/collection', name: 'collection')]
+    #[Route('/collection/{slug}', name: 'collection', defaults: ['slug' => null], requirements: ['slug' => '[a-z0-9-]+'])]
     public function __invoke(
-        Request $request,
         #[CurrentUser] DiscordUser $user,
         UserCardRepository $userCardRepository,
         ExtensionRepository $extensionRepository,
         BoosterClaimQuotaInterface $boosterClaimQuota,
+        ?string $slug = null,
     ): Response {
         $extensions = $extensionRepository->findPublishedWithPublishedCardCount();
-        $currentExtension = $this->resolveExtensionFilter($request, $extensions);
+        $currentExtension = $this->resolveExtensionFilter($slug, $extensions);
 
         $ownedByExtension = $userCardRepository->countOwnedGroupedByExtension($user);
 
@@ -58,26 +57,23 @@ class CollectionController extends AbstractController
     }
 
     /**
-     * Resolves the ?extension= query parameter against the published
-     * extensions already loaded: no Doctrine lookup, so a malformed uuid is
-     * a plain 404 instead of a conversion error.
+     * Resolves the {slug} route parameter against the published extensions already
+     * loaded: no extra Doctrine lookup, and an unknown slug is a plain 404.
      *
      * @param list<array{extension: Extension, cardCount: int}> $extensions
      */
-    private function resolveExtensionFilter(Request $request, array $extensions): ?Extension
+    private function resolveExtensionFilter(?string $slug, array $extensions): ?Extension
     {
-        $extensionId = $request->query->getString('extension');
-
-        if ('' === $extensionId) {
+        if (null === $slug || '' === $slug) {
             return null;
         }
 
         foreach ($extensions as $item) {
-            if ((string) $item['extension']->getId() === $extensionId) {
+            if ($item['extension']->getSlug() === $slug) {
                 return $item['extension'];
             }
         }
 
-        throw $this->createNotFoundException(\sprintf('Unknown extension "%s".', $extensionId));
+        throw $this->createNotFoundException(\sprintf('Unknown extension "%s".', $slug));
     }
 }

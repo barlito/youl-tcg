@@ -12,6 +12,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Mapping\Annotation as Gedmo;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -19,6 +20,7 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 #[Vich\Uploadable]
 #[ORM\Entity(repositoryClass: ExtensionRepository::class)]
+#[ORM\UniqueConstraint(name: 'uniq_extension_slug', columns: ['slug'])]
 class Extension implements \Stringable
 {
     use IdUuidTrait;
@@ -27,6 +29,14 @@ class Extension implements \Stringable
     #[Assert\Length(max: 255)]
     #[ORM\Column(length: 255)]
     private string $name;
+
+    /**
+     * URL-friendly slug generated from the name (Gedmo), used as a clean route
+     * param for the collection / extension pages instead of the raw UUID.
+     */
+    #[Gedmo\Slug(fields: ['name'])]
+    #[ORM\Column(length: 255)]
+    private string $slug;
 
     #[ORM\Column(type: 'text')]
     private string $description;
@@ -103,6 +113,11 @@ class Extension implements \Stringable
         $this->name = $name;
 
         return $this;
+    }
+
+    public function getSlug(): string
+    {
+        return $this->slug;
     }
 
     public function getDescription(): string
