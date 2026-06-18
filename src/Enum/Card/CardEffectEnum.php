@@ -21,6 +21,9 @@ enum CardEffectEnum: string
     case COSMOS = 'cosmos';
     case RAINBOW = 'rainbow';
     case SECRET = 'secret';
+    case VMAX = 'vmax';
+    case VSTAR = 'vstar';
+    case TRAINER = 'trainer';
 
     /**
      * CSS class toggled on the .card element to activate the preset.
@@ -42,6 +45,9 @@ enum CardEffectEnum: string
             self::COSMOS => 'Cosmos (galaxy glitter)',
             self::RAINBOW => 'Rainbow (conic swirl)',
             self::SECRET => 'Secret rare (dense rainbow)',
+            self::VMAX => 'V-Max (angular burst)',
+            self::VSTAR => 'V-Star (burst + sparkle)',
+            self::TRAINER => 'Trainer (geometric)',
         };
     }
 

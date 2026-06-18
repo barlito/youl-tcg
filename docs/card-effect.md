@@ -56,6 +56,9 @@ shape, glitter density and saturation:
 | `holo--cosmos` | `cosmos` | galaxy / starfield glitter, clipped by `--mask` when present |
 | `holo--rainbow` | `rainbow` | single conic rainbow swirl anchored to the pointer |
 | `holo--secret` | `secret` | denser double rainbow + tighter glitter |
+| `holo--vmax` | `vmax` | angular starburst foil + steep prismatic bands |
+| `holo--vstar` | `vstar` | burst foil + sparkle trame, crisper |
+| `holo--trainer` | `trainer` | subtle geometric lattice + soft sweep |
 
 ```html
 <div class="card interactive holo holo--cosmos" data-rarity="rare"> … </div>
@@ -73,6 +76,8 @@ in via `--foil` (the foil layer of `basic`/`cosmos`/rarity recipes) or `--mask`:
 | File | Use |
 |------|-----|
 | `beam.svg` | tight vertical silvery pillar (faint prismatic edges) — default foil of `basic` (rare-holo beam) |
+| `burst.svg` | radial silvery starburst — default foil of `vmax` / `vstar` |
+| `geometric.svg` | faint diamond lattice — default foil of `trainer` |
 | `glitter.svg` | sparse white sparkles — sparkle foil (`secret`, glitter trames) |
 | `galaxy.svg` | nebula + starfield — default foil of the `cosmos` preset |
 | `metal.svg` | brushed-metal streaks — metallic foil |
