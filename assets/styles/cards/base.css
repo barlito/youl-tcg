@@ -283,12 +283,13 @@
   
     background-image: radial-gradient(
       farthest-corner circle at var(--pointer-x) var(--pointer-y),
-      hsla(0, 0%, 100%, 0.8) 10%,
-      hsla(0, 0%, 100%, 0.65) 20%,
+      hsla(0, 0%, 100%, 0.55) 10%,
+      hsla(0, 0%, 100%, 0.4) 20%,
       hsla(0, 0%, 0%, 0.5) 90%
     );
-  
-    opacity: var(--card-opacity);
+
+    /* --glare-strength (default .7, set in holo-presets.css) softens the highlight */
+    opacity: calc(var(--card-opacity) * var(--glare-strength, .7));
     mix-blend-mode: overlay;
     
   }

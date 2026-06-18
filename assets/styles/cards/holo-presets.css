@@ -32,6 +32,10 @@
     --glitter: url('/images/holo/poke/glitter.png');
     --glittersize: 25%;
 
+    /* Glare highlight strength (the white radial that follows the pointer).
+     * Lower = softer. User-tuned down because it was lighting the card too much. */
+    --glare-strength: .7;
+
     --space: 5%;
     --angle: 133deg;
     --imgsize: cover;
@@ -49,9 +53,13 @@
  * card that carries a preset. The recipes below re-declare their own per-layer
  * opacity where upstream does. At rest, a `.holo` preset card (reveal/gallery)
  * keeps a soft veil so the effect is visible without hovering. */
-.card[class*="holo--"] .card__shine,
-.card[class*="holo--"] .card__glare {
+.card[class*="holo--"] .card__shine {
     opacity: var(--card-opacity);
+    visibility: visible;
+}
+
+.card[class*="holo--"] .card__glare {
+    opacity: calc(var(--card-opacity) * var(--glare-strength));
     visibility: visible;
 }
 
