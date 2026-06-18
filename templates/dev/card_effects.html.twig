@@ -131,12 +131,14 @@
         <p class="mb-4 max-w-3xl text-ink-muted">
             Chaque carte porte un <code class="text-primary">visualConfigOverride</code> avec un
             <code class="text-primary">holoEffect</code> différent (rareté <em>rare</em> commune pour comparer
-            les recettes). Survole pour voir le holo.
+            les recettes). Holo visible au repos ici ; survole pour le tilt 3D. Le foil/mask de la carte
+            n'apparaît que si tu cibles une carte qui en a (<code class="text-primary">?card=warny</code>),
+            et le foil seulement sur les presets qui l'utilisent (<code class="text-primary">basic</code>, <code class="text-primary">cosmos</code>).
         </p>
         <div class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-6">
             {% for demo in presetDemos %}
                 <div class="force-glow">
-                    {{ include('components/CardComponent.html.twig', { card: demo.card }) }}
+                    {{ include('components/CardComponent.html.twig', { card: demo.card, holo: true }) }}
                     <div class="mt-2 px-1">
                         <code class="text-sm text-ink">{{ demo.effect.value }}</code>
                         <p class="text-xs text-ink-dim">{{ demo.effect.label }}</p>
@@ -150,7 +152,7 @@
         <div class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-5">
             {% for demo in rarityDemos %}
                 <div class="force-glow">
-                    {{ include('components/CardComponent.html.twig', { card: demo.card }) }}
+                    {{ include('components/CardComponent.html.twig', { card: demo.card, holo: true }) }}
                     <div class="mt-2 flex items-center gap-2 px-1">
                         <span class="inline-block h-4 w-4 rounded-full border border-white/30" style="background: var(--rarity-{{ demo.rarity }});"></span>
                         <code class="text-sm text-ink">{{ demo.rarity }}</code>
