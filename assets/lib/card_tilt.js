@@ -8,7 +8,7 @@
  *
  * Public contract (the "API" the CSS reads):
  *   Required markup (any rarity via data-rarity on the root):
- *     <div class="card interactive" data-rarity="epic">
+ *     <div class="card interactive" data-rarity="legendary">
  *       <div class="card__translater"><div class="card__rotator">
  *         <div class="card__front">
  *           <img src="…">

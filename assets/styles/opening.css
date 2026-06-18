@@ -637,8 +637,8 @@
     z-index: 60;
     opacity: 0;
     pointer-events: none;
-    /* white-hot core fading into the current card's rarity colour, so an epic
-     * (purple) and a legendary (orange) burst read distinctly */
+    /* white-hot core fading into the current card's rarity colour, so a rare
+     * (blue) and a legendary (orange) burst read distinctly */
     background: radial-gradient(circle at 50% 46%,
         #ffffff 0%,
         color-mix(in srgb, var(--reveal-color, #ead8ff) 55%, #ffffff) 38%,
