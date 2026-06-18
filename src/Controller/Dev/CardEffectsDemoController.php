@@ -15,6 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\When;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Dev-only playground for card visual effects (route /dev/card-effects):
@@ -33,10 +34,11 @@ class CardEffectsDemoController extends AbstractController
 {
     public function __invoke(Request $request, CardRepository $cardRepository): Response
     {
-        // ?card=<name fragment> targets a specific card (e.g. to preview the foil /
-        // mask uploaded on it); otherwise the first published card is used.
-        $query = trim($request->query->getString('card'));
-        $referenceCard = ('' !== $query ? $this->findPublishedByName($cardRepository, $query) : null)
+        // ?card=<uuid> targets a specific card (e.g. to preview the foil / mask
+        // uploaded on it); names collide, so we match on the id. Falls back to the
+        // first published card. The Uuid guard avoids a conversion error on garbage.
+        $id = trim($request->query->getString('card'));
+        $referenceCard = ('' !== $id && Uuid::isValid($id) ? $cardRepository->find($id) : null)
             ?? $cardRepository->findOneBy(['status' => CardStatusEnum::PUBLISHED])
             ?? throw $this->createNotFoundException('No published card found, load the fixtures first.');
 
@@ -86,16 +88,5 @@ class CardEffectsDemoController extends AbstractController
         $variant->setExtension($extension);
 
         return $variant;
-    }
-
-    private function findPublishedByName(CardRepository $cardRepository, string $query): ?Card
-    {
-        foreach ($cardRepository->findBy(['status' => CardStatusEnum::PUBLISHED]) as $card) {
-            if (false !== stripos($card->getName(), $query)) {
-                return $card;
-            }
-        }
-
-        return null;
     }
 }

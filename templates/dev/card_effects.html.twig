@@ -41,7 +41,8 @@
             </p>
             <p class="mt-2 font-mono text-xs text-ink-muted">
                 Carte affichée : <strong class="text-primary">{{ playgroundCard.name }}</strong>
-                — cible une autre via <code class="text-primary">?card=warny</code>.
+                (<code class="text-primary">id {{ playgroundCard.id }}</code>) —
+                cible une autre via <code class="text-primary">?card=&lt;id&gt;</code> (l'id est sur la fiche carte dans <code class="text-primary">/admin</code>).
                 Les toggles <em>Foil / Holo mask</em> appliquent {{ pv.foilUrl or pv.maskUrl ? 'le foil/mask uploadés sur cette carte' : 'les textures de démo (la carte n’a pas de foil/mask)' }}.
             </p>
         </div>
@@ -132,7 +133,7 @@
             Chaque carte porte un <code class="text-primary">visualConfigOverride</code> avec un
             <code class="text-primary">holoEffect</code> différent (rareté <em>rare</em> commune pour comparer
             les recettes). Holo visible au repos ici ; survole pour le tilt 3D. Le foil/mask de la carte
-            n'apparaît que si tu cibles une carte qui en a (<code class="text-primary">?card=warny</code>),
+            n'apparaît que si tu cibles une carte qui en a (<code class="text-primary">?card=&lt;id&gt;</code>),
             et le foil seulement sur les presets qui l'utilisent (<code class="text-primary">basic</code>, <code class="text-primary">cosmos</code>).
         </p>
         <div class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-6">
