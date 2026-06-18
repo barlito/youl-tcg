@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" width="60" height="60">
-  <!-- Original geometric lattice foil (Trainer-holo vibe): faint diamond grid on
-       black, tiled. Black = no-op under color-dodge; the prismatic tint comes
-       from the preset's saturate + sheen. -->
+  <!-- Original geometric lattice foil (Trainer-holo vibe): diamond grid with faint
+       prismatic tint on black, tiled. Black = no-op under color-dodge. -->
   <rect width="60" height="60" fill="#000000"/>
-  <g fill="none" stroke="#bfeaff" stroke-width="1">
-    <path d="M0 30 L30 0 L60 30 L30 60 Z" stroke-opacity="0.5"/>
-    <path d="M30 0 L30 60 M0 30 L60 30" stroke-opacity="0.22"/>
-    <circle cx="30" cy="30" r="2.2" fill="#ffffff" fill-opacity="0.4" stroke="none"/>
+  <g fill="none" stroke-width="1.4">
+    <path d="M0 30 L30 0 L60 30 L30 60 Z" stroke="#bfeaff" stroke-opacity="0.85"/>
+    <path d="M15 15 L45 15 L45 45 L15 45 Z" stroke="#ffb3f0" stroke-opacity="0.4"/>
+    <path d="M30 0 L30 60 M0 30 L60 30" stroke="#ffffff" stroke-opacity="0.3"/>
   </g>
+  <circle cx="30" cy="30" r="2.6" fill="#ffffff" fill-opacity="0.7"/>
 </svg>

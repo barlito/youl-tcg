@@ -24,9 +24,12 @@ export default class extends Controller {
     ];
 
     connect() {
-        // every known preset class, so we can clear before applying the chosen one
-        this.effectClasses = ['shine', 'basic', 'reverse', 'cosmos', 'rainbow', 'secret']
-            .map((name) => `holo--${name}`);
+        // derive every preset class from the select options, so new presets
+        // (vmax / vstar / trainer / …) are cleared correctly when switching
+        this.effectClasses = [...this.effectTarget.options]
+            .map((option) => option.value)
+            .filter((value) => value !== '')
+            .map((value) => `holo--${value}`);
         this.apply();
     }
 

@@ -258,38 +258,29 @@
 }
 
 /* ---------------------------------------------------------------- vmax
- * Angular burst: a silvery starburst foil (burst.svg) under steep prismatic
- * bands swept by the pointer. Brightness < 1, like the others. */
+ * Angular starburst: the burst foil IS the effect — it recenters on the pointer.
+ * The foil is mostly black (no-op under color-dodge) so a higher brightness here
+ * makes the rays read without craming the artwork (only the sparse rays brighten). */
 
 .card.holo--vmax { --foil: url('/images/holo/burst.svg'); }
 
 .card.holo--vmax .card__shine {
     background-image:
         var(--foil, linear-gradient(transparent, transparent)),
-        repeating-linear-gradient(
-            115deg,
-            var(--sunpillar-clr-2) 0%,
-            var(--sunpillar-clr-4) 6%,
-            var(--sunpillar-clr-6) 12%,
-            var(--sunpillar-clr-2) 18%
-        ),
         radial-gradient(
             farthest-corner circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
-            rgba(255, 255, 255, .35) 5%,
-            rgba(0, 0, 0, .85) 110%
+            rgba(255, 255, 255, .3) 6%,
+            rgba(0, 0, 0, .7) 95%
         );
-    background-size: cover, 300% 100%, 100% 100%;
-    background-position:
-        var(--background-x, 50%) var(--background-y, 50%),
-        var(--background-x, 50%) center,
-        center;
-    background-blend-mode: color-dodge, color-dodge, normal;
+    background-size: cover, 100% 100%;
+    background-position: var(--pointer-x, 50%) var(--pointer-y, 50%), center;
+    background-blend-mode: color-dodge, normal;
     filter:
-        brightness(calc(.5 + var(--pointer-from-center, 0) * .2))
-        contrast(1.7)
-        saturate(var(--holo-saturation, 1));
+        brightness(calc(.7 + var(--pointer-from-center, 0) * .15))
+        contrast(1.5)
+        saturate(calc(var(--holo-saturation, 1) * 1.1));
     mix-blend-mode: color-dodge;
-    opacity: calc(var(--card-opacity) * var(--holo-intensity));
+    opacity: calc(var(--card-opacity) * var(--holo-intensity) * 1.3);
 }
 
 /* ---------------------------------------------------------------- vstar
@@ -300,30 +291,20 @@
 .card.holo--vstar .card__shine {
     background-image:
         var(--foil, linear-gradient(transparent, transparent)),
-        repeating-linear-gradient(
-            100deg,
-            var(--sunpillar-clr-3) 0%,
-            var(--sunpillar-clr-5) 5%,
-            var(--sunpillar-clr-1) 10%,
-            var(--sunpillar-clr-3) 15%
-        ),
         radial-gradient(
             farthest-corner circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
-            rgba(255, 255, 255, .45) 5%,
-            rgba(0, 0, 0, .88) 110%
+            rgba(255, 255, 255, .4) 5%,
+            rgba(0, 0, 0, .72) 95%
         );
-    background-size: cover, 260% 100%, 100% 100%;
-    background-position:
-        var(--background-x, 50%) var(--background-y, 50%),
-        var(--background-x, 50%) center,
-        center;
-    background-blend-mode: color-dodge, color-dodge, normal;
+    background-size: cover, 100% 100%;
+    background-position: var(--pointer-x, 50%) var(--pointer-y, 50%), center;
+    background-blend-mode: color-dodge, normal;
     filter:
-        brightness(calc(.5 + var(--pointer-from-center, 0) * .22))
-        contrast(1.8)
-        saturate(var(--holo-saturation, 1));
+        brightness(calc(.72 + var(--pointer-from-center, 0) * .15))
+        contrast(1.7)
+        saturate(calc(var(--holo-saturation, 1) * 1.15));
     mix-blend-mode: color-dodge;
-    opacity: calc(var(--card-opacity) * var(--holo-intensity));
+    opacity: calc(var(--card-opacity) * var(--holo-intensity) * 1.3);
 }
 
 .card.holo--vstar .card__shine::after {
@@ -338,12 +319,11 @@
         var(--background-x, 50%) var(--background-y, 50%),
         var(--background-y, 50%) var(--background-x, 50%);
     mix-blend-mode: overlay;
-    opacity: calc(var(--card-opacity) * var(--holo-glitter, .5) * 1.2);
+    opacity: calc(var(--card-opacity) * var(--holo-glitter, .5) * 1.3);
 }
 
 /* ---------------------------------------------------------------- trainer
- * Subtle geometric lattice foil (geometric.svg) + a soft sweep. The most
- * understated of the textured presets. */
+ * Geometric lattice foil — the tiled grid IS the effect, plus a soft sweep. */
 
 .card.holo--trainer { --foil: url('/images/holo/geometric.svg'); }
 
@@ -352,20 +332,20 @@
         var(--foil, linear-gradient(transparent, transparent)),
         linear-gradient(
             115deg,
-            transparent 35%,
-            rgba(255, 255, 255, .4) 50%,
-            transparent 65%
+            transparent 38%,
+            rgba(255, 255, 255, .35) 50%,
+            transparent 62%
         );
-    background-size: 84px 84px, 250% 250%;
+    background-size: 70px 70px, 250% 250%;
     background-position:
         var(--background-x, 50%) var(--background-y, 50%),
         var(--background-x, 50%) var(--background-y, 50%);
     background-repeat: repeat, no-repeat;
     background-blend-mode: color-dodge, overlay;
     filter:
-        brightness(.6)
-        contrast(1.5)
-        saturate(var(--holo-saturation, 1));
+        brightness(.8)
+        contrast(1.4)
+        saturate(calc(var(--holo-saturation, 1) * 1.05));
     mix-blend-mode: color-dodge;
-    opacity: calc(var(--card-opacity) * var(--holo-intensity));
+    opacity: calc(var(--card-opacity) * var(--holo-intensity) * 1.2);
 }
