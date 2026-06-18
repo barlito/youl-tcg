@@ -25,19 +25,25 @@
     </style>
 
     {# the foil/mask actually resolved on the shown card (its own upload, else its
-       extension's), falling back to the shipped demo textures when the card has none #}
+       extension's), falling back to the pokeholo demo textures when the card has none #}
     {% set pv = card_visual(playgroundCard) %}
-    {% set demoFoil = pv.foilUrl ?: asset('images/holo/galaxy.svg') %}
-    {% set demoMask = pv.maskUrl ?: asset('images/holo/holo-lines.svg') %}
+    {% set demoFoil = pv.foilUrl ?: asset('images/holo/poke/illusion.png') %}
+    {% set demoMask = pv.maskUrl ?: asset('images/holo/poke/illusion-mask.png') %}
 
     <main class="container mx-auto py-10 px-4">
         <div class="mb-8">
             <p class="eyebrow">dev only · /dev/card-effects</p>
-            <h1 class="mt-1 font-display text-4xl font-bold text-ink-strong">Playground — presets holo</h1>
+            <h1 class="mt-1 font-display text-4xl font-bold text-ink-strong">Playground — presets holo (portage pokeholo)</h1>
             <p class="mt-2 max-w-3xl text-ink-muted">
-                Règle les molettes (<code class="text-primary">--holo-intensity / saturation / glitter</code>), choisis un
-                <strong>preset</strong> (<code class="text-primary">holo--*</code>, cf. <code class="text-primary">assets/styles/cards/holo-presets.css</code>)
-                et une rareté : la carte se met à jour en direct. <strong>Survole-la</strong> pour le 3D + holo.
+                Les <strong>presets</strong> (<code class="text-primary">holo--*</code>, cf. <code class="text-primary">assets/styles/cards/holo-presets.css</code>)
+                sont un <strong>portage fidèle</strong> des recettes de
+                <a class="text-primary underline" href="https://poke-holo.simey.me/" target="_blank" rel="noopener">poke-holo.simey.me</a>
+                (textures raster réelles dans <code class="text-primary">/images/holo/poke/</code>). Choisis un preset + une
+                rareté et <strong>survole la carte</strong> pour le tilt 3D + le holo plein régime.
+            </p>
+            <p class="mt-2 max-w-3xl text-xs text-amber-300/80">
+                ⚠️ Les molettes <code>--holo-intensity / saturation / glitter</code> ne pilotent plus que la recette
+                <em>par rareté</em> (section « 5 paliers » sans preset). Les presets pokeholo les ignorent (rendu fidèle, pleine intensité).
             </p>
             <p class="mt-2 font-mono text-xs text-ink-muted">
                 Carte affichée : <strong class="text-primary">{{ playgroundCard.name }}</strong>
@@ -128,18 +134,19 @@
         </div>
 
         {# ---------------------------------------------------------------- Gallery presets #}
-        <h2 class="mb-4 mt-14 font-display text-2xl font-bold text-ink-strong">Tous les presets</h2>
+        <h2 class="mb-4 mt-14 font-display text-2xl font-bold text-ink-strong">Tous les presets (recettes pokeholo)</h2>
         <p class="mb-4 max-w-3xl text-ink-muted">
-            Chaque carte porte un <code class="text-primary">visualConfigOverride</code> avec un
-            <code class="text-primary">holoEffect</code> différent (rareté <em>rare</em> commune pour comparer
-            les recettes). Holo visible au repos ici ; survole pour le tilt 3D. Le foil/mask de la carte
-            n'apparaît que si tu cibles une carte qui en a (<code class="text-primary">?card=&lt;id&gt;</code>),
-            et le foil seulement sur les presets qui l'utilisent (<code class="text-primary">basic</code>, <code class="text-primary">cosmos</code>).
+            Chaque carte porte un <code class="text-primary">holoEffect</code> différent. Cartes éteintes au repos —
+            <strong>survole</strong> (et clique pour zoomer) pour révéler le tilt 3D + le holo. Les presets <code class="text-primary">shine</code>
+            (amazing-rare), <code class="text-primary">rainbow</code>, <code class="text-primary">secret</code>,
+            <code class="text-primary">vmax</code>, <code class="text-primary">vstar</code> et <code class="text-primary">trainer</code>
+            embarquent leur propre <em>foil</em> raster pokeholo par défaut (illusion / geometric / vmaxbg / ancient / trainerbg) ;
+            une carte qui upload son propre foil l'écrase (<code class="text-primary">?card=&lt;id&gt;</code>).
         </p>
         <div class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-6">
             {% for demo in presetDemos %}
                 <div class="force-glow">
-                    {{ include('components/CardComponent.html.twig', { card: demo.card, holo: true }) }}
+                    {{ include('components/CardComponent.html.twig', { card: demo.card }) }}
                     <div class="mt-2 px-1">
                         <code class="text-sm text-ink">{{ demo.effect.value }}</code>
                         <p class="text-xs text-ink-dim">{{ demo.effect.label }}</p>
@@ -153,7 +160,7 @@
         <div class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-5">
             {% for demo in rarityDemos %}
                 <div class="force-glow">
-                    {{ include('components/CardComponent.html.twig', { card: demo.card, holo: true }) }}
+                    {{ include('components/CardComponent.html.twig', { card: demo.card }) }}
                     <div class="mt-2 flex items-center gap-2 px-1">
                         <span class="inline-block h-4 w-4 rounded-full border border-white/30" style="background: var(--rarity-{{ demo.rarity }});"></span>
                         <code class="text-sm text-ink">{{ demo.rarity }}</code>
@@ -165,8 +172,9 @@
         <div class="mt-14 max-w-3xl border border-hairline bg-surface/60 p-6">
             <h2 class="mb-3 font-display text-xl font-bold text-ink-strong">Notes</h2>
             <ul class="list-inside list-disc space-y-2 text-ink-muted">
-                <li><strong>Presets</strong> : <code class="text-primary">shine</code>, <code class="text-primary">basic</code>, <code class="text-primary">reverse</code>, <code class="text-primary">cosmos</code>, <code class="text-primary">rainbow</code>, <code class="text-primary">secret</code> — un par classe <code class="text-primary">holo--*</code> dans <code class="text-primary">holo-presets.css</code>, sélectionnables au BO (clé JSON <code class="text-primary">holoEffect</code> ou ChoiceField côté extension).</li>
-                <li><strong>Anti-cramage</strong> : brightness &lt; 1 sur tous les calques color-dodge, pas d'escalade par rareté ; les presets diffèrent par forme de gradient, densité de glitter et saturation.</li>
+                <li><strong>Portage fidèle pokeholo</strong> : chaque preset reprend verbatim une recette de <code class="text-primary">pokemon-cards-css</code> (mapping dans l'en-tête de <code class="text-primary">holo-presets.css</code>) ; seuls les sélecteurs <code class="text-primary">[data-rarity]</code> sont réécrits en <code class="text-primary">.card.holo--*</code>.</li>
+                <li><strong>Full-art</strong> : les <code class="text-primary">clip-path</code> de cadre (fenêtre d'artwork) sont retirés — nos cartes sont des illustrations plein cadre, comme les v-/trainer-full-art pokeholo.</li>
+                <li><strong>Textures</strong> : raster pokeholo dans <code class="text-primary">public/images/holo/poke/</code> (glitter, grain, illusion, cosmos-*, metal, vmaxbg, ancient, trainerbg, geometric).</li>
                 <li><strong>Cascade</strong> : <code class="text-primary">Card.visualConfigOverride.holoEffect</code> &gt; <code class="text-primary">Extension.visualConfig.holoEffect</code> &gt; recette de rareté (aucun preset).</li>
             </ul>
         </div>
