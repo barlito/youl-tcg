@@ -153,6 +153,34 @@ final class CardDrawerTest extends TestCase
         $drawer->draw($this->booster([['common' => 100]]));
     }
 
+    public function testDrawReplacementNeverReturnsAUniqueCard(): void
+    {
+        $unique = $this->card('Unique rare', CardRarityEnum::RARE)->setUnique(true);
+        $drawer = $this->createDrawer([
+            $unique,
+            $this->card('Plain rare', CardRarityEnum::RARE),
+        ]);
+        $booster = $this->booster([['rare' => 100]]);
+
+        for ($i = 0; $i < 100; ++$i) {
+            $replacement = $drawer->drawReplacement($booster, CardRarityEnum::RARE);
+
+            $this->assertFalse($replacement->card->isUnique());
+            $this->assertSame('Plain rare', $replacement->card->getName());
+        }
+    }
+
+    public function testDrawReplacementThrowsWhenOnlyUniqueCardsExist(): void
+    {
+        $drawer = $this->createDrawer([
+            $this->card('Unique rare', CardRarityEnum::RARE)->setUnique(true),
+        ]);
+
+        $this->expectException(NoCardAvailableException::class);
+
+        $drawer->drawReplacement($this->booster([['rare' => 100]]), CardRarityEnum::RARE);
+    }
+
     public function testSameSeedReproducesTheSameDraw(): void
     {
         $cards = [
@@ -195,7 +223,7 @@ final class CardDrawerTest extends TestCase
     private function repositoryWith(array $publishedCards): CardRepository
     {
         $cardRepository = $this->createStub(CardRepository::class);
-        $cardRepository->method('findBy')->willReturn($publishedCards);
+        $cardRepository->method('findDrawablePool')->willReturn($publishedCards);
 
         return $cardRepository;
     }

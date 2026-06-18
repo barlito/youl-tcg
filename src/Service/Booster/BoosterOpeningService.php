@@ -11,6 +11,7 @@ use App\Entity\BoosterOpeningCard;
 use App\Entity\DiscordUser;
 use App\Exception\Booster\NoBoosterInInventoryException;
 use App\Exception\Booster\NoCardAvailableException;
+use App\Repository\CardRepository;
 use App\Service\Random\RandomService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -28,6 +29,7 @@ final readonly class BoosterOpeningService
         private RandomService $randomService,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private CardRepository $cardRepository,
     ) {
     }
 
@@ -46,7 +48,9 @@ final readonly class BoosterOpeningService
 
             $opening = new BoosterOpening($discordUser, $booster, $seed, $openedAt);
 
-            foreach ($this->aggregate($this->cardDrawer->draw($booster)) as $aggregated) {
+            $drawnCards = $this->resolveUniqueClaims($discordUser, $booster, $this->cardDrawer->draw($booster));
+
+            foreach ($this->aggregate($drawnCards) as $aggregated) {
                 $this->userInventoryService->addCard($discordUser, $aggregated['card']->card, $aggregated['quantity'], $aggregated['holoQuantity']);
                 $opening->addBoosterOpeningCard(new BoosterOpeningCard($opening, $aggregated['card']->card, $aggregated['quantity'], $aggregated['holoQuantity']));
             }
@@ -56,6 +60,41 @@ final readonly class BoosterOpeningService
 
             return $opening;
         });
+    }
+
+    /**
+     * Atomically claims each drawn one-of-one unique. A unique already taken by
+     * a concurrent opening (or rolled twice in THIS booster) is swapped for a
+     * replacement card of the same rarity, so a 1/1 is never credited twice.
+     *
+     * @param list<DrawnCard> $drawnCards
+     *
+     * @return list<DrawnCard>
+     */
+    private function resolveUniqueClaims(DiscordUser $discordUser, Booster $booster, array $drawnCards): array
+    {
+        $resolved = [];
+        $claimedHere = [];
+
+        foreach ($drawnCards as $drawnCard) {
+            if (!$drawnCard->card->isUnique()) {
+                $resolved[] = $drawnCard;
+
+                continue;
+            }
+
+            $cardId = (string) $drawnCard->card->getId();
+            $won = !isset($claimedHere[$cardId]) && $this->cardRepository->claimUnique($drawnCard->card, $discordUser);
+
+            if ($won) {
+                $claimedHere[$cardId] = true;
+                $resolved[] = $drawnCard;
+            } else {
+                $resolved[] = $this->cardDrawer->drawReplacement($booster, $drawnCard->rarity);
+            }
+        }
+
+        return $resolved;
     }
 
     /**
