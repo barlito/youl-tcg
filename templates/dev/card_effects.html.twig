@@ -24,9 +24,11 @@
         .pg-control select { @apply border border-hairline bg-surface px-2 py-1 text-sm text-ink; }
     </style>
 
-    {# shipped original holo textures (public/images/holo), not user uploads #}
-    {% set demoFoil = asset('images/holo/galaxy.svg') %}
-    {% set demoMask = asset('images/holo/holo-lines.svg') %}
+    {# the foil/mask actually resolved on the shown card (its own upload, else its
+       extension's), falling back to the shipped demo textures when the card has none #}
+    {% set pv = card_visual(playgroundCard) %}
+    {% set demoFoil = pv.foilUrl ?: asset('images/holo/galaxy.svg') %}
+    {% set demoMask = pv.maskUrl ?: asset('images/holo/holo-lines.svg') %}
 
     <main class="container mx-auto py-10 px-4">
         <div class="mb-8">
@@ -36,6 +38,11 @@
                 Règle les molettes (<code class="text-primary">--holo-intensity / saturation / glitter</code>), choisis un
                 <strong>preset</strong> (<code class="text-primary">holo--*</code>, cf. <code class="text-primary">assets/styles/cards/holo-presets.css</code>)
                 et une rareté : la carte se met à jour en direct. <strong>Survole-la</strong> pour le 3D + holo.
+            </p>
+            <p class="mt-2 font-mono text-xs text-ink-muted">
+                Carte affichée : <strong class="text-primary">{{ playgroundCard.name }}</strong>
+                — cible une autre via <code class="text-primary">?card=warny</code>.
+                Les toggles <em>Foil / Holo mask</em> appliquent {{ pv.foilUrl or pv.maskUrl ? 'le foil/mask uploadés sur cette carte' : 'les textures de démo (la carte n’a pas de foil/mask)' }}.
             </p>
         </div>
 

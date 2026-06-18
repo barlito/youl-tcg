@@ -13,6 +13,7 @@ use App\Enum\Entity\CardStatusEnum;
 use App\Repository\CardRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\When;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -30,9 +31,13 @@ use Symfony\Component\HttpFoundation\Response;
 #[When(env: 'dev')]
 class CardEffectsDemoController extends AbstractController
 {
-    public function __invoke(CardRepository $cardRepository): Response
+    public function __invoke(Request $request, CardRepository $cardRepository): Response
     {
-        $referenceCard = $cardRepository->findOneBy(['status' => CardStatusEnum::PUBLISHED])
+        // ?card=<name fragment> targets a specific card (e.g. to preview the foil /
+        // mask uploaded on it); otherwise the first published card is used.
+        $query = trim($request->query->getString('card'));
+        $referenceCard = ('' !== $query ? $this->findPublishedByName($cardRepository, $query) : null)
+            ?? $cardRepository->findOneBy(['status' => CardStatusEnum::PUBLISHED])
             ?? throw $this->createNotFoundException('No published card found, load the fixtures first.');
 
         // A bare transient extension so the showcase shows pure data-rarity
@@ -81,5 +86,16 @@ class CardEffectsDemoController extends AbstractController
         $variant->setExtension($extension);
 
         return $variant;
+    }
+
+    private function findPublishedByName(CardRepository $cardRepository, string $query): ?Card
+    {
+        foreach ($cardRepository->findBy(['status' => CardStatusEnum::PUBLISHED]) as $card) {
+            if (false !== stripos($card->getName(), $query)) {
+                return $card;
+            }
+        }
+
+        return null;
     }
 }
