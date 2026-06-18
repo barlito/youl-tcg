@@ -72,6 +72,7 @@ in via `--foil` (the foil layer of `basic`/`cosmos`/rarity recipes) or `--mask`:
 
 | File | Use |
 |------|-----|
+| `beam.svg` | tight vertical silvery pillar (faint prismatic edges) — default foil of `basic` (rare-holo beam) |
 | `glitter.svg` | sparse white sparkles — sparkle foil (`secret`, glitter trames) |
 | `galaxy.svg` | nebula + starfield — default foil of the `cosmos` preset |
 | `metal.svg` | brushed-metal streaks — metallic foil |

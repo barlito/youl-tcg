@@ -62,26 +62,28 @@
  * Linear holo: repeating sunpillar bands swept by the pointer, color-dodge
  * with the brightness ceiling. The classic "rainbow lines" foil. */
 
+/* tight vertical-beam foil shipped by default; a card/extension foil overrides it */
+.card.holo--basic { --foil: url('/images/holo/beam.svg'); }
+
 .card.holo--basic .card__shine {
     background-image:
         var(--foil, linear-gradient(transparent, transparent)),
-        repeating-linear-gradient(
-            82deg,
-            var(--sunpillar-clr-1) 0%,
-            var(--sunpillar-clr-2) 4%,
-            var(--sunpillar-clr-3) 8%,
-            var(--sunpillar-clr-4) 12%,
-            var(--sunpillar-clr-5) 16%,
-            var(--sunpillar-clr-6) 20%,
-            var(--sunpillar-clr-1) 24%
+        radial-gradient(
+            farthest-corner circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
+            rgba(255, 255, 255, .4) 6%,
+            rgba(110, 110, 110, .18) 45%,
+            rgba(0, 0, 0, .88) 110%
         );
-    background-size: cover, 400% 100%;
-    background-position: center, var(--background-x, 50%) center;
-    background-blend-mode: color-dodge, color-dodge;
+    /* the foil tiles TIGHT (10px) → dense vertical beams, not wide rainbow bands;
+       it slides horizontally with the pointer so the beam sweeps across */
+    background-size: 10px 100%, 100% 100%;
+    background-position: var(--background-x, 50%) center, center;
+    background-repeat: repeat, no-repeat;
+    background-blend-mode: color-dodge, normal;
     /* brightness kept < 1 — see anti-cramage note above */
     filter:
-        brightness(calc(.5 + var(--pointer-from-center, 0) * .2))
-        contrast(1.6)
+        brightness(calc(.55 + var(--pointer-from-center, 0) * .2))
+        contrast(1.7)
         saturate(var(--holo-saturation, 1));
     mix-blend-mode: color-dodge;
     opacity: calc(var(--card-opacity) * var(--holo-intensity));
