@@ -10,14 +10,16 @@ use App\Repository\ExtensionRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterClaimQuotaInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 class CollectionController extends AbstractController
 {
-    #[Route('/collection/{slug}', name: 'collection', defaults: ['slug' => null], requirements: ['slug' => '[a-z0-9-]+'])]
+    #[Route('/collection/{slug}', name: 'collection', requirements: ['slug' => '[a-z0-9-]+'], defaults: ['slug' => null])]
     public function __invoke(
+        Request $request,
         #[CurrentUser] DiscordUser $user,
         UserCardRepository $userCardRepository,
         ExtensionRepository $extensionRepository,
@@ -25,6 +27,19 @@ class CollectionController extends AbstractController
         ?string $slug = null,
     ): Response {
         $extensions = $extensionRepository->findPublishedWithPublishedCardCount();
+
+        // Legacy pre-slug urls (/collection?extension=<uuid>): redirect to the slug
+        // route instead of silently ignoring the filter; unknown id stays a 404,
+        // the contract the query-param version already had.
+        $legacyId = $request->query->getString('extension');
+        if (null === $slug && '' !== $legacyId) {
+            return $this->redirectToRoute(
+                'collection',
+                ['slug' => $this->resolveLegacyExtensionId($legacyId, $extensions)->getSlug()],
+                Response::HTTP_MOVED_PERMANENTLY,
+            );
+        }
+
         $currentExtension = $this->resolveExtensionFilter($slug, $extensions);
 
         $ownedByExtension = $userCardRepository->countOwnedGroupedByExtension($user);
@@ -54,6 +69,20 @@ class CollectionController extends AbstractController
             'remainingClaims' => $boosterClaimQuota->getRemainingClaims($user),
             'dailyLimit' => BoosterClaimQuotaInterface::DAILY_LIMIT,
         ]);
+    }
+
+    /**
+     * @param list<array{extension: Extension, cardCount: int}> $extensions
+     */
+    private function resolveLegacyExtensionId(string $id, array $extensions): Extension
+    {
+        foreach ($extensions as $item) {
+            if (((string) $item['extension']->getId()) === $id) {
+                return $item['extension'];
+            }
+        }
+
+        throw $this->createNotFoundException(\sprintf('Unknown extension "%s".', $id));
     }
 
     /**

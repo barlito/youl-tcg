@@ -135,6 +135,40 @@ final class CollectionControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testLegacyExtensionQueryParamRedirectsToTheSlugRoute(): void
+    {
+        $this->client->request('GET', '/collection?extension=' . $this->extensionA->getId());
+
+        self::assertResponseRedirects('/collection/' . $this->extensionA->getSlug(), 301);
+    }
+
+    public function testLegacyExtensionQueryParamWithUnknownIdIsNotFound(): void
+    {
+        // the query-param filter 404ed on unknown values — the redirect keeps that contract
+        $this->client->request('GET', '/collection?extension=00000000-0000-0000-0000-000000000000');
+
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testGridOrdersOwnedCardsRarestFirst(): void
+    {
+        // a legendary and a rare on top of the owned commons — the grid must lead with them
+        $legendary = $this->createCard($this->extensionA, 'Rarity test legendary ' . uniqid(), rarity: CardRarityEnum::LEGENDARY);
+        $rare = $this->createCard($this->extensionA, 'Rarity test rare ' . uniqid(), rarity: CardRarityEnum::RARE);
+        $this->createUserCard($legendary, quantity: 1);
+        $this->createUserCard($rare, quantity: 1);
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/collection');
+
+        self::assertResponseIsSuccessful();
+        $names = $crawler->filter('[data-testid="collection-grid"] img[alt]')->extract(['alt']);
+        $names = array_values(array_filter($names, static fn (string $name): bool => '' !== $name));
+
+        $this->assertSame($legendary->getName(), $names[0] ?? null, 'Rarest card must come first.');
+        $this->assertSame($rare->getName(), $names[1] ?? null, 'Then the rare, before the commons.');
+    }
+
     /**
      * Extension A: 4 published cards (+1 draft) — the user owns 2 of them
      * (one ×3 with 1 holo, one ×1) plus a zero-quantity leftover row.
@@ -173,13 +207,13 @@ final class CollectionControllerTest extends WebTestCase
         return $extension;
     }
 
-    private function createCard(Extension $extension, string $name, CardStatusEnum $status = CardStatusEnum::PUBLISHED): Card
+    private function createCard(Extension $extension, string $name, CardStatusEnum $status = CardStatusEnum::PUBLISHED, CardRarityEnum $rarity = CardRarityEnum::COMMON): Card
     {
         $card = new Card()
             ->setName($name)
             ->setDescription('Test card')
             ->setStatus($status)
-            ->setRarity(CardRarityEnum::COMMON)
+            ->setRarity($rarity)
             ->setExtension($extension)
         ;
         $card->setImageName('default_card.png');
