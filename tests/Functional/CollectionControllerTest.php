@@ -14,6 +14,7 @@ use App\Enum\Entity\ExtensionStatusEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 
 final class CollectionControllerTest extends WebTestCase
 {
@@ -92,6 +93,47 @@ final class CollectionControllerTest extends WebTestCase
         $this->assertStringContainsString('✦1', $grid->text());
         // The zero-quantity inventory row must not produce a card.
         $this->assertCount(0, $grid->filter(\sprintf('img[alt="%s"]', $this->cardsA[2]->getName())));
+    }
+
+    public function testHoloOwnedTileRendersToggleAndHoloCard(): void
+    {
+        $crawler = $this->client->request('GET', '/collection');
+
+        self::assertResponseIsSuccessful();
+        $grid = $crawler->filter('[data-testid="collection-grid"]');
+
+        // Only cardsA[0] is owned in holo → exactly one toggle, pressed by default.
+        $toggle = $grid->filter('button[data-testid="holo-toggle"]');
+        $this->assertCount(1, $toggle);
+        $this->assertSame('button', $toggle->attr('type'));
+        $this->assertSame('true', $toggle->attr('aria-pressed'));
+
+        // The tile carries the Stimulus wiring + the preset class the toggle strips.
+        $tile = $grid->filter('[data-controller="holo-toggle"]');
+        $this->assertCount(1, $tile);
+        $this->assertSame('holo--basic', $tile->attr('data-holo-toggle-holo-class-value'));
+
+        // The card itself is rendered holo by default (semantic marker + preset recipe).
+        $holoCard = $tile->filter('.card.holo');
+        $this->assertCount(1, $holoCard);
+        $this->assertStringContainsString('holo--basic', (string) $holoCard->attr('class'));
+        $this->assertCount(1, $holoCard->filter(\sprintf('img[alt="%s"]', $this->cardsA[0]->getName())));
+    }
+
+    public function testCardWithoutHoloCopyHasNoToggleAndRendersNormal(): void
+    {
+        $crawler = $this->client->request('GET', '/collection');
+
+        self::assertResponseIsSuccessful();
+
+        // cardsA[1] is owned without any holo copy: normal rendering, no toggle on its tile.
+        $tile = $crawler->filter('[data-testid="collection-grid"] > div')->reduce(
+            fn (Crawler $node): bool => $node->filter(\sprintf('img[alt="%s"]', $this->cardsA[1]->getName()))->count() > 0,
+        );
+        $this->assertCount(1, $tile);
+        $this->assertCount(0, $tile->filter('button[data-testid="holo-toggle"]'));
+        $this->assertNull($tile->attr('data-controller'));
+        $this->assertStringNotContainsString('holo', (string) $tile->filter('.card')->attr('class'));
     }
 
     public function testExtensionFilterOnlyShowsItsCards(): void

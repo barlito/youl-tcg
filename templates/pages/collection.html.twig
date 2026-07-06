@@ -91,14 +91,29 @@
                 {% if userCards is not empty %}
                     <div class="grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5" data-testid="collection-grid">
                         {% for userCard in userCards %}
-                            <div class="relative">
-                                {{ include('components/CardComponent.html.twig', { card: userCard.card }) }}
+                            {% set ownsHolo = userCard.holoQuantity > 0 %}
+                            <div class="relative"
+                                 {%- if ownsHolo %} data-controller="holo-toggle"
+                                 data-holo-toggle-holo-class-value="{{ card_visual(userCard.card).holoEffect.cssClass ?? 'holo--basic' }}"
+                                 {%- endif %}>
+                                {{ include('components/CardComponent.html.twig', { card: userCard.card, holo: ownsHolo }) }}
                                 <div class="pointer-events-none absolute -right-2 -top-2 z-10 flex gap-1.5">
                                     <span class="chip-mono bg-black/90 px-2 py-1 font-bold text-white">×{{ userCard.quantity }}</span>
-                                    {% if userCard.holoQuantity > 0 %}
+                                    {% if ownsHolo %}
                                         <span class="chip-mono bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black">✦{{ userCard.holoQuantity }}</span>
                                     {% endif %}
                                 </div>
+                                {% if ownsHolo %}
+                                    {# toggle OUTSIDE the .card element: a click on the card itself triggers the 3D zoom #}
+                                    <button type="button"
+                                            class="chip-mono absolute -left-2 -top-2 z-10 border border-hairline bg-black/90 px-2 py-1 font-bold text-ink-dim transition-colors hover:text-ink-strong aria-pressed:border-transparent aria-pressed:bg-gradient-to-r aria-pressed:from-primary aria-pressed:to-magenta aria-pressed:text-black"
+                                            aria-pressed="true"
+                                            data-action="holo-toggle#toggle"
+                                            data-holo-toggle-target="button"
+                                            data-testid="holo-toggle">
+                                        ✦ HOLO
+                                    </button>
+                                {% endif %}
                             </div>
                         {% endfor %}
                     </div>
