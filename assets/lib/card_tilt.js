@@ -38,6 +38,9 @@ const POPOVER_STIFFNESS = 90;
 const POPOVER_DAMPING = 18;
 // Largest zoom factor when a card is activated (pokeholo uses 1.75).
 const MAX_POPOVER_SCALE = 1.75;
+// Full turn the card makes around Y while gliding to the viewport centre —
+// the click-to-zoom reads as "the card flips out of the grid into your hand".
+const POPOVER_FLIP_DEG = 360;
 // Clamp dt so a backgrounded tab doesn't make the integration explode.
 const MAX_DT = 0.032;
 const SETTLE_THRESHOLD = 0.01;
@@ -60,10 +63,11 @@ export class CardTilt {
             glareX: this._spring(50),
             glareY: this._spring(50),
             opacity: this._spring(0),
-            // popover springs (click-to-zoom): centre translation + scale
+            // popover springs (click-to-zoom): centre translation + scale + flip
             scale: this._spring(1),
             translateX: this._spring(0),
             translateY: this._spring(0),
+            flip: this._spring(0),
         };
         this.pointerInside = false;
         this.active = false;
@@ -127,6 +131,7 @@ export class CardTilt {
         const scaleW = (window.innerWidth / rect.width) * 0.9;
         const scaleH = (window.innerHeight / rect.height) * 0.9;
         this.springs.scale.target = Math.min(scaleW, scaleH, MAX_POPOVER_SCALE);
+        this.springs.flip.target = POPOVER_FLIP_DEG;
         this._setCenter();
 
         this._bindActiveListeners();
@@ -143,6 +148,7 @@ export class CardTilt {
         this.springs.scale.target = 1;
         this.springs.translateX.target = 0;
         this.springs.translateY.target = 0;
+        this.springs.flip.target = 0; // spins back the other way on the way home
         if (activeInstance === this) {
             activeInstance = null;
         }
@@ -237,9 +243,9 @@ export class CardTilt {
         const dt = Math.min((now - this.lastTime) / 1000, MAX_DT);
         this.lastTime = now;
 
-        // The popover springs (scale / translate) use a softer, slower spring
-        // than the tilt springs so the zoom glides instead of snapping.
-        const popover = new Set(['scale', 'translateX', 'translateY']);
+        // The popover springs (scale / translate / flip) use a softer, slower
+        // spring than the tilt springs so the zoom glides instead of snapping.
+        const popover = new Set(['scale', 'translateX', 'translateY', 'flip']);
 
         let energy = 0;
         for (const [name, spring] of Object.entries(this.springs)) {
@@ -268,7 +274,7 @@ export class CardTilt {
     }
 
     _render() {
-        const { rotateX, rotateY, glareX, glareY, opacity, scale, translateX, translateY } = this.springs;
+        const { rotateX, rotateY, glareX, glareY, opacity, scale, translateX, translateY, flip } = this.springs;
         const pointerFromCenter = clamp(
             Math.sqrt((glareY.value - 50) ** 2 + (glareX.value - 50) ** 2) / 50,
             0,
@@ -288,7 +294,9 @@ export class CardTilt {
         style.setProperty('--translate-x', `${translateX.value}px`);
         style.setProperty('--translate-y', `${translateY.value}px`);
 
-        this.rotator.style.transform = `rotateX(${rotateX.value}deg) rotateY(${rotateY.value}deg)`;
+        // Snap sub-degree flip residue so the settled card is perfectly flat.
+        const flipDeg = Math.abs(flip.value - flip.target) < 0.5 ? flip.target : flip.value;
+        this.rotator.style.transform = `rotateX(${rotateX.value}deg) rotateY(${rotateY.value + flipDeg}deg)`;
     }
 }
 
