@@ -29,6 +29,18 @@
     --glitter: url('/images/holo/poke/glitter.png');
     --glittersize: 25%;
 
+    /* Neutral idle pose. card_tilt.js writes these inline on interaction (inline
+     * wins); without defaults, any recipe referencing them has an INVALID
+     * background-image until the first hover — presets built on static textures
+     * (trainer) showed their at-rest veil while the others stayed dark. */
+    --pointer-x: 50%;
+    --pointer-y: 50%;
+    --pointer-from-center: 0;
+    --pointer-from-top: .5;
+    --pointer-from-left: .5;
+    --background-x: 50%;
+    --background-y: 50%;
+
     /* Glare highlight strength (the white radial that follows the pointer).
      * Lower = softer. User-tuned down because it was lighting the card too much. */
     --glare-strength: .7;
