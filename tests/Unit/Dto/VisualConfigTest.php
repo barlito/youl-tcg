@@ -76,15 +76,17 @@ final class VisualConfigTest extends TestCase
     public function testIgnoresInvalidHoloEffect(): void
     {
         $this->assertNull(VisualConfig::fromArray(['holoEffect' => 'nope'])->holoEffect);
+        // removed presets (old JSON not yet migrated) degrade to null too
+        $this->assertNull(VisualConfig::fromArray(['holoEffect' => 'rainbow'])->holoEffect);
         $this->assertNull(VisualConfig::fromArray(['holoEffect' => 42])->holoEffect);
         $this->assertNull(VisualConfig::fromArray([])->holoEffect);
     }
 
     public function testHoloEffectRoundTripsThroughToArray(): void
     {
-        $array = (new VisualConfig(holoEffect: CardEffectEnum::RAINBOW))->toArray();
+        $array = (new VisualConfig(holoEffect: CardEffectEnum::TRAINER))->toArray();
 
-        $this->assertSame(['holoEffect' => 'rainbow'], $array);
-        $this->assertSame(CardEffectEnum::RAINBOW, VisualConfig::fromArray($array)->holoEffect);
+        $this->assertSame(['holoEffect' => 'trainer'], $array);
+        $this->assertSame(CardEffectEnum::TRAINER, VisualConfig::fromArray($array)->holoEffect);
     }
 }

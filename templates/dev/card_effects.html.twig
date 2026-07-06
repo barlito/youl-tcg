@@ -152,11 +152,9 @@
         <h2 class="mb-4 mt-14 font-display text-2xl font-bold text-ink-strong">Tous les presets (recettes pokeholo)</h2>
         <p class="mb-4 max-w-3xl text-ink-muted">
             Chaque carte porte un <code class="text-primary">holoEffect</code> différent. Cartes éteintes au repos —
-            <strong>survole</strong> (et clique pour zoomer) pour révéler le tilt 3D + le holo. Les presets <code class="text-primary">shine</code>
-            (amazing-rare), <code class="text-primary">rainbow</code>, <code class="text-primary">secret</code>,
-            <code class="text-primary">vmax</code>, <code class="text-primary">vstar</code> et <code class="text-primary">trainer</code>
-            embarquent leur propre <em>foil</em> raster pokeholo par défaut (illusion / geometric / vmaxbg / ancient / trainerbg) ;
-            une carte qui upload son propre foil l'écrase (<code class="text-primary">?card=&lt;id&gt;</code>).
+            <strong>survole</strong> (et clique pour zoomer) pour révéler le tilt 3D + le holo. Le preset
+            <code class="text-primary">trainer</code> embarque son propre <em>foil</em> raster pokeholo par défaut
+            (trainerbg) ; une carte qui upload son propre foil l'écrase (<code class="text-primary">?card=&lt;id&gt;</code>).
         </p>
         <div class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-6">
             {% for demo in presetDemos %}
@@ -189,7 +187,7 @@
             <ul class="list-inside list-disc space-y-2 text-ink-muted">
                 <li><strong>Portage fidèle pokeholo</strong> : chaque preset reprend verbatim une recette de <code class="text-primary">pokemon-cards-css</code> (mapping dans l'en-tête de <code class="text-primary">holo-presets.css</code>) ; seuls les sélecteurs <code class="text-primary">[data-rarity]</code> sont réécrits en <code class="text-primary">.card.holo--*</code>.</li>
                 <li><strong>Full-art</strong> : les <code class="text-primary">clip-path</code> de cadre (fenêtre d'artwork) sont retirés — nos cartes sont des illustrations plein cadre, comme les v-/trainer-full-art pokeholo.</li>
-                <li><strong>Textures</strong> : raster pokeholo dans <code class="text-primary">public/images/holo/poke/</code> (glitter, grain, illusion, cosmos-*, metal, vmaxbg, ancient, trainerbg, geometric).</li>
+                <li><strong>Textures</strong> : raster pokeholo dans <code class="text-primary">public/images/holo/poke/</code> (glitter, grain, illusion, cosmos-*, trainerbg).</li>
                 <li><strong>Cascade</strong> : <code class="text-primary">Card.visualConfigOverride.holoEffect</code> &gt; <code class="text-primary">Extension.visualConfig.holoEffect</code> &gt; recette de rareté (aucun preset).</li>
             </ul>
         </div>

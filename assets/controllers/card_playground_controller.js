@@ -25,7 +25,7 @@ export default class extends Controller {
 
     connect() {
         // derive every preset class from the select options, so new presets
-        // (vmax / vstar / trainer / …) are cleared correctly when switching
+        // are cleared correctly when switching
         this.effectClasses = [...this.effectTarget.options]
             .map((option) => option.value)
             .filter((value) => value !== '')

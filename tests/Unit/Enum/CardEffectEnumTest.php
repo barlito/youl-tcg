@@ -13,7 +13,15 @@ final class CardEffectEnumTest extends TestCase
     {
         $this->assertSame('holo--cosmos', CardEffectEnum::COSMOS->cssClass());
         $this->assertSame('holo--shine', CardEffectEnum::SHINE->cssClass());
-        $this->assertSame('holo--secret', CardEffectEnum::SECRET->cssClass());
+        $this->assertSame('holo--trainer', CardEffectEnum::TRAINER->cssClass());
+    }
+
+    public function testExactlyTheFourKeptPresetsExist(): void
+    {
+        $this->assertSame(
+            ['shine', 'basic', 'cosmos', 'trainer'],
+            array_map(static fn (CardEffectEnum $effect): string => $effect->value, CardEffectEnum::cases()),
+        );
     }
 
     public function testEveryCaseHasANonEmptyLabel(): void
@@ -25,12 +33,15 @@ final class CardEffectEnumTest extends TestCase
 
     public function testTryFromNameParsesValidValue(): void
     {
-        $this->assertSame(CardEffectEnum::RAINBOW, CardEffectEnum::tryFromName('rainbow'));
+        $this->assertSame(CardEffectEnum::COSMOS, CardEffectEnum::tryFromName('cosmos'));
     }
 
     public function testTryFromNameReturnsNullForInvalidOrNull(): void
     {
         $this->assertNull(CardEffectEnum::tryFromName('not-a-preset'));
+        // removed presets (pre-migration JSON) must degrade to null, not throw
+        $this->assertNull(CardEffectEnum::tryFromName('rainbow'));
+        $this->assertNull(CardEffectEnum::tryFromName('vstar'));
         $this->assertNull(CardEffectEnum::tryFromName(null));
         $this->assertNull(CardEffectEnum::tryFromName(''));
     }

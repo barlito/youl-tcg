@@ -113,9 +113,9 @@ final class CardVisualResolverTest extends KernelTestCase
 
     public function testHoloEffectFallsBackToExtensionThenNull(): void
     {
-        $extension = $this->extension()->setVisualConfig(new VisualConfig(holoEffect: CardEffectEnum::SECRET));
+        $extension = $this->extension()->setVisualConfig(new VisualConfig(holoEffect: CardEffectEnum::TRAINER));
 
-        $this->assertSame(CardEffectEnum::SECRET, $this->resolver->resolve($this->card($extension))->holoEffect);
+        $this->assertSame(CardEffectEnum::TRAINER, $this->resolver->resolve($this->card($extension))->holoEffect);
         $this->assertNull($this->resolver->resolve($this->card($this->extension()))->holoEffect);
     }
 

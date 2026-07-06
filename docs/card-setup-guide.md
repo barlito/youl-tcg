@@ -14,7 +14,7 @@ Une carte combine quatre choses :
 | Levier | Où | Rôle |
 |--------|-----|------|
 | **Artwork** | upload `image` de la Card | l'illustration plein cadre |
-| **Preset holo** (`holoEffect`) | config visuelle Card / Extension | la *recette* d'effet (basic, cosmos, vmax…) |
+| **Preset holo** (`holoEffect`) | config visuelle Card / Extension | la *recette* d'effet (shine, basic, cosmos, trainer) |
 | **Foil** | upload `foil` de la Card / Extension | la texture qui « brille » sous l'effet |
 | **Mask** | upload `mask` de la Card / Extension | **où** l'effet apparaît sur la carte |
 
@@ -97,8 +97,8 @@ scintiller, le reste reste l'artwork.
 - **Faisceau / burst radial** → effet V / starburst.
 - **Nébuleuse + étoiles** → cosmos/galaxy.
 
-> Repars des textures pokeholo dans `public/images/holo/poke/` (glitter, ancient,
-> vmaxbg, geometric…) comme base/référence pour fabriquer les tiennes.
+> Repars des textures pokeholo dans `public/images/holo/poke/` (glitter,
+> trainerbg, cosmos-*…) comme base/référence pour fabriquer les tiennes.
 
 ### Où l'uploader
 
@@ -197,7 +197,7 @@ classe `holo` garde un voile au repos (utilisé par la révélation de booster).
 
 **Mon foil « crame » tout en blanc.**
 Artwork trop clair + `color-dodge`. Assombris le fond du foil (vers le noir),
-baisse les zones claires, ou choisis un preset moins agressif (`reverse`, `shine`).
+baisse les zones claires, ou choisis un preset moins agressif (`shine`).
 
 **Rien ne brille avec mon foil.**
 Ton foil est probablement trop sombre/uniforme : le `color-dodge` n'éclaircit que

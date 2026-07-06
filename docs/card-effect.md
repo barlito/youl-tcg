@@ -58,13 +58,12 @@ texture; uploading a foil on the card/extension overrides it (`--foil`).
 |-------|--------------------|-----------------|-------------------------------------|
 | `holo--shine` | `shine` | amazing-rare | — (glitter only) |
 | `holo--basic` | `basic` | regular-holo | — (linear sunpillar bars) |
-| `holo--reverse` | `reverse` | reverse-holo | — (soft-light/difference sweep) |
 | `holo--cosmos` | `cosmos` | cosmos-holo | `cosmos-bottom/middle/top.png` (galaxy) |
-| `holo--rainbow` | `rainbow` | rainbow/secret | `illusion-mask.png` |
-| `holo--secret` | `secret` | secret-rare (gold) | `geometric.png` |
-| `holo--vmax` | `vmax` | v-max | `vmaxbg.jpg` |
-| `holo--vstar` | `vstar` | v-star | `ancient.png` |
 | `holo--trainer` | `trainer` | v-full-art + trainer-full-art | `trainerbg.png` |
+
+> The set was trimmed from 9 presets to these 4 (migration
+> `Version20260706120000` remaps old configs: reverse→basic, rainbow/secret→shine,
+> vmax/vstar→trainer).
 
 Adaptation vs upstream: the artwork-window `clip-path`s are dropped (our cards
 are full-art, like pokeholo's v-/trainer-full-art), and the per-energy-type and
@@ -85,14 +84,11 @@ presets render out of the box; a per-card/extension foil upload overrides them.
 
 | File | Use |
 |------|-----|
-| `glitter.png` | sparkle layer (`shine`, `rainbow`, `secret`) |
+| `glitter.png` | sparkle layer (`shine`) |
 | `grain.webp` | film grain |
-| `illusion.png` / `illusion-mask.png` | foil illusion (`rainbow`, demo foil/mask) |
+| `illusion.png` / `illusion-mask.png` | demo foil/mask of the `/dev/card-effects` playground |
 | `cosmos-bottom/middle/top.png` | the 3 galaxy layers of `cosmos` |
-| `vmaxbg.jpg` | `vmax` foil |
-| `ancient.png` | `vstar` foil |
 | `trainerbg.png` | `trainer` foil |
-| `geometric.png` | `secret` foil |
 
 A **per-card or per-extension** foil/mask uploaded in the BO (Vich, stored in
 `public/images/foils|masks/`, git-ignored) overrides the preset default via the
