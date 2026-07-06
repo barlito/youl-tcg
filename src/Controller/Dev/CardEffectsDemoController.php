@@ -23,7 +23,7 @@ use Symfony\Component\Uid\Uuid;
  *    --holo-* knobs, selects for the holo preset + rarity, foil/mask toggles)
  *    wired by the card_playground Stimulus controller;
  *  - a gallery rendering every CardEffectEnum preset side by side;
- *  - the five rarity tiers (pure data-rarity defaults).
+ *  - the four rarity tiers (pure data-rarity defaults).
  *
  * The service only exists in the dev container (#[When]) and the route is
  * declared in config/routes.yaml under when@dev (a #[Route] attribute would
