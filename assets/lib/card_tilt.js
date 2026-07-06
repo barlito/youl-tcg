@@ -57,6 +57,10 @@ export class CardTilt {
     constructor(element) {
         this.element = element;
         this.rotator = element.querySelector('.card__rotator');
+        // The zoom translate/scale lives on the translater, NOT on the root:
+        // every pointer/centre computation must measure the translater's rect,
+        // or a zoomed card tracks the mouse against its empty grid slot.
+        this.translater = element.querySelector('.card__translater') || element;
         this.springs = {
             rotateX: this._spring(0),
             rotateY: this._spring(0),
@@ -102,6 +106,7 @@ export class CardTilt {
         if (activeInstance === this) {
             activeInstance = null;
         }
+        this._restoreAncestors();
         this._stopLoop();
     }
 
@@ -127,11 +132,12 @@ export class CardTilt {
         this.active = true;
         this.element.classList.add('active');
 
-        const rect = this.element.getBoundingClientRect();
+        const rect = this.translater.getBoundingClientRect();
         const scaleW = (window.innerWidth / rect.width) * 0.9;
         const scaleH = (window.innerHeight / rect.height) * 0.9;
         this.springs.scale.target = Math.min(scaleW, scaleH, MAX_POPOVER_SCALE);
         this.springs.flip.target = POPOVER_FLIP_DEG;
+        this._boostAncestors();
         this._setCenter();
 
         this._bindActiveListeners();
@@ -158,9 +164,9 @@ export class CardTilt {
 
     /** Aim the translate springs so the card sits at the viewport centre. */
     _setCenter() {
-        const rect = this.element.getBoundingClientRect();
-        // rect already includes the current translate, so add it back to get the
-        // delta from the card's resting position to the viewport centre.
+        const rect = this.translater.getBoundingClientRect();
+        // The translater's rect includes the current translate, so add it back
+        // to get the delta from the card's resting position to the centre.
         this.springs.translateX.target = round(
             window.innerWidth / 2 - rect.left - rect.width / 2 + this.springs.translateX.value,
         );
@@ -193,8 +199,52 @@ export class CardTilt {
         }
     }
 
+    /**
+     * A zoomed card must paint above everything, but any ancestor that creates
+     * a stacking context (transform/filter/z-index/opacity wrappers — the
+     * homepage hero does exactly that) traps its z-index. While active, lift
+     * every such ancestor; restored once the card has settled back home.
+     */
+    _boostAncestors() {
+        if (this._boosted) {
+            return;
+        }
+        this._boosted = [];
+        let node = this.element.parentElement;
+        while (node && node !== document.body) {
+            const style = getComputedStyle(node);
+            const createsContext = style.zIndex !== 'auto'
+                || style.transform !== 'none'
+                || style.filter !== 'none'
+                || (style.backdropFilter && style.backdropFilter !== 'none')
+                || parseFloat(style.opacity) < 1
+                || style.isolation === 'isolate'
+                || style.willChange.includes('transform')
+                || style.willChange.includes('opacity');
+            if (createsContext) {
+                this._boosted.push([node, node.style.position, node.style.zIndex]);
+                if (style.position === 'static') {
+                    node.style.position = 'relative'; // z-index needs a positioned box
+                }
+                node.style.zIndex = '500';
+            }
+            node = node.parentElement;
+        }
+    }
+
+    _restoreAncestors() {
+        if (!this._boosted) {
+            return;
+        }
+        for (const [node, position, zIndex] of this._boosted) {
+            node.style.position = position;
+            node.style.zIndex = zIndex;
+        }
+        this._boosted = null;
+    }
+
     _handlePointerMove(event) {
-        const rect = this.element.getBoundingClientRect();
+        const rect = this.translater.getBoundingClientRect();
         if (!rect.width || !rect.height) {
             return;
         }
@@ -266,6 +316,9 @@ export class CardTilt {
         if (!this.pointerInside && energy < SETTLE_THRESHOLD) {
             this._stopLoop();
             this.element.classList.remove('interacting');
+            if (!this.active) {
+                this._restoreAncestors(); // back in the grid: drop the lift
+            }
 
             return;
         }

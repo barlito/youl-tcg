@@ -846,7 +846,10 @@
  * and scaled up; keep it above the grid once the tilt loop settles and drops the
  * .interacting class. */
 .card.active {
-    z-index: 120;
+    /* above the sticky header (z-50) and every grid badge; position makes the
+       z-index effective whatever display the parent gives the card */
+    position: relative;
+    z-index: 500;
 }
 
 /* The --card-border accent border already lives in holo.css (.card__front),
