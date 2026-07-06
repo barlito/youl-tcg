@@ -105,6 +105,22 @@
     position: relative;
     z-index: calc(var(--card-scale) * 120);
   }
+
+  /* Settled, flat card taken OUT of its 3D rendering context (card_tilt.js
+     toggles this): inside perspective + preserve-3d the GPU rasterises at
+     layout size and stretches — pixelated once zoomed. Flat, the browser
+     re-rasterises at the true on-screen scale. */
+  .card.is-flat .card__translater,
+  .card.is-flat .card__rotator {
+    perspective: none;
+    transform-style: flat;
+  }
+  /* their translate3d(0,0,.01px) exists only for 3D ordering — flat, it just
+     pins another layer rasterised at layout size */
+  .card.is-flat .card__front,
+  .card.is-flat .card__front img {
+    transform: none;
+  }
   
   .card.active .card__translater,
   .card.active .card__rotator {

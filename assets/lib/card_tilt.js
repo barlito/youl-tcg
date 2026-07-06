@@ -140,8 +140,9 @@ export class CardTilt {
         this.element.classList.add('active');
 
         const rect = this.translater.getBoundingClientRect();
-        const scaleW = (window.innerWidth / rect.width) * 0.9;
-        const scaleH = (window.innerHeight / rect.height) * 0.9;
+        // ~3/4 of the viewport: the poke-holo presence — big, not wall-to-wall.
+        const scaleW = (window.innerWidth / rect.width) * 0.75;
+        const scaleH = (window.innerHeight / rect.height) * 0.75;
         this.springs.scale.target = Math.min(scaleW, scaleH, MAX_POPOVER_SCALE);
         this.springs.flip.target = POPOVER_FLIP_DEG;
         this._boostAncestors();
@@ -284,9 +285,10 @@ export class CardTilt {
         if (this.frame !== null) {
             return;
         }
-        // back on a compositor layer while the springs animate (see settle)
+        // back on a compositor layer + 3D context while the springs animate
         this.translater.style.willChange = '';
         this.rotator.style.willChange = '';
+        this.element.classList.remove('is-flat');
         this.element.classList.add('interacting');
         this.lastTime = performance.now();
         this.frame = requestAnimationFrame((now) => this._tick(now));
@@ -303,11 +305,10 @@ export class CardTilt {
         const dt = Math.min((now - this.lastTime) / 1000, MAX_DT);
         this.lastTime = now;
 
-        // The popover springs (scale / translate) use a softer, slower spring
-        // than the tilt springs so the zoom glides instead of snapping. The
-        // flip stays on the stiff spring: a punchier spin that also settles
-        // fast — the crisp re-raster below waits on every spring.
-        const popover = new Set(['scale', 'translateX', 'translateY']);
+        // The popover springs (scale / translate / flip) use a softer, slower
+        // spring than the tilt springs so the zoom (and its spin) glides at the
+        // poke-holo pace instead of snapping.
+        const popover = new Set(['scale', 'translateX', 'translateY', 'flip']);
 
         let settled = true;
         for (const [name, spring] of Object.entries(this.springs)) {
@@ -341,12 +342,22 @@ export class CardTilt {
                     this._restoreAncestors(); // back in the grid: drop the lift
                 }
             }
-            // Drop the will-change layer promotion once settled: with it on, the
-            // GPU keeps the raster cached at pre-zoom size and just stretches it
-            // (visibly pixelated at dpr 1). Cleared, the browser re-rasterises
-            // the card crisp at its final scale; _startLoop re-promotes.
+            // Crispness at rest: inside a 3D rendering context (perspective +
+            // preserve-3d) the GPU pins the raster at LAYOUT size and merely
+            // stretches it — visibly pixelated once zoomed, dpr 1 worst. When
+            // the card has settled flat (identity rotation), drop out of 3D
+            // entirely (is-flat + transform none) and release will-change: the
+            // browser re-rasterises at the real on-screen scale. _startLoop
+            // restores the 3D context the moment anything moves again.
             this.translater.style.willChange = 'auto';
             this.rotator.style.willChange = 'auto';
+            const flat = Math.abs(this.springs.rotateX.value) < 0.1
+                && Math.abs(this.springs.rotateY.value) < 0.1
+                && Math.abs(this.springs.flip.value % 360) < 0.5;
+            if (flat) {
+                this.rotator.style.transform = 'none';
+                this.element.classList.add('is-flat');
+            }
 
             return;
         }
