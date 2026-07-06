@@ -181,6 +181,46 @@ final class CardDrawerTest extends TestCase
         $drawer->drawReplacement($this->booster([['rare' => 100]]), CardRarityEnum::RARE);
     }
 
+    public function testDrawReplacementKeepsTheHoloRolledBySlot(): void
+    {
+        $drawer = $this->createDrawer([
+            $this->card('Plain rare', CardRarityEnum::RARE),
+        ]);
+        $booster = $this->booster([['rare' => 100]]);
+
+        // Losing the unique must not also cost the holo the slot rolled.
+        $this->assertTrue($drawer->drawReplacement($booster, CardRarityEnum::RARE, holo: true)->holo);
+        $this->assertFalse($drawer->drawReplacement($booster, CardRarityEnum::RARE, holo: false)->holo);
+    }
+
+    public function testDrawReplacementDoesNotDesyncTheSeededMainStream(): void
+    {
+        $cards = [
+            $this->card('Common A', CardRarityEnum::COMMON),
+            $this->card('Common B', CardRarityEnum::COMMON),
+            $this->card('Plain rare', CardRarityEnum::RARE),
+        ];
+        $booster = $this->booster([['common' => 70, 'rare' => 30], ['common' => 70, 'rare' => 30]]);
+
+        $names = static fn (array $drawnCards): array => array_map(
+            static fn ($drawnCard): string => $drawnCard->card->getName() . ($drawnCard->holo ? '*' : ''),
+            $drawnCards,
+        );
+
+        // Reference: seeded draw with no replacement roll in between.
+        $reference = new RandomService();
+        $reference->seed(20260706);
+        $referenceDraw = $names(new CardDrawer($this->repositoryWith($cards), $reference)->draw($booster));
+
+        // Same seed, but a replacement roll happens first — the audit guarantee
+        // is that the stored seed still replays the main draw identically.
+        $random = new RandomService();
+        $random->seed(20260706);
+        $drawer = new CardDrawer($this->repositoryWith($cards), $random);
+        $drawer->drawReplacement($booster, CardRarityEnum::RARE);
+        $this->assertSame($referenceDraw, $names($drawer->draw($booster)));
+    }
+
     public function testSameSeedReproducesTheSameDraw(): void
     {
         $cards = [

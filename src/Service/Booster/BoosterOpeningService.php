@@ -90,7 +90,7 @@ final readonly class BoosterOpeningService
                 $claimedHere[$cardId] = true;
                 $resolved[] = $drawnCard;
             } else {
-                $resolved[] = $this->cardDrawer->drawReplacement($booster, $drawnCard->rarity);
+                $resolved[] = $this->cardDrawer->drawReplacement($booster, $drawnCard->rarity, $drawnCard->holo);
             }
         }
 

@@ -31,9 +31,14 @@ class CardRepository extends ServiceEntityRepository
      */
     public function findExtensionIdsWithPublishedCards(): array
     {
+        // Same drawability rule as findDrawablePool (a claimed 1/1 unique is not
+        // drawable): the hub's "ouvrable" state and the opening page must agree
+        // with what CardDrawer can actually draw, or an extension left with only
+        // claimed uniques would show "Ouvrir" and then fail the draw.
         return array_map(static fn (mixed $id): string => (string) $id, array_values($this->createQueryBuilder('c')
             ->select('IDENTITY(c.extension) AS extensionId')
             ->andWhere('c.status = :status')
+            ->andWhere('c.uniqueFlag = false OR c.claimedBy IS NULL')
             ->setParameter('status', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
             ->distinct()
             ->getQuery()

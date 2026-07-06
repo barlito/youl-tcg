@@ -59,22 +59,29 @@ final readonly class CardDrawer
     /**
      * Draws a single replacement card of (or near) the given rarity, excluding
      * ALL unique cards. Used when a drawn unique was claimed by someone else in
-     * a concurrent opening: the slot falls back to another card of the rarity.
+     * a concurrent opening: the slot falls back to another card of the rarity,
+     * KEEPING the holo the slot originally rolled (losing the unique must not
+     * also cost a holo the booster config guaranteed).
+     *
+     * Rolls on the RNG side stream: whether a replacement happens depends on
+     * concurrent claims, so it must not desync the seed-replay of the main draw.
      */
-    public function drawReplacement(Booster $booster, CardRarityEnum $rarity): DrawnCard
+    public function drawReplacement(Booster $booster, CardRarityEnum $rarity, bool $holo = false): DrawnCard
     {
         $pool = $this->loadPool($booster->getExtension(), excludeUniques: true);
 
         if ([] === $pool) {
-            throw new NoCardAvailableException(\sprintf('Extension "%s" has no non-unique card for a replacement draw.', $booster->getExtension()->getName()));
+            throw new NoCardAvailableException(
+                \sprintf('Extension "%s" has no non-unique card for a replacement draw.', $booster->getExtension()->getName()),
+                'Ce booster n\'a aucune carte à tirer pour le moment, réessaie plus tard.',
+            );
         }
 
         $resolved = $this->resolveAvailableRarity($pool, $rarity);
         $candidates = $pool[$resolved->value];
-        $card = $candidates[$this->randomService->getInt(0, \count($candidates) - 1)];
+        $card = $candidates[$this->randomService->getSideInt(0, \count($candidates) - 1)];
 
-        // No slot context here, so only the card's forced-holo flag applies.
-        return new DrawnCard($card, $resolved, $card->isAlwaysHolo());
+        return new DrawnCard($card, $resolved, $holo || $card->isAlwaysHolo());
     }
 
     /**
