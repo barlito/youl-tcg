@@ -15,6 +15,7 @@ use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterClaimService;
 use App\Service\Booster\BoosterOpeningService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Uid\Uuid;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
@@ -71,6 +72,15 @@ final class BoosterHub extends AbstractController
     }
 
     /**
+     * Server-computed remaining seconds before the quota reset, so the
+     * client countdown never depends on the client clock.
+     */
+    public function getSecondsUntilReset(): int
+    {
+        return max(0, $this->getNextResetTime()->getTimestamp() - time());
+    }
+
+    /**
      * @return array<string, int> booster id => owned quantity
      */
     public function getInventory(): array
@@ -116,9 +126,9 @@ final class BoosterHub extends AbstractController
     {
         $this->error = null;
 
-        $booster = $this->boosterRepository->find($boosterId);
+        $booster = $this->findBooster($boosterId);
 
-        if (null === $booster) {
+        if (!$booster instanceof Booster) {
             $this->error = 'Booster introuvable.';
 
             return;
@@ -127,7 +137,7 @@ final class BoosterHub extends AbstractController
         try {
             $this->boosterClaimService->claim($this->getDiscordUser(), $booster);
         } catch (BoosterException $exception) {
-            $this->error = $exception->getMessage();
+            $this->error = $exception->getUserMessage();
         }
     }
 
@@ -136,9 +146,9 @@ final class BoosterHub extends AbstractController
     {
         $this->error = null;
 
-        $booster = $this->boosterRepository->find($boosterId);
+        $booster = $this->findBooster($boosterId);
 
-        if (null === $booster) {
+        if (!$booster instanceof Booster) {
             $this->error = 'Booster introuvable.';
 
             return;
@@ -150,7 +160,7 @@ final class BoosterHub extends AbstractController
         try {
             $this->opening = $this->boosterOpeningService->open($user, $booster);
         } catch (BoosterException $exception) {
-            $this->error = $exception->getMessage();
+            $this->error = $exception->getUserMessage();
 
             return;
         }
@@ -170,6 +180,19 @@ final class BoosterHub extends AbstractController
         $this->opening = null;
         $this->newCardIds = [];
         $this->error = null;
+    }
+
+    /**
+     * The id is client-provided (LiveArg): a malformed uuid must resolve to
+     * "not found" instead of a Doctrine conversion error.
+     */
+    private function findBooster(string $boosterId): ?Booster
+    {
+        if (!Uuid::isValid($boosterId)) {
+            return null;
+        }
+
+        return $this->boosterRepository->find($boosterId);
     }
 
     private function getDiscordUser(): DiscordUser

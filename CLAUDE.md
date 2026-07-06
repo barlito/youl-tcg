@@ -131,7 +131,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 1. **BoosterClaimService::claim()** — asks the quota policy (`BoosterClaimQuotaInterface` / `DailyBoosterClaimQuota`) for remaining claims, credits `UserBooster` via UserInventoryService, persists a `BoosterClaim`. In dev only, the `UnlimitedBoosterClaimQuota` decorator (`#[When(env: 'dev')]`) lifts the limit unless `BOOSTER_DAILY_LIMIT_ENABLED=true` is set in `.env.dev` — prod code carries no bypass
 2. **BoosterOpeningService::open()** — one transaction: pessimistic-locked inventory debit, seeded `CardDrawer::draw()` (per-slot weighted rarity roll, uniform pick in the tier, fallback to the nearest tier with cards, holo roll), duplicate aggregation, `UserCard` credit, audit persistence
 3. **RandomService** (`src/Service/Random/`) — seedable `Random\Randomizer` wrapper; the seed is stored on `BoosterOpening`
-4. UI: **not implemented yet** — the booster opening pages arrive with the phase 2 "Violet Arcade" design (`/boosters` is still coming_soon). The engine is fully tested at the service level.
+4. UI: `/boosters` is the opening hub (`BoosterHub` Live Component — claim, open, loot summary). The engine is fully tested at the service level.
 
 **Common Traits:**
 - `IdUuidTrait` (from barlito/utils): UUID primary keys
@@ -152,7 +152,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 **Frontend (`src/Controller/`):**
 - **BaseController**: Homepage with 3 random published cards (cached daily)
-  - Routes: `/` (homepage), `/extensions` (coming soon), `/boosters` (coming soon — phase 2 design)
+  - Routes: `/` (homepage), `/extensions` (coming soon), `/boosters` (opening hub)
   - Uses custom `CardRepository::findRandomCardId()` with RANDOM() DQL function
 
 **Admin (`src/Controller/Admin/`):**

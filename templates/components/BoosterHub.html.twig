@@ -27,7 +27,7 @@
                             Prochains packs dans
                             <span class="text-primary"
                                   data-controller="countdown"
-                                  data-countdown-target-value="{{ this.nextResetTime.format('c') }}">--:--:--</span>
+                                  data-countdown-seconds-value="{{ this.secondsUntilReset }}">--:--:--</span>
                         </p>
                     {% else %}
                         <p class="chip-mono text-live">✦ {{ this.remainingClaims }} pack{{ this.remainingClaims > 1 ? 's' }} à récupérer</p>

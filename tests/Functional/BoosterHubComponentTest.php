@@ -69,6 +69,29 @@ final class BoosterHubComponentTest extends WebTestCase
         $this->assertSame($booster->getCardCount(), $totalCards);
     }
 
+    public function testClaimBoosterWithMalformedIdReportsNotFoundInsteadOfCrashing(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        $component->call('claimBooster', ['boosterId' => 'not-a-uuid']);
+
+        $this->assertSame('Booster introuvable.', $component->component()->error);
+    }
+
+    public function testErrorsAreReportedInFrench(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $booster = $this->firstPublishedBooster();
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        $component->call('openBooster', ['boosterId' => (string) $booster->getId()]);
+
+        $this->assertSame('Tu ne possèdes pas ce booster.', $component->component()->error);
+    }
+
     public function testOpeningWithoutInventoryReportsAnError(): void
     {
         $client = static::createClient();

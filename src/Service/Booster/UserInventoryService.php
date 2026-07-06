@@ -53,7 +53,7 @@ class UserInventoryService
         $userBooster = $this->userBoosterRepository->findOneForUpdate($discordUser, $booster);
 
         if (!$userBooster instanceof UserBooster || $userBooster->getQuantity() < 1) {
-            throw new NoBoosterInInventoryException('You do not own this booster.');
+            throw new NoBoosterInInventoryException('You do not own this booster.', 'Tu ne possèdes pas ce booster.');
         }
 
         return $userBooster->setQuantity($userBooster->getQuantity() - 1);
