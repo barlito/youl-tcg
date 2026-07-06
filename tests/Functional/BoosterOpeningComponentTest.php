@@ -109,7 +109,8 @@ final class BoosterOpeningComponentTest extends WebTestCase
 
         $opening = $component->component();
         $this->assertNull($opening->opening);
-        $this->assertNotNull($opening->error);
+        // The player-facing message is French, not the technical exception message.
+        $this->assertSame('Tu ne possèdes pas ce booster.', $opening->error);
     }
 
     public function testResetAllowsOpeningAnotherPack(): void

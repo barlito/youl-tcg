@@ -12,6 +12,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Uid\Uuid;
 
 class BoosterController extends AbstractController
 {
@@ -28,7 +29,8 @@ class BoosterController extends AbstractController
         CardRepository $cardRepository,
         UserBoosterRepository $userBoosterRepository,
     ): Response {
-        $booster = $boosterRepository->find($id);
+        // A malformed uuid must be a plain 404 instead of a Doctrine conversion error.
+        $booster = Uuid::isValid($id) ? $boosterRepository->find($id) : null;
 
         if (null === $booster) {
             throw $this->createNotFoundException();

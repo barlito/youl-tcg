@@ -36,6 +36,16 @@ final class BoosterOpenPageTest extends WebTestCase
         $this->assertResponseRedirects('/boosters');
     }
 
+    public function testMalformedBoosterIdIsAPlainNotFound(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+
+        $client->request('GET', '/boosters/not-a-uuid/open');
+
+        $this->assertResponseStatusCodeSame(404);
+    }
+
     public function testRendersTheOpeningPageWhenOwned(): void
     {
         $client = static::createClient();

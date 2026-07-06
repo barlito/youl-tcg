@@ -125,6 +125,13 @@
     mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
 }
 
+/* WebGL/model unavailable: the controller falls back to a direct reveal, so
+ * don't leave a dead, grabbable canvas in the middle of the stage */
+.opening__3d.is-unavailable {
+    visibility: hidden;
+    cursor: default;
+}
+
 /* soft halo BEHIND the pack so it pops — fades fully to transparent well inside
  * the stage box, so (unlike a darkening vignette) it never paints a rectangle */
 .opening__3d::after {

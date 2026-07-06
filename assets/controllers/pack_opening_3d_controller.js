@@ -21,10 +21,13 @@ import { drawPackFront, PACK_FRONT_W, PACK_FRONT_H } from '../lib/pack_front.js'
  *   - a continuous idle float + a damped pointer-driven parallax tilt.
  * Contact shadow + vignette live in opening.css (the canvas is alpha).
  *
- * Strictly additive: if WebGL is unavailable, the model fails to load, or the
- * user prefers reduced motion, this controller does nothing and the 2D swipe
- * pack stays in place (CSS only hides it once `is-ready` is set here). Anything
- * cosmetic (sparkles, normal map) is best-effort and never aborts the pack.
+ * Strictly additive: if WebGL is unavailable or the model fails to load, the
+ * controller marks itself `is-unavailable` (CSS hides the dead canvas) and
+ * `arm()` commits immediately — the reveal starts right after the server-side
+ * draw, no peel required, so the booster is never debited without a reveal.
+ * Under prefers-reduced-motion the reveal controller shows everything at once
+ * on its own. Anything cosmetic (sparkles, normal map) is best-effort and
+ * never aborts the pack.
  */
 
 // A full tear is a share of the pack's on-screen WIDTH — the baked flap peels
@@ -73,11 +76,18 @@ export default class extends Controller {
         this.pointer = { x: 0, y: 0 };
         this.dragDistance = DRAG_DISTANCE;
 
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !this._webglAvailable()) {
-            return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            return; // the reveal controller shows everything at once on its own
         }
 
-        this._init().catch(() => this._teardown());
+        if (this._webglAvailable()) {
+            this._init().catch(() => {
+                this._teardown();
+                this._markUnavailable();
+            });
+        } else {
+            this._markUnavailable();
+        }
 
         // We live in a data-live-ignore subtree, so a bubbling event is our only
         // channel to the reveal controller — and a live re-render can re-instantiate
@@ -197,7 +207,7 @@ export default class extends Controller {
         this.clock = new THREE.Clock();
         this._applyProgress(0); // sealed at rest (clip time 0)
 
-        this.element.classList.add('is-ready'); // CSS hides the 2D fallback pack
+        this.element.classList.add('is-ready'); // styling hook: the 3D pack is live
         this._updateDragDistance();
         this._onResize = () => this._resize();
         window.addEventListener('resize', this._onResize);
@@ -423,10 +433,25 @@ export default class extends Controller {
         });
     }
 
+    // No 3D pack to peel (WebGL missing or model failed to load): the draw is
+    // already persisted server-side, so hand off to the reveal immediately —
+    // never leave a debited booster stuck behind a dead canvas.
+    _markUnavailable() {
+        this.unavailable = true;
+        this.element.classList.add('is-unavailable');
+        if (this.armed && !this.committed) {
+            this._commit();
+        }
+    }
+
     // Enable peeling — fired (via a window event) once the booster has been drawn
     // server-side, so the wrapper can't be torn before there are cards to reveal.
     arm() {
         this.armed = true;
+
+        if (this.unavailable && !this.committed) {
+            this._commit();
+        }
     }
 
     // Re-seal for another draw — this pack lives in a data-live-ignore subtree and
@@ -480,9 +505,9 @@ export default class extends Controller {
         }
     }
 
-    // fallback: click to open in one go
+    // fallback: click to open in one go — must work without a renderer too
     openAtOnce() {
-        if (this.renderer && this.armed && !this.committed) {
+        if (this.armed && !this.committed) {
             this._commit();
         }
     }
