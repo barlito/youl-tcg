@@ -36,6 +36,23 @@ final class BoosterHubComponentTest extends WebTestCase
         $this->assertNotNull($userBooster);
         $this->assertSame(1, $userBooster->getQuantity());
         $this->assertNull($component->component()->error);
+
+        // The owned count is surfaced on the pack card and totalled in the hero.
+        $rendered = (string) $component->render();
+        $this->assertStringContainsString('◈ 1 pack à ouvrir', $rendered);
+        $this->assertStringContainsString('◈ 1 pack en stock', $rendered);
+    }
+
+    public function testEmptyInventoryShowsAnExplicitZeroStockState(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        $rendered = (string) $component->render();
+
+        $this->assertStringContainsString('◈ Aucun pack', $rendered);
+        $this->assertStringContainsString('◈ 0 pack en stock', $rendered);
     }
 
     public function testClaimBoosterWithMalformedIdReportsNotFoundInsteadOfCrashing(): void

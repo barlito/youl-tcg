@@ -32,6 +32,11 @@
                     {% else %}
                         <p class="chip-mono text-live">✦ {{ this.remainingClaims }} pack{{ this.remainingClaims > 1 ? 's' }} à récupérer</p>
                     {% endif %}
+
+                    {% set totalOwned = this.totalOwned %}
+                    <p class="chip-mono {{ totalOwned > 0 ? 'text-primary' : 'text-ink-dim' }}" data-testid="total-owned">
+                        ◈ {{ totalOwned }} pack{{ totalOwned > 1 ? 's' }} en stock
+                    </p>
                 </div>
             </div>
         </section>
@@ -87,29 +92,39 @@
                                        aria-label="Ouvrir un pack {{ booster.extension.name }}"></a>
                                 {% endif %}
 
-                                {# footer: claim chip on the left, open / status on the right #}
-                                <div class="relative z-20 mt-4 flex items-center justify-between border-t border-hairline pt-3">
+                                {# footer: owned stock on the left, open / status on the right, claim below #}
+                                <div class="relative z-20 mt-4 border-t border-hairline pt-3">
+                                    <div class="flex min-h-7 items-center justify-between gap-2">
+                                        {% if owned > 0 %}
+                                            <span class="chip-mono border border-primary/40 bg-primary/10 px-2 py-1 font-bold text-primary" data-testid="owned-count">
+                                                ◈ {{ owned }} pack{{ owned > 1 ? 's' }} à ouvrir
+                                            </span>
+                                        {% else %}
+                                            <span class="chip-mono border border-transparent px-2 py-1 text-ink-dim" data-testid="owned-count">
+                                                ◈ Aucun pack
+                                            </span>
+                                        {% endif %}
+
+                                        {% if owned > 0 and drawable %}
+                                            <a href="{{ path('booster_open', {id: booster.id}) }}"
+                                               class="flex items-center gap-1 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-strong transition hover:text-primary">
+                                                Ouvrir <span aria-hidden="true">›</span>
+                                            </a>
+                                        {% elseif not drawable %}
+                                            <span class="font-mono text-[11px] uppercase tracking-[.1em] text-ink-dim"
+                                                  title="Cette extension n'a pas encore de carte publiée.">À venir</span>
+                                        {% endif %}
+                                    </div>
+
                                     {% if remainingClaims > 0 %}
                                         <button type="button"
                                                 data-action="live#action"
                                                 data-live-action-param="claimBooster"
                                                 data-live-booster-id-param="{{ booster.id }}"
-                                                class="font-mono text-[11px] font-bold uppercase tracking-[.1em] text-primary transition hover:text-ink-strong">
+                                                class="mt-2 px-2 font-mono text-[11px] font-bold uppercase tracking-[.1em] text-primary transition hover:text-ink-strong">
                                             <span data-loading="hide">+ Récupérer</span>
                                             <span data-loading="show" class="hidden">···</span>
                                         </button>
-                                    {% else %}
-                                        <span class="chip-mono text-ink-dim">×{{ owned }}</span>
-                                    {% endif %}
-
-                                    {% if owned > 0 and drawable %}
-                                        <a href="{{ path('booster_open', {id: booster.id}) }}"
-                                           class="flex items-center gap-1 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-strong transition hover:text-primary">
-                                            Ouvrir <span aria-hidden="true">›</span>
-                                        </a>
-                                    {% elseif not drawable %}
-                                        <span class="font-mono text-[11px] uppercase tracking-[.1em] text-ink-dim"
-                                              title="Cette extension n'a pas encore de carte publiée.">À venir</span>
                                     {% endif %}
                                 </div>
                             </article>
