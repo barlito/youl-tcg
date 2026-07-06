@@ -53,12 +53,19 @@
         </section>
 
         {# ---------------------------------------------------------- Ticker #}
+        {# Paliers de rareté (source unique ticker + section Raretés) : doit suivre CardRarityEnum #}
+        {% set rarities = [
+            {label: 'Common', chip: 'C', color: 'var(--rarity-common)'},
+            {label: 'Uncommon', chip: 'U', color: 'var(--rarity-uncommon)'},
+            {label: 'Rare', chip: 'R', color: 'var(--rarity-rare)'},
+            {label: 'Legendary', chip: 'L', color: 'var(--rarity-legendary)'},
+        ] %}
         {% set tickerItems = [
             "✦ %s packs ouverts"|format(packsOpenedCount|number_format(0, ',', ' ')),
             '✦ %d univers'|format(extensions|length),
             '✦ %d cartes à collectionner'|format(cardsTotal),
             '✦ 2 packs / jour',
-            '✦ 5 paliers de rareté',
+            '✦ %d paliers de rareté'|format(rarities|length),
         ] %}
         {# La boucle marquee = 2 copies de la piste, translateX(-50%). Chaque
            copie répète les items 3× pour rester plus large que le viewport :
@@ -157,25 +164,18 @@
             <div class="mx-auto max-w-7xl">
                 <p class="eyebrow">02 / Raretés</p>
                 <h2 class="mb-10 mt-4 font-display text-5xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-6xl">
-                    5 paliers.
+                    {{ rarities|length }} paliers.
                 </h2>
 
-                {# Poids purement indicatifs (copy marketing) : les vrais taux sont définis par booster #}
-                {% set rarities = [
-                    {label: 'Common', chip: 'C', weight: 60, color: 'var(--rarity-common)'},
-                    {label: 'Uncommon', chip: 'U', weight: 25, color: 'var(--rarity-uncommon)'},
-                    {label: 'Rare', chip: 'R', weight: 14, color: 'var(--rarity-rare)'},
-                    {label: 'Legendary', chip: 'L', weight: 1, color: 'var(--rarity-legendary)'},
-                ] %}
-                <div class="flex flex-col items-stretch md:flex-row">
+                {# Pas de « drop rate » global affiché : les vrais taux sont définis slot par slot, booster par booster #}
+                <div class="grid md:grid-cols-4">
                     {% for rarity in rarities %}
                         <div class="px-5 py-8 {{ not loop.last ? 'md:border-r md:border-white/10' }}"
-                             style="flex: {{ rarity.weight + 5 }} 1 0%; border-top: 3px solid {{ rarity.color }}; background: linear-gradient(180deg, color-mix(in srgb, {{ rarity.color }} 9%, transparent), transparent);">
-                            <p class="chip-mono font-bold !tracking-[.2em]" style="color: {{ rarity.color }};">{{ rarity.chip }} · {{ rarity.label|upper }}</p>
-                            <p class="mt-4 font-display text-5xl font-bold tracking-[-0.04em] text-ink-strong">
-                                {{ rarity.weight }}<span class="text-2xl" style="color: {{ rarity.color }};">%</span>
+                             style="border-top: 3px solid {{ rarity.color }}; background: linear-gradient(180deg, color-mix(in srgb, {{ rarity.color }} 9%, transparent), transparent);">
+                            <p class="chip-mono font-bold !tracking-[.2em]" style="color: {{ rarity.color }};">TIER {{ '%02d'|format(loop.index) }}</p>
+                            <p class="mt-4 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong">
+                                {{ rarity.chip }}<span class="text-2xl" style="color: {{ rarity.color }};"> · {{ rarity.label }}</span>
                             </p>
-                            <p class="chip-mono mt-2 text-ink-dim">drop rate</p>
                         </div>
                     {% endfor %}
                 </div>

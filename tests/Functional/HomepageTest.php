@@ -49,7 +49,7 @@ final class HomepageTest extends WebTestCase
         // The design uppercases through CSS: the DOM keeps the source case.
         $body = $crawler->filter('main')->text();
         $this->assertStringContainsString('PRESS START', $body);
-        $this->assertStringContainsString('5 paliers.', $body);
+        $this->assertStringContainsString('4 paliers.', $body);
         $this->assertStringContainsString('Prochain univers', $body);
     }
 
