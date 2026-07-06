@@ -196,6 +196,10 @@
     mix-blend-mode: hard-light;
 }
 
+/* Softened vs upstream: the luminosity radial + the overlay glare:after were
+ * crushing the artwork away from the pointer (near-black far stops, brightness
+ * .6, contrast 3-4). Lighter far stops and gentler filters keep the pointer
+ * hotspot without darkening the rest of the card. */
 .card.holo--basic .card__shine:after {
     content: "";
     background-image:
@@ -203,17 +207,17 @@
             farthest-corner circle at var(--pointer-x) var(--pointer-y),
             hsla(0, 0%, 90%, 0.8) 0%,
             hsla(0, 0%, 78%, 0.1) 25%,
-            hsl(0, 0%, 0%) 90%
+            hsl(0, 0%, 32%) 100%
         );
     background-position: center center;
     background-size: cover;
     mix-blend-mode: luminosity;
-    filter: brightness(0.6) contrast(4);
+    filter: brightness(0.85) contrast(2.2);
 }
 
 .card.holo--basic .card__glare {
     opacity: calc(var(--card-opacity) * .8);
-    filter: brightness(0.8) contrast(1.5);
+    filter: brightness(1) contrast(1.5);
     mix-blend-mode: overlay;
 }
 
@@ -224,10 +228,10 @@
             farthest-corner circle at var(--pointer-x) var(--pointer-y),
             hsl(180, 100%, 95%) 5%,
             hsla(0, 0%, 39%, 0.25) 55%,
-            hsla(0, 0%, 0%, 0.36) 110%
+            hsla(0, 0%, 30%, 0.25) 110%
         );
     mix-blend-mode: overlay;
-    filter: brightness(.6) contrast(3);
+    filter: brightness(.85) contrast(2);
 }
 
 /* ==================================================================== cosmos
@@ -325,14 +329,18 @@
     mix-blend-mode: multiply;
 }
 
+/* Softened vs upstream: both glare radials faded to near-black greys
+ * (hsla(250,15%,20%) / hsl(0,0%,10%)) with brightness .75, blacking out the
+ * half of the card away from the pointer. Raised towards the neutral point of
+ * overlay/soft-light (50% grey) so the highlight stays, the darkening goes. */
 .card.holo--cosmos .card__glare {
     background-image:
         radial-gradient(
             farthest-corner circle at var(--pointer-x) var(--pointer-y),
             hsla(204, 100%, 95%, 0.8) 5%,
-            hsla(250, 15%, 20%, 1) 150%
+            hsla(250, 15%, 45%, .6) 150%
         );
-    filter: brightness(.75) contrast(2) saturate(2);
+    filter: brightness(.95) contrast(2) saturate(2);
     mix-blend-mode: overlay;
     opacity: calc(var(--card-opacity) * (0.25 + var(--pointer-from-center)));
 }
@@ -343,9 +351,9 @@
         radial-gradient(farthest-corner circle at
             var(--pointer-x) var(--pointer-y),
             hsl(280, 100%, 96%) 5%,
-            hsl(0, 0%, 10%) 60%
+            hsl(0, 0%, 42%) 90%
         );
-    filter: brightness(.75) contrast(2.5) saturate(2);
+    filter: brightness(.95) contrast(2.5) saturate(2);
     mix-blend-mode: soft-light;
     opacity: calc(1 - var(--pointer-from-top) * .75);
 }
