@@ -1,23 +1,19 @@
 /*
- * Calques holo par rareté — pilotés par les variables que card_controller.js
- * écrit à chaque frame (--background-x/y, --pointer-x/y, --pointer-from-center,
- * --card-opacity).
+ * Rareté & config visuelle — calques communs des cartes.
  *
- * Recettes maison (gradients + blend modes), intensité croissante
- * common → legendary. Hors interaction, tout est éteint : le contrôleur pose
- * .interacting pendant l'animation et la retire une fois la carte stabilisée —
- * indispensable pour la grille collection (color-dodge × 20 cartes).
+ * Depuis la purge des recettes « défaut data-rarity » (étape 6b), l'effet HOLO
+ * passe UNIQUEMENT par les presets pokeholo (holo-presets.css, cascade
+ * carte → extension via CardVisualResolver ; une carte tirée holo sans preset
+ * configuré retombe sur holo--basic, couture dans CardComponent.html.twig).
+ *
+ * Ce fichier ne garde que ce qui n'est PAS une recette holo :
+ *   - le glow par rareté (--card-glow) + le halo pendant l'interaction ;
+ *   - l'extinction perf des calques hors interaction ;
+ *   - la bordure d'accent pilotée par la config visuelle (--card-border).
  */
 
 .card {
     --card-opacity: 0;
-    /* Holo knobs — defaulted per rarity below, overridable per card/extension via
-     * inline vars from the BO visual config (inline always wins over these).
-     * Target = a subtle shimmer that lets the native artwork stay dominant
-     * (poke-holo "Dedenne reverse" reference), NOT a rainbow repaint. */
-    --holo-intensity: .5;
-    --holo-saturation: .9;
-    --holo-glitter: .4;
 }
 
 /* ------------------------------------------------ Perf : éteint hors survol */
@@ -28,40 +24,23 @@
     visibility: hidden;
 }
 
-/* ----------------------------------------- Glow et intensité par rareté */
+/* --------------------------------------------------- Glow par rareté */
 
-/*
- * Rarities differ by SATURATION and GLITTER density, not by brightness/intensity
- * escalation — a legendary must stay as readable as an uncommon, just more
- * chatoyant (poke-holo principle). Intensity is kept low and flat on the top tier.
- */
 /* --rarity-* come from the host theme; the fallbacks keep this file self-contained
- * (the effect works even if you copy it into an app without the project tokens). */
+ * (the glow works even if you copy it into an app without the project tokens). */
 .card[data-rarity="common"] {
-    --holo-intensity: .22;
-    --holo-saturation: .8;
     --card-glow: var(--rarity-common, #9aa3b2);
 }
 
 .card[data-rarity="uncommon"] {
-    --holo-intensity: .32;
-    --holo-saturation: .85;
     --card-glow: var(--rarity-uncommon, #5be584);
 }
 
 .card[data-rarity="rare"] {
-    --holo-intensity: .4;
-    --holo-saturation: .9;
-    --holo-glitter: .25;
     --card-glow: var(--rarity-rare, #54a8ff);
 }
 
-/* legendary keeps the SAME (low) saturation as rare — it only differs by glitter
- * density, never by saturation/brightness (so it stays as readable as a rare) */
 .card[data-rarity="legendary"] {
-    --holo-intensity: .52;
-    --holo-saturation: .95;
-    --holo-glitter: .5;
     --card-glow: var(--rarity-legendary, #ff8a2b);
 }
 
@@ -74,133 +53,6 @@
         0 10px 20px -5px black,
         0 0 40px -30px var(--card-glow),
         0 0 50px -20px var(--card-glow);
-}
-
-/* --------------------------- common / uncommon : balayage diagonal simple */
-/* Pas de color-dodge sur les tiers bas : un overlay suffit et coûte rien. */
-
-.card[data-rarity="common"] .card__shine,
-.card[data-rarity="uncommon"] .card__shine {
-    background-image: linear-gradient(
-        115deg,
-        transparent 35%,
-        rgba(255, 255, 255, .5) 50%,
-        transparent 65%
-    );
-    background-size: 250% 250%;
-    background-position: var(--background-x, 50%) var(--background-y, 50%);
-    mix-blend-mode: overlay;
-    filter: none;
-    opacity: calc(var(--card-opacity) * var(--holo-intensity) * 2);
-}
-
-.card[data-rarity="uncommon"] .card__shine {
-    background-image: linear-gradient(
-        115deg,
-        transparent 35%,
-        rgba(91, 229, 132, .4) 47%,
-        rgba(255, 255, 255, .45) 53%,
-        transparent 65%
-    );
-}
-
-/* ------------------- rare / legendary : sunpillars + radial foil */
-
-.card[data-rarity="rare"] .card__shine,
-.card[data-rarity="legendary"] .card__shine {
-    background-image:
-        var(--foil, linear-gradient(transparent, transparent)),
-        repeating-linear-gradient(
-            90deg,
-            var(--sunpillar-clr-1) 0%,
-            var(--sunpillar-clr-2) 5%,
-            var(--sunpillar-clr-3) 10%,
-            var(--sunpillar-clr-4) 15%,
-            var(--sunpillar-clr-5) 20%,
-            var(--sunpillar-clr-6) 25%,
-            var(--sunpillar-clr-1) 30%
-        ),
-        radial-gradient(
-            farthest-corner circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
-            rgba(255, 255, 255, .7) 5%,
-            rgba(150, 150, 150, .3) 40%,
-            rgba(0, 0, 0, .9) 110%
-        );
-    background-size: cover, 500% 100%, 100% 100%;
-    background-position: center, var(--background-x, 50%) center, center;
-    background-blend-mode: color-dodge, color-dodge, normal;
-    /*
-     * brightness is KEPT BELOW 1 (max .72): color-dodge is additive and saturates
-     * bright artwork to white instantly, so we darken first to leave headroom. This
-     * is the single most important anti-cramage setting (poke-holo uses ~.75). The
-     * pointer only nudges it within a small band — it never reaches 1.
-     */
-    filter:
-        brightness(calc(.5 + var(--pointer-from-center, 0) * .22))
-        contrast(1.8)
-        saturate(var(--holo-saturation, 1));
-    mix-blend-mode: color-dodge;
-    opacity: calc(var(--card-opacity) * var(--holo-intensity));
-}
-
-/* legendary : arc-en-ciel conique accroché au pointeur */
-
-.card[data-rarity="legendary"] .card__shine::before {
-    content: '';
-    background-image: conic-gradient(
-        from calc(var(--pointer-from-left, .5) * 360deg) at var(--pointer-x, 50%) var(--pointer-y, 50%),
-        var(--sunpillar-clr-6),
-        var(--sunpillar-clr-1),
-        var(--sunpillar-clr-2),
-        var(--sunpillar-clr-3),
-        var(--sunpillar-clr-4),
-        var(--sunpillar-clr-5),
-        var(--sunpillar-clr-6)
-    );
-    mix-blend-mode: color-dodge;
-    filter: saturate(var(--holo-saturation, 1)) brightness(.55);
-    /* the conic rainbow is what "repaints" the card in magenta/cyan — keep it a
-     * faint accent (gated by intensity), not a wash */
-    opacity: calc(var(--card-opacity) * var(--holo-intensity) * .15);
-}
-
-/* legendary : glitter en trame croisée (densité = --holo-glitter) + glare */
-/* overlay (pas color-dodge) : ça pétille sans cramer, et la densité différencie
- * les raretés sans toucher au brightness. */
-
-.card[data-rarity="legendary"] .card__shine::after {
-    content: '';
-    background-image:
-        repeating-linear-gradient(45deg, rgba(255, 255, 255, .16) 0 1px, transparent 1px 4px),
-        repeating-linear-gradient(-45deg, rgba(255, 255, 255, .12) 0 1px, transparent 1px 3px);
-    background-position: var(--background-x, 50%) var(--background-y, 50%);
-    mix-blend-mode: overlay;
-    opacity: calc(var(--card-opacity) * var(--holo-glitter, .5));
-}
-
-.card[data-rarity="legendary"] .card__glare {
-    background-image: radial-gradient(
-        farthest-corner circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
-        rgba(255, 255, 255, .9) 8%,
-        rgba(255, 255, 255, .7) 20%,
-        rgba(0, 0, 0, .55) 90%
-    );
-}
-
-/* ------------------------------------------- Holo permanent (carte tirée holo) */
-/*
- * Une carte marquée .holo garde un voile holo allumé même hors interaction
- * (reveal / butin) : on rallume les calques au repos avec une opacité douce et
- * une position de gradient centrée. L'interaction reprend ensuite le dessus.
- */
-.card.holo {
-    --card-opacity: var(--holo-intensity);
-}
-
-.card.holo:not(.interacting) .card__shine,
-.card.holo:not(.interacting) .card__glare {
-    opacity: calc(var(--holo-intensity) * .55);
-    visibility: visible;
 }
 
 /* --------------------------------------------- Bordure d'accent (config visuelle) */

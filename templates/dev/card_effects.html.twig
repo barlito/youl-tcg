@@ -57,8 +57,8 @@
                 rareté et <strong>survole la carte</strong> pour le tilt 3D + le holo plein régime.
             </p>
             <p class="mt-2 max-w-3xl text-xs text-amber-300/80">
-                ⚠️ Les molettes <code>--holo-intensity / saturation / glitter</code> ne pilotent plus que la recette
-                <em>par rareté</em> (section « 4 paliers » sans preset). Les presets pokeholo les ignorent (rendu fidèle, pleine intensité).
+                ⚠️ L'holo passe <strong>uniquement</strong> par les presets : les recettes « par rareté » et leurs
+                molettes ont été supprimées ; <code>data-rarity</code> ne pilote plus que le glow.
             </p>
             <p class="mt-2 font-mono text-xs text-ink-muted">
                 Carte affichée : <strong class="text-primary">{{ playgroundCard.name }}</strong>
@@ -115,24 +115,6 @@
                     </label>
                 </div>
 
-                <div class="pg-control">
-                    <label>Intensity · <span data-card-playground-target="intensityOut">0.52</span></label>
-                    <input type="range" min="0" max="1" step="0.02" value="0.52"
-                           data-card-playground-target="intensity" data-action="input->card-playground#apply">
-                </div>
-
-                <div class="pg-control">
-                    <label>Saturation · <span data-card-playground-target="saturationOut">0.95</span></label>
-                    <input type="range" min="0" max="3" step="0.05" value="0.95"
-                           data-card-playground-target="saturation" data-action="input->card-playground#apply">
-                </div>
-
-                <div class="pg-control">
-                    <label>Glitter · <span data-card-playground-target="glitterOut">0.50</span></label>
-                    <input type="range" min="0" max="2" step="0.05" value="0.5"
-                           data-card-playground-target="glitter" data-action="input->card-playground#apply">
-                </div>
-
                 <div class="pg-control justify-end">
                     <label class="flex items-center gap-2">
                         <input type="checkbox" class="accent-primary"
@@ -168,8 +150,10 @@
             {% endfor %}
         </div>
 
-        {# ---------------------------------------------------------------- Rarity tiers #}
-        <h2 class="mb-4 mt-14 font-display text-2xl font-bold text-ink-strong">Les 4 paliers (défaut data-rarity)</h2>
+        {# ------------------------------------------------------- Rarity glows
+           Depuis l'étape 6b, data-rarity ne pilote plus que le GLOW (halo) :
+           l'holo passe uniquement par les presets ci-dessus. #}
+        <h2 class="mb-4 mt-14 font-display text-2xl font-bold text-ink-strong">Les 4 paliers — glow par rareté</h2>
         <div class="grid grid-cols-2 gap-6 md:grid-cols-4">
             {% for demo in rarityDemos %}
                 <div class="force-glow">
@@ -188,7 +172,7 @@
                 <li><strong>Portage fidèle pokeholo</strong> : chaque preset reprend verbatim une recette de <code class="text-primary">pokemon-cards-css</code> (mapping dans l'en-tête de <code class="text-primary">holo-presets.css</code>) ; seuls les sélecteurs <code class="text-primary">[data-rarity]</code> sont réécrits en <code class="text-primary">.card.holo--*</code>.</li>
                 <li><strong>Full-art</strong> : les <code class="text-primary">clip-path</code> de cadre (fenêtre d'artwork) sont retirés — nos cartes sont des illustrations plein cadre, comme les v-/trainer-full-art pokeholo.</li>
                 <li><strong>Textures</strong> : raster pokeholo dans <code class="text-primary">public/images/holo/poke/</code> (glitter, grain, illusion, cosmos-*, trainerbg).</li>
-                <li><strong>Cascade</strong> : <code class="text-primary">Card.visualConfigOverride.holoEffect</code> &gt; <code class="text-primary">Extension.visualConfig.holoEffect</code> &gt; recette de rareté (aucun preset).</li>
+                <li><strong>Cascade</strong> : <code class="text-primary">Card.visualConfigOverride.holoEffect</code> &gt; <code class="text-primary">Extension.visualConfig.holoEffect</code> &gt; <code class="text-primary">holo--basic</code> si la carte est rendue holo sans preset (aucune recette par rareté : data-rarity ne pilote plus que le glow).</li>
             </ul>
         </div>
     </main>

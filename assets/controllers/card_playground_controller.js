@@ -3,25 +3,19 @@ import { Controller } from '@hotwired/stimulus';
 /**
  * Dev-only playground for the holo effect presets (/dev/card-effects).
  *
- * Wires a control panel (range sliders + selects + toggles) to a live demo
- * card: it writes the inline --holo-* CSS vars and swaps the `holo--*` /
- * `data-rarity` classes and the `masked`/`holo` toggles on the card element so
- * every change is reflected instantly, without a page reload.
+ * Wires a control panel (selects + toggles) to a live demo card: it swaps the
+ * `holo--*` / `data-rarity` classes and the `masked`/`holo` toggles on the
+ * card element so every change is reflected instantly, without a page reload.
+ * (The --holo-* tuning knobs died with the per-rarity recipes: holo rendering
+ * is presets-only now, data-rarity only drives the glow.)
  *
  * Targets:
- *   - card      : the demo .card element
- *   - intensity / saturation / glitter : <input type="range">
+ *   - card            : the demo .card element
  *   - effect / rarity : <select>
  *   - foil / mask     : <input type="checkbox">
- *   - and matching `*Out` value-readout spans (optional)
  */
 export default class extends Controller {
-    static targets = [
-        'card',
-        'intensity', 'saturation', 'glitter',
-        'intensityOut', 'saturationOut', 'glitterOut',
-        'effect', 'rarity', 'foil', 'mask',
-    ];
+    static targets = ['card', 'effect', 'rarity', 'foil', 'mask'];
 
     connect() {
         // derive every preset class from the select options, so new presets
@@ -36,12 +30,7 @@ export default class extends Controller {
     apply() {
         const card = this.cardTarget;
 
-        // --- knobs (inline vars win over the rarity defaults in holo.css) ---
-        this.setVar(card, '--holo-intensity', this.intensityTarget, this.hasIntensityOutTarget ? this.intensityOutTarget : null);
-        this.setVar(card, '--holo-saturation', this.saturationTarget, this.hasSaturationOutTarget ? this.saturationOutTarget : null);
-        this.setVar(card, '--holo-glitter', this.glitterTarget, this.hasGlitterOutTarget ? this.glitterOutTarget : null);
-
-        // --- rarity ---
+        // --- rarity (glow only) ---
         card.dataset.rarity = this.rarityTarget.value;
 
         // --- effect preset class ---
@@ -58,13 +47,6 @@ export default class extends Controller {
 
         // keep the permanent holo veil on so effects are visible at rest too
         card.classList.add('holo');
-    }
-
-    setVar(card, name, input, out) {
-        card.style.setProperty(name, input.value);
-        if (out) {
-            out.textContent = Number(input.value).toFixed(2);
-        }
     }
 
     /**

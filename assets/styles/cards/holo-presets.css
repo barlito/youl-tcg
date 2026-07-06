@@ -45,11 +45,11 @@
 }
 
 /* ---------------------------------------------------- preset layer plumbing
- * Faithful pokeholo runs the shine/glare at FULL --card-opacity (no per-rarity
- * --holo-intensity damping), so neutralise holo.css's rarity opacity on any
- * card that carries a preset. The recipes below re-declare their own per-layer
- * opacity where upstream does. At rest, a `.holo` preset card (reveal/gallery)
- * keeps a soft veil so the effect is visible without hovering. */
+ * The shine/glare layers run at full --card-opacity; the recipes below
+ * re-declare their own per-layer opacity where upstream does. At rest, a
+ * `.holo` preset card (reveal/gallery) keeps a soft veil so the effect is
+ * visible without hovering. Presets are the ONLY holo path since the
+ * per-rarity recipes were removed (holo.css only keeps the rarity glow). */
 .card[class*="holo--"] .card__shine {
     opacity: var(--card-opacity);
     visibility: visible;
@@ -89,8 +89,11 @@
     content: "";
     -webkit-mask-image: none !important;
     mask-image: none !important;
+    /* --foil is only set when the card (or its extension) uploaded one: without
+       the fallback, a masked-but-foilless card makes the whole background-image
+       invalid and the layer vanishes — degrade to a neutral sheen instead */
     background-image:
-        var(--foil),
+        var(--foil, linear-gradient(120deg, hsla(0, 0%, 100%, .12), hsla(0, 0%, 40%, .25))),
         radial-gradient(
             farthest-corner circle at var(--pointer-x) var(--pointer-y),
             hsla(50, 20%, 90%, 0.95) 10%,
@@ -366,8 +369,11 @@
     --space: 5%;
     --angle: 133deg;
     --imgsize: cover;
+    /* fallback: a masked card without its own foil must keep the trainer look
+       (the :not(.masked) rule below can't reach it, and an unset var() kills
+       the whole background-image) */
     background-image:
-        var(--foil),
+        var(--foil, url('/images/holo/poke/trainerbg.png')),
         repeating-linear-gradient(0deg,
             var(--sunpillar-clr-1) calc(var(--space)*1),
             var(--sunpillar-clr-2) calc(var(--space)*2),

@@ -13,9 +13,10 @@ use Vich\UploaderBundle\Templating\Helper\UploaderHelper;
  * Resolves the effective visuals of a card through the cascade
  * card -> extension -> system default:
  *  - foil/mask textures: the card's own upload, else the extension's default;
- *  - glow / border / css class: the card's override field, else the
- *    extension's configuration, else null (the rarity-keyed default of
- *    holo.css takes over).
+ *  - glow / border / css class / holo preset: the card's override field, else
+ *    the extension's configuration, else null (rarity glow only; a card
+ *    rendered holo without any preset falls back to holo--basic in
+ *    CardComponent.html.twig).
  */
 final readonly class CardVisualResolver
 {
@@ -36,9 +37,6 @@ final readonly class CardVisualResolver
             glow: $override->glow ?? $config->glow,
             borderColor: $override->borderColor ?? $config->borderColor,
             cssClass: $override->cssClass ?? $config->cssClass,
-            holoIntensity: $override->holoIntensity ?? $config->holoIntensity,
-            holoSaturation: $override->holoSaturation ?? $config->holoSaturation,
-            holoGlitter: $override->holoGlitter ?? $config->holoGlitter,
             holoEffect: $override->holoEffect ?? $config->holoEffect,
         );
     }

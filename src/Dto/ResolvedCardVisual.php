@@ -10,7 +10,7 @@ use App\Enum\Card\CardEffectEnum;
  * The visual properties of a card after the resolution cascade
  * (card -> extension -> system default), ready to be consumed by
  * CardComponent. URLs are public asset paths; colours/classes are null when
- * nothing overrides the rarity-keyed default of holo.css.
+ * nothing overrides the system default (rarity glow, no preset).
  */
 final readonly class ResolvedCardVisual
 {
@@ -20,9 +20,6 @@ final readonly class ResolvedCardVisual
         public ?string $glow = null,
         public ?string $borderColor = null,
         public ?string $cssClass = null,
-        public ?float $holoIntensity = null,
-        public ?float $holoSaturation = null,
-        public ?float $holoGlitter = null,
         public ?CardEffectEnum $holoEffect = null,
     ) {
     }

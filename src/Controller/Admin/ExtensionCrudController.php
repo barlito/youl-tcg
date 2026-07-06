@@ -67,7 +67,7 @@ class ExtensionCrudController extends AbstractCrudController
             ->setLabel('Visual config')
             ->setLanguage('js')
             ->onlyOnForms()
-            ->setHelp('Default visuals for the extension cards. Keys: glow, borderColor, cssClass, holoIntensity (0-1), holoSaturation (0-3), holoGlitter (0-2), holoEffect (preset). Example: {"glow": "#a435f0", "borderColor": "#ff3db0", "holoIntensity": 0.6}')
+            ->setHelp('Default visuals for the extension cards. Keys: glow, borderColor, cssClass, holoEffect (preset: shine|basic|cosmos|trainer). Example: {"glow": "#a435f0", "borderColor": "#ff3db0", "holoEffect": "basic"}')
         ;
         // Declared AFTER the JSON editor so the chosen preset is merged on top of
         // the freshly decoded JSON instead of being overwritten by it.

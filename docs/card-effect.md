@@ -34,15 +34,16 @@ self-contained.
 </div>
 ```
 
-- `data-rarity` ∈ `common | uncommon | rare | legendary` selects the
-  fallback recipe (used only when no `holo--<preset>` class is present).
+- `data-rarity` ∈ `common | uncommon | rare | legendary` only drives the
+  ambient **glow** colour (halo) — it no longer selects any holo recipe.
 - By default the holo only shows **on hover** (and while zoomed). Add `holo` to
   the class list for a card that should keep a soft holo veil **at rest** too
   (used by the booster reveal, not by the collection grid).
 - Add `masked` + `--mask: url(...)` to clip the holo to a mask region.
-- Add a `holo--<preset>` class (see below) to swap the rarity recipe for a named
-  pokeholo preset. **Presets drive the layers entirely and do NOT read the
-  `--holo-*` knobs** (those only tune the rarity fallback).
+- Add a `holo--<preset>` class (see below) to light the holo layers: presets
+  are the **only** holo rendering path (the per-rarity recipes and their
+  `--holo-*` tuning knobs were removed). A card rendered holo without a preset
+  falls back to `holo--basic` (CardComponent).
 - **Click a card to zoom** it to the centre of the viewport (`card_tilt.js`
   popover); click again, click outside or press `Esc` to close. Disabled inside
   the booster opening (which owns its own click handling).
@@ -137,35 +138,16 @@ rest — important for a grid of many cards).
 
 ## Tuning the look (per card / per set)
 
-> These three knobs tune the **rarity fallback recipe only** (cards without a
-> `holo--<preset>` class). The pokeholo presets are self-contained and ignore
-> them — to retune a preset, edit its recipe in `holo-presets.css`.
-
-Three knobs drive the holo, defaulted per rarity in `holo.css` and **overridable
-inline** (inline always wins):
-
-| Variable | Range | Effect |
-|----------|-------|--------|
-| `--holo-intensity` | 0–1 | overall foil opacity |
-| `--holo-saturation` | 0–3 | rainbow vividness (keep ≤ 1 for a subtle, artwork-first look) |
-| `--holo-glitter` | 0–2 | sparkle density (rare / legendary) — the recommended way to differentiate rarities |
-
-```html
-<div class="card interactive" data-rarity="rare"
-     style="--holo-intensity:.5; --holo-saturation:.9; --holo-glitter:.4"> … </div>
-```
-
-Design rule baked into the defaults: rarities differ by **glitter density**, never by
-saturation/brightness — a legendary stays as readable as a rare, just more sparkly. The
-`brightness()` on the foil is kept **below 1** on purpose: `color-dodge` is additive
-and would otherwise blow bright artwork out to white.
+The pokeholo presets are self-contained — to retune a preset, edit its recipe in
+`holo-presets.css`. (The old per-rarity `--holo-*` tuning knobs were removed
+along with the rarity recipes.)
 
 ## How this maps to the back office (this app only)
 
-The same three knobs (+ `glow`, `borderColor`, `cssClass`, `holoEffect`) live in
-the `VisualConfig` JSON edited in EasyAdmin, resolved **card → extension → rarity
-default** by `CardVisualResolver`, and emitted as the inline vars / classes above
-by `CardComponent`. Foil/mask **textures** are Vich uploads on the Card/Extension
+The visual keys (`glow`, `borderColor`, `cssClass`, `holoEffect`) live in the
+`VisualConfig` JSON edited in EasyAdmin, resolved **card → extension** by
+`CardVisualResolver` (a holo card without preset falls back to `holo--basic`),
+and emitted as the inline vars / classes above by `CardComponent`. Foil/mask **textures** are Vich uploads on the Card/Extension
 and become `--foil` / `--mask`. So a non-technical admin tunes the foil layers and
 the holo strength without touching CSS.
 

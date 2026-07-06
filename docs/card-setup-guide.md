@@ -177,19 +177,17 @@ Pour l'implémenter proprement il faudrait :
    ```json
    { "holoEffect": "cosmos", "glow": "#7c3aed" }
    ```
-   Les clés possibles : `holoEffect`, `glow`, `borderColor`, `cssClass`,
-   `holoIntensity`, `holoSaturation`, `holoGlitter` (ces 3 derniers n'agissent que
-   sur la recette **par rareté**, pas sur les presets).
+   Les clés possibles : `holoEffect`, `glow`, `borderColor`, `cssClass`.
 
 ---
 
 ## 8. FAQ
 
 **Les cartes rares et légendaires ont-elles un effet par défaut ?**
-Oui. Sans preset (`holoEffect` vide), c'est la **recette par rareté** de `holo.css`
-qui s'applique : `common`/`uncommon` = simple balayage ; `rare`/`legendary`
-= foil sunpillar + radial (de plus en plus pailleté). Un preset (`holo--*`) **prend
-le dessus** sur cette recette.
+Non — les recettes « par rareté » ont été supprimées : l'holo passe uniquement
+par les **presets** (`holoEffect`). La rareté ne pilote plus que le **glow**
+(halo de couleur). Une carte tirée holo sans preset configuré retombe sur le
+preset `basic`.
 
 **L'effet s'affiche au repos, c'est moche.**
 Par défaut l'effet n'apparaît **qu'au survol** (et au zoom). Seule la carte avec la
