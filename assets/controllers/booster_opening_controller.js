@@ -283,6 +283,7 @@ export default class extends Controller {
         }
 
         this._revealTrack(index);
+        this._unmaskSetTile(card.dataset.cardId);
         this._bumpBest(rarity);
         this._updateRevealedCount(index + 1);
         this._updateStack(this.lastIndex - index);
@@ -339,6 +340,7 @@ export default class extends Controller {
         this._updateStack(0);
         this.cardTargets.forEach((card, index) => {
             this._revealTrack(index);
+            this._unmaskSetTile(card.dataset.cardId);
             this._bumpBest(card.dataset.rarity);
         });
         this._updateRevealedCount(this.countValue);
@@ -370,6 +372,39 @@ export default class extends Controller {
             nameEl.textContent = nameEl.dataset.name;
         }
         this._retrigger(tile, 'is-popping');
+    }
+
+    // -------------------------------------------- set contents (zone 2 aside)
+    // A card FIRST won by this opening is server-rendered masked (`is-pending`,
+    // full data carried in data-* attributes) so the set list cannot spoil the
+    // showcase; flip by flip we promote its tile to the regular owned rendering.
+    _unmaskSetTile(cardId) {
+        if (!cardId) {
+            return;
+        }
+        this.element.querySelectorAll(`.opening__card-tile.is-pending[data-card-id="${cardId}"]`).forEach((tile) => {
+            tile.classList.remove('is-masked', 'is-pending');
+            tile.dataset.name = tile.dataset.pendingName || '';
+            tile.dataset.rarity = tile.dataset.pendingRarity || '';
+            if (tile.dataset.rarity) {
+                tile.style.setProperty('--tile-rar', `var(--rarity-${tile.dataset.rarity})`);
+            }
+            tile.querySelector('.opening__card-back')?.remove();
+            const img = tile.querySelector('img');
+            if (img) {
+                img.hidden = false;
+            }
+            const name = tile.querySelector('.opening__card-name');
+            if (name && name.dataset.revealName) {
+                name.textContent = name.dataset.revealName;
+            }
+            const tier = tile.querySelector('.opening__card-tier');
+            if (tier && tier.dataset.revealTier) {
+                tier.textContent = tier.dataset.revealTier;
+                tier.hidden = false;
+            }
+            this._retrigger(tile, 'is-popping');
+        });
     }
 
     _bumpBest(rarity) {

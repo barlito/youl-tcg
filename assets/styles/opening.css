@@ -566,6 +566,8 @@
     background: #140a26 center/cover no-repeat;
 }
 .opening__card-tile.is-masked .opening__card-name { color: #6a5a8a; }
+/* freshly-won tile promoted by the reveal controller: same pop as the tracker */
+.opening__card-tile.is-popping .opening__card-art { animation: opening-slotPop .5s ease-out; }
 .opening__card-name {
     margin-top: 6px;
     font-family: 'Space Grotesk', sans-serif;
