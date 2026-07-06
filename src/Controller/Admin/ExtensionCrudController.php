@@ -54,12 +54,12 @@ class ExtensionCrudController extends AbstractCrudController
         yield ChoiceField::new('status')
             ->setChoices(ExtensionStatusEnum::cases())
         ;
-        yield VichImageField::new('imageFoilFile')
+        yield VichImageField::new('imageFoilFile', allowDelete: true)
             ->setLabel('Default foil texture')
             ->setHelp('Holo foil fallback for cards of this extension that have none')
             ->onlyOnForms()
         ;
-        yield VichImageField::new('imageMaskFile')
+        yield VichImageField::new('imageMaskFile', allowDelete: true)
             ->setLabel('Default holo mask')
             ->onlyOnForms()
         ;

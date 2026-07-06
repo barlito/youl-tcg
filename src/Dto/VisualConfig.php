@@ -78,7 +78,7 @@ final readonly class VisualConfig
             && null === $this->holoIntensity
             && null === $this->holoSaturation
             && null === $this->holoGlitter
-            && null === $this->holoEffect;
+            && !$this->holoEffect instanceof CardEffectEnum;
     }
 
     private static function stringOrNull(mixed $value): ?string

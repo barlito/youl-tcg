@@ -18,10 +18,25 @@
                 0 0 50px -20px var(--card-glow);
         }
 
-        .pg-control { @apply flex flex-col gap-1; }
-        .pg-control label { @apply font-mono text-xs uppercase tracking-[.15em] text-ink-muted; }
-        .pg-control input[type="range"] { @apply w-full accent-primary; }
-        .pg-control select { @apply border border-hairline bg-surface px-2 py-1 text-sm text-ink; }
+        /* plain CSS on purpose: @apply only works in files compiled by the
+           tailwind bundle (assets/styles/app.css), never in an inline <style> */
+        .pg-control { display: flex; flex-direction: column; gap: .25rem; }
+        .pg-control label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: .75rem;
+            line-height: 1rem;
+            text-transform: uppercase;
+            letter-spacing: .15em;
+            color: var(--text-muted);
+        }
+        .pg-control input[type="range"] { width: 100%; accent-color: var(--primary); }
+        .pg-control select {
+            border: 1px solid var(--hairline);
+            background: var(--surface);
+            padding: .25rem .5rem;
+            font-size: .875rem;
+            color: var(--text);
+        }
     </style>
 
     {# the foil/mask actually resolved on the shown card (its own upload, else its
