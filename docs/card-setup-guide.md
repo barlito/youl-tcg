@@ -190,8 +190,8 @@ par les **presets** (`holoEffect`). La rareté ne pilote plus que le **glow**
 preset `basic`.
 
 **L'effet s'affiche au repos, c'est moche.**
-Par défaut l'effet n'apparaît **qu'au survol** (et au zoom). Seule la carte avec la
-classe `holo` garde un voile au repos (utilisé par la révélation de booster).
+Il ne devrait plus : le voile au repos a été supprimé partout (décision produit).
+L'effet n'apparaît qu'au survol et au zoom, y compris pour les exemplaires holo.
 
 **Mon foil « crame » tout en blanc.**
 Artwork trop clair + `color-dodge`. Assombris le fond du foil (vers le noir),

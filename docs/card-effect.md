@@ -36,9 +36,9 @@ self-contained.
 
 - `data-rarity` ∈ `common | uncommon | rare | legendary` only drives the
   ambient **glow** colour (halo) — it no longer selects any holo recipe.
-- By default the holo only shows **on hover** (and while zoomed). Add `holo` to
-  the class list for a card that should keep a soft holo veil **at rest** too
-  (used by the booster reveal, not by the collection grid).
+- The holo only shows **on hover** (and while zoomed) — never at rest (product
+  decision). The `holo` class only marks a holo copy semantically (it drives
+  the `holo--basic` fallback), it adds no at-rest veil.
 - Add `masked` + `--mask: url(...)` to clip the holo to a mask region.
 - Add a `holo--<preset>` class (see below) to light the holo layers: presets
   are the **only** holo rendering path (the per-rarity recipes and their

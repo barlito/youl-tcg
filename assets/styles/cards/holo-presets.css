@@ -58,10 +58,11 @@
 
 /* ---------------------------------------------------- preset layer plumbing
  * The shine/glare layers run at full --card-opacity; the recipes below
- * re-declare their own per-layer opacity where upstream does. At rest, a
- * `.holo` preset card (reveal/gallery) keeps a soft veil so the effect is
- * visible without hovering. Presets are the ONLY holo path since the
- * per-rarity recipes were removed (holo.css only keeps the rarity glow). */
+ * re-declare their own per-layer opacity where upstream does. No at-rest
+ * veil anywhere (product decision): a card — holo copy or not — stays clean
+ * until hovered, --card-opacity (0 at rest) gates everything. Presets are the
+ * ONLY holo path since the per-rarity recipes were removed (holo.css only
+ * keeps the rarity glow). */
 .card[class*="holo--"] .card__shine {
     opacity: var(--card-opacity);
     visibility: visible;
@@ -69,12 +70,6 @@
 
 .card[class*="holo--"] .card__glare {
     opacity: calc(var(--card-opacity) * var(--glare-strength));
-    visibility: visible;
-}
-
-.card.holo[class*="holo--"]:not(.interacting) .card__shine,
-.card.holo[class*="holo--"]:not(.interacting) .card__glare {
-    opacity: .6;
     visibility: visible;
 }
 

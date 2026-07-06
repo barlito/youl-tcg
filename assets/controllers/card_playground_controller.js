@@ -15,7 +15,7 @@ import { Controller } from '@hotwired/stimulus';
  *   - foil / mask     : <input type="checkbox">
  */
 export default class extends Controller {
-    static targets = ['card', 'effect', 'rarity', 'foil', 'mask', 'veil'];
+    static targets = ['card', 'effect', 'rarity', 'foil', 'mask'];
 
     connect() {
         // derive every preset class from the select options, so new presets
@@ -45,9 +45,7 @@ export default class extends Controller {
         this.toggleVar(card, '--mask', this.maskTarget.checked);
         this.toggleVar(card, '--foil', this.foilTarget.checked);
 
-        // "holo copy" simulation: the at-rest veil only when explicitly asked —
-        // a plain card must stay clean until hovered, like everywhere else
-        card.classList.toggle('holo', this.hasVeilTarget && this.veilTarget.checked);
+        // no at-rest veil anywhere (product decision): effects only on hover
     }
 
     /**
