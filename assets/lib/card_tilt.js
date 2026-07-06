@@ -36,14 +36,21 @@ const SPRING_DAMPING = 22;
 // damped so the card glides to centre rather than snapping.
 const POPOVER_STIFFNESS = 90;
 const POPOVER_DAMPING = 18;
-// Largest zoom factor when a card is activated (pokeholo uses 1.75).
-const MAX_POPOVER_SCALE = 1.75;
+// Largest zoom factor when a card is activated. High cap on purpose: the real
+// limit is the 90% viewport fit computed in activate(), so the card gets as
+// big as the screen allows whatever its size in the grid.
+const MAX_POPOVER_SCALE = 3;
 // Full turn the card makes around Y while gliding to the viewport centre —
 // the click-to-zoom reads as "the card flips out of the grid into your hand".
 const POPOVER_FLIP_DEG = 360;
 // Clamp dt so a backgrounded tab doesn't make the integration explode.
 const MAX_DT = 0.032;
-const SETTLE_THRESHOLD = 0.01;
+// Per-spring rest tolerance. A quarter of a degree/pixel is invisible, and
+// waiting for less keeps the loop (and the pixelated GPU layer) alive for
+// seconds while the 360° flip creeps to zero. Unit-scaled springs (opacity
+// 0..1, scale ~1..3) need a much finer tolerance or the final snap would jump.
+const SETTLE_EPSILONS = { opacity: 0.01, scale: 0.005 };
+const SETTLE_EPSILON = 0.25;
 
 const clamp = (value, min = 0, max = 100) => Math.min(Math.max(value, min), max);
 const round = (value, precision = 3) => parseFloat(value.toFixed(precision));
@@ -277,6 +284,9 @@ export class CardTilt {
         if (this.frame !== null) {
             return;
         }
+        // back on a compositor layer while the springs animate (see settle)
+        this.translater.style.willChange = '';
+        this.rotator.style.willChange = '';
         this.element.classList.add('interacting');
         this.lastTime = performance.now();
         this.frame = requestAnimationFrame((now) => this._tick(now));
@@ -293,11 +303,13 @@ export class CardTilt {
         const dt = Math.min((now - this.lastTime) / 1000, MAX_DT);
         this.lastTime = now;
 
-        // The popover springs (scale / translate / flip) use a softer, slower
-        // spring than the tilt springs so the zoom glides instead of snapping.
-        const popover = new Set(['scale', 'translateX', 'translateY', 'flip']);
+        // The popover springs (scale / translate) use a softer, slower spring
+        // than the tilt springs so the zoom glides instead of snapping. The
+        // flip stays on the stiff spring: a punchier spin that also settles
+        // fast — the crisp re-raster below waits on every spring.
+        const popover = new Set(['scale', 'translateX', 'translateY']);
 
-        let energy = 0;
+        let settled = true;
         for (const [name, spring] of Object.entries(this.springs)) {
             const stiffness = popover.has(name) ? POPOVER_STIFFNESS : SPRING_STIFFNESS;
             const damping = popover.has(name) ? POPOVER_DAMPING : SPRING_DAMPING;
@@ -305,24 +317,41 @@ export class CardTilt {
                 - damping * spring.velocity;
             spring.velocity += acceleration * dt;
             spring.value += spring.velocity * dt;
-            energy += Math.abs(spring.velocity) + Math.abs(spring.value - spring.target);
+            const epsilon = SETTLE_EPSILONS[name] ?? SETTLE_EPSILON;
+            if (Math.abs(spring.value - spring.target) > epsilon || Math.abs(spring.velocity) > epsilon) {
+                settled = false;
+            }
         }
 
-        this._render();
-
-        // Stop once everything has settled (a zoomed-in card keeps its scale via
-        // the persisted CSS vars + the .active class; the .card.active CSS rule
-        // holds its z-index above the grid).
-        if (!this.pointerInside && energy < SETTLE_THRESHOLD) {
-            this._stopLoop();
-            this.element.classList.remove('interacting');
-            if (!this.active) {
-                this._restoreAncestors(); // back in the grid: drop the lift
+        // Stop as soon as every spring is within tolerance — snapped exactly on
+        // target so the final frame is pixel-perfect. The next pointermove or
+        // click restarts the loop, so idling here only burns frames. The hover
+        // state (interacting class + holo layers) is only dropped once the
+        // pointer has actually left.
+        if (settled) {
+            for (const spring of Object.values(this.springs)) {
+                spring.value = spring.target;
+                spring.velocity = 0;
             }
+            this._render();
+            this._stopLoop();
+            if (!this.pointerInside) {
+                this.element.classList.remove('interacting');
+                if (!this.active) {
+                    this._restoreAncestors(); // back in the grid: drop the lift
+                }
+            }
+            // Drop the will-change layer promotion once settled: with it on, the
+            // GPU keeps the raster cached at pre-zoom size and just stretches it
+            // (visibly pixelated at dpr 1). Cleared, the browser re-rasterises
+            // the card crisp at its final scale; _startLoop re-promotes.
+            this.translater.style.willChange = 'auto';
+            this.rotator.style.willChange = 'auto';
 
             return;
         }
 
+        this._render();
         this.frame = requestAnimationFrame((nextNow) => this._tick(nextNow));
     }
 
