@@ -63,3 +63,9 @@
 .card__front {
     box-shadow: inset 0 0 0 1.5px var(--card-border, transparent);
 }
+
+/* La face de la carte zoomée est rasterisée à 2× (cf. base.css .card.active
+ * .card__front) : les valeurs px internes rendent moitié — compensation. */
+.card.active .card__front {
+    box-shadow: inset 0 0 0 3px var(--card-border, transparent);
+}
