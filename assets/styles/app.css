@@ -36,3 +36,15 @@
 .active {
     @apply text-primary;
 }
+
+/* Tuile de collection : les chips (×N, ✦N, toggle HOLO) s'effacent pendant
+ * l'inspection de la carte (tilt en cours = .interacting posé par card_tilt)
+ * plutôt que de passer dessus ou dessous — la carte reste seule en scène.
+ * Survoler un chip lui-même ne déclenche pas .interacting (il est hors .card),
+ * donc le toggle reste cliquable. */
+.card-tile__chips {
+    transition: opacity .25s ease;
+}
+.card-tile:has(.card.interacting) .card-tile__chips {
+    opacity: 0;
+}

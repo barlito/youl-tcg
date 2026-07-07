@@ -120,6 +120,25 @@ final class CollectionControllerTest extends WebTestCase
         $this->assertCount(1, $holoCard->filter(\sprintf('img[alt="%s"]', $this->cardsA[0]->getName())));
     }
 
+    public function testOnlyHoloCardRendersHoloWithoutToggle(): void
+    {
+        // quantity === holoQuantity → no normal copy owned: the card shows its
+        // holo version but there is nothing to toggle to.
+        $card = $this->createCard($this->extensionA, 'Only holo ' . uniqid());
+        $this->createUserCard($card, quantity: 2, holoQuantity: 2);
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/collection');
+
+        self::assertResponseIsSuccessful();
+        $tile = $crawler->filter('[data-testid="collection-grid"] > div')->reduce(
+            fn (Crawler $node): bool => $node->filter(\sprintf('img[alt="%s"]', $card->getName()))->count() > 0,
+        );
+        $this->assertCount(1, $tile);
+        $this->assertCount(0, $tile->filter('button[data-testid="holo-toggle"]'));
+        $this->assertStringContainsString('holo--', (string) $tile->filter('.card')->attr('class'));
+    }
+
     public function testCardWithoutHoloCopyHasNoToggleAndRendersNormal(): void
     {
         $crawler = $this->client->request('GET', '/collection');
