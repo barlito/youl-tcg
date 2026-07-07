@@ -44,6 +44,15 @@
     .carousel-track::-webkit-scrollbar {
         display: none;
     }
+
+    /* Piste sans le fondu latéral (héros pleine largeur : bannières d'univers) */
+    .scrollbar-hidden {
+        scrollbar-width: none;
+    }
+
+    .scrollbar-hidden::-webkit-scrollbar {
+        display: none;
+    }
 }
 
 .active {

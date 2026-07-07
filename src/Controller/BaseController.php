@@ -15,6 +15,12 @@ use Symfony\Contracts\Cache\ItemInterface;
 
 class BaseController extends AbstractController
 {
+    /**
+     * The homepage teases the LATEST universes only (magazine layout: 3 tiles
+     * + the "coming soon" teaser); the full list lives on /univers.
+     */
+    private const int FEATURED_UNIVERSES = 3;
+
     #[Route('/', name: 'homepage')]
     public function homepage(
         CardRepository $cardRepository,
@@ -39,19 +45,30 @@ class BaseController extends AbstractController
         }
 
         $extensions = $extensionRepository->findPublishedWithPublishedCardCount();
+        $coverImages = $cardRepository->findCoverImageNamesByExtension();
+
+        // the list is createdAt ASC: the featured universes are the tail, newest first
+        $featured = array_map(static fn (array $item): array => [
+            ...$item,
+            'coverImage' => $coverImages[(string) $item['extension']->getId()] ?? null,
+        ], array_reverse(\array_slice($extensions, -self::FEATURED_UNIVERSES)));
 
         return $this->render('pages/homepage.html.twig', [
             'cards' => $cards,
-            'extensions' => $extensions,
+            'universes' => $featured,
+            'universesTotal' => \count($extensions),
             'cardsTotal' => array_sum(array_column($extensions, 'cardCount')),
             'packsOpenedCount' => $boosterOpeningRepository->countAll(),
         ]);
     }
 
+    /**
+     * Legacy "coming soon" url: the universe pages live at /univers now.
+     */
     #[Route('/extensions', name: 'extensions')]
     public function extensions(): Response
     {
-        return $this->render('pages/coming_soon.html.twig');
+        return $this->redirectToRoute('universes', [], Response::HTTP_MOVED_PERMANENTLY);
     }
 
     #[Route('/boosters', name: 'boosters')]

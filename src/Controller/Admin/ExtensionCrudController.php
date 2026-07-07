@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
-use App\Admin\Field\ImageField as VichImageField;
 use App\Entity\Extension;
 use App\Enum\Card\CardEffectEnum;
 use App\Enum\Card\FoilTextureEnum;
@@ -55,15 +54,6 @@ class ExtensionCrudController extends AbstractCrudController
         yield Field::new('description');
         yield ChoiceField::new('status')
             ->setChoices(ExtensionStatusEnum::cases())
-        ;
-        yield VichImageField::new('imageFoilFile', allowDelete: true)
-            ->setLabel('Default foil texture')
-            ->setHelp('Holo foil fallback for cards of this extension that have none')
-            ->onlyOnForms()
-        ;
-        yield VichImageField::new('imageMaskFile', allowDelete: true)
-            ->setLabel('Default holo mask')
-            ->onlyOnForms()
         ;
         yield CodeEditorField::new('visualConfigJson')
             ->setLabel('Visual config')

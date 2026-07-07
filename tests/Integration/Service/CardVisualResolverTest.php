@@ -29,12 +29,9 @@ final class CardVisualResolverTest extends KernelTestCase
         $this->resolver = self::getContainer()->get(CardVisualResolver::class);
     }
 
-    public function testCardFoilAndMaskWinOverExtensionDefaults(): void
+    public function testCardOwnFoilAndMaskAreResolved(): void
     {
-        $extension = $this->extension();
-        $extension->setImageFoilName('extension-foil.png');
-        $extension->setImageMaskName('extension-mask.png');
-        $card = $this->card($extension);
+        $card = $this->card($this->extension());
         $card->setImageFoilName('card-foil.png');
         $card->setImageMaskName('card-mask.png');
 
@@ -43,18 +40,6 @@ final class CardVisualResolverTest extends KernelTestCase
         $this->assertSame('/images/foils/card-foil.png', $resolved->foilUrl);
         $this->assertSame('/images/masks/card-mask.png', $resolved->maskUrl);
         $this->assertTrue($resolved->hasMask());
-    }
-
-    public function testFallsBackToExtensionFoilAndMask(): void
-    {
-        $extension = $this->extension();
-        $extension->setImageFoilName('extension-foil.png');
-        $extension->setImageMaskName('extension-mask.png');
-
-        $resolved = $this->resolver->resolve($this->card($extension));
-
-        $this->assertSame('/images/foils/extension-foil.png', $resolved->foilUrl);
-        $this->assertSame('/images/masks/extension-mask.png', $resolved->maskUrl);
     }
 
     public function testNoFoilNorMaskResolvesToNull(): void

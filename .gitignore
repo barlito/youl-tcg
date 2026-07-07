@@ -37,6 +37,9 @@
 /public/images/masks/
 /public/images/foils/
 /public/images/extensions/
+!/public/images/extensions/default_extension.png
+/public/images/boosters/
+/public/images/banners/
 ###< images ###
 
 ###> Castor ###

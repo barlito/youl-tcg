@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Booster;
 
+use App\Dto\BoosterOpeningResult;
 use App\Dto\DrawnCard;
 use App\Entity\Booster;
 use App\Entity\BoosterOpening;
@@ -37,9 +38,9 @@ final readonly class BoosterOpeningService
      * @throws NoBoosterInInventoryException
      * @throws NoCardAvailableException
      */
-    public function open(DiscordUser $discordUser, Booster $booster): BoosterOpening
+    public function open(DiscordUser $discordUser, Booster $booster): BoosterOpeningResult
     {
-        return $this->entityManager->wrapInTransaction(function () use ($discordUser, $booster): BoosterOpening {
+        return $this->entityManager->wrapInTransaction(function () use ($discordUser, $booster): BoosterOpeningResult {
             $this->userInventoryService->debitBooster($discordUser, $booster);
 
             $openedAt = $this->clock->now();
@@ -67,7 +68,9 @@ final readonly class BoosterOpeningService
             $this->entityManager->persist($opening);
             $this->entityManager->flush();
 
-            return $opening;
+            // the slot order is not persisted (audit rows aggregate duplicates):
+            // hand it to the caller so the reveal can mirror the actual draw
+            return new BoosterOpeningResult($opening, $drawnCards);
         });
     }
 

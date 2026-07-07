@@ -104,8 +104,8 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
   - ManyToOne with Extension
 
 - **Extension**: Card sets/expansions
-  - Fields: name, description, status, imageName, visualConfig (JSON, set-level card visual defaults), default foil/mask images
-  - OneToMany with Card and Booster
+  - Fields: name, description, status, imageName, visualConfig (JSON, set-level card visual defaults — including the shared foilTexture library pick; NO extension-level foil/mask uploads: masks must match each card's artwork, so they are per-card only)
+  - OneToMany with Card, Booster and ExtensionBanner (universe page hero banners, position-ordered carousel)
 
 - **Booster**: Booster packs containing cards
   - Fields: name (optional display name, falls back to the extension name via getDisplayName()), claimable (default true; false = event/code distribution only — not claimable on the hub, still openable by owners, guarded server-side in BoosterClaimService), rarityRates (JSON, one `{rarities: {rarity: weight}, holoChance: int}` entry per card slot — the slot count IS the card count, holoChance is the 0-100 % holo probability of that slot; there is NO global holoRate anymore), imageName
@@ -153,8 +153,9 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 **Frontend (`src/Controller/`):**
 - **BaseController**: Homepage with 3 random published cards (cached daily)
-  - Routes: `/` (homepage), `/extensions` (coming soon), `/boosters` (opening hub)
+  - Routes: `/` (homepage), `/boosters` (opening hub), `/extensions` (301 → `/univers`)
   - Uses custom `CardRepository::findRandomCardId()` with RANDOM() DQL function
+- **UniverseController**: `/univers` (index of published extensions with per-universe completion) + `/univers/{slug}` (pokédex page: banner carousel, full description, personal completion, set grid with unowned cards masked behind the card back, related boosters using the hub's claimable-or-owned visibility rule, unique 1/1 drop status without revealing the holder)
 
 **Admin (`src/Controller/Admin/`):**
 - **DashboardController**: EasyAdmin dashboard entry
@@ -187,6 +188,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - `foils`: Foil textures → `/public/images/foils/`
 - `boosters`: Booster images → `/public/images/boosters/`
 - `extensions`: Extension images → `/public/images/extensions/`
+- `banners`: Universe page hero banners (ExtensionBanner) → `/public/images/banners/`
 
 **Upload Routes:**
 - `/images/cards/{filename}`

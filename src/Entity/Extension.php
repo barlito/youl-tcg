@@ -53,25 +53,6 @@ class Extension implements \Stringable
     private ?string $imageName = null;
 
     /**
-     * Default holo foil texture for the extension's cards (cascade fallback
-     * when a card has no foil of its own).
-     */
-    #[Vich\UploadableField(mapping: 'foils', fileNameProperty: 'imageFoilName')]
-    private ?File $imageFoilFile = null;
-
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    private ?string $imageFoilName = null;
-
-    /**
-     * Default holo mask for the extension's cards (cascade fallback).
-     */
-    #[Vich\UploadableField(mapping: 'masks', fileNameProperty: 'imageMaskName')]
-    private ?File $imageMaskFile = null;
-
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    private ?string $imageMaskName = null;
-
-    /**
      * Default visual configuration (glow / border / css class / holo preset)
      * applied to the extension's cards, each card may override individual
      * fields.
@@ -80,6 +61,15 @@ class Extension implements \Stringable
      */
     #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
     private array $visualConfig = [];
+
+    /**
+     * Hero banners of the universe page, position ascending (carousel order).
+     *
+     * @var Collection<int, ExtensionBanner>
+     */
+    #[ORM\OneToMany(targetEntity: ExtensionBanner::class, mappedBy: 'extension')]
+    #[ORM\OrderBy(['position' => 'ASC', 'createdAt' => 'ASC'])]
+    private Collection $banners;
 
     /**
      * @var Collection<int, Card>
@@ -97,6 +87,7 @@ class Extension implements \Stringable
 
     public function __construct()
     {
+        $this->banners = new ArrayCollection();
         $this->cards = new ArrayCollection();
         $this->boosters = new ArrayCollection();
     }
@@ -176,54 +167,6 @@ class Extension implements \Stringable
     public function getImageName(): ?string
     {
         return $this->imageName;
-    }
-
-    public function setImageFoilFile(?File $imageFoilFile = null): void
-    {
-        $this->imageFoilFile = $imageFoilFile;
-
-        if ($imageFoilFile instanceof File) {
-            $this->updatedAt = new \DateTime();
-        }
-    }
-
-    public function getImageFoilFile(): ?File
-    {
-        return $this->imageFoilFile;
-    }
-
-    public function setImageFoilName(?string $imageFoilName): void
-    {
-        $this->imageFoilName = $imageFoilName;
-    }
-
-    public function getImageFoilName(): ?string
-    {
-        return $this->imageFoilName;
-    }
-
-    public function setImageMaskFile(?File $imageMaskFile = null): void
-    {
-        $this->imageMaskFile = $imageMaskFile;
-
-        if ($imageMaskFile instanceof File) {
-            $this->updatedAt = new \DateTime();
-        }
-    }
-
-    public function getImageMaskFile(): ?File
-    {
-        return $this->imageMaskFile;
-    }
-
-    public function setImageMaskName(?string $imageMaskName): void
-    {
-        $this->imageMaskName = $imageMaskName;
-    }
-
-    public function getImageMaskName(): ?string
-    {
-        return $this->imageMaskName;
     }
 
     public function getVisualConfig(): VisualConfig
@@ -315,6 +258,24 @@ class Extension implements \Stringable
             array_merge($this->visualConfig, ['foilTexture' => $foilTexture?->value]),
             static fn (mixed $value): bool => null !== $value,
         );
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ExtensionBanner>
+     */
+    public function getBanners(): Collection
+    {
+        return $this->banners;
+    }
+
+    public function addBanner(ExtensionBanner $banner): static
+    {
+        if (!$this->banners->contains($banner)) {
+            $this->banners->add($banner);
+            $banner->setExtension($this);
+        }
 
         return $this;
     }

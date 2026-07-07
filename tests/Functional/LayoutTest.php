@@ -19,7 +19,7 @@ final class LayoutTest extends WebTestCase
     public static function pageProvider(): iterable
     {
         yield 'homepage' => ['/'];
-        yield 'extensions' => ['/extensions'];
+        yield 'universes' => ['/univers'];
         yield 'boosters' => ['/boosters'];
     }
 

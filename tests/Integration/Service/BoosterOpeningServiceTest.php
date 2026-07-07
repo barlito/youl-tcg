@@ -38,7 +38,11 @@ final class BoosterOpeningServiceTest extends KernelTestCase
     {
         $scenario = $this->createScenario(boosterQuantity: 2);
 
-        $opening = $this->openingService->open($scenario['user'], $scenario['booster']);
+        $result = $this->openingService->open($scenario['user'], $scenario['booster']);
+        $opening = $result->opening;
+
+        // the result also exposes the raw draw (slot order) for the reveal
+        $this->assertCount(3, $result->drawnCards);
 
         $this->entityManager->clear();
 
@@ -55,6 +59,24 @@ final class BoosterOpeningServiceTest extends KernelTestCase
         $this->assertSame(
             3,
             array_sum($persistedOpening->getBoosterOpeningCards()->map(static fn ($openingCard): int => $openingCard->getQuantity())->toArray()),
+        );
+    }
+
+    public function testDrawnCardsFollowTheSlotOrder(): void
+    {
+        // slot 1 forces a legendary, slot 2 a common: the exposed draw must
+        // keep that order (a rarest-last re-sort would flip it) — the reveal
+        // mirrors the per-slot rates the player reads on the pack
+        $scenario = $this->createScenario(
+            boosterQuantity: 1,
+            rarityRates: [['legendary' => 100], ['common' => 100]],
+        );
+
+        $result = $this->openingService->open($scenario['user'], $scenario['booster']);
+
+        $this->assertSame(
+            [CardRarityEnum::LEGENDARY, CardRarityEnum::COMMON],
+            array_map(static fn ($drawnCard) => $drawnCard->card->getRarity(), $result->drawnCards),
         );
     }
 
