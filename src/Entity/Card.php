@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Dto\VisualConfig;
+use App\Entity\Traits\IdUuidTrait;
 use App\Enum\Card\CardEffectEnum;
 use App\Enum\Card\FoilTextureEnum;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\CardRepository;
-use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
@@ -208,7 +208,11 @@ class Card
     {
         $this->imageFile = $imageFile;
 
-        $this->updatedAt = new \DateTime();
+        if ($imageFile instanceof File) {
+            // It is required that at least one field changes if you are using doctrine
+            // otherwise the event listeners won't be called and the file is lost
+            $this->updatedAt = new \DateTime();
+        }
     }
 
     public function getImageFile(): ?File

@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Dto\VisualConfig;
+use App\Entity\Traits\IdUuidTrait;
 use App\Enum\Card\CardEffectEnum;
 use App\Enum\Card\FoilTextureEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use App\Repository\ExtensionRepository;
-use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -154,11 +154,13 @@ class Extension implements \Stringable
      * must be able to accept an instance of 'File' as the bundle will inject one here
      * during Doctrine hydration.
      */
-    public function setImageFile(File $imageFile): void
+    public function setImageFile(?File $imageFile = null): void
     {
         $this->imageFile = $imageFile;
 
-        $this->updatedAt = new \DateTime();
+        if ($imageFile instanceof File) {
+            $this->updatedAt = new \DateTime();
+        }
     }
 
     public function getImageFile(): ?File

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Entity\Traits\IdUuidTrait;
 use App\Repository\BoosterRepository;
 use App\Validator\ValidRarityRates;
-use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Entity\Traits\IdUuidTrait;
 use App\Repository\BoosterClaimRepository;
-use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Entity\Traits\IdUuidTrait;
 use App\Repository\BoosterOpeningRepository;
-use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
