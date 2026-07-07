@@ -29,12 +29,12 @@ class UserInventoryService
 
     public function creditBooster(DiscordUser $discordUser, Booster $booster, int $quantity = 1): UserBooster
     {
-        $userBooster = $this->userBoosterRepository->findOneBy([
-            'discordUser' => $discordUser,
-            'booster' => $booster,
-        ]);
+        // FOR UPDATE, like debitBooster: a credit racing an opening's debit on
+        // the same row would read-modify-write over it (lost update — the
+        // debit could be silently cancelled). Callers run in a transaction.
+        $userBooster = $this->userBoosterRepository->findOneForUpdate($discordUser, $booster);
 
-        if (null === $userBooster) {
+        if (!$userBooster instanceof UserBooster) {
             $userBooster = new UserBooster()
                 ->setDiscordUser($discordUser)
                 ->setBooster($booster)

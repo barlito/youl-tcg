@@ -339,6 +339,15 @@ class Card
     public function setGlowColor(?string $glow): static
     {
         $glow = null !== $glow && '' !== trim($glow) ? trim($glow) : null;
+
+        // An untouched <input type="color"> submits #000000 (it has no empty
+        // state): saving any card would silently override the rarity glow
+        // with a black halo. Treat pure black as "no custom glow" — a black
+        // halo on a dark theme is invisible anyway.
+        if ('#000000' === $glow) {
+            $glow = null;
+        }
+
         $this->visualConfigOverride = array_filter(
             array_merge($this->visualConfigOverride, ['glow' => $glow]),
             static fn (mixed $value): bool => null !== $value,

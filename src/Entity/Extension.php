@@ -235,6 +235,15 @@ class Extension implements \Stringable
     public function setGlowColor(?string $glow): static
     {
         $glow = null !== $glow && '' !== trim($glow) ? trim($glow) : null;
+
+        // An untouched <input type="color"> submits #000000 (it has no empty
+        // state): saving the extension would silently override the rarity
+        // glow of every card of the set with a black halo. Treat pure black
+        // as "no custom glow" — invisible on a dark theme anyway.
+        if ('#000000' === $glow) {
+            $glow = null;
+        }
+
         $this->visualConfig = array_filter(
             array_merge($this->visualConfig, ['glow' => $glow]),
             static fn (mixed $value): bool => null !== $value,

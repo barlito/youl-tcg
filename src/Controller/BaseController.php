@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Enum\Entity\CardStatusEnum;
 use App\Repository\BoosterOpeningRepository;
 use App\Repository\CardRepository;
 use App\Repository\ExtensionRepository;
@@ -34,14 +35,16 @@ class BaseController extends AbstractController
             return $cardRepository->findRandomCardId(3);
         };
 
+        // the status filter makes an unpublished (not just deleted) cached card
+        // trip the count check below instead of staying on display all day
         $cardsIds = $cache->get('daycards', $pickDayCards);
-        $cards = $cardRepository->findBy(['id' => $cardsIds]);
+        $cards = $cardRepository->findBy(['id' => $cardsIds, 'status' => CardStatusEnum::PUBLISHED]);
 
         // Stale cache (a cached card got unpublished or deleted): redraw.
         if (\count($cards) !== \count($cardsIds)) {
             $cache->delete('daycards');
             $cardsIds = $cache->get('daycards', $pickDayCards);
-            $cards = $cardRepository->findBy(['id' => $cardsIds]);
+            $cards = $cardRepository->findBy(['id' => $cardsIds, 'status' => CardStatusEnum::PUBLISHED]);
         }
 
         $extensions = $extensionRepository->findPublishedWithPublishedCardCount();
