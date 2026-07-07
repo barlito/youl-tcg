@@ -98,7 +98,7 @@ final class BoosterHubComponentTest extends WebTestCase
         $rendered = (string) $this->createLiveComponent(BoosterHub::class, client: $client)->render();
         $this->assertStringContainsString('Pack Event Test', $rendered);
         $this->assertStringContainsString('data-testid="not-claimable"', $rendered);
-        $this->assertStringContainsString('⚡ Event / code', $rendered);
+        $this->assertStringContainsString('✕ Non récupérable', $rendered);
     }
 
     public function testDropRatesPanelExposesTheNormalisedRates(): void
