@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Dto;
 
 use App\Enum\Card\CardEffectEnum;
+use App\Enum\Card\FoilTextureEnum;
 
 /**
  * Visual customisation of a card: ambient glow colour, border accent colour,
@@ -25,6 +26,8 @@ final readonly class VisualConfig
         // Holo effect preset (holo-presets.css); since the rarity recipes were
         // dropped, presets are the ONLY holo rendering path.
         public ?CardEffectEnum $holoEffect = null,
+        // Bundled foil texture (library) — an uploaded foil always wins over it.
+        public ?FoilTextureEnum $foilTexture = null,
     ) {
     }
 
@@ -41,6 +44,7 @@ final readonly class VisualConfig
             cssClass: self::stringOrNull($data['cssClass'] ?? null),
             // Invalid / unknown preset names fall through to null (no preset).
             holoEffect: CardEffectEnum::tryFromName(self::stringOrNull($data['holoEffect'] ?? null)),
+            foilTexture: FoilTextureEnum::tryFromName(self::stringOrNull($data['foilTexture'] ?? null)),
         );
     }
 
@@ -55,6 +59,7 @@ final readonly class VisualConfig
                 'borderColor' => $this->borderColor,
                 'cssClass' => $this->cssClass,
                 'holoEffect' => $this->holoEffect?->value,
+                'foilTexture' => $this->foilTexture?->value,
             ],
             static fn (?string $value): bool => null !== $value,
         );
@@ -65,7 +70,8 @@ final readonly class VisualConfig
         return null === $this->glow
             && null === $this->borderColor
             && null === $this->cssClass
-            && !$this->holoEffect instanceof CardEffectEnum;
+            && !$this->holoEffect instanceof CardEffectEnum
+            && !$this->foilTexture instanceof FoilTextureEnum;
     }
 
     private static function stringOrNull(mixed $value): ?string

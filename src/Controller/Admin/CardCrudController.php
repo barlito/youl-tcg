@@ -114,7 +114,7 @@ class CardCrudController extends AbstractCrudController
             ->setLabel('Visual overrides')
             ->setLanguage('js')
             ->onlyOnForms()
-            ->setHelp('Optional per-card overrides. Keys: glow, borderColor, cssClass, holoEffect (preset: shine|basic|cosmos|trainer). Example: {"glow": "#ff3db0", "holoEffect": "cosmos"}')
+            ->setHelp('Optional per-card overrides. Keys: glow, borderColor, cssClass, holoEffect (preset: shine|basic|cosmos|trainer), foilTexture (library: ancient|geometric|vmax|trainer, ignored if a foil is uploaded). Example: {"glow": "#ff3db0", "holoEffect": "cosmos", "foilTexture": "ancient"}')
         ;
         yield Field::new('visualConfigOverrideJson')->setLabel('Visual overrides')->onlyOnDetail();
     }

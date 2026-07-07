@@ -7,6 +7,7 @@ namespace App\Controller\Admin;
 use App\Admin\Field\ImageField as VichImageField;
 use App\Entity\Extension;
 use App\Enum\Card\CardEffectEnum;
+use App\Enum\Card\FoilTextureEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -77,6 +78,12 @@ class ExtensionCrudController extends AbstractCrudController
             ->setChoices($this->effectChoices())
             ->onlyOnForms()
         ;
+        yield ChoiceField::new('foilTexture')
+            ->setLabel('Foil texture (library)')
+            ->setHelp('Bundled foil applied when neither the card nor the extension uploaded one (overrides the foilTexture JSON key)')
+            ->setChoices($this->foilTextureChoices())
+            ->onlyOnForms()
+        ;
         yield Field::new('visualConfigJson')->setLabel('Visual config')->onlyOnDetail();
     }
 
@@ -88,6 +95,19 @@ class ExtensionCrudController extends AbstractCrudController
         $choices = [];
         foreach (CardEffectEnum::cases() as $effect) {
             $choices[$effect->label()] = $effect;
+        }
+
+        return $choices;
+    }
+
+    /**
+     * @return array<string, FoilTextureEnum> label => enum case, for the ChoiceField
+     */
+    private function foilTextureChoices(): array
+    {
+        $choices = [];
+        foreach (FoilTextureEnum::cases() as $texture) {
+            $choices[$texture->label()] = $texture;
         }
 
         return $choices;

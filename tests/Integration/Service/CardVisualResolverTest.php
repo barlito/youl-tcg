@@ -8,6 +8,7 @@ use App\Dto\VisualConfig;
 use App\Entity\Card;
 use App\Entity\Extension;
 use App\Enum\Card\CardEffectEnum;
+use App\Enum\Card\FoilTextureEnum;
 use App\Service\Card\CardVisualResolver;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -102,6 +103,26 @@ final class CardVisualResolverTest extends KernelTestCase
 
         $this->assertSame(CardEffectEnum::TRAINER, $this->resolver->resolve($this->card($extension))->holoEffect);
         $this->assertNull($this->resolver->resolve($this->card($this->extension()))->holoEffect);
+    }
+
+    public function testFoilTextureLibraryFallsBackThroughTheCascade(): void
+    {
+        // extension picks a library texture, the card overrides with another
+        $extension = $this->extension()->setVisualConfig(new VisualConfig(foilTexture: FoilTextureEnum::GEOMETRIC));
+        $card = $this->card($extension)->setVisualConfigOverride(new VisualConfig(foilTexture: FoilTextureEnum::ANCIENT));
+
+        $this->assertSame('/images/holo/poke/ancient.png', $this->resolver->resolve($card)->foilUrl);
+        $this->assertSame('/images/holo/poke/geometric.png', $this->resolver->resolve($this->card($extension))->foilUrl);
+        $this->assertNull($this->resolver->resolve($this->card($this->extension()))->foilUrl);
+    }
+
+    public function testUploadedFoilBeatsTheLibraryTexture(): void
+    {
+        $extension = $this->extension()->setVisualConfig(new VisualConfig(foilTexture: FoilTextureEnum::VMAX));
+        $card = $this->card($extension);
+        $card->setImageFoilName('own_foil.png');
+
+        $this->assertSame('/images/foils/own_foil.png', $this->resolver->resolve($card)->foilUrl);
     }
 
     private function extension(): Extension

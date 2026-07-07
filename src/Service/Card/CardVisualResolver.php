@@ -51,7 +51,12 @@ final readonly class CardVisualResolver
             return $this->uploaderHelper->asset($extension, 'imageFoilFile');
         }
 
-        return null;
+        // no upload anywhere: fall back to a bundled library texture if the
+        // visual config picked one (card override beats the extension default)
+        $texture = $card->getVisualConfigOverride()->foilTexture
+            ?? $extension->getVisualConfig()->foilTexture;
+
+        return $texture?->url();
     }
 
     private function maskUrl(Card $card, Extension $extension): ?string

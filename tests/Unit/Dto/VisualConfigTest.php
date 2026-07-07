@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Dto;
 
 use App\Dto\VisualConfig;
 use App\Enum\Card\CardEffectEnum;
+use App\Enum\Card\FoilTextureEnum;
 use PHPUnit\Framework\TestCase;
 
 final class VisualConfigTest extends TestCase
@@ -76,5 +77,15 @@ final class VisualConfigTest extends TestCase
 
         $this->assertSame(['holoEffect' => 'trainer'], $array);
         $this->assertSame(CardEffectEnum::TRAINER, VisualConfig::fromArray($array)->holoEffect);
+    }
+
+    public function testFoilTextureRoundTripsAndIgnoresUnknownValues(): void
+    {
+        $array = (new VisualConfig(foilTexture: FoilTextureEnum::ANCIENT))->toArray();
+
+        $this->assertSame(['foilTexture' => 'ancient'], $array);
+        $this->assertSame(FoilTextureEnum::ANCIENT, VisualConfig::fromArray($array)->foilTexture);
+        $this->assertNull(VisualConfig::fromArray(['foilTexture' => 'nope'])->foilTexture);
+        $this->assertFalse((new VisualConfig(foilTexture: FoilTextureEnum::VMAX))->isEmpty());
     }
 }
