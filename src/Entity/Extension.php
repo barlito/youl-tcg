@@ -6,6 +6,7 @@ namespace App\Entity;
 
 use App\Dto\VisualConfig;
 use App\Enum\Card\CardEffectEnum;
+use App\Enum\Card\FoilTextureEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use App\Repository\ExtensionRepository;
 use Barlito\Utils\Traits\IdUuidTrait;
@@ -271,6 +272,45 @@ class Extension implements \Stringable
     {
         $this->visualConfig = array_filter(
             array_merge($this->visualConfig, ['holoEffect' => $holoEffect?->value]),
+            static fn (mixed $value): bool => null !== $value,
+        );
+
+        return $this;
+    }
+
+    /**
+     * Virtual field for the back office: the glow colour stored inside the
+     * visual config JSON, exposed as a colour picker.
+     */
+    public function getGlowColor(): ?string
+    {
+        return $this->getVisualConfig()->glow;
+    }
+
+    public function setGlowColor(?string $glow): static
+    {
+        $glow = null !== $glow && '' !== trim($glow) ? trim($glow) : null;
+        $this->visualConfig = array_filter(
+            array_merge($this->visualConfig, ['glow' => $glow]),
+            static fn (mixed $value): bool => null !== $value,
+        );
+
+        return $this;
+    }
+
+    /**
+     * Virtual field for the back office: the bundled foil texture stored
+     * inside the visual config JSON, exposed as a selectable enum.
+     */
+    public function getFoilTexture(): ?FoilTextureEnum
+    {
+        return $this->getVisualConfig()->foilTexture;
+    }
+
+    public function setFoilTexture(?FoilTextureEnum $foilTexture): static
+    {
+        $this->visualConfig = array_filter(
+            array_merge($this->visualConfig, ['foilTexture' => $foilTexture?->value]),
             static fn (mixed $value): bool => null !== $value,
         );
 

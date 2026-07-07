@@ -115,11 +115,22 @@
                     </label>
                 </div>
 
+                <div class="pg-control">
+                    <label>Foil texture (bibliothèque)
+                        <select data-card-playground-target="libraryFoil" data-action="card-playground#apply">
+                            <option value="">— aucune —</option>
+                            {% for texture in foilTextures %}
+                                <option value="{{ texture.url }}">{{ texture.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </div>
+
                 <div class="pg-control justify-end">
                     <label class="flex items-center gap-2">
                         <input type="checkbox" class="accent-primary"
                                data-card-playground-target="foil" data-action="card-playground#apply">
-                        Foil texture
+                        Foil uploadé (démo)
                     </label>
                     <label class="flex items-center gap-2">
                         <input type="checkbox" class="accent-primary"
@@ -143,8 +154,8 @@
                 <div class="force-glow">
                     {{ include('components/CardComponent.html.twig', { card: demo.card }) }}
                     <div class="mt-2 px-1">
-                        <code class="text-sm text-ink">{{ demo.effect.value }}</code>
-                        <p class="text-xs text-ink-dim">{{ demo.effect.label }}</p>
+                        <code class="text-sm text-ink">{{ demo.code }}</code>
+                        <p class="text-xs text-ink-dim">{{ demo.label }}</p>
                     </div>
                 </div>
             {% endfor %}

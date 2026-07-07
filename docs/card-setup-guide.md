@@ -177,7 +177,10 @@ Pour l'implémenter proprement il faudrait :
    ```json
    { "holoEffect": "cosmos", "glow": "#7c3aed" }
    ```
-   Les clés possibles : `holoEffect`, `glow`, `borderColor`, `cssClass`.
+   Les clés possibles : `holoEffect`, `glow`, `borderColor`, `cssClass`,
+   `foilTexture` (texture foil de la bibliothèque embarquée :
+   `ancient` | `geometric` | `vmax` | `trainer` — ignorée si un foil est
+   uploadé sur la carte ou l'extension).
 
 ---
 

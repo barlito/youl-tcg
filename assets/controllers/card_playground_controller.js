@@ -15,7 +15,7 @@ import { Controller } from '@hotwired/stimulus';
  *   - foil / mask     : <input type="checkbox">
  */
 export default class extends Controller {
-    static targets = ['card', 'effect', 'rarity', 'foil', 'mask'];
+    static targets = ['card', 'effect', 'rarity', 'foil', 'mask', 'libraryFoil'];
 
     connect() {
         // derive every preset class from the select options, so new presets
@@ -43,7 +43,14 @@ export default class extends Controller {
         // --- foil / mask toggles ---
         card.classList.toggle('masked', this.maskTarget.checked);
         this.toggleVar(card, '--mask', this.maskTarget.checked);
-        this.toggleVar(card, '--foil', this.foilTarget.checked);
+        // uploaded (demo) foil wins over a library texture, like in the resolver
+        if (this.foilTarget.checked) {
+            this.toggleVar(card, '--foil', true);
+        } else if (this.hasLibraryFoilTarget && this.libraryFoilTarget.value) {
+            card.style.setProperty('--foil', `url('${this.libraryFoilTarget.value}')`);
+        } else {
+            card.style.removeProperty('--foil');
+        }
 
         // no at-rest veil anywhere (product decision): effects only on hover
     }

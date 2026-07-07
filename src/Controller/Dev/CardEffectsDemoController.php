@@ -8,6 +8,7 @@ use App\Dto\VisualConfig;
 use App\Entity\Card;
 use App\Entity\Extension;
 use App\Enum\Card\CardEffectEnum;
+use App\Enum\Card\FoilTextureEnum;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\CardRepository;
@@ -56,7 +57,19 @@ class CardEffectsDemoController extends AbstractController
                 'card' => $this->variant($referenceCard, $bareExtension, $effect->value)
                     ->setRarity(CardRarityEnum::RARE)
                     ->setVisualConfigOverride(new VisualConfig(holoEffect: $effect)),
-                'effect' => $effect,
+                'code' => $effect->value,
+                'label' => $effect->label(),
+            ];
+        }
+        // the bundled foil library, shown through the trainer recipe (the most
+        // texture-forward preset) so each texture is comparable at a glance
+        foreach (FoilTextureEnum::cases() as $texture) {
+            $presetDemos[] = [
+                'card' => $this->variant($referenceCard, $bareExtension, 'tex-' . $texture->value)
+                    ->setRarity(CardRarityEnum::RARE)
+                    ->setVisualConfigOverride(new VisualConfig(holoEffect: CardEffectEnum::TRAINER, foilTexture: $texture)),
+                'code' => 'foil ' . $texture->value,
+                'label' => $texture->label(),
             ];
         }
 
@@ -75,6 +88,10 @@ class CardEffectsDemoController extends AbstractController
             'rarityDemos' => $rarityDemos,
             'effects' => CardEffectEnum::cases(),
             'rarities' => CardRarityEnum::cases(),
+            'foilTextures' => array_map(
+                static fn (FoilTextureEnum $texture): array => ['url' => $texture->url(), 'label' => $texture->label()],
+                FoilTextureEnum::cases(),
+            ),
         ]);
     }
 
