@@ -7,8 +7,10 @@ namespace App\Service\Booster;
 use App\Entity\Booster;
 use App\Entity\BoosterClaim;
 use App\Entity\DiscordUser;
+use App\Enum\Entity\ExtensionStatusEnum;
 use App\Exception\Booster\BoosterNotClaimableException;
 use App\Exception\Booster\DailyClaimLimitReachedException;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
@@ -43,8 +45,9 @@ final readonly class BoosterClaimService
      */
     public function claim(DiscordUser $discordUser, Booster $booster): BoosterClaim
     {
-        // Server-side guard, not just UI: an event/code-only booster must never
-        // be claimable through a forged live action.
+        // Server-side guards, not just UI: a forged live action must not claim
+        // an event/code-only booster, nor one whose extension is unpublished
+        // (its uuid can leak — the booster simply isn't available).
         if (!$booster->isClaimable()) {
             throw new BoosterNotClaimableException(
                 \sprintf('Booster "%s" is not claimable (event/code distribution only).', $booster->getDisplayName()),
@@ -52,19 +55,33 @@ final readonly class BoosterClaimService
             );
         }
 
-        if ($this->quota->getRemainingClaims($discordUser) < 1) {
-            throw new DailyClaimLimitReachedException(
-                \sprintf('Daily limit of %d boosters reached, come back tomorrow.', BoosterClaimQuotaInterface::DAILY_LIMIT),
-                \sprintf('Limite quotidienne de %d boosters atteinte, reviens demain !', BoosterClaimQuotaInterface::DAILY_LIMIT),
+        if (ExtensionStatusEnum::PUBLISHED !== $booster->getExtension()->getStatus()) {
+            throw new BoosterNotClaimableException(
+                \sprintf('Booster "%s" belongs to an unpublished extension.', $booster->getDisplayName()),
+                'Ce pack n\'est pas disponible.',
             );
         }
 
-        $this->userInventoryService->creditBooster($discordUser, $booster);
+        return $this->entityManager->wrapInTransaction(function () use ($discordUser, $booster): BoosterClaim {
+            // The quota is a COUNT then an INSERT (check-then-act): lock the
+            // user row so concurrent claims of the same user serialize instead
+            // of both passing the check and overshooting the daily limit.
+            $this->entityManager->find(DiscordUser::class, $discordUser->getDiscordId(), LockMode::PESSIMISTIC_WRITE);
 
-        $claim = new BoosterClaim($discordUser, $booster, $this->clock->now());
-        $this->entityManager->persist($claim);
-        $this->entityManager->flush();
+            if ($this->quota->getRemainingClaims($discordUser) < 1) {
+                throw new DailyClaimLimitReachedException(
+                    \sprintf('Daily limit of %d boosters reached, come back tomorrow.', BoosterClaimQuotaInterface::DAILY_LIMIT),
+                    \sprintf('Limite quotidienne de %d boosters atteinte, reviens demain !', BoosterClaimQuotaInterface::DAILY_LIMIT),
+                );
+            }
 
-        return $claim;
+            $this->userInventoryService->creditBooster($discordUser, $booster);
+
+            $claim = new BoosterClaim($discordUser, $booster, $this->clock->now());
+            $this->entityManager->persist($claim);
+            $this->entityManager->flush();
+
+            return $claim;
+        });
     }
 }
