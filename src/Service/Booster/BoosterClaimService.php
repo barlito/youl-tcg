@@ -7,6 +7,7 @@ namespace App\Service\Booster;
 use App\Entity\Booster;
 use App\Entity\BoosterClaim;
 use App\Entity\DiscordUser;
+use App\Exception\Booster\BoosterNotClaimableException;
 use App\Exception\Booster\DailyClaimLimitReachedException;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -38,9 +39,19 @@ final readonly class BoosterClaimService
 
     /**
      * @throws DailyClaimLimitReachedException
+     * @throws BoosterNotClaimableException
      */
     public function claim(DiscordUser $discordUser, Booster $booster): BoosterClaim
     {
+        // Server-side guard, not just UI: an event/code-only booster must never
+        // be claimable through a forged live action.
+        if (!$booster->isClaimable()) {
+            throw new BoosterNotClaimableException(
+                \sprintf('Booster "%s" is not claimable (event/code distribution only).', $booster->getDisplayName()),
+                'Ce pack ne peut pas être récupéré ici — il se gagne en event ou via un code.',
+            );
+        }
+
         if ($this->quota->getRemainingClaims($discordUser) < 1) {
             throw new DailyClaimLimitReachedException(
                 \sprintf('Daily limit of %d boosters reached, come back tomorrow.', BoosterClaimQuotaInterface::DAILY_LIMIT),

@@ -8,7 +8,7 @@
 export const PACK_FRONT_W = 840;
 export const PACK_FRONT_H = 1300;
 
-export function drawPackFront(c, { hero = null, logo = null, name = 'YOUL', count = 5, fallback = false, scale = 1, border = true }) {
+export function drawPackFront(c, { hero = null, logo = null, name = 'YOUL', count = 5, fallback = false, scale = 1, border = true, plain = false }) {
     const fw = PACK_FRONT_W;
     const fh = PACK_FRONT_H;
 
@@ -25,6 +25,14 @@ export function drawPackFront(c, { hero = null, logo = null, name = 'YOUL', coun
         const w = hero.width * s;
         const h = hero.height * s;
         c.drawImage(hero, (fw - w) / 2, (fh - h) / 2, w, h);
+    }
+
+    // plain: the booster ships its OWN pack design — no branding/text drawn on
+    // top of it; only the functional "N cartes" badge stays
+    if (plain) {
+        drawCountBadge(c, fw, count);
+
+        return;
     }
 
     // gentle bottom gradient: keeps the wordmark legible, light enough that the
@@ -54,17 +62,7 @@ export function drawPackFront(c, { hero = null, logo = null, name = 'YOUL', coun
     c.font = '600 20px monospace';
     c.fillText(`CONTIENT ${count} CARTE${count > 1 ? 'S' : ''}`, fw / 2, fh * 0.93);
 
-    // "N CARTES" badge, top-right
-    c.fillStyle = '#0b0712';
-    roundRect(c, fw - 230, 40, 190, 96, 16);
-    c.fill();
-    c.fillStyle = '#fff';
-    c.textAlign = 'right';
-    c.font = '800 56px "Arial Black", sans-serif';
-    c.fillText(`${count}`, fw - 150, 108);
-    c.font = '700 20px monospace';
-    c.fillText('CARTES', fw - 55, 100);
-    c.textAlign = 'center';
+    drawCountBadge(c, fw, count);
 
     // chrome border — subtle frame on the small grid tiles, but on the big 3D pack
     // it reads as a parasitic light rim around the artwork, so callers there pass
@@ -75,6 +73,20 @@ export function drawPackFront(c, { hero = null, logo = null, name = 'YOUL', coun
         roundRect(c, 5, 5, fw - 10, fh - 10, 28);
         c.stroke();
     }
+}
+
+// "N CARTES" badge, top-right
+function drawCountBadge(c, fw, count) {
+    c.fillStyle = '#0b0712';
+    roundRect(c, fw - 230, 40, 190, 96, 16);
+    c.fill();
+    c.fillStyle = '#fff';
+    c.textAlign = 'right';
+    c.font = '800 56px "Arial Black", sans-serif';
+    c.fillText(`${count}`, fw - 150, 108);
+    c.font = '700 20px monospace';
+    c.fillText('CARTES', fw - 55, 100);
+    c.textAlign = 'center';
 }
 
 function roundRect(c, x, y, w, h, r) {

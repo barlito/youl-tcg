@@ -21,7 +21,8 @@
 @keyframes opening-labelSlam { 0% { transform: scale(2.4); opacity: 0; filter: blur(8px); } 60% { transform: scale(.92); opacity: 1; filter: blur(0); } 100% { transform: scale(1); opacity: 1; } }
 @keyframes opening-slotPop { 0% { transform: scale(.82); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
 @keyframes opening-nudgeX { 0%,100% { transform: translateX(0); } 50% { transform: translateX(5px); } }
-@keyframes opening-footIn { 0% { transform: translateY(14px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+/* keeps the absolute foot's -50% X centring while sliding in */
+@keyframes opening-footIn { 0% { transform: translate(-50%, 14px); opacity: 0; } 100% { transform: translate(-50%, 0); opacity: 1; } }
 
 /* ===================================================================== layout */
 .opening--page {
@@ -189,7 +190,7 @@
 
 .opening__label {
     z-index: 3;
-    margin-bottom: 44px;
+    margin-bottom: 28px;
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
     font-size: clamp(24px, 3.4vw, 38px);
@@ -210,7 +211,11 @@
 .opening__reveal-cards {
     position: relative;
     z-index: 2;
-    width: clamp(260px, 34vw, 420px);
+    /* The height budget sizes the revealed card, not a fixed cap: viewport minus
+     * header + label + counter + pinned foot (~300px of chrome), converted to a
+     * width via the card aspect. Tall screens get a genuinely bigger card
+     * instead of dead space above/below; 520px ceiling for ultra-tall. */
+    width: clamp(260px, min(520px, calc((100vh - 300px) * 0.718)), 34vw);
     display: grid;
     place-items: center;
 }
@@ -626,11 +631,19 @@
 }
 .opening__set-top:hover { border-color: var(--primary); color: #fff; }
 
-/* end-of-opening actions, grouped right under the revealed card (inside the
- * showcase, which is pointer-events:none once done — so re-enable them here) */
+/* End-of-opening actions. OUT of the showcase's centered flex flow on purpose:
+ * pinned to the showcase bottom (where the tear CTA lived — hidden by then),
+ * so its appearance neither re-centers the revealed card (-41px jump) nor
+ * pushes below the fold. The showcase is pointer-events:none once done —
+ * re-enable clicks here. */
 .opening__foot {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 3;
-    margin-top: 34px;
+    width: max-content;
+    max-width: 96%;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -639,6 +652,12 @@
     text-align: center;
     pointer-events: auto;
     animation: opening-footIn .4s ease-out both;
+}
+/* stacked layout: the showcase overflows 8% below the stage, right into the
+ * tracker that now sits underneath — lift the pinned foot clear of it
+ * (AFTER the base rule: same specificity, source order decides) */
+@media (max-width: 900px) {
+    .opening__foot { bottom: 44px; }
 }
 
 /* ============================================================= flash overlay */

@@ -66,6 +66,72 @@ final class BoosterHubComponentTest extends WebTestCase
         $this->assertSame('Booster introuvable.', $component->component()->error);
     }
 
+    public function testNonClaimableBoosterIsHiddenUntilOwned(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $eventBooster = $this->createEventBooster();
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+
+        // not owned → the event/code booster simply doesn't exist on the hub
+        $this->assertStringNotContainsString('Pack Event Test', (string) $component->render());
+
+        // …even so, a forged live claim is refused server-side, in French
+        $component->call('claimBooster', ['boosterId' => (string) $eventBooster->getId()]);
+        $this->assertSame(
+            'Ce pack ne peut pas être récupéré ici — il se gagne en event ou via un code.',
+            $component->component()->error,
+        );
+
+        // owning a copy reveals it: event chip, own name leading, extension in the eyebrow
+        // (references re-fetched: the live component calls detached our entities)
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist(
+            new UserBooster()
+                ->setDiscordUser($entityManager->getReference(\App\Entity\DiscordUser::class, $user->getDiscordId()))
+                ->setBooster($entityManager->getReference(\App\Entity\Booster::class, $eventBooster->getId()))
+                ->setQuantity(1),
+        );
+        $entityManager->flush();
+
+        $rendered = (string) $this->createLiveComponent(BoosterHub::class, client: $client)->render();
+        $this->assertStringContainsString('Pack Event Test', $rendered);
+        $this->assertStringContainsString('data-testid="not-claimable"', $rendered);
+        $this->assertStringContainsString('✕ Non récupérable', $rendered);
+    }
+
+    public function testDropRatesPanelExposesTheNormalisedRates(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        $rendered = (string) $component->render();
+
+        $this->assertStringContainsString('data-testid="drop-rates-toggle"', $rendered);
+        $this->assertStringContainsString('Taux par carte', $rendered);
+        // every fixture slot weight map normalises to percentages
+        $this->assertStringContainsString('%', $rendered);
+    }
+
+    private function createEventBooster(): \App\Entity\Booster
+    {
+        $booster = new \App\Entity\Booster()
+            ->setExtension($this->firstPublishedBooster()->getExtension())
+            ->setName('Pack Event Test')
+            ->setClaimable(false)
+            ->setRarityRates([['rarities' => ['rare' => 100], 'holoChance' => 100]])
+        ;
+        $booster->setImageName('default_card.png');
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist($booster);
+        $entityManager->flush();
+
+        return $booster;
+    }
+
     public function testOwnedDrawableBoosterRendersAnOpenLink(): void
     {
         $client = static::createClient();

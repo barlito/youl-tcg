@@ -44,11 +44,21 @@ final class BoosterHub extends AbstractController
     }
 
     /**
+     * The hub list: a non-claimable booster (event/code distribution) is hidden
+     * from everyone except the users who already own copies — they still need
+     * to see it (and its drop rates) to open theirs.
+     *
      * @return list<Booster>
      */
     public function getBoosters(): array
     {
-        return $this->boosterRepository->findPublished();
+        $inventory = $this->getInventory();
+
+        return array_values(array_filter(
+            $this->boosterRepository->findPublished(),
+            static fn (Booster $booster): bool => $booster->isClaimable()
+                || ($inventory[(string) $booster->getId()] ?? 0) > 0,
+        ));
     }
 
     public function getRemainingClaims(): int

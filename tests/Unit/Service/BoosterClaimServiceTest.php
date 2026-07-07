@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Service;
 
 use App\Entity\Booster;
 use App\Entity\DiscordUser;
+use App\Exception\Booster\BoosterNotClaimableException;
 use App\Exception\Booster\DailyClaimLimitReachedException;
 use App\Service\Booster\BoosterClaimQuotaInterface;
 use App\Service\Booster\BoosterClaimService;
@@ -53,6 +54,23 @@ final class BoosterClaimServiceTest extends TestCase
         $this->expectException(DailyClaimLimitReachedException::class);
 
         $service->claim(new DiscordUser(), new Booster());
+    }
+
+    public function testClaimRefusesANonClaimableBooster(): void
+    {
+        $inventory = $this->createMock(UserInventoryService::class);
+        $inventory->expects($this->never())->method('creditBooster');
+
+        $service = new BoosterClaimService(
+            $this->quotaWithRemaining(2),
+            $inventory,
+            $this->createStub(EntityManagerInterface::class),
+            new MockClock('2026-06-10 12:00:00', 'UTC'),
+        );
+
+        $this->expectException(BoosterNotClaimableException::class);
+
+        $service->claim(new DiscordUser(), new Booster()->setName('Pack Event')->setClaimable(false));
     }
 
     public function testQuotaAccessorsDelegateToThePolicy(): void
