@@ -10,10 +10,23 @@ foil pattern itself is separate (procedural / shared, see `public/images/holo`).
 docker build -t ytcg-holo tools/holo
 ```
 
-## Use
+## Use — batch par extension (recommandé)
+
+```bash
+# tout-en-un : rembg chaque carte publiée SANS mask de l'extension, écrit les
+# masks dans public/images/masks/ et met à jour card.image_mask_name en base
+# (les masks existants ne sont jamais écrasés — idempotent)
+castor holo:masks <extension-slug> [--variant background|subject] [--blur 1.5]
+```
+
+`background` (défaut) = reverse holo, le personnage reste net et le fond brille ;
+`subject` = l'inverse.
+
+## Use — une carte à la main
 
 ```bash
 # from the project root; paths are relative to the mounted /work
+# (accepte plusieurs artworks — une seule session rembg pour tout le lot)
 docker run --rm -v "$PWD:/work" ytcg-holo public/images/cards/<artwork>.png
 ```
 

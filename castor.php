@@ -63,3 +63,97 @@ function syncPackModel(): void
 }
 
 import('make/castor_entrypoint.php');
+
+/**
+ * Batch holo masks for a whole extension: rembg every published card artwork
+ * that has NO mask yet, drop the masks into public/images/masks/ and point
+ * card.image_mask_name at them. Hand-made masks are never clobbered
+ * (only image_mask_name IS NULL is touched — use --force to redo those too,
+ * existing uploads still stay untouched).
+ *
+ *   castor holo:masks <extension-slug> [--variant background|subject] [--blur 1.5]
+ */
+#[AsTask('holo:masks')]
+function holoMasks(
+    string $slug,
+    string $variant = 'background',
+    float $blur = 1.5,
+): void {
+    if (!in_array($variant, ['background', 'subject'], true)) {
+        io()->error('variant must be "background" (reverse holo, le perso reste net) or "subject"');
+
+        return;
+    }
+
+    $php = capture('docker ps --filter name="${STACK_NAME}_php" -q');
+    if ('' === trim($php)) {
+        io()->error('PHP container not running (make docker.deploy)');
+
+        return;
+    }
+
+    // cards of the extension, published, without a mask
+    $sql = sprintf(
+        "SELECT c.id || '|' || c.image_name FROM card c JOIN extension e ON e.id = c.extension_id"
+        . " WHERE e.slug = '%s' AND c.status = 2 AND c.image_name IS NOT NULL AND c.image_mask_name IS NULL",
+        str_replace("'", "''", $slug),
+    );
+    $rows = capture(
+        'docker exec ' . $php . ' bin/console dbal:run-sql ' . escapeshellarg($sql),
+        context: context()->withQuiet(),
+    );
+    preg_match_all('/([0-9a-f-]{36})\|(\S+\.(?:png|jpe?g|webp))/i', $rows, $matches, PREG_SET_ORDER);
+
+    if ([] === $matches) {
+        io()->success('Nothing to do: every published card of "' . $slug . '" already has a mask (or none found).');
+
+        return;
+    }
+
+    $artworks = [];
+    foreach ($matches as [, $id, $image]) {
+        $path = __DIR__ . '/public/images/cards/' . $image;
+        if (is_file($path)) {
+            $artworks[$id] = $image;
+        } else {
+            io()->warning('artwork file missing, skipped: ' . $image);
+        }
+    }
+    io()->info(sprintf('%d carte(s) à traiter (variant: %s)', count($artworks), $variant));
+
+    // build the rembg image once, then batch every artwork in ONE run (the
+    // u2net model load dominates the cost)
+    capture('docker build -q -t ytcg-holo tools/holo', context: context()->withTimeout(600));
+    $files = implode(' ', array_map(
+        static fn (string $image): string => escapeshellarg('public/images/cards/' . $image),
+        $artworks,
+    ));
+    $out = capture(
+        'docker run --rm -v "$PWD:/work" ytcg-holo ' . $files
+        . ' --out public/images/masks --only ' . $variant . ' --blur ' . $blur,
+        context: context()->withTimeout(3600),
+    );
+    io()->write($out . PHP_EOL);
+
+    // point each card at its generated mask
+    $updated = 0;
+    foreach ($artworks as $id => $image) {
+        $mask = pathinfo($image, PATHINFO_FILENAME) . '-mask-' . $variant . '.png';
+        if (!is_file(__DIR__ . '/public/images/masks/' . $mask)) {
+            io()->warning('mask not produced for ' . $image);
+
+            continue;
+        }
+        capture(
+            'docker exec ' . $php . ' bin/console dbal:run-sql ' . escapeshellarg(sprintf(
+                "UPDATE card SET image_mask_name = '%s' WHERE id = '%s' AND image_mask_name IS NULL",
+                $mask,
+                $id,
+            )),
+            context: context()->withQuiet(),
+        );
+        ++$updated;
+    }
+
+    io()->success(sprintf('%d mask(s) générés et branchés pour "%s".', $updated, $slug));
+}
