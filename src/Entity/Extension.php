@@ -43,6 +43,14 @@ class Extension implements \Stringable
     #[ORM\Column(type: 'text')]
     private string $description;
 
+    /**
+     * Cosmetic set code shown on the universe tiles (e.g. "CYB-01") — free
+     * text chosen by the admin, nothing is derived from it. Null = no chip.
+     */
+    #[Assert\Length(max: 16)]
+    #[ORM\Column(length: 16, nullable: true)]
+    private ?string $code = null;
+
     #[ORM\Column(options: ['default' => ExtensionStatusEnum::DRAFT])]
     private ExtensionStatusEnum $status = ExtensionStatusEnum::DRAFT;
 
@@ -141,6 +149,19 @@ class Extension implements \Stringable
     public function setDescription(string $description): static
     {
         $this->description = $description;
+
+        return $this;
+    }
+
+    public function getCode(): ?string
+    {
+        return $this->code;
+    }
+
+    public function setCode(?string $code): static
+    {
+        $code = null !== $code ? trim($code) : null;
+        $this->code = '' !== $code ? $code : null;
 
         return $this;
     }

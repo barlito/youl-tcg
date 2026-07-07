@@ -43,7 +43,9 @@
 
                         <div class="absolute left-4 right-4 top-4 flex items-center justify-between">
                             <span class="chip-mono bg-black/80 px-2 py-0.5 font-bold text-live">● LIVE</span>
-                            <span class="chip-mono text-white">EX-{{ '%03d'|format(loop.index) }}</span>
+                            {% if extension.code %}
+                                <span class="chip-mono text-white">{{ extension.code }}</span>
+                            {% endif %}
                         </div>
 
                         <div class="absolute bottom-4 left-4 right-4">

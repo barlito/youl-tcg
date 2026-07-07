@@ -52,6 +52,11 @@ class ExtensionCrudController extends AbstractCrudController
     {
         yield Field::new('id')->onlyOnDetail();
         yield Field::new('name');
+        yield Field::new('code')
+            ->setLabel('Code du set')
+            ->setHelp('Cosmétique, affiché sur les tuiles univers (ex. « CYB-01 »). Vide = pas de chip.')
+            ->setRequired(false)
+        ;
         yield Field::new('description');
         yield ChoiceField::new('status')
             ->setChoices(ExtensionStatusEnum::cases())

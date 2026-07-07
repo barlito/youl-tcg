@@ -128,7 +128,9 @@
 
                             <div class="absolute left-4 right-4 top-4 flex items-center justify-between">
                                 <span class="chip-mono bg-black/80 px-2 py-0.5 font-bold text-live">● LIVE</span>
-                                <span class="chip-mono text-white">EX-{{ '%03d'|format(loop.index) }}</span>
+                                {% if extension.code %}
+                                    <span class="chip-mono text-white">{{ extension.code }}</span>
+                                {% endif %}
                             </div>
 
                             <div class="absolute bottom-4 left-4 right-4">
@@ -150,7 +152,7 @@
                     <article class="relative min-h-[240px] overflow-hidden border border-dashed border-hairline bg-surface/50 opacity-60 md:col-span-2">
                         <div class="absolute left-4 right-4 top-4 flex items-center justify-between">
                             <span class="chip-mono bg-black/80 px-2 py-0.5 font-bold text-soon">▸ SOON</span>
-                            <span class="chip-mono text-white">EX-{{ '%03d'|format(extensions|length + 1) }}</span>
+                            <span class="chip-mono text-white">???</span>
                         </div>
                         <div class="absolute bottom-4 left-4 right-4">
                             <h3 class="font-display text-[22px] font-bold uppercase leading-[.95] tracking-[-0.03em] text-white">
