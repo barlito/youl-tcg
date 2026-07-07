@@ -62,7 +62,7 @@
         ] %}
         {% set tickerItems = [
             "✦ %s packs ouverts"|format(packsOpenedCount|number_format(0, ',', ' ')),
-            '✦ %d univers'|format(extensions|length),
+            '✦ %d univers'|format(universesTotal),
             '✦ %d cartes à collectionner'|format(cardsTotal),
             '✦ 2 packs / jour',
             '✦ %d paliers de rareté'|format(rarities|length),
@@ -103,26 +103,34 @@
         {# --------------------------------------------------------- Univers #}
         <section id="univers" class="px-6 pb-24 lg:px-14">
             <div class="mx-auto max-w-7xl">
-                <div class="flex items-end justify-between">
+                <div class="flex items-end justify-between gap-6">
                     <h2 class="font-display text-5xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-6xl">
                         Les <span class="text-primary">univers</span>.
                     </h2>
-                    <span class="font-mono text-xs text-ink-dim">{{ '%02d'|format(extensions|length) }} LIVE / 01 SOON</span>
+                    <div class="flex flex-col items-end gap-3">
+                        <span class="font-mono text-xs text-ink-dim">{{ '%02d'|format(universesTotal) }} LIVE / 01 SOON</span>
+                        <a href="{{ path('universes') }}" class="btn-ghost !px-4 !py-2 text-xs">Tous les univers ▸</a>
+                    </div>
                 </div>
 
+                {# les 3 derniers univers sortis ; la liste complète vit sur /univers #}
                 <div class="mt-10 grid gap-4 md:grid-cols-[2fr_1fr_1fr] md:grid-rows-[320px_280px]">
-                    {% for item in extensions %}
+                    {% for item in universes %}
                         {% set extension = item.extension %}
                         <article class="group relative min-h-[240px] overflow-hidden bg-surface transition-colors {{ loop.first ? 'notched-corner md:row-span-2' : '' }}">
                             {# toute la tuile mène à la page de l'univers #}
                             <a href="{{ path('universes_show', { slug: extension.slug }) }}"
                                class="absolute inset-0 z-10"
                                aria-label="Univers {{ extension.name }}"></a>
-                            {% if extension.imageName %}
-                                <img src="{{ vich_uploader_asset(extension) }}" alt="{{ extension.name }}"
-                                     class="absolute inset-0 h-full w-full object-cover">
-                            {% else %}
-                                <div class="absolute inset-0 bg-gradient-to-br from-[#2a0f44] via-[#7a1f9c] to-magenta" aria-hidden="true"></div>
+                            {# même cascade de fond que les pages univers : image extension →
+                               artwork de la carte la plus rare → gradient seul (aussi le repli 404) #}
+                            <div class="absolute inset-0 bg-gradient-to-br from-[#2a0f44] via-[#7a1f9c] to-magenta opacity-60" aria-hidden="true"></div>
+                            {% set coverUrl = extension.imageName
+                                ? vich_uploader_asset(extension)
+                                : (item.coverImage ? asset('images/cards/' ~ item.coverImage)) %}
+                            {% if coverUrl %}
+                                <img src="{{ coverUrl }}" alt="{{ extension.name }}" loading="lazy" onerror="this.remove()"
+                                     class="absolute inset-0 h-full w-full object-cover object-top">
                             {% endif %}
                             <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/90" aria-hidden="true"></div>
 
