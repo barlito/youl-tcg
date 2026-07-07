@@ -42,7 +42,10 @@ final readonly class BoosterClaimService
     public function claim(DiscordUser $discordUser, Booster $booster): BoosterClaim
     {
         if ($this->quota->getRemainingClaims($discordUser) < 1) {
-            throw new DailyClaimLimitReachedException(\sprintf('Daily limit of %d boosters reached, come back tomorrow.', BoosterClaimQuotaInterface::DAILY_LIMIT));
+            throw new DailyClaimLimitReachedException(
+                \sprintf('Daily limit of %d boosters reached, come back tomorrow.', BoosterClaimQuotaInterface::DAILY_LIMIT),
+                \sprintf('Limite quotidienne de %d boosters atteinte, reviens demain !', BoosterClaimQuotaInterface::DAILY_LIMIT),
+            );
         }
 
         $this->userInventoryService->creditBooster($discordUser, $booster);

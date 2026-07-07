@@ -37,7 +37,10 @@ final readonly class CardDrawer
         $pool = $this->loadPool($booster->getExtension());
 
         if ([] === $pool) {
-            throw new NoCardAvailableException(\sprintf('Extension "%s" has no published card to draw from.', $booster->getExtension()->getName()));
+            throw new NoCardAvailableException(
+                \sprintf('Extension "%s" has no published card to draw from.', $booster->getExtension()->getName()),
+                'Ce booster n\'a aucune carte à tirer pour le moment, réessaie plus tard.',
+            );
         }
 
         $drawnCards = [];
@@ -121,6 +124,9 @@ final readonly class CardDrawer
             }
         }
 
-        throw new NoCardAvailableException('No rarity tier with available cards found in the pool.');
+        throw new NoCardAvailableException(
+            'No rarity tier with available cards found in the pool.',
+            'Ce booster n\'a aucune carte à tirer pour le moment, réessaie plus tard.',
+        );
     }
 }
