@@ -61,22 +61,48 @@ class UserInventoryService
 
     public function addCard(DiscordUser $discordUser, Card $card, int $quantity, int $holoQuantity = 0): UserCard
     {
-        $userCard = $this->userCardRepository->findOneBy([
+        return $this->addCards($discordUser, [['card' => $card, 'quantity' => $quantity, 'holoQuantity' => $holoQuantity]])[0];
+    }
+
+    /**
+     * Credits several cards with a SINGLE inventory lookup (one `card IN (…)`
+     * query) instead of one findOneBy per card — a booster opening credits its
+     * whole draw at once.
+     *
+     * @param list<array{card: Card, quantity: int, holoQuantity: int}> $credits
+     *
+     * @return list<UserCard>
+     */
+    public function addCards(DiscordUser $discordUser, array $credits): array
+    {
+        $ownedRows = $this->userCardRepository->findBy([
             'discordUser' => $discordUser,
-            'card' => $card,
+            'card' => array_map(static fn (array $credit): Card => $credit['card'], $credits),
         ]);
 
-        if (null === $userCard) {
-            $userCard = new UserCard()
-                ->setDiscordUser($discordUser)
-                ->setCard($card)
-            ;
-            $this->entityManager->persist($userCard);
+        $existing = [];
+        foreach ($ownedRows as $userCard) {
+            $existing[(string) $userCard->getCard()->getId()] = $userCard;
         }
 
-        return $userCard
-            ->setQuantity($userCard->getQuantity() + $quantity)
-            ->setHoloQuantity($userCard->getHoloQuantity() + $holoQuantity)
-        ;
+        $userCards = [];
+        foreach ($credits as $credit) {
+            $userCard = $existing[(string) $credit['card']->getId()] ?? null;
+
+            if (null === $userCard) {
+                $userCard = new UserCard()
+                    ->setDiscordUser($discordUser)
+                    ->setCard($credit['card'])
+                ;
+                $this->entityManager->persist($userCard);
+            }
+
+            $userCards[] = $userCard
+                ->setQuantity($userCard->getQuantity() + $credit['quantity'])
+                ->setHoloQuantity($userCard->getHoloQuantity() + $credit['holoQuantity'])
+            ;
+        }
+
+        return $userCards;
     }
 }

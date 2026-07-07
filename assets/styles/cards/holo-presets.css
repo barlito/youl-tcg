@@ -517,3 +517,12 @@
     transform: translateZ(2px);
     pointer-events: none;
 }
+
+/* face 2× de la carte zoomée (base.css) : px du badge compensés */
+.card.active .card__front .card__unique-badge {
+    padding: 4px 16px;
+    font-size: 22px;
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, .45),
+        inset 0 0 0 2px rgba(255, 255, 255, .55);
+}

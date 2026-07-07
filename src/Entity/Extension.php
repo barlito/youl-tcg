@@ -154,11 +154,13 @@ class Extension implements \Stringable
      * must be able to accept an instance of 'File' as the bundle will inject one here
      * during Doctrine hydration.
      */
-    public function setImageFile(File $imageFile): void
+    public function setImageFile(?File $imageFile = null): void
     {
         $this->imageFile = $imageFile;
 
-        $this->updatedAt = new \DateTime();
+        if ($imageFile instanceof File) {
+            $this->updatedAt = new \DateTime();
+        }
     }
 
     public function getImageFile(): ?File

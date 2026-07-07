@@ -31,6 +31,19 @@
     .chip-mono {
         @apply font-mono text-[10px] uppercase tracking-[.15em];
     }
+
+    /* Piste carrousel : scrollbar masquée, fondu latéral pour signaler le
+     * débordement. Le fondu (20px) mange exactement le padding horizontal de
+     * la piste (-mx-5 px-5), jamais les tuiles elles-mêmes. */
+    .carousel-track {
+        scrollbar-width: none;
+        -webkit-mask-image: linear-gradient(90deg, transparent, black 20px, black calc(100% - 20px), transparent);
+        mask-image: linear-gradient(90deg, transparent, black 20px, black calc(100% - 20px), transparent);
+    }
+
+    .carousel-track::-webkit-scrollbar {
+        display: none;
+    }
 }
 
 .active {

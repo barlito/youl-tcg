@@ -121,7 +121,30 @@
   .card.is-flat .card__front img {
     transform: none;
   }
-  
+
+  /* Zoomed card: rasterise the front at 2× (laid out at 200%, scaled back to
+     .5 from the top-left corner → identical on-screen geometry). The GPU
+     texture base doubles, so the transform zoom (~×2.4) only stretches it
+     ~1.2× instead of ~2.4× — this is what keeps the artwork crisp WHILE
+     tilting/hovering, when the 3D context pins the raster to layout size
+     (is-flat only helps at rest). Only one card is ever .active: the extra
+     GPU memory is negligible. */
+  .card.active .card__front {
+    width: 200%;
+    transform-origin: top left;
+    transform: scale(.5) translate3d(0px, 0px, 0.01px);
+  }
+  /* keep the 2× raster in the flattened at-rest state too (overrides the
+     is-flat transform reset above — declared after, same specificity level) */
+  .card.is-flat.active .card__front {
+    width: 200%;
+    transform-origin: top left;
+    transform: scale(.5);
+  }
+  .card.is-flat.active .card__front img {
+    transform: none;
+  }
+
   .card.active .card__translater,
   .card.active .card__rotator {
     /* prevent pinch/double-tap zooms on card */
