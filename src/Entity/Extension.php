@@ -43,14 +43,6 @@ class Extension implements \Stringable
     #[ORM\Column(type: 'text')]
     private string $description;
 
-    /**
-     * Cosmetic set code shown on the universe tiles (e.g. "CYB-01") — free
-     * text chosen by the admin, nothing is derived from it. Null = no chip.
-     */
-    #[Assert\Length(max: 16)]
-    #[ORM\Column(length: 16, nullable: true)]
-    private ?string $code = null;
-
     #[ORM\Column(options: ['default' => ExtensionStatusEnum::DRAFT])]
     private ExtensionStatusEnum $status = ExtensionStatusEnum::DRAFT;
 
@@ -59,25 +51,6 @@ class Extension implements \Stringable
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $imageName = null;
-
-    /**
-     * Default holo foil texture for the extension's cards (cascade fallback
-     * when a card has no foil of its own).
-     */
-    #[Vich\UploadableField(mapping: 'foils', fileNameProperty: 'imageFoilName')]
-    private ?File $imageFoilFile = null;
-
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    private ?string $imageFoilName = null;
-
-    /**
-     * Default holo mask for the extension's cards (cascade fallback).
-     */
-    #[Vich\UploadableField(mapping: 'masks', fileNameProperty: 'imageMaskName')]
-    private ?File $imageMaskFile = null;
-
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    private ?string $imageMaskName = null;
 
     /**
      * Default visual configuration (glow / border / css class / holo preset)
@@ -153,19 +126,6 @@ class Extension implements \Stringable
         return $this;
     }
 
-    public function getCode(): ?string
-    {
-        return $this->code;
-    }
-
-    public function setCode(?string $code): static
-    {
-        $code = null !== $code ? trim($code) : null;
-        $this->code = '' !== $code ? $code : null;
-
-        return $this;
-    }
-
     public function getStatus(): ExtensionStatusEnum
     {
         return $this->status;
@@ -207,54 +167,6 @@ class Extension implements \Stringable
     public function getImageName(): ?string
     {
         return $this->imageName;
-    }
-
-    public function setImageFoilFile(?File $imageFoilFile = null): void
-    {
-        $this->imageFoilFile = $imageFoilFile;
-
-        if ($imageFoilFile instanceof File) {
-            $this->updatedAt = new \DateTime();
-        }
-    }
-
-    public function getImageFoilFile(): ?File
-    {
-        return $this->imageFoilFile;
-    }
-
-    public function setImageFoilName(?string $imageFoilName): void
-    {
-        $this->imageFoilName = $imageFoilName;
-    }
-
-    public function getImageFoilName(): ?string
-    {
-        return $this->imageFoilName;
-    }
-
-    public function setImageMaskFile(?File $imageMaskFile = null): void
-    {
-        $this->imageMaskFile = $imageMaskFile;
-
-        if ($imageMaskFile instanceof File) {
-            $this->updatedAt = new \DateTime();
-        }
-    }
-
-    public function getImageMaskFile(): ?File
-    {
-        return $this->imageMaskFile;
-    }
-
-    public function setImageMaskName(?string $imageMaskName): void
-    {
-        $this->imageMaskName = $imageMaskName;
-    }
-
-    public function getImageMaskName(): ?string
-    {
-        return $this->imageMaskName;
     }
 
     public function getVisualConfig(): VisualConfig

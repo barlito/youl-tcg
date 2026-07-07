@@ -126,11 +126,8 @@
                             {% endif %}
                             <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/90" aria-hidden="true"></div>
 
-                            <div class="absolute left-4 right-4 top-4 flex items-center justify-between">
+                            <div class="absolute left-4 right-4 top-4">
                                 <span class="chip-mono bg-black/80 px-2 py-0.5 font-bold text-live">● LIVE</span>
-                                {% if extension.code %}
-                                    <span class="chip-mono text-white">{{ extension.code }}</span>
-                                {% endif %}
                             </div>
 
                             <div class="absolute bottom-4 left-4 right-4">
@@ -150,9 +147,8 @@
 
                     {# Tuile teaser : absorbe la 4e case du layout magazine #}
                     <article class="relative min-h-[240px] overflow-hidden border border-dashed border-hairline bg-surface/50 opacity-60 md:col-span-2">
-                        <div class="absolute left-4 right-4 top-4 flex items-center justify-between">
+                        <div class="absolute left-4 right-4 top-4">
                             <span class="chip-mono bg-black/80 px-2 py-0.5 font-bold text-soon">▸ SOON</span>
-                            <span class="chip-mono text-white">???</span>
                         </div>
                         <div class="absolute bottom-4 left-4 right-4">
                             <h3 class="font-display text-[22px] font-bold uppercase leading-[.95] tracking-[-0.03em] text-white">

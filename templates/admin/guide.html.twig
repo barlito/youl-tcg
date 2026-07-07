@@ -67,12 +67,10 @@
         <table>
             <tr><th>Champ</th><th>Rôle</th></tr>
             <tr><td>Nom</td><td>Affiché partout. Le <em>slug</em> d'URL (<code>/univers/cyberpunk</code>, <code>/collection/cyberpunk</code>) est généré automatiquement depuis le nom — il ne se modifie pas à la main.</td></tr>
-            <tr><td>Code du set</td><td>Purement cosmétique, affiché en chip sur les tuiles univers (ex. « CYB-01 »). Libre : si un univers revient plus tard, incrémente toi-même (CYB-02). Vide = pas de chip.</td></tr>
             <tr><td>Description</td><td>Affichée <strong>en entier</strong> sur la page univers, tronquée à ~90 caractères sur les tuiles homepage/index. Soigne la première phrase.</td></tr>
             <tr><td>Statut</td><td>L'interrupteur général (cf. §1).</td></tr>
-            <tr><td>Image</td><td>La couverture : tuiles homepage &amp; /univers, carrousel de complétion de la collection, et fond du pack composite quand le booster n'a pas d'image propre. <strong>Si absente, l'app utilise automatiquement l'artwork de la carte la plus rare de l'univers</strong> — c'est un fallback très correct, l'upload est donc optionnel.</td></tr>
-            <tr><td>Default foil texture / holo mask</td><td>Fallback holo pour <em>toutes</em> les cartes de l'extension qui n'ont pas le leur (cf. §5, cascade).</td></tr>
-            <tr><td>Visual config + selects</td><td>Le visuel par défaut des cartes de l'univers (cf. §6).</td></tr>
+            <tr><td>Image</td><td>La couverture : tuiles homepage &amp; /univers, carrousel de complétion de la collection, et fond du pack composite quand le booster n'a pas d'image propre. Elle est recadrée <em>cover</em> dans des cadres variés (tuiles paysage, pack portrait) : un <strong>carré ≥ 1024×1024, sujet centré</strong>, passe bien partout. <strong>Si absente, l'app utilise automatiquement l'artwork de la carte la plus rare de l'univers</strong> — fallback très correct, l'upload est donc optionnel.</td></tr>
+            <tr><td>Visual config + selects</td><td>Le visuel par défaut des cartes de l'univers (cf. §6), dont la texture foil de bibliothèque partagée par tout le set.</td></tr>
         </table>
 
         <h2 id="carte">4. Carte</h2>
@@ -107,7 +105,7 @@
             <tr>
                 <td><strong>Foil</strong> (optionnel)</td>
                 <td><strong>QUELLE</strong> texture brille dans les zones du mask (métal, arc-en-ciel, motif…). Gagne sur la texture de bibliothèque (§6).</td>
-                <td>~750×1024 portrait (comme les textures fournies). Peut être plus abstrait, il est mélangé à l'artwork.</td>
+                <td>Portrait, ~1024 px de haut (même ratio que la carte). C'est une <em>texture</em> étirée en cover et mélangée à l'artwork : la définition exacte importe peu, un motif abstrait suffit.</td>
             </tr>
         </table>
         <h3>Générer les masks automatiquement</h3>
@@ -127,7 +125,7 @@
         <table>
             <tr><th>Clé</th><th>Effet</th></tr>
             <tr><td><code>holoEffect</code></td><td>Le preset holo (select « Holo preset ») : <strong>shine</strong> (arc-en-ciel simple, marche sans mask ni foil), <strong>basic</strong> (holo doux généraliste — c'est aussi le fallback quand une carte holo n'a pas de preset), <strong>cosmos</strong> (galaxie scintillante), <strong>trainer</strong> (full-art premium : donne le meilleur avec un mask + foil).</td></tr>
-            <tr><td><code>foilTexture</code></td><td>Texture de bibliothèque (select « Foil texture ») : Ancient, Geometric, VMAX, Trainer. Utilisée seulement si ni la carte ni l'extension n'ont uploadé de foil. Priorité complète : foil de la carte → foil de l'extension → foilTexture (carte puis extension) → défaut du preset.</td></tr>
+            <tr><td><code>foilTexture</code></td><td>Texture de bibliothèque (select « Foil texture ») : Ancient, Geometric, VMAX, Trainer. Utilisée seulement quand la carte n'a pas uploadé son propre foil. Priorité complète : foil uploadé sur la carte → foilTexture (carte, puis extension) → défaut du preset.</td></tr>
             <tr><td><code>glow</code></td><td>Couleur du halo autour de la carte (color picker « Glow »). Vide = couleur de la rareté.</td></tr>
             <tr><td><code>borderColor</code></td><td>Couleur de la bordure d'accent de la carte.</td></tr>
             <tr><td><code>cssClass</code></td><td>Classe CSS libre ajoutée à la carte (usage avancé, en pratique on n'y touche pas).</td></tr>
@@ -175,9 +173,9 @@
         <table>
             <tr><th>Upload</th><th>Où</th><th>Taille conseillée</th><th>Notes</th></tr>
             <tr><td>Artwork carte</td><td>Carte → Images</td><td>1024×1024 min</td><td>Obligatoire. Recadré portrait (cover), sujet centré.</td></tr>
-            <tr><td>Mask</td><td>Carte → Images (ou Extension pour le défaut)</td><td>= artwork</td><td>Clair = effet, sombre/transparent = rien. Générable via castor.</td></tr>
-            <tr><td>Foil</td><td>Carte → Images (ou Extension pour le défaut)</td><td>~750×1024</td><td>Texture, pas un visuel : motifs abstraits bienvenus.</td></tr>
-            <tr><td>Image extension</td><td>Extension</td><td>≥ 800 px de large</td><td>Optionnelle (fallback = carte la plus rare). Sert aussi de fond de pack.</td></tr>
+            <tr><td>Mask</td><td>Carte → Images</td><td>= artwork</td><td>Clair = effet, sombre/transparent = rien. Générable via castor.</td></tr>
+            <tr><td>Foil</td><td>Carte → Images</td><td>portrait ~1024 px</td><td>Texture, pas un visuel : la taille exacte importe peu. Bibliothèque via le select sinon.</td></tr>
+            <tr><td>Image extension</td><td>Extension</td><td>1024×1024 carré</td><td>Optionnelle (fallback = carte la plus rare). Recadrée dans des cadres paysage ET portrait (fond de pack) : le carré centré est le plus sûr.</td></tr>
             <tr><td>Image booster</td><td>Booster</td><td>840×1300 portrait</td><td>Design complet : rien n'est dessiné dessus.</td></tr>
             <tr><td>Bannière univers</td><td>Bannières d'univers</td><td>1920×640 min paysage</td><td>Texte de la page superposé en bas à gauche.</td></tr>
         </table>

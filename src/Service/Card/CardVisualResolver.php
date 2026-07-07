@@ -12,7 +12,10 @@ use Vich\UploaderBundle\Templating\Helper\UploaderHelper;
 /**
  * Resolves the effective visuals of a card through the cascade
  * card -> extension -> system default:
- *  - foil/mask textures: the card's own upload, else the extension's default;
+ *  - mask: the card's own upload only (a mask must match the artwork,
+ *    a set-wide default cannot);
+ *  - foil: the card's own upload, else the library texture picked by the
+ *    visual config (card override, else extension);
  *  - glow / border / css class / holo preset: the card's override field, else
  *    the extension's configuration, else null (rarity glow only; a card
  *    rendered holo without any preset falls back to holo--basic in
@@ -33,7 +36,7 @@ final readonly class CardVisualResolver
 
         return new ResolvedCardVisual(
             foilUrl: $this->foilUrl($card, $extension),
-            maskUrl: $this->maskUrl($card, $extension),
+            maskUrl: $this->maskUrl($card),
             glow: $override->glow ?? $config->glow,
             borderColor: $override->borderColor ?? $config->borderColor,
             cssClass: $override->cssClass ?? $config->cssClass,
@@ -47,26 +50,18 @@ final readonly class CardVisualResolver
             return $this->uploaderHelper->asset($card, 'imageFoilFile');
         }
 
-        if (null !== $extension->getImageFoilName()) {
-            return $this->uploaderHelper->asset($extension, 'imageFoilFile');
-        }
-
-        // no upload anywhere: fall back to a bundled library texture if the
-        // visual config picked one (card override beats the extension default)
+        // no upload: fall back to a bundled library texture if the visual
+        // config picked one (card override beats the extension default)
         $texture = $card->getVisualConfigOverride()->foilTexture
             ?? $extension->getVisualConfig()->foilTexture;
 
         return $texture?->url();
     }
 
-    private function maskUrl(Card $card, Extension $extension): ?string
+    private function maskUrl(Card $card): ?string
     {
         if (null !== $card->getImageMaskName()) {
             return $this->uploaderHelper->asset($card, 'imageMaskFile');
-        }
-
-        if (null !== $extension->getImageMaskName()) {
-            return $this->uploaderHelper->asset($extension, 'imageMaskFile');
         }
 
         return null;
