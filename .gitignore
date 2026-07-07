@@ -56,4 +56,8 @@
 ###< Claude Code ###
 
 # packs.com placeholder 3D pack model (dev only — never committed)
-/public/models/
+# le modèle 3D du pack est un asset applicatif (embarqué dans l'image de
+# build) ; le reste du dossier = exports de travail, pas versionnés
+/public/models/*
+!/public/models/pack-wide.gltf
+!/public/models/pack-wide.bin
