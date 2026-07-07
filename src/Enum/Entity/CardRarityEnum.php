@@ -9,7 +9,6 @@ enum CardRarityEnum: string
     case COMMON = 'common';
     case UNCOMMON = 'uncommon';
     case RARE = 'rare';
-    case EPIC = 'epic';
     case LEGENDARY = 'legendary';
 
     /**
@@ -17,6 +16,6 @@ enum CardRarityEnum: string
      */
     public static function ascending(): array
     {
-        return [self::COMMON, self::UNCOMMON, self::RARE, self::EPIC, self::LEGENDARY];
+        return [self::COMMON, self::UNCOMMON, self::RARE, self::LEGENDARY];
     }
 }

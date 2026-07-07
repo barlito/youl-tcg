@@ -32,8 +32,8 @@
 
 /*
  * Rarities differ by SATURATION and GLITTER density, not by brightness/intensity
- * escalation — an epic must stay as readable as an uncommon, just more chatoyant
- * (poke-holo principle). Intensity is kept low and flat across the high tiers.
+ * escalation — a legendary must stay as readable as an uncommon, just more
+ * chatoyant (poke-holo principle). Intensity is kept low and flat on the top tier.
  */
 /* --rarity-* come from the host theme; the fallbacks keep this file self-contained
  * (the effect works even if you copy it into an app without the project tokens). */
@@ -56,15 +56,8 @@
     --card-glow: var(--rarity-rare, #54a8ff);
 }
 
-/* epic & legendary keep the SAME (low) saturation — they only differ by glitter
- * density, never by saturation/brightness (so they stay as readable as a rare) */
-.card[data-rarity="epic"] {
-    --holo-intensity: .46;
-    --holo-saturation: .9;
-    --holo-glitter: .35;
-    --card-glow: var(--rarity-epic, #a435f0);
-}
-
+/* legendary keeps the SAME (low) saturation as rare — it only differs by glitter
+ * density, never by saturation/brightness (so it stays as readable as a rare) */
 .card[data-rarity="legendary"] {
     --holo-intensity: .52;
     --holo-saturation: .95;
@@ -111,10 +104,9 @@
     );
 }
 
-/* ------------------- rare / epic / legendary : sunpillars + radial foil */
+/* ------------------- rare / legendary : sunpillars + radial foil */
 
 .card[data-rarity="rare"] .card__shine,
-.card[data-rarity="epic"] .card__shine,
 .card[data-rarity="legendary"] .card__shine {
     background-image:
         var(--foil, linear-gradient(transparent, transparent)),
@@ -151,9 +143,8 @@
     opacity: calc(var(--card-opacity) * var(--holo-intensity));
 }
 
-/* epic / legendary : arc-en-ciel conique accroché au pointeur */
+/* legendary : arc-en-ciel conique accroché au pointeur */
 
-.card[data-rarity="epic"] .card__shine::before,
 .card[data-rarity="legendary"] .card__shine::before {
     content: '';
     background-image: conic-gradient(
@@ -173,11 +164,10 @@
     opacity: calc(var(--card-opacity) * var(--holo-intensity) * .15);
 }
 
-/* epic / legendary : glitter en trame croisée (densité = --holo-glitter) + glare */
+/* legendary : glitter en trame croisée (densité = --holo-glitter) + glare */
 /* overlay (pas color-dodge) : ça pétille sans cramer, et la densité différencie
  * les raretés sans toucher au brightness. */
 
-.card[data-rarity="epic"] .card__shine::after,
 .card[data-rarity="legendary"] .card__shine::after {
     content: '';
     background-image:

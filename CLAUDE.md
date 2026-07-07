@@ -98,7 +98,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 **Core Entities:**
 - **Card**: Trading cards with multi-image support (main image, mask, foil)
-  - Fields: name, description, status (DRAFT/PUBLISHED), rarity (CardRarityEnum: common/uncommon/rare/epic/legendary — white/green/blue/purple/orange glows), uniqueFlag, alwaysHolo (forces holo whatever the slot's holoChance), visualConfigOverride (JSON, per-card override of the extension's visualConfig)
+  - Fields: name, description, status (DRAFT/PUBLISHED), rarity (CardRarityEnum: common/uncommon/rare/legendary — 4 tiers since the epic removal, grey/green/blue/orange glows), uniqueFlag, alwaysHolo (forces holo whatever the slot's holoChance), visualConfigOverride (JSON, per-card override of the extension's visualConfig)
   - No "type" field: visual customization is the extension→card VisualConfig cascade (see below)
   - Uses VichUploaderBundle for file uploads
   - ManyToOne with Extension

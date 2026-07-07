@@ -19,7 +19,6 @@ module.exports = {
           common: '#9aa3b2',
           uncommon: '#5be584',
           rare: '#54a8ff',
-          epic: '#a435f0',
           legendary: '#ff8a2b',
         },
       },

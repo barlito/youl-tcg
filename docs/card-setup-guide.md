@@ -187,7 +187,7 @@ Pour l'implémenter proprement il faudrait :
 
 **Les cartes rares et légendaires ont-elles un effet par défaut ?**
 Oui. Sans preset (`holoEffect` vide), c'est la **recette par rareté** de `holo.css`
-qui s'applique : `common`/`uncommon` = simple balayage ; `rare`/`epic`/`legendary`
+qui s'applique : `common`/`uncommon` = simple balayage ; `rare`/`legendary`
 = foil sunpillar + radial (de plus en plus pailleté). Un preset (`holo--*`) **prend
 le dessus** sur cette recette.
 

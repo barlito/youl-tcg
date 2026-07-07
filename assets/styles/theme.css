@@ -22,11 +22,10 @@
     --live: #5be584;
     --soon: #ffd24a;
 
-    /* Raretés — 5 tiers (mythic/secret du design remappés sur epic/legendary) */
+    /* Raretés — 4 paliers (common → legendary ; « unique » est un flag, pas un palier) */
     --rarity-common: #9aa3b2;
     --rarity-uncommon: #5be584;
     --rarity-rare: #54a8ff;
-    --rarity-epic: #a435f0;
     --rarity-legendary: #ff8a2b;
 }
 

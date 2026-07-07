@@ -27,18 +27,16 @@ const RARITY_COLOR = {
     common: '#9aa3b2',
     uncommon: '#5be584',
     rare: '#54a8ff',
-    epic: '#a435f0',
     legendary: '#ff8a2b',
 };
 const RARITY_LABEL = {
     common: 'Commune',
     uncommon: 'Peu commune',
     rare: 'Rare',
-    epic: 'Épique',
     legendary: 'Légendaire',
 };
-const RARITY_RANK = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4 };
-const SHINY = new Set(['rare', 'epic', 'legendary']);
+const RARITY_RANK = { common: 0, uncommon: 1, rare: 2, legendary: 3 };
+const SHINY = new Set(['rare', 'legendary']);
 
 // must match the .opening__flip CSS transition duration
 const FLIP_MS = 560;
@@ -269,13 +267,11 @@ export default class extends Controller {
         this.labelTarget.textContent = card.dataset.label;
         this._retrigger(this.labelTarget, 'is-on');
 
-        // Burst on EVERY epic / legendary, whatever its slot — not just the last
-        // card. Legendary gets the strongest hit; the climax still pops if it
-        // happens to be a lesser rarity. The burst is tinted by --reveal-color.
+        // Burst on EVERY legendary, whatever its slot — not just the last card.
+        // Legendary gets the strongest hit; the climax still pops if it happens
+        // to be a lesser rarity. The burst is tinted by --reveal-color.
         if (rarity === 'legendary') {
             this._flash(0.62, 240);
-        } else if (rarity === 'epic') {
-            this._flash(0.44, 190);
         } else if (isLast) {
             this._flash(0.5, 200);
         } else if (rarity === 'rare') {

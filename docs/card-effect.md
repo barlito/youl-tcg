@@ -20,7 +20,7 @@ self-contained.
 ## Markup
 
 ```html
-<div class="card interactive" data-rarity="epic"
+<div class="card interactive" data-rarity="rare"
      style="--foil: url('/foils/my-foil.png')">  <!-- optional foil texture -->
   <div class="card__translater">
     <div class="card__rotator">
@@ -34,7 +34,7 @@ self-contained.
 </div>
 ```
 
-- `data-rarity` ∈ `common | uncommon | rare | epic | legendary` selects the
+- `data-rarity` ∈ `common | uncommon | rare | legendary` selects the
   fallback recipe (used only when no `holo--<preset>` class is present).
 - By default the holo only shows **on hover** (and while zoomed). Add `holo` to
   the class list for a card that should keep a soft holo veil **at rest** too
@@ -152,15 +152,15 @@ inline** (inline always wins):
 |----------|-------|--------|
 | `--holo-intensity` | 0–1 | overall foil opacity |
 | `--holo-saturation` | 0–3 | rainbow vividness (keep ≤ 1 for a subtle, artwork-first look) |
-| `--holo-glitter` | 0–2 | sparkle density (epic / legendary) — the recommended way to differentiate rarities |
+| `--holo-glitter` | 0–2 | sparkle density (rare / legendary) — the recommended way to differentiate rarities |
 
 ```html
-<div class="card interactive" data-rarity="epic"
+<div class="card interactive" data-rarity="rare"
      style="--holo-intensity:.5; --holo-saturation:.9; --holo-glitter:.4"> … </div>
 ```
 
 Design rule baked into the defaults: rarities differ by **glitter density**, never by
-saturation/brightness — an epic stays as readable as a rare, just more sparkly. The
+saturation/brightness — a legendary stays as readable as a rare, just more sparkly. The
 `brightness()` on the foil is kept **below 1** on purpose: `color-dodge` is additive
 and would otherwise blow bright artwork out to white.
 
