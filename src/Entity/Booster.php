@@ -11,6 +11,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 use Symfony\Component\HttpFoundation\File\File;
+use Symfony\Component\Validator\Constraints as Assert;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 #[Vich\Uploadable]
@@ -19,6 +20,22 @@ class Booster implements \Stringable
 {
     use IdUuidTrait;
     use TimestampableEntity;
+
+    /**
+     * Optional display name ("Pack Full Rare", named after its drop rates…);
+     * null falls back to the extension name everywhere.
+     */
+    #[Assert\Length(max: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $name = null;
+
+    /**
+     * Whether the booster can be claimed for free on the hub. A non-claimable
+     * booster is distributed another way (event, code…) and only shows up as
+     * openable for users who already own copies.
+     */
+    #[ORM\Column(options: ['default' => true])]
+    private bool $claimable = true;
 
     /**
      * One slot per card the booster yields. Each slot carries its own rarity
@@ -45,7 +62,39 @@ class Booster implements \Stringable
 
     public function __toString(): string
     {
-        return isset($this->extension) ? $this->extension->getName() . ' Booster' : 'Booster';
+        return $this->name ?? (isset($this->extension) ? $this->extension->getName() . ' Booster' : 'Booster');
+    }
+
+    public function getName(): ?string
+    {
+        return $this->name;
+    }
+
+    public function setName(?string $name): static
+    {
+        $this->name = null !== $name && '' !== trim($name) ? trim($name) : null;
+
+        return $this;
+    }
+
+    /**
+     * What the player sees: the booster's own name, else its extension's.
+     */
+    public function getDisplayName(): string
+    {
+        return $this->name ?? $this->extension->getName();
+    }
+
+    public function isClaimable(): bool
+    {
+        return $this->claimable;
+    }
+
+    public function setClaimable(bool $claimable): static
+    {
+        $this->claimable = $claimable;
+
+        return $this;
     }
 
     /**
@@ -69,6 +118,31 @@ class Booster implements \Stringable
     public function getCardCount(): int
     {
         return \count($this->rarityRates);
+    }
+
+    /**
+     * Player-facing drop rates: per slot, the rarity weights normalised to
+     * percentages (1 decimal) plus the slot's holo chance. Pure projection of
+     * rarityRates — nothing new is stored.
+     *
+     * @return list<array{rates: array<string, float>, holoChance: int}>
+     */
+    public function getDropRates(): array
+    {
+        $slots = [];
+
+        foreach ($this->rarityRates as $slot) {
+            $total = array_sum($slot['rarities']);
+            $rates = [];
+
+            foreach ($slot['rarities'] as $rarity => $weight) {
+                $rates[(string) $rarity] = $total > 0 ? round($weight / $total * 100, 1) : 0.0;
+            }
+
+            $slots[] = ['rates' => $rates, 'holoChance' => $slot['holoChance']];
+        }
+
+        return $slots;
     }
 
     public function getRarityRatesJson(): string

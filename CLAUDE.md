@@ -108,7 +108,8 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
   - OneToMany with Card and Booster
 
 - **Booster**: Booster packs containing cards
-  - Fields: rarityRates (JSON, one `{rarities: {rarity: weight}, holoChance: int}` entry per card slot — the slot count IS the card count, holoChance is the 0-100 % holo probability of that slot; there is NO global holoRate anymore), imageName
+  - Fields: name (optional display name, falls back to the extension name via getDisplayName()), claimable (default true; false = event/code distribution only — not claimable on the hub, still openable by owners, guarded server-side in BoosterClaimService), rarityRates (JSON, one `{rarities: {rarity: weight}, holoChance: int}` entry per card slot — the slot count IS the card count, holoChance is the 0-100 % holo probability of that slot; there is NO global holoRate anymore), imageName
+  - getDropRates() projects rarityRates into player-facing percentages (hub « Taux » panel)
   - ManyToOne with Extension; boosters are free (no currency in v2)
 
 **Visual config cascade:** `CardVisualResolver` (`src/Service/Card/`) resolves `Card.visualConfigOverride` → `Extension.visualConfig` → rarity defaults into a `ResolvedCardVisual` DTO, consumed by templates through the `card_visual(card)` Twig function. Edit visuals through this cascade, never per-template.

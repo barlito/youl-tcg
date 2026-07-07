@@ -48,3 +48,8 @@
 .card-tile:has(.card.interacting) .card-tile__chips {
     opacity: 0;
 }
+
+/* Panneau « Taux » des cartes booster du hub (details/summary natif) */
+.booster-rates > summary { list-style: none; }
+.booster-rates > summary::-webkit-details-marker { display: none; }
+.booster-rates[open] > summary { color: var(--text-strong); }

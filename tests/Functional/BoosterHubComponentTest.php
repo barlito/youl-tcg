@@ -66,6 +66,59 @@ final class BoosterHubComponentTest extends WebTestCase
         $this->assertSame('Booster introuvable.', $component->component()->error);
     }
 
+    public function testNonClaimableBoosterShowsEventChipAndRefusesTheClaim(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $eventBooster = $this->createEventBooster();
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+
+        $rendered = (string) $component->render();
+        $this->assertStringContainsString('data-testid="not-claimable"', $rendered);
+        $this->assertStringContainsString('⚡ Event / code', $rendered);
+        // the booster's own name leads the card, the extension moves to the eyebrow
+        $this->assertStringContainsString('Pack Event Test', $rendered);
+
+        // server-side guard: a forged live action must be refused in French
+        $component->call('claimBooster', ['boosterId' => (string) $eventBooster->getId()]);
+        $this->assertSame(
+            'Ce pack ne peut pas être récupéré ici — il se gagne en event ou via un code.',
+            $component->component()->error,
+        );
+    }
+
+    public function testDropRatesPanelExposesTheNormalisedRates(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        $rendered = (string) $component->render();
+
+        $this->assertStringContainsString('data-testid="drop-rates-toggle"', $rendered);
+        $this->assertStringContainsString('Taux par carte', $rendered);
+        // every fixture slot weight map normalises to percentages
+        $this->assertStringContainsString('%', $rendered);
+    }
+
+    private function createEventBooster(): \App\Entity\Booster
+    {
+        $booster = new \App\Entity\Booster()
+            ->setExtension($this->firstPublishedBooster()->getExtension())
+            ->setName('Pack Event Test')
+            ->setClaimable(false)
+            ->setRarityRates([['rarities' => ['rare' => 100], 'holoChance' => 100]])
+        ;
+        $booster->setImageName('default_card.png');
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist($booster);
+        $entityManager->flush();
+
+        return $booster;
+    }
+
     public function testOwnedDrawableBoosterRendersAnOpenLink(): void
     {
         $client = static::createClient();

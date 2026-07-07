@@ -12,6 +12,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
@@ -79,7 +80,16 @@ class BoosterCrudController extends AbstractCrudController
             })
         ;
         yield Field::new('id')->onlyOnDetail();
+        yield Field::new('name')
+            ->setLabel('Name')
+            ->setHelp('Optional display name (e.g. named after its drop rates: "Pack Full Rare"); empty = the extension name')
+        ;
         yield AssociationField::new('extension');
+        yield BooleanField::new('claimable')
+            ->setLabel('Claimable')
+            ->setHelp('Off = event/code distribution only: not claimable for free on the hub, still openable by owners')
+            ->renderAsSwitch(false)
+        ;
         yield IntegerField::new('cardCount')
             ->setLabel('Cards')
             ->hideOnForm()

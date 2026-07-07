@@ -34,7 +34,7 @@
                      data-pack-opening-3d-bg-url-value="{{ extension.imageName ? vich_uploader_asset(extension) : '' }}"
                      data-pack-opening-3d-fallback-url-value="{{ asset('images/ytcg_background.png') }}"
                      data-pack-opening-3d-logo-url-value="{{ asset('images/ytcg_logo.png') }}"
-                     data-pack-opening-3d-extension-name-value="{{ extension.name }}"
+                     data-pack-opening-3d-extension-name-value="{{ booster.displayName }}"
                      data-pack-opening-3d-card-count-value="{{ booster.cardCount }}"
                      data-action="pointerdown->pack-opening-3d#dragStart pointermove->pack-opening-3d#dragMove pointerup->pack-opening-3d#dragEnd pointercancel->pack-opening-3d#dragEnd pack3d:arm@window->pack-opening-3d#arm pack3d:commit@window->pack-opening-3d#openAtOnce pack3d:reset@window->pack-opening-3d#reseal">
                     <canvas data-pack-opening-3d-target="canvas"></canvas>

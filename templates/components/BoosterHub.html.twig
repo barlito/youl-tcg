@@ -61,14 +61,16 @@
                     {% set inventory = this.inventory %}
                     {% set remainingClaims = this.remainingClaims %}
                     {% set drawableBoosterIds = this.drawableBoosterIds %}
+                    {% set rarityLabels = { common: 'Commune', uncommon: 'Peu commune', rare: 'Rare', legendary: 'Légendaire' } %}
                     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" data-testid="boosters-grid">
                         {% for booster in this.boosters %}
                             {% set owned = inventory[booster.id]|default(0) %}
                             {% set drawable = drawableBoosterIds[booster.id]|default(false) %}
                             <article class="group relative flex flex-col rounded-2xl border border-hairline bg-surface p-4 transition duration-300 hover:-translate-y-1 hover:border-primary/40">
-                                {# centred eyebrow + set name (packs.com header) #}
-                                <p class="text-center font-mono text-[10px] font-bold uppercase tracking-[.2em] text-ink-dim">Cartes de</p>
-                                <h3 class="mt-1 text-center font-display text-lg font-bold uppercase leading-tight tracking-[-0.02em] text-ink-strong">{{ booster.extension.name }}</h3>
+                                {# centred eyebrow + booster name (packs.com header) — the eyebrow
+                                   carries the extension when the booster has its own name #}
+                                <p class="text-center font-mono text-[10px] font-bold uppercase tracking-[.2em] text-ink-dim">Cartes de{{ booster.name ? ' ' ~ booster.extension.name }}</p>
+                                <h3 class="mt-1 text-center font-display text-lg font-bold uppercase leading-tight tracking-[-0.02em] text-ink-strong">{{ booster.displayName }}</h3>
 
                                 {# tilted pack with a trading card peeking out behind it #}
                                 <div class="relative mx-auto mt-4 flex h-60 w-full items-center justify-center">
@@ -80,7 +82,7 @@
                                             data-pack-front-bg-url-value="{{ booster.imageName ? vich_uploader_asset(booster) : (booster.extension.imageName ? vich_uploader_asset(booster.extension) : '') }}"
                                             data-pack-front-fallback-url-value="{{ asset('images/ytcg_background.png') }}"
                                             data-pack-front-logo-url-value="{{ asset('images/ytcg_logo.png') }}"
-                                            data-pack-front-name-value="{{ booster.extension.name }}"
+                                            data-pack-front-name-value="{{ booster.displayName }}"
                                             data-pack-front-count-value="{{ booster.cardCount }}"
                                             class="relative h-full w-auto -rotate-3 rounded-xl shadow-2xl ring-1 ring-white/10 transition duration-300 group-hover:-rotate-1 group-hover:scale-[1.04]"></canvas>
                                 </div>
@@ -116,16 +118,47 @@
                                         {% endif %}
                                     </div>
 
-                                    {% if remainingClaims > 0 %}
-                                        <button type="button"
-                                                data-action="live#action"
-                                                data-live-action-param="claimBooster"
-                                                data-live-booster-id-param="{{ booster.id }}"
-                                                class="mt-2 px-2 font-mono text-[11px] font-bold uppercase tracking-[.1em] text-primary transition hover:text-ink-strong">
-                                            <span data-loading="hide">+ Récupérer</span>
-                                            <span data-loading="show" class="hidden">···</span>
-                                        </button>
-                                    {% endif %}
+                                    <div class="mt-2 flex items-center justify-between gap-2">
+                                        {% if not booster.claimable %}
+                                            <span class="px-2 font-mono text-[11px] uppercase tracking-[.1em] text-soon"
+                                                  data-testid="not-claimable"
+                                                  title="Ce pack se gagne en event ou via un code — il n'est pas récupérable ici.">
+                                                ⚡ Event / code
+                                            </span>
+                                        {% elseif remainingClaims > 0 %}
+                                            <button type="button"
+                                                    data-action="live#action"
+                                                    data-live-action-param="claimBooster"
+                                                    data-live-booster-id-param="{{ booster.id }}"
+                                                    class="px-2 font-mono text-[11px] font-bold uppercase tracking-[.1em] text-primary transition hover:text-ink-strong">
+                                                <span data-loading="hide">+ Récupérer</span>
+                                                <span data-loading="show" class="hidden">···</span>
+                                            </button>
+                                        {% else %}
+                                            <span></span>
+                                        {% endif %}
+
+                                        {# drop rates: native details/summary, no JS — the panel overlays the pack #}
+                                        {% if booster.cardCount > 0 %}
+                                            <details class="booster-rates">
+                                                <summary class="chip-mono cursor-pointer select-none px-2 py-1 text-ink-dim transition-colors hover:text-ink-strong" data-testid="drop-rates-toggle">◮ Taux</summary>
+                                                <div class="booster-rates__panel absolute inset-x-2 bottom-14 z-30 rounded-xl border border-hairline bg-bg/95 p-4 shadow-2xl backdrop-blur" data-testid="drop-rates-panel">
+                                                    <p class="chip-mono mb-2 font-bold text-ink-strong">Taux par carte</p>
+                                                    {% for slot in booster.dropRates %}
+                                                        <div class="mb-1.5 flex flex-wrap items-baseline gap-x-2 font-mono text-[11px]">
+                                                            <span class="text-ink-dim">Carte {{ loop.index }} ·</span>
+                                                            {% for rarity, rate in slot.rates %}
+                                                                <span style="color: var(--rarity-{{ rarity }});">{{ rarityLabels[rarity]|default(rarity) }} {{ rate == rate|round ? rate|round : rate }}%</span>
+                                                            {% endfor %}
+                                                            {% if slot.holoChance > 0 %}
+                                                                <span class="text-magenta">✦ Holo {{ slot.holoChance }}%</span>
+                                                            {% endif %}
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </details>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </article>
                         {% endfor %}
