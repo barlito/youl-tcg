@@ -162,3 +162,28 @@
         rgba(0, 0, 0, .55) 90%
     );
 }
+
+/* ------------------------------------------- Holo permanent (carte tirée holo) */
+/*
+ * Une carte marquée .holo garde un voile holo allumé même hors interaction
+ * (reveal / butin) : on rallume les calques au repos avec une opacité douce et
+ * une position de gradient centrée. L'interaction reprend ensuite le dessus.
+ */
+.card.holo {
+    --card-opacity: var(--holo-intensity);
+}
+
+.card.holo:not(.interacting) .card__shine,
+.card.holo:not(.interacting) .card__glare {
+    opacity: calc(var(--holo-intensity) * .55);
+    visibility: visible;
+}
+
+/* --------------------------------------------- Bordure d'accent (config visuelle) */
+/*
+ * Pilotée par --card-border (résolu carte -> extension). Transparent par
+ * défaut : aucune carte sans config n'est affectée.
+ */
+.card__front {
+    box-shadow: inset 0 0 0 1.5px var(--card-border, transparent);
+}

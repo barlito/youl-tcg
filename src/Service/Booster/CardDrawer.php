@@ -42,11 +42,11 @@ final readonly class CardDrawer
 
         $drawnCards = [];
 
-        foreach ($booster->getRarityRates() as $weights) {
-            $rarity = $this->resolveAvailableRarity($pool, $this->drawRarity($weights));
+        foreach ($booster->getRarityRates() as $slot) {
+            $rarity = $this->resolveAvailableRarity($pool, $this->drawRarity($slot['rarities']));
             $candidates = $pool[$rarity->value];
             $card = $candidates[$this->randomService->getInt(0, \count($candidates) - 1)];
-            $holo = $this->randomService->getInt(1, 100) <= $booster->getHoloRate();
+            $holo = $card->isAlwaysHolo() || $this->randomService->getInt(1, 100) <= $slot['holoChance'];
 
             $drawnCards[] = new DrawnCard($card, $rarity, $holo);
         }

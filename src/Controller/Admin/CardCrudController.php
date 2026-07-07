@@ -16,6 +16,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
@@ -94,7 +95,27 @@ class CardCrudController extends AbstractCrudController
             ->setLabel('Unique Flag')
             ->renderAsSwitch(false)
         ;
+        yield BooleanField::new('alwaysHolo')
+            ->setLabel('Always holo')
+            ->setHelp('Always drawn holo, whatever the slot holo chance')
+            ->renderAsSwitch(false)
+        ;
         yield AssociationField::new('extension');
         yield VichImageField::new('imageFile')->onlyOnForms();
+        yield VichImageField::new('imageFoilFile')
+            ->setLabel('Foil texture')
+            ->onlyOnForms()
+        ;
+        yield VichImageField::new('imageMaskFile')
+            ->setLabel('Holo mask')
+            ->onlyOnForms()
+        ;
+        yield CodeEditorField::new('visualConfigOverrideJson')
+            ->setLabel('Visual overrides')
+            ->setLanguage('js')
+            ->onlyOnForms()
+            ->setHelp('Optional per-card overrides. Example: {"glow": "#ff3db0", "cssClass": "my-card"}')
+        ;
+        yield Field::new('visualConfigOverrideJson')->setLabel('Visual overrides')->onlyOnDetail();
     }
 }

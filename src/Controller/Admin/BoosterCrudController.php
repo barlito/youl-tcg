@@ -84,14 +84,11 @@ class BoosterCrudController extends AbstractCrudController
             ->setLabel('Cards')
             ->hideOnForm()
         ;
-        yield IntegerField::new('holoRate')
-            ->setHelp('Chance (0-100 %) for each drawn card to be holo')
-        ;
         yield CodeEditorField::new('rarityRatesJson')
             ->setLabel('Rarity rates')
             ->setLanguage('js')
             ->onlyOnForms()
-            ->setHelp('One weight map per card slot. Example: [{"common": 100}, {"common": 100}, {"common": 60, "rare": 30, "legendary": 10}]')
+            ->setHelp('One slot per card: a rarity weight map plus a holo chance (0-100 %). Example: [{"rarities": {"common": 100}, "holoChance": 5}, {"rarities": {"common": 60, "rare": 30, "legendary": 10}, "holoChance": 30}]')
         ;
         yield Field::new('rarityRates')->onlyOnDetail();
         yield VichImageField::new('imageFile')->onlyOnForms();

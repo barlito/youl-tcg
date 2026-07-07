@@ -98,18 +98,20 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 **Core Entities:**
 - **Card**: Trading cards with multi-image support (main image, mask, foil)
-  - Fields: name, description, status (DRAFT/PUBLISHED), rarity (CardRarityEnum: common/uncommon/rare/epic/legendary — white/green/blue/purple/orange glows), uniqueFlag
-  - No "type" field: visual customization (glow, borders, CSS aspects) will be an extension-level config overridable per card (future phase)
+  - Fields: name, description, status (DRAFT/PUBLISHED), rarity (CardRarityEnum: common/uncommon/rare/epic/legendary — white/green/blue/purple/orange glows), uniqueFlag, alwaysHolo (forces holo whatever the slot's holoChance), visualConfigOverride (JSON, per-card override of the extension's visualConfig)
+  - No "type" field: visual customization is the extension→card VisualConfig cascade (see below)
   - Uses VichUploaderBundle for file uploads
   - ManyToOne with Extension
 
 - **Extension**: Card sets/expansions
-  - Fields: name, description, status, imageName
+  - Fields: name, description, status, imageName, visualConfig (JSON, set-level card visual defaults), default foil/mask images
   - OneToMany with Card and Booster
 
 - **Booster**: Booster packs containing cards
-  - Fields: rarityRates (JSON, one `{rarity: weight}` map per card slot — the slot count IS the card count), holoRate (0-100 % holo chance per drawn card), imageName
+  - Fields: rarityRates (JSON, one `{rarities: {rarity: weight}, holoChance: int}` entry per card slot — the slot count IS the card count, holoChance is the 0-100 % holo probability of that slot; there is NO global holoRate anymore), imageName
   - ManyToOne with Extension; boosters are free (no currency in v2)
+
+**Visual config cascade:** `CardVisualResolver` (`src/Service/Card/`) resolves `Card.visualConfigOverride` → `Extension.visualConfig` → rarity defaults into a `ResolvedCardVisual` DTO, consumed by templates through the `card_visual(card)` Twig function. Edit visuals through this cascade, never per-template.
 
 **User System:**
 - **DiscordUser**: Main user entity (implements UserInterface)

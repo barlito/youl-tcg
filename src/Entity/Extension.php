@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Dto\VisualConfig;
 use App\Enum\Entity\ExtensionStatusEnum;
 use App\Repository\ExtensionRepository;
 use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 use Symfony\Component\HttpFoundation\File\File;
@@ -37,6 +39,34 @@ class Extension implements \Stringable
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $imageName = null;
+
+    /**
+     * Default holo foil texture for the extension's cards (cascade fallback
+     * when a card has no foil of its own).
+     */
+    #[Vich\UploadableField(mapping: 'foils', fileNameProperty: 'imageFoilName')]
+    private ?File $imageFoilFile = null;
+
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $imageFoilName = null;
+
+    /**
+     * Default holo mask for the extension's cards (cascade fallback).
+     */
+    #[Vich\UploadableField(mapping: 'masks', fileNameProperty: 'imageMaskName')]
+    private ?File $imageMaskFile = null;
+
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $imageMaskName = null;
+
+    /**
+     * Default visual configuration (glow / border / css class) applied to the
+     * extension's cards, each card may override individual fields.
+     *
+     * @var array<string, string>
+     */
+    #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
+    private array $visualConfig = [];
 
     /**
      * @var Collection<int, Card>
@@ -126,6 +156,85 @@ class Extension implements \Stringable
     public function getImageName(): ?string
     {
         return $this->imageName;
+    }
+
+    public function setImageFoilFile(?File $imageFoilFile = null): void
+    {
+        $this->imageFoilFile = $imageFoilFile;
+
+        if ($imageFoilFile instanceof File) {
+            $this->updatedAt = new \DateTime();
+        }
+    }
+
+    public function getImageFoilFile(): ?File
+    {
+        return $this->imageFoilFile;
+    }
+
+    public function setImageFoilName(?string $imageFoilName): void
+    {
+        $this->imageFoilName = $imageFoilName;
+    }
+
+    public function getImageFoilName(): ?string
+    {
+        return $this->imageFoilName;
+    }
+
+    public function setImageMaskFile(?File $imageMaskFile = null): void
+    {
+        $this->imageMaskFile = $imageMaskFile;
+
+        if ($imageMaskFile instanceof File) {
+            $this->updatedAt = new \DateTime();
+        }
+    }
+
+    public function getImageMaskFile(): ?File
+    {
+        return $this->imageMaskFile;
+    }
+
+    public function setImageMaskName(?string $imageMaskName): void
+    {
+        $this->imageMaskName = $imageMaskName;
+    }
+
+    public function getImageMaskName(): ?string
+    {
+        return $this->imageMaskName;
+    }
+
+    public function getVisualConfig(): VisualConfig
+    {
+        return VisualConfig::fromArray($this->visualConfig);
+    }
+
+    public function setVisualConfig(VisualConfig $visualConfig): static
+    {
+        $this->visualConfig = $visualConfig->toArray();
+
+        return $this;
+    }
+
+    public function getVisualConfigJson(): string
+    {
+        return json_encode($this->visualConfig, \JSON_PRETTY_PRINT | \JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * Invalid JSON resolves to an empty configuration (no override).
+     */
+    public function setVisualConfigJson(string $json): void
+    {
+        try {
+            $decoded = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            $decoded = null;
+        }
+
+        $this->visualConfig = VisualConfig::fromArray(\is_array($decoded) ? $decoded : [])->toArray();
     }
 
     /**
