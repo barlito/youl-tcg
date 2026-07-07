@@ -146,7 +146,7 @@ class UniverseController extends AbstractController
 
     /**
      * Pokédex order: rarest first, name as tiebreak — the same ranking as the
-     * opening aside, so the set numbering (n°1 = rarest) matches everywhere.
+     * opening aside, so the set reads in the same order everywhere.
      *
      * @param list<Card> $cards
      *

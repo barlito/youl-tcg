@@ -87,10 +87,6 @@ final class UniverseControllerTest extends WebTestCase
         // unowned cards: masked tiles, no artwork, no name leak
         $this->assertCount(2, $grid->filter('[data-testid="masked-card"]'));
         $this->assertStringNotContainsString($this->cards[1]->getName(), $grid->text());
-
-        // pokédex numbering covers the whole set
-        $this->assertStringContainsString('N°01', $grid->text());
-        $this->assertStringContainsString('N°03', $grid->text());
     }
 
     public function testUniqueStatusSwitchesFromPoolToDropped(): void

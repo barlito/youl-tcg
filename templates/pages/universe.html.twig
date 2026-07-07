@@ -112,9 +112,6 @@
                                           style="background-image: url('{{ asset('images/card-back.svg') }}');"></span>
                                 </div>
                             {% endif %}
-                            <span class="card-tile__chips chip-mono absolute -left-2 -top-2 z-10 border border-hairline bg-black/90 px-2 py-1 font-bold {{ userCard ? 'text-ink-strong' : 'text-ink-dim' }}">
-                                N°{{ '%02d'|format(loop.index) }}
-                            </span>
                         </div>
                     {% endfor %}
                 </div>
