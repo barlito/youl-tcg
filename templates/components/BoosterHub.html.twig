@@ -84,6 +84,8 @@
                                             data-pack-front-logo-url-value="{{ asset('images/ytcg_logo.png') }}"
                                             data-pack-front-name-value="{{ booster.displayName }}"
                                             data-pack-front-count-value="{{ booster.cardCount }}"
+                                            {# custom booster image = full pack design: no text drawn on top #}
+                                            data-pack-front-plain-value="{{ booster.imageName ? 'true' : 'false' }}"
                                             class="relative h-full w-auto -rotate-3 rounded-xl shadow-2xl ring-1 ring-white/10 transition duration-300 group-hover:-rotate-1 group-hover:scale-[1.04]"></canvas>
                                 </div>
 

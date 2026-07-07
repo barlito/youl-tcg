@@ -71,6 +71,7 @@ export default class extends Controller {
         extensionName: String,
         cardCount: Number,
         armed: Boolean,
+        plain: Boolean,
     };
 
     connect() {
@@ -419,6 +420,8 @@ export default class extends Controller {
             fallback,
             scale,
             border: false, // the chrome frame becomes a parasitic light rim on the 3D pack
+            // custom booster image = full pack design, nothing drawn on top
+            plain: this.hasPlainValue && this.plainValue && !fallback,
         });
 
         const sheet = document.createElement('canvas');

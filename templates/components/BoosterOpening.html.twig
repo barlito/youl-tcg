@@ -31,7 +31,9 @@
                      data-controller="pack-opening-3d"
                      data-pack-opening-3d-model-value="/models/pack-wide.gltf"
                      data-pack-opening-3d-texture-value="composite"
-                     data-pack-opening-3d-bg-url-value="{{ extension.imageName ? vich_uploader_asset(extension) : '' }}"
+                     data-pack-opening-3d-bg-url-value="{{ booster.imageName ? vich_uploader_asset(booster) : (extension.imageName ? vich_uploader_asset(extension) : '') }}"
+                     {# custom booster image = full pack design: no text drawn on top #}
+                     data-pack-opening-3d-plain-value="{{ booster.imageName ? 'true' : 'false' }}"
                      data-pack-opening-3d-fallback-url-value="{{ asset('images/ytcg_background.png') }}"
                      data-pack-opening-3d-logo-url-value="{{ asset('images/ytcg_logo.png') }}"
                      data-pack-opening-3d-extension-name-value="{{ booster.displayName }}"

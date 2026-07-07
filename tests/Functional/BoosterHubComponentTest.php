@@ -66,26 +66,39 @@ final class BoosterHubComponentTest extends WebTestCase
         $this->assertSame('Booster introuvable.', $component->component()->error);
     }
 
-    public function testNonClaimableBoosterShowsEventChipAndRefusesTheClaim(): void
+    public function testNonClaimableBoosterIsHiddenUntilOwned(): void
     {
         $client = static::createClient();
-        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
         $eventBooster = $this->createEventBooster();
 
         $component = $this->createLiveComponent(BoosterHub::class, client: $client);
 
-        $rendered = (string) $component->render();
-        $this->assertStringContainsString('data-testid="not-claimable"', $rendered);
-        $this->assertStringContainsString('⚡ Event / code', $rendered);
-        // the booster's own name leads the card, the extension moves to the eyebrow
-        $this->assertStringContainsString('Pack Event Test', $rendered);
+        // not owned → the event/code booster simply doesn't exist on the hub
+        $this->assertStringNotContainsString('Pack Event Test', (string) $component->render());
 
-        // server-side guard: a forged live action must be refused in French
+        // …even so, a forged live claim is refused server-side, in French
         $component->call('claimBooster', ['boosterId' => (string) $eventBooster->getId()]);
         $this->assertSame(
             'Ce pack ne peut pas être récupéré ici — il se gagne en event ou via un code.',
             $component->component()->error,
         );
+
+        // owning a copy reveals it: event chip, own name leading, extension in the eyebrow
+        // (references re-fetched: the live component calls detached our entities)
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist(
+            new UserBooster()
+                ->setDiscordUser($entityManager->getReference(\App\Entity\DiscordUser::class, $user->getDiscordId()))
+                ->setBooster($entityManager->getReference(\App\Entity\Booster::class, $eventBooster->getId()))
+                ->setQuantity(1),
+        );
+        $entityManager->flush();
+
+        $rendered = (string) $this->createLiveComponent(BoosterHub::class, client: $client)->render();
+        $this->assertStringContainsString('Pack Event Test', $rendered);
+        $this->assertStringContainsString('data-testid="not-claimable"', $rendered);
+        $this->assertStringContainsString('⚡ Event / code', $rendered);
     }
 
     public function testDropRatesPanelExposesTheNormalisedRates(): void

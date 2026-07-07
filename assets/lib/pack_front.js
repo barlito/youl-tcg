@@ -8,7 +8,7 @@
 export const PACK_FRONT_W = 840;
 export const PACK_FRONT_H = 1300;
 
-export function drawPackFront(c, { hero = null, logo = null, name = 'YOUL', count = 5, fallback = false, scale = 1, border = true }) {
+export function drawPackFront(c, { hero = null, logo = null, name = 'YOUL', count = 5, fallback = false, scale = 1, border = true, plain = false }) {
     const fw = PACK_FRONT_W;
     const fh = PACK_FRONT_H;
 
@@ -25,6 +25,12 @@ export function drawPackFront(c, { hero = null, logo = null, name = 'YOUL', coun
         const w = hero.width * s;
         const h = hero.height * s;
         c.drawImage(hero, (fw - w) / 2, (fh - h) / 2, w, h);
+    }
+
+    // plain: the booster ships its OWN pack design — the image already carries
+    // every text/badge, draw strictly nothing on top of it
+    if (plain) {
+        return;
     }
 
     // gentle bottom gradient: keeps the wordmark legible, light enough that the
