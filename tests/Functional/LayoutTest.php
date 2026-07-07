@@ -34,7 +34,7 @@ final class LayoutTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $this->assertStringContainsString('YOUL', $crawler->filter('header')->text());
         $this->assertStringContainsString('TRADING CARD GAME', $crawler->filter('header')->text());
-        $this->assertStringContainsString('fan-made · non-officiel', $crawler->filter('footer')->text());
+        $this->assertStringContainsString('youl-made · non-officiel', $crawler->filter('footer')->text());
     }
 
     #[DataProvider('pageProvider')]
