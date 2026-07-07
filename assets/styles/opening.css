@@ -1,324 +1,160 @@
 /*
- * Pack opening reveal — sealed → swipe-to-slice → tearing → whiteout → reveal.
+ * Booster opening — dedicated packs.com-style page: the 3D pack on the left,
+ * the extension's card set on the right. The set list fills in real time as the
+ * player peels the pack and the centre showcase reveals each card (rarest last).
  *
  * Driven by assets/controllers/booster_opening_controller.js (no anime.js):
- * the controller sets `data-phase` on `.opening`, a `--tp` (tear progress 0..1)
- * while the pack is being sliced, `--reveal-color` per revealed card, and
- * toggles a handful of state classes. Everything else is CSS.
+ * the controller toggles `is-current`/`is-revealed`/`is-popping`
+ * state classes, sets `--reveal-color` per revealed card, and unhides the
+ * showcase / footer. The 3D pack lives in assets/controllers/pack_opening_3d.
  *
- * CRITICAL: every entrance animation that has a start delay uses
- * `animation-fill-mode: both` — with `forwards` the element would flash its base
- * style during the delay (off-centre bloom/beam). See the design handoff.
+ * CRITICAL: entrance animations with a start delay use `both` fill-mode so the
+ * element never flashes its base style during the delay.
  */
 
 /* ------------------------------------------------------------------ keyframes */
-@keyframes opening-slitOpen   { 0% { transform: scaleY(0); opacity: 0; } 30% { opacity: 1; } 100% { transform: scaleY(1); opacity: 1; } }
-@keyframes opening-flapTearOff{ 0% { transform: translate(0,0) rotate(0); opacity: 1; } 14% { transform: translate(0,-10px) rotate(-3deg); } 55% { opacity: 1; } 100% { transform: translate(560px,-150px) rotate(46deg) scale(.9); opacity: 0; } }
-@keyframes opening-packBurst  { 0% { filter: brightness(1); } 60% { filter: brightness(1.55); } 100% { filter: brightness(2.5) saturate(1.2); opacity: .82; } }
-@keyframes opening-beamRise   { 0% { transform: translate(-50%,0) scaleY(0); opacity: 0; } 25% { opacity: 1; } 100% { transform: translate(-50%,0) scaleY(1); opacity: .9; } }
-@keyframes opening-coreBloom  { 0% { transform: translate(-50%,-50%) scale(.15); opacity: 0; } 20% { opacity: .9; } 100% { transform: translate(-50%,-50%) scale(1.85); opacity: 1; } }
-@keyframes opening-raysSpin   { 0% { transform: translate(-50%,-50%) rotate(0); } 100% { transform: translate(-50%,-50%) rotate(360deg); } }
-@keyframes opening-fadeIn6    { from { opacity: 0; } to { opacity: .6; } }
-@keyframes opening-particlefly{ 0% { transform: translate(-50%,-50%) rotate(var(--ang)) translateX(0); opacity: 1; } 100% { transform: translate(-50%,-50%) rotate(var(--ang)) translateX(var(--dist)); opacity: 0; } }
-@keyframes opening-whiteout   { 0% { opacity: 0; } 45% { opacity: 0; } 78% { opacity: .9; } 100% { opacity: 1; } }
-@keyframes opening-fadeWhite  { 0% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes opening-cardReveal { 0% { transform: translateY(40px) scale(.7) rotateY(90deg); opacity: 0; } 60% { opacity: 1; } 100% { transform: translateY(0) scale(1) rotateY(0); opacity: 1; } }
-@keyframes opening-cardRevealBig { 0% { transform: translateY(60px) scale(.5) rotateY(180deg); opacity: 0; filter: brightness(3); } 40% { opacity: 1; } 70% { transform: translateY(0) scale(1.12) rotateY(0); filter: brightness(1.4); } 100% { transform: translateY(0) scale(1) rotateY(0); filter: brightness(1); } }
-@keyframes opening-auraPulse  { 0% { transform: translate(-50%,-50%) scale(.4); opacity: 0; } 40% { opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.1); opacity: 1; } }
-@keyframes opening-labelSlam  { 0% { transform: translateX(-50%) scale(2.4); opacity: 0; filter: blur(8px); } 60% { transform: translateX(-50%) scale(.92); opacity: 1; filter: blur(0); } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
-@keyframes opening-screenShake{ 0%,100% { transform: translate(0,0); } 25% { transform: translate(-6px,3px); } 50% { transform: translate(6px,-3px); } 75% { transform: translate(-4px,-2px); } }
-@keyframes opening-nudgeX     { 0%,100% { transform: translateX(0); } 50% { transform: translateX(7px); } }
-@keyframes opening-summaryIn  { 0% { transform: translateY(14px) scale(.92); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+/* face-down card entrance (the flip itself does the rotateY reveal) */
+@keyframes opening-cardEnter { 0% { transform: translateY(34px) scale(.86); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+/* payoff "pop" once a shiny / the rarest-last card has flipped face-up */
+@keyframes opening-cardPop { 0% { transform: scale(1); filter: brightness(1); } 35% { transform: scale(1.1); filter: brightness(1.55); } 100% { transform: scale(1); filter: brightness(1); } }
+@keyframes opening-auraPulse { 0% { transform: translate(-50%,-50%) scale(.4); opacity: 0; } 40% { opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.1); opacity: 1; } }
+@keyframes opening-labelSlam { 0% { transform: scale(2.4); opacity: 0; filter: blur(8px); } 60% { transform: scale(.92); opacity: 1; filter: blur(0); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes opening-slotPop { 0% { transform: scale(.82); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
+@keyframes opening-nudgeX { 0%,100% { transform: translateX(0); } 50% { transform: translateX(5px); } }
+@keyframes opening-footIn { 0% { transform: translateY(14px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
 
-/* --------------------------------------------------------------------- stage */
-.opening {
+/* ===================================================================== layout */
+.opening--page {
     position: relative;
     display: flex;
     width: 100%;
-    min-height: min(90vh, 760px);
-    align-items: center;
-    justify-content: center;
+    min-height: calc(100vh - 64px);
+    /* ends on the exact body colour (#0b0712) so the page never goes darker than
+     * the site background at its edges — no visible seam against the body */
+    background: radial-gradient(120% 80% at 30% 18%, #1a1030 0%, #0b0712 62%, #0b0712 100%);
     overflow: hidden;
+    /* it's an interactive game screen, not text — clicking/dragging to reveal
+     * cards must never start a text/image selection */
+    user-select: none;
+    -webkit-user-select: none;
+}
+.opening--page img { -webkit-user-drag: none; user-drag: none; }
+.opening--page [hidden] { display: none !important; }
+
+@media (max-width: 900px) {
+    .opening--page { flex-direction: column; }
 }
 
-.opening.is-shake { animation: opening-screenShake .5s; }
-
-/*
- * `[hidden]` (display:none) is a low-priority UA rule — the stages below set an
- * explicit `display` (flex grid, Tailwind `flex`) which would otherwise win and
- * leak every stage at once (the summary showing before the pack is opened).
- */
-.opening [hidden] { display: none !important; }
-
-/* ambient violet glow behind the stage */
-.opening::before {
-    content: "";
-    position: absolute;
-    top: -20%;
-    left: 50%;
-    width: 1000px;
-    height: 700px;
-    transform: translateX(-50%);
-    border-radius: 50%;
-    background: radial-gradient(ellipse, #a435f022 0%, transparent 60%);
-    filter: blur(40px);
-    pointer-events: none;
-}
-
-/* stage visibility is driven by [hidden] toggled from the controller */
-.opening__sealed,
-.opening__tearing,
-.opening__reveal { position: relative; z-index: 2; text-align: center; }
-
-/* ====================================================== SEALED — the pack */
-.opening__pack-wrap {
-    display: inline-block;
-    cursor: grab;
-    touch-action: none;
-    animation: floatY 4s ease-in-out infinite;
-}
-.opening__pack-wrap.is-cutting { cursor: grabbing; animation: none; }
-
-.opening__pack {
+/* ------------------------------------------------------ left: the pack column */
+.opening__pack-col {
     position: relative;
-    width: 300px;
-    height: 430px;
-    filter: drop-shadow(0 30px 50px #000a);
-}
-
-.opening__pack-body {
-    position: absolute;
-    inset: 0;
-    top: 30px;
-    overflow: hidden;
-    border: 1px solid #a435f055;
-    border-radius: 10px;
-    background: linear-gradient(160deg, #2a1356 0%, #14092e 45%, #2a0f44 100%);
-}
-.opening__pack-body img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: .85;
-}
-.opening__pack-body::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    mix-blend-mode: color-dodge;
-    opacity: .5;
-    background: linear-gradient(115deg, transparent 35%, #ff3db077 48%, #00f0ff55 52%, transparent 65%);
-    background-size: 300% 300%;
-    animation: packShimmer 4s linear infinite;
-}
-.opening__pack-banner {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 2;
-    padding: 16px 18px 20px;
-    background: linear-gradient(180deg, transparent, #0b0712 80%);
-    text-align: left;
-}
-.opening__pack-banner .code { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: .25em; color: #ff3db0; }
-.opening__pack-banner .name { margin-top: 4px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 22px; line-height: 1; text-transform: uppercase; letter-spacing: -.02em; color: #fff; }
-
-/* top crimp flap that slides off as you slice (driven by --tp) */
-.opening__pack-flap {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 4;
-    height: 50px;
-    transform-origin: left center;
-    transform: translate(calc(var(--tp, 0) * 135px), calc(var(--tp, 0) * -10px)) rotate(calc(var(--tp, 0) * 7deg));
-    transition: transform 70ms linear, opacity 70ms linear;
-    background: linear-gradient(180deg, #2c1758 0%, #170c30 100%);
-    box-shadow: inset 0 2px 0 #ffffff22, inset 0 -3px 7px #00000077;
-    clip-path: polygon(0 0,100% 0,100% 84%,97% 100%,94% 85%,91% 100%,88% 84%,85% 100%,82% 85%,79% 100%,76% 84%,73% 100%,70% 85%,67% 100%,64% 84%,61% 100%,58% 85%,55% 100%,52% 84%,49% 100%,46% 85%,43% 100%,40% 84%,37% 100%,34% 85%,31% 100%,28% 84%,25% 100%,22% 85%,19% 100%,16% 84%,13% 100%,10% 85%,7% 100%,4% 84%,1% 100%,0 88%);
-}
-
-/* light slit opening along the tear line */
-.opening__pack-slit {
-    position: absolute;
-    top: 44px;
-    left: 6px;
-    right: 6px;
-    z-index: 3;
-    height: calc(6px + var(--tp, 0) * 28px);
-    opacity: calc(var(--tp, 0) * 1.4);
-    background: linear-gradient(180deg, #fff, #e9d5ff 50%, transparent);
-    filter: blur(5px);
-    pointer-events: none;
-    transition: height 70ms linear, opacity 70ms linear;
-}
-
-/* glowing torn edge racing left → right with the cut */
-.opening__pack-edge {
-    position: absolute;
-    top: 46px;
-    left: 0;
-    z-index: 5;
-    width: calc(min(100%, var(--tp, 0) * 120%));
-    height: 2px;
-    opacity: .9;
-    background: #fff;
-    box-shadow: 0 0 10px #fff, 0 0 22px #e9d5ff;
-    pointer-events: none;
-    transition: width 70ms linear;
-}
-
-/* perforation guide line — only while untouched */
-.opening__pack-guide {
-    position: absolute;
-    top: 48px;
-    left: 12px;
-    right: 12px;
-    z-index: 5;
-    border-top: 2px dotted #c79bff99;
-    pointer-events: none;
-}
-.is-cutting .opening__pack-guide { display: none; }
-
-/* CUTTER — the bright point of light riding the cut under your finger */
-.opening__pack-cutter {
-    position: absolute;
-    top: 46px;
-    left: calc(min(98%, var(--tp, 0) * 100%));
-    z-index: 6;
-    transform: translate(-50%, -50%);
-    opacity: 0;
-    pointer-events: none;
-    transition: left 60ms linear;
-}
-.is-cutting .opening__pack-cutter { opacity: 1; }
-.opening__pack-cutter .dot {
-    width: 13px;
-    height: 13px;
-    border-radius: 999px;
-    background: #fff;
-    box-shadow: 0 0 14px 5px #fff, 0 0 30px 12px #e9d5ff, 0 0 50px 20px #a435f088;
-}
-.opening__pack-cutter .cross-h,
-.opening__pack-cutter .cross-v {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-.opening__pack-cutter .cross-h { width: 46px; height: 2px; background: linear-gradient(90deg, transparent, #fff 45%, #fff 55%, transparent); }
-.opening__pack-cutter .cross-v { width: 2px; height: 20px; background: linear-gradient(180deg, transparent, #fff, transparent); }
-
-.opening__hint {
-    margin-top: 32px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    letter-spacing: .15em;
-    color: #b9a8cf;
-}
-.opening__hint .arrow { display: inline-block; animation: opening-nudgeX 1.3s ease-in-out infinite; }
-
-.opening__skip {
-    margin-top: 16px;
-    padding: 14px 28px;
-    border: 1px solid #a435f066;
-    background: transparent;
-    color: #fff;
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 700;
-    font-size: 13px;
-    letter-spacing: .15em;
-    text-transform: uppercase;
-    cursor: pointer;
-}
-.opening__skip:hover { border-color: var(--primary); color: var(--primary); }
-
-/* ===================================================== TEARING — burst fx */
-.opening__beam {
-    position: absolute;
-    left: 50%;
-    top: 4%;
-    z-index: 2;
-    width: 150px;
-    height: 480px;
-    transform-origin: 50% 0%;
-    background: linear-gradient(180deg, #fff 0%, #ecd9ff 42%, transparent 92%);
-    filter: blur(11px);
-    mix-blend-mode: screen;
-    pointer-events: none;
-    animation: opening-beamRise .9s .12s cubic-bezier(.2,.8,.2,1) both;
-}
-.opening__rays {
-    position: absolute;
-    left: 50%;
-    top: 44%;
-    z-index: 2;
-    width: 780px;
-    height: 780px;
-    pointer-events: none;
-    background: repeating-conic-gradient(from 0deg, #ffffff44 0deg 4deg, transparent 4deg 16deg);
-    mask-image: radial-gradient(circle, #000 6%, transparent 58%);
-    -webkit-mask-image: radial-gradient(circle, #000 6%, transparent 58%);
-    animation: opening-raysSpin 9s linear infinite, opening-fadeIn6 .6s .15s ease-out backwards;
-}
-.opening__bloom {
-    position: absolute;
-    left: 50%;
-    top: 44%;
-    z-index: 3;
-    width: 540px;
-    height: 540px;
-    border-radius: 50%;
-    mix-blend-mode: screen;
-    pointer-events: none;
-    background: radial-gradient(circle, #fff 0%, #f0ddff 26%, #c9a0ff55 48%, transparent 72%);
-    animation: opening-coreBloom 1.05s .22s ease-out both;
-}
-.opening__particles span {
-    position: absolute;
-    left: 50%;
-    top: 40%;
-    z-index: 4;
-    width: 6px;
-    height: 6px;
-    border-radius: 999px;
-    box-shadow: 0 0 10px currentColor;
-    animation: opening-particlefly 1s ease-out both;
-}
-
-/* ============================================ WHITEOUT / FLASH overlays */
-.opening__whiteout,
-.opening__flash {
-    position: fixed;
-    inset: 0;
-    z-index: 60;
-    opacity: 0;
-    pointer-events: none;
-    background: radial-gradient(circle at 50% 44%, #ffffff, #ead8ff 42%, transparent 82%);
-}
-.opening__whiteout.is-tearing { animation: opening-whiteout 1.15s ease-in forwards; }
-.opening__whiteout.is-bridge  { animation: opening-fadeWhite .6s ease-out forwards; }
-.opening__flash { transition: opacity .5s ease-out; }
-.opening__flash.is-on { opacity: var(--flash, .3); }
-
-/* ================================================= REVEAL — one card at a time */
-.opening__reveal {
+    flex: 1 1 58%;
     display: flex;
-    width: 100%;
     flex-direction: column;
     align-items: center;
-    cursor: pointer;
+    justify-content: center;
+    gap: 12px;
+    /* trimmed top padding — the big void above the pack lived here */
+    padding: 12px 24px 20px;
+    min-width: 0;
+    /* never grow past the viewport, or the CTA gets pushed below the fold */
+    min-height: 0;
 }
-.opening__reveal-fx {
+
+.opening__back {
+    position: absolute;
+    top: 20px;
+    left: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .12em;
+    color: #8a7aae;
+    text-decoration: none;
+    transition: color .2s;
+}
+.opening__back:hover { color: var(--primary, #c9a0ff); }
+
+.opening__err {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 14px;
+    border: 1px solid #ff3db066;
+    background: #ff3db01a;
+    color: #ff8ac0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+}
+
+.opening__pack-stage {
+    position: relative;
+    /* Size from the smallest of width AND height budgets (single dimension, so the
+     * aspect ratio is never distorted). The `58vh * 0.92` term caps the height to
+     * the viewport so the pack + CTA stay on screen on short displays. */
+    width: min(56vw, 700px, calc(58vh * 0.92));
+    aspect-ratio: .92;
+    /* lift the optical centre toward ~44% of the view (it sat ~52% — centred below
+     * the 64px header — which read as "hanging low" with a big void on top) */
+    margin-top: clamp(-96px, -7vh, -24px);
+}
+@media (max-width: 900px) {
+    .opening__pack-stage {
+        width: min(86vw, 520px, calc(50vh * 0.92));
+        margin-top: -8px;
+    }
+}
+
+/* ----------------------------------------------------------- the 3D pack */
+.opening__3d {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+    touch-action: none;
+}
+.opening__3d:active { cursor: grabbing; }
+.opening__3d canvas {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    /* fade the bottom so the model's folded seal blends off-frame (packs.com crops it) */
+    -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
+}
+
+/* WebGL/model unavailable: the controller falls back to a direct reveal, so
+ * don't leave a dead, grabbable canvas in the middle of the stage */
+.opening__3d.is-unavailable {
+    visibility: hidden;
+    cursor: default;
+}
+
+/* soft halo BEHIND the pack so it pops — fades fully to transparent well inside
+ * the stage box, so (unlike a darkening vignette) it never paints a rectangle */
+.opening__3d::after {
+    content: "";
     position: absolute;
     inset: 0;
-    z-index: 1;
+    z-index: 0;
+    background: radial-gradient(ellipse 58% 56% at 50% 46%, #9a70e824 0%, transparent 64%);
     pointer-events: none;
 }
+
+/* ------------------------------------------------- centre showcase (reveal) */
+.opening__showcase {
+    position: absolute;
+    inset: -8% -6%;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
 .opening__aura {
     position: absolute;
     top: 50%;
@@ -328,20 +164,18 @@
     transform: translate(-50%, -50%);
     border-radius: 50%;
     opacity: 0;
+    pointer-events: none;
     background: radial-gradient(circle, color-mix(in srgb, var(--reveal-color, #fff) 18%, transparent) 0%, transparent 60%);
 }
 .is-shiny .opening__aura { background: radial-gradient(circle, color-mix(in srgb, var(--reveal-color, #fff) 40%, transparent) 0%, transparent 60%); }
 .opening__aura.is-on { animation: opening-auraPulse 1.6s ease-out forwards; }
 
 .opening__label {
-    position: absolute;
-    top: 4%;
-    left: 50%;
     z-index: 3;
-    transform: translateX(-50%);
+    margin-bottom: 44px;
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
-    font-size: 40px;
+    font-size: clamp(24px, 3.4vw, 38px);
     text-transform: uppercase;
     letter-spacing: -.02em;
     white-space: nowrap;
@@ -355,43 +189,81 @@
 .opening__reveal-cards {
     position: relative;
     z-index: 2;
-    margin-top: 64px;
+    width: clamp(260px, 34vw, 420px);
     display: grid;
     place-items: center;
 }
-/* all reveal cards stacked in the same cell; only the current one shows */
 .opening__reveal-card {
     grid-area: 1 / 1;
+    width: 100%;
     display: none;
-    transform: scale(var(--reveal-card-scale, 1.4));
+    perspective: 1500px;
     transform-origin: center;
 }
 .opening__reveal-card.is-current { display: block; }
-.opening__reveal-card.is-entering { animation: opening-cardReveal .6s cubic-bezier(.2,.8,.2,1); }
-.opening__reveal-card[data-shiny="1"].is-entering { animation: opening-cardRevealBig .9s cubic-bezier(.2,.8,.2,1); }
+.opening__reveal-card.is-entering { animation: opening-cardEnter .45s cubic-bezier(.2,.8,.2,1) both; }
+.opening__reveal-card.is-pop { animation: opening-cardPop .6s ease-out; }
 
-.opening__progress {
-    z-index: 2;
-    margin-top: 40px;
-    display: flex;
-    gap: 8px;
+/* ---- 3D flip scene: back faces the player, click flips it to the front ---- */
+.opening__flip {
+    position: relative;
+    width: 100%;
+    transform-style: preserve-3d;
+    transform: rotateY(180deg); /* back toward the player until revealed */
+    transition: transform .56s cubic-bezier(.4,.05,.2,1);
 }
-.opening__dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 999px;
-    background: #ffffff22;
-    transition: all .3s;
+.opening__flip.is-flipped { transform: rotateY(0deg); }
+.opening__flip-face {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
-.opening__dot.is-done { background: var(--dot-color, #fff); }
-.opening__dot.is-current { width: 28px; background: var(--dot-color, #fff); box-shadow: 0 0 10px var(--dot-color, #fff); }
+.opening__flip-front { position: relative; }
+/* belt-and-suspenders against the nested 3D card bleeding through while face-down:
+ * backface-visibility hides it once flipping, this hides it fully at rest */
+.opening__flip:not(.is-flipped) .opening__flip-front { visibility: hidden; }
+.opening__flip-back {
+    position: absolute;
+    inset: 0;
+    transform: rotateY(180deg);
+    display: grid;
+    place-items: center;
+}
+.opening__flip-back img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 18px 42px #000a);
+}
+
+/* ---- stacked deck of the remaining cards' backs, peeking behind ---- */
+.opening__stack {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    aspect-ratio: var(--card-aspect, .718);
+    transform: translate(-50%, -50%);
+    z-index: -1; /* behind the current card within .opening__reveal-cards */
+    pointer-events: none;
+}
+.opening__stack-layer {
+    position: absolute;
+    inset: 0;
+    border-radius: 5% / 3.6%;
+    background: #140a26 center/cover no-repeat url('/images/card-back.svg');
+    border: 1px solid #ffffff14;
+    box-shadow: 0 10px 30px #0007;
+}
+.opening__stack-layer:nth-child(1) { transform: translate(7px, 9px) scale(.985); opacity: .85; }
+.opening__stack-layer:nth-child(2) { transform: translate(15px, 19px) scale(.97); opacity: .6; }
+.opening__stack-layer:nth-child(3) { transform: translate(23px, 29px) scale(.955); opacity: .4; }
 
 .opening__next {
     z-index: 2;
-    margin-top: 24px;
+    margin-top: 48px;
     padding: 12px 26px;
     border: 1px solid #a435f066;
-    background: transparent;
+    background: #0b0712aa;
     color: #fff;
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
@@ -403,23 +275,233 @@
 .opening__next:hover { border-color: var(--primary); }
 .opening__counter {
     z-index: 2;
-    margin-top: 14px;
+    margin-top: 12px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
     letter-spacing: .15em;
     color: #6a5a8a;
 }
 
-/* ===================================================================== SUMMARY */
-.opening__summary { animation: opening-summaryIn .4s ease-out both; }
+/* --------------------------------------------------- CTA / instruction line */
+.opening__cta {
+    /* small pull toward the pack (the stage still has a little empty room below) */
+    margin-top: -16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+}
+.opening__hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: .14em;
+    color: #b9a8cf;
+}
+.opening__hint .arrow { display: inline-block; animation: opening-nudgeX 1.3s ease-in-out infinite; }
+.opening__skip {
+    padding: 10px 22px;
+    border: 1px solid #a435f066;
+    background: transparent;
+    color: #cdbff0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+}
+.opening__skip:hover { border-color: var(--primary); color: var(--primary); }
 
-/* reveal card scale shrinks a touch on short viewports */
-@media (max-height: 760px) {
-    .opening__reveal-card { --reveal-card-scale: 1.1; }
-    .opening__reveal-cards { margin-top: 48px; }
+/* ------------------------------------------------ right: the set list (aside) */
+.opening__panel {
+    flex: 0 0 42%;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #ffffff14;
+    background: #140a26;
+    max-height: calc(100vh - 64px);
+}
+@media (max-width: 900px) {
+    .opening__panel { flex: 0 0 auto; border-left: none; border-top: 1px solid #ffffff14; max-height: 56vh; }
+}
+.opening__panel-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid #ffffff12;
+    background: #140a26;
+}
+.opening__panel-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: -.01em;
+    text-transform: uppercase;
+    color: #fff;
+}
+.opening__panel-sub {
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .08em;
+    color: #6a5a8a;
+}
+.opening__panel-best {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #6a5a8a;
+}
+.opening__panel-best span { font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+
+.opening__slots {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 18px;
+    display: grid;
+    /* fixed-ish card size that stays sane whether the set has 3 cards or 300 —
+       auto-fill keeps a small set from blowing up to fill the column */
+    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+    gap: 18px 14px;
+    align-content: start;
+    justify-content: start;
+}
+@media (max-width: 560px) { .opening__slots { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); } }
+
+/* a card in the set: dimmed until it is drawn & revealed, then lit + framed */
+.opening__slot {
+    opacity: 1;
+    transition: opacity .45s ease;
+}
+.opening__slot.is-popping .opening__slot-img { animation: opening-slotPop .5s ease-out; }
+
+/* mystery slots: cards you don't own (and haven't owned) sit behind a card back
+ * until you get them — revealed live in this opening, or already in your collection.
+ * On reveal the back fades out and cross-dissolves into the real card art. */
+.opening__slot-img img { transition: opacity .4s ease; }
+.opening__slot[data-owned="0"]:not(.is-revealed) .opening__slot-img img { opacity: 0; }
+.opening__slot-back {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background-color: #140a26;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity .4s ease;
+    pointer-events: none;
+}
+.opening__slot[data-owned="0"]:not(.is-revealed) .opening__slot-back { opacity: 1; }
+
+.opening__slot-img {
+    position: relative;
+    aspect-ratio: var(--card-aspect, .718);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1.5px solid #ffffff14;
+    background: #0c0618;
+}
+.opening__slot.is-revealed .opening__slot-img {
+    border-color: var(--slot-rar, #ffffff33);
+    box-shadow: 0 0 14px -2px var(--slot-rar, transparent), 0 8px 18px #0008;
+}
+.opening__slot-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* badges only show once the slot is revealed */
+.opening__slot-holo,
+.opening__slot-qty,
+.opening__slot-new {
+    position: absolute;
+    opacity: 0;
+    transition: opacity .3s ease .2s;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    letter-spacing: .08em;
+}
+.opening__slot.is-revealed .opening__slot-holo,
+.opening__slot.is-revealed .opening__slot-qty,
+.opening__slot.is-revealed .opening__slot-new { opacity: 1; }
+.opening__slot-holo {
+    top: 5px;
+    right: 5px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 8px;
+    color: #0b0712;
+    background: linear-gradient(90deg, #ff3db0, #c9a0ff);
+}
+.opening__slot-qty {
+    bottom: 5px;
+    right: 5px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    color: #fff;
+    background: #000a;
+}
+.opening__slot-new {
+    top: 5px;
+    left: 5px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 8px;
+    color: #0b0712;
+    background: linear-gradient(90deg, var(--primary, #c9a0ff), #ff3db0);
+}
+.opening__slot-name {
+    margin-top: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    letter-spacing: .03em;
+    color: #b9a8cf;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
+/* end-of-opening actions, grouped right under the revealed card (inside the
+ * showcase, which is pointer-events:none once done — so re-enable them here) */
+.opening__foot {
+    z-index: 3;
+    margin-top: 34px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    pointer-events: auto;
+    animation: opening-footIn .4s ease-out both;
+}
+
+/* ============================================================= flash overlay */
+.opening__flash {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    opacity: 0;
+    pointer-events: none;
+    /* white-hot core fading into the current card's rarity colour, so an epic
+     * (purple) and a legendary (orange) burst read distinctly */
+    background: radial-gradient(circle at 50% 46%,
+        #ffffff 0%,
+        color-mix(in srgb, var(--reveal-color, #ead8ff) 55%, #ffffff) 38%,
+        transparent 82%);
+    transition: opacity .5s ease-out;
+}
+.opening__flash.is-on { opacity: var(--flash, .3); }
+
 @media (prefers-reduced-motion: reduce) {
-    .opening__pack-wrap,
-    .opening__pack-body::after { animation: none; }
+    .opening__slot,
+    .opening__reveal-card { animation: none !important; }
 }

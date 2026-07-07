@@ -186,7 +186,9 @@
   }
   
   .card__rotator img {
-    /*height: auto;*/
+    /* the box is forced to the card aspect (.card__rotator *), so cover the
+       artwork into it instead of the default `fill` which stretches it */
+    object-fit: cover;
     -webkit-transform: translate3d(0px, 0px, 0.01px);
     transform: translate3d(0px, 0px, 0.01px);
   }

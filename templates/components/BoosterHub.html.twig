@@ -55,44 +55,62 @@
                 {% else %}
                     {% set inventory = this.inventory %}
                     {% set remainingClaims = this.remainingClaims %}
-                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3" data-testid="boosters-grid">
+                    {% set drawableBoosterIds = this.drawableBoosterIds %}
+                    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" data-testid="boosters-grid">
                         {% for booster in this.boosters %}
                             {% set owned = inventory[booster.id]|default(0) %}
-                            <article class="group flex flex-col border border-hairline bg-surface">
-                                <div class="relative aspect-[16/10] overflow-hidden border-b border-hairline bg-bg">
-                                    <img src="{{ booster.imageName ? vich_uploader_asset(booster) : (booster.extension.imageName ? vich_uploader_asset(booster.extension) : asset('images/cards/default_card.png')) }}"
-                                         alt="{{ booster.extension.name }}"
-                                         class="h-full w-full object-cover opacity-80 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-100"
-                                         onerror="this.onerror=null;this.src='{{ asset('images/cards/default_card.png') }}';">
-                                    <div class="absolute inset-0 bg-gradient-to-t from-bg via-bg/20 to-transparent"></div>
-                                    <span class="chip-mono absolute right-3 top-3 bg-black/80 px-2 py-1 font-bold text-ink-strong">×{{ owned }}</span>
+                            {% set drawable = drawableBoosterIds[booster.id]|default(false) %}
+                            <article class="group relative flex flex-col rounded-2xl border border-hairline bg-surface p-4 transition duration-300 hover:-translate-y-1 hover:border-primary/40">
+                                {# centred eyebrow + set name (packs.com header) #}
+                                <p class="text-center font-mono text-[10px] font-bold uppercase tracking-[.2em] text-ink-dim">Cartes de</p>
+                                <h3 class="mt-1 text-center font-display text-lg font-bold uppercase leading-tight tracking-[-0.02em] text-ink-strong">{{ booster.extension.name }}</h3>
+
+                                {# tilted pack with a trading card peeking out behind it #}
+                                <div class="relative mx-auto mt-4 flex h-60 w-full items-center justify-center">
+                                    {# a trading card peeking out behind the pack #}
+                                    <div class="absolute h-[86%] w-[46%] translate-x-8 rotate-[8deg] rounded-lg border border-white/10 bg-gradient-to-br from-white/15 via-white/5 to-transparent shadow-lg transition duration-300 group-hover:translate-x-10 group-hover:rotate-[11deg]"></div>
+                                    {# the pack front — same composite as the 3D opening pack, drawn into a canvas #}
+                                    <canvas width="840" height="1300"
+                                            data-controller="pack-front"
+                                            data-pack-front-bg-url-value="{{ booster.imageName ? vich_uploader_asset(booster) : (booster.extension.imageName ? vich_uploader_asset(booster.extension) : '') }}"
+                                            data-pack-front-fallback-url-value="{{ asset('images/ytcg_background.png') }}"
+                                            data-pack-front-logo-url-value="{{ asset('images/ytcg_logo.png') }}"
+                                            data-pack-front-name-value="{{ booster.extension.name }}"
+                                            data-pack-front-count-value="{{ booster.cardCount }}"
+                                            class="relative h-full w-auto -rotate-3 rounded-xl shadow-2xl ring-1 ring-white/10 transition duration-300 group-hover:-rotate-1 group-hover:scale-[1.04]"></canvas>
                                 </div>
 
-                                <div class="flex flex-1 flex-col p-5">
-                                    <h3 class="font-display text-xl font-bold uppercase tracking-[-0.02em] text-ink-strong">{{ booster.extension.name }}</h3>
-                                    <p class="chip-mono mt-1 text-ink-dim">{{ booster.cardCount }} cartes</p>
-                                    <p class="mt-2 line-clamp-2 text-sm text-ink-muted">{{ booster.extension.description }}</p>
+                                {# whole-card link to the opening (stays under the footer controls) #}
+                                {% if owned > 0 and drawable %}
+                                    <a href="{{ path('booster_open', {id: booster.id}) }}"
+                                       class="absolute inset-0 z-10 rounded-2xl"
+                                       aria-label="Ouvrir un pack {{ booster.extension.name }}"></a>
+                                {% endif %}
 
-                                    <div class="mt-auto grid grid-cols-2 gap-3 pt-5">
+                                {# footer: claim chip on the left, open / status on the right #}
+                                <div class="relative z-20 mt-4 flex items-center justify-between border-t border-hairline pt-3">
+                                    {% if remainingClaims > 0 %}
                                         <button type="button"
                                                 data-action="live#action"
                                                 data-live-action-param="claimBooster"
                                                 data-live-booster-id-param="{{ booster.id }}"
-                                                class="border border-primary bg-black px-4 py-3 font-display text-xs font-bold uppercase tracking-[.12em] text-primary transition hover:bg-primary hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
-                                                {% if remainingClaims == 0 %}disabled{% endif %}>
-                                            <span data-loading="hide">Récupérer</span>
+                                                class="font-mono text-[11px] font-bold uppercase tracking-[.1em] text-primary transition hover:text-ink-strong">
+                                            <span data-loading="hide">+ Récupérer</span>
                                             <span data-loading="show" class="hidden">···</span>
                                         </button>
-                                        <button type="button"
-                                                data-action="live#action"
-                                                data-live-action-param="openBooster"
-                                                data-live-booster-id-param="{{ booster.id }}"
-                                                class="btn-arcade w-full text-center disabled:cursor-not-allowed disabled:opacity-40"
-                                                {% if owned == 0 %}disabled{% endif %}>
-                                            <span data-loading="hide">Ouvrir ▸</span>
-                                            <span data-loading="show" class="hidden">···</span>
-                                        </button>
-                                    </div>
+                                    {% else %}
+                                        <span class="chip-mono text-ink-dim">×{{ owned }}</span>
+                                    {% endif %}
+
+                                    {% if owned > 0 and drawable %}
+                                        <a href="{{ path('booster_open', {id: booster.id}) }}"
+                                           class="flex items-center gap-1 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-strong transition hover:text-primary">
+                                            Ouvrir <span aria-hidden="true">›</span>
+                                        </a>
+                                    {% elseif not drawable %}
+                                        <span class="font-mono text-[11px] uppercase tracking-[.1em] text-ink-dim"
+                                              title="Cette extension n'a pas encore de carte publiée.">À venir</span>
+                                    {% endif %}
                                 </div>
                             </article>
                         {% endfor %}
@@ -101,159 +119,4 @@
             </div>
         </section>
     </main>
-
-    {# --------------------------------------------- Opening scene (reveal) #}
-    {% if opening %}
-        {% set revealCards = this.revealCards %}
-        {% set rarityLabels = { common: 'Commune', uncommon: 'Peu commune', rare: 'Rare', epic: 'Épique', legendary: 'Légendaire' } %}
-        {% set raritySuffix = { rare: ' !', epic: ' !!', legendary: ' !!!' } %}
-        <div class="fixed inset-0 z-50 overflow-y-auto bg-black/90 backdrop-blur-sm"
-             data-live-id="opening-{{ opening.id }}"
-             data-testid="opening-scene">
-            <div class="opening"
-                 data-controller="booster-opening"
-                 data-booster-opening-count-value="{{ revealCards|length }}"
-                 data-live-ignore>
-
-                {# ---------- SEALED — the pack, swipe to slice ---------- #}
-                <div class="opening__sealed" data-booster-opening-target="sealed">
-                    <div class="opening__pack-wrap"
-                         data-booster-opening-target="pack"
-                         data-action="pointerdown->booster-opening#dragStart pointermove->booster-opening#dragMove pointerup->booster-opening#dragEnd pointercancel->booster-opening#dragEnd">
-                        <div class="opening__pack">
-                            <div class="opening__pack-flap"></div>
-                            <div class="opening__pack-slit"></div>
-                            <div class="opening__pack-edge"></div>
-                            <div class="opening__pack-guide"></div>
-                            <div class="opening__pack-cutter">
-                                <div class="dot"></div>
-                                <div class="cross-h"></div>
-                                <div class="cross-v"></div>
-                            </div>
-                            <div class="opening__pack-body">
-                                <img src="{{ opening.booster.imageName ? vich_uploader_asset(opening.booster) : (opening.booster.extension.imageName ? vich_uploader_asset(opening.booster.extension) : asset('images/cards/default_card.png')) }}"
-                                     alt="{{ opening.booster.extension.name }}"
-                                     onerror="this.onerror=null;this.src='{{ asset('images/cards/default_card.png') }}';">
-                            </div>
-                            <div class="opening__pack-banner">
-                                <div class="code">BOOSTER</div>
-                                <div class="name">{{ opening.booster.extension.name }}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <p class="opening__hint">
-                        TIRE LE HAUT DU PACK&nbsp;<span class="arrow">→</span>&nbsp;POUR LE DÉCHIRER
-                    </p>
-                    <button type="button" class="opening__skip" data-action="booster-opening#openAtOnce">
-                        … ou clique pour ouvrir d'un coup
-                    </button>
-                </div>
-
-                {# ---------- TEARING — light burst ---------- #}
-                <div class="opening__tearing" data-booster-opening-target="tearing" hidden>
-                    <div class="opening__beam"></div>
-                    <div class="opening__rays"></div>
-                    <div class="opening__bloom"></div>
-                    <div class="opening__particles">
-                        {% for i in 0..21 %}
-                            <span style="--ang: {{ (i / 22 * 360)|round }}deg; --dist: {{ 140 + (i % 5) * 55 }}px; color: {{ i is odd ? '#ff3db0' : '#d9a8ff' }}; animation-delay: {{ (0.22 + (i % 6) * 0.04) }}s;"></span>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                {# ---------- REVEAL — cards one at a time, rarest last ---------- #}
-                <div class="opening__reveal"
-                     data-booster-opening-target="reveal"
-                     data-action="click->booster-opening#advance"
-                     hidden>
-                    <div class="opening__reveal-fx">
-                        <div class="opening__aura" data-booster-opening-target="aura"></div>
-                    </div>
-                    <div class="opening__label" data-booster-opening-target="label"></div>
-
-                    <div class="opening__reveal-cards">
-                        {% for reveal in revealCards %}
-                            {% set rarity = reveal.card.rarity.value %}
-                            <div class="opening__reveal-card"
-                                 data-booster-opening-target="card"
-                                 data-rarity="{{ rarity }}"
-                                 data-shiny="{{ rarity in ['rare', 'epic', 'legendary'] ? '1' : '0' }}"
-                                 data-label="{{ rarityLabels[rarity]|default(rarity) }}{{ raritySuffix[rarity]|default('') }}">
-                                {{ include('components/CardComponent.html.twig', {
-                                    card: reveal.card,
-                                    holo: reveal.holo,
-                                    id: 'reveal-' ~ loop.index,
-                                }) }}
-                            </div>
-                        {% endfor %}
-                    </div>
-
-                    <div class="opening__progress" data-testid="reveal-progress">
-                        {% for reveal in revealCards %}
-                            <span class="opening__dot" data-booster-opening-target="dot"></span>
-                        {% endfor %}
-                    </div>
-                    <button type="button" class="opening__next" data-booster-opening-target="next" data-action="booster-opening#advance">Carte suivante ▸</button>
-                    <p class="opening__counter" data-booster-opening-target="counter"></p>
-                </div>
-
-                {# ---------- SUMMARY — the loot ---------- #}
-                <div class="opening__summary mx-auto flex min-h-full w-full max-w-5xl flex-col"
-                     data-booster-opening-target="summary"
-                     data-testid="opening-summary"
-                     hidden>
-                    <header class="flex items-center justify-between border-b border-hairline bg-surface px-6 py-5">
-                        <div>
-                            <p class="eyebrow">Ton butin</p>
-                            <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-[-0.03em] text-ink-strong">
-                                {{ opening.booster.extension.name }}
-                            </h2>
-                        </div>
-                        <button type="button"
-                                data-action="live#action"
-                                data-live-action-param="closeModal"
-                                class="font-mono text-2xl leading-none text-ink-dim transition hover:text-ink-strong"
-                                aria-label="Fermer">×</button>
-                    </header>
-
-                    <div class="flex flex-wrap gap-2 border-b border-hairline px-6 py-4" data-testid="rarity-tally">
-                        {% for tier in this.raritySummary %}
-                            <span class="chip-mono border border-hairline px-2.5 py-1 font-bold"
-                                  style="color: var(--rarity-{{ tier.rarity.value }});">
-                                {{ tier.rarity.value }} · {{ tier.count }}
-                            </span>
-                        {% endfor %}
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-5 px-6 py-6 sm:grid-cols-3 md:grid-cols-4">
-                        {% for openingCard in opening.boosterOpeningCards %}
-                            {% for copy in 1..openingCard.quantity %}
-                                <div class="relative">
-                                    {{ include('components/CardComponent.html.twig', {
-                                        card: openingCard.card,
-                                        holo: copy <= openingCard.holoQuantity,
-                                        id: 'loot-' ~ loop.parent.loop.index ~ '-' ~ copy,
-                                    }) }}
-                                    {% if (openingCard.card.id ~ '') in newCardIds %}
-                                        <span class="chip-mono absolute -left-2 -top-2 z-10 bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black">NOUVEAU</span>
-                                    {% endif %}
-                                </div>
-                            {% endfor %}
-                        {% endfor %}
-                    </div>
-
-                    <footer class="mt-auto border-t border-hairline bg-surface px-6 py-5 text-center">
-                        <button type="button"
-                                data-action="live#action"
-                                data-live-action-param="closeModal"
-                                class="btn-arcade">Ajouter à ma collection ▸</button>
-                    </footer>
-                </div>
-
-                {# whiteout bridge + soft flash overlays (controller-driven) #}
-                <div class="opening__whiteout" data-booster-opening-target="whiteout"></div>
-                <div class="opening__flash" data-booster-opening-target="flash"></div>
-            </div>
-        </div>
-    {% endif %}
 </div>

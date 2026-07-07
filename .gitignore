@@ -51,3 +51,6 @@
 /.claude/settings.local.json
 /.claude/design_handoff_youl/
 ###< Claude Code ###
+
+# packs.com placeholder 3D pack model (dev only — never committed)
+/public/models/

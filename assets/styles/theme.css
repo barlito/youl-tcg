@@ -40,6 +40,7 @@
     background: repeating-linear-gradient(0deg, transparent 0 2px, #00000030 2px 3px);
     opacity: .4;
 }
+.crt-off .scanlines { display: none; }
 
 .glow-ambient {
     position: absolute;
