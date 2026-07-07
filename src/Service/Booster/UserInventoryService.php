@@ -75,13 +75,13 @@ class UserInventoryService
      */
     public function addCards(DiscordUser $discordUser, array $credits): array
     {
-        $existing = [];
-        foreach (
-            $this->userCardRepository->findBy([
+        $ownedRows = $this->userCardRepository->findBy([
             'discordUser' => $discordUser,
             'card' => array_map(static fn (array $credit): Card => $credit['card'], $credits),
-            ]) as $userCard
-        ) {
+        ]);
+
+        $existing = [];
+        foreach ($ownedRows as $userCard) {
             $existing[(string) $userCard->getCard()->getId()] = $userCard;
         }
 
