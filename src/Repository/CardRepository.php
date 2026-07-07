@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
+use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -104,6 +105,48 @@ class CardRepository extends ServiceEntityRepository
         ;
 
         return 1 === $affected;
+    }
+
+    /**
+     * Cover artwork per extension: the image of each extension's rarest
+     * published card (name as tiebreak, so the pick is deterministic). One
+     * portable query, the "rarest" pick happens in PHP — no DISTINCT ON,
+     * the test database is SQLite.
+     *
+     * @return array<string, string> extension id => card image name
+     */
+    public function findCoverImageNamesByExtension(): array
+    {
+        /** @var list<array{extensionId: mixed, rarity: CardRarityEnum|string, imageName: string, name: string}> $rows */
+        $rows = $this->createQueryBuilder('c')
+            ->select('IDENTITY(c.extension) AS extensionId', 'c.rarity AS rarity', 'c.imageName AS imageName', 'c.name AS name')
+            ->andWhere('c.status = :status')
+            ->andWhere('c.imageName IS NOT NULL')
+            ->setParameter('status', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->getQuery()
+            ->getArrayResult()
+        ;
+
+        $rank = [];
+        foreach (CardRarityEnum::ascending() as $index => $rarity) {
+            $rank[$rarity->value] = $index;
+        }
+
+        $covers = [];
+        $bestKeys = [];
+        foreach ($rows as $row) {
+            $extensionId = (string) $row['extensionId'];
+            $rarityValue = $row['rarity'] instanceof CardRarityEnum ? $row['rarity']->value : $row['rarity'];
+            // rarest first, then name ascending: comparable sort keys
+            $key = [-($rank[$rarityValue] ?? -1), $row['name']];
+
+            if (!isset($bestKeys[$extensionId]) || $key < $bestKeys[$extensionId]) {
+                $bestKeys[$extensionId] = $key;
+                $covers[$extensionId] = $row['imageName'];
+            }
+        }
+
+        return $covers;
     }
 
     /**

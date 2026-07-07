@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
+use App\Repository\CardRepository;
 use App\Repository\ExtensionRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterClaimQuotaInterface;
@@ -23,6 +24,7 @@ class CollectionController extends AbstractController
         #[CurrentUser] DiscordUser $user,
         UserCardRepository $userCardRepository,
         ExtensionRepository $extensionRepository,
+        CardRepository $cardRepository,
         BoosterClaimQuotaInterface $boosterClaimQuota,
         ?string $slug = null,
     ): Response {
@@ -43,15 +45,19 @@ class CollectionController extends AbstractController
         $currentExtension = $this->resolveExtensionFilter($slug, $extensions);
 
         $ownedByExtension = $userCardRepository->countOwnedGroupedByExtension($user);
+        // fond des tuiles du carrousel quand l'extension n'a pas d'image uploadée
+        $coverImages = $cardRepository->findCoverImageNamesByExtension();
 
-        $universes = array_map(static function (array $item) use ($ownedByExtension): array {
-            $owned = $ownedByExtension[(string) $item['extension']->getId()] ?? 0;
+        $universes = array_map(static function (array $item) use ($ownedByExtension, $coverImages): array {
+            $extensionId = (string) $item['extension']->getId();
+            $owned = $ownedByExtension[$extensionId] ?? 0;
 
             return [
                 'extension' => $item['extension'],
                 'total' => $item['cardCount'],
                 'owned' => $owned,
                 'percentage' => $item['cardCount'] > 0 ? (int) round($owned / $item['cardCount'] * 100) : 0,
+                'coverImage' => $coverImages[$extensionId] ?? null,
             ];
         }, $extensions);
 
