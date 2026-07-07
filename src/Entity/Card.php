@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Dto\VisualConfig;
+use App\Enum\Card\CardEffectEnum;
 use App\Enum\Card\FoilTextureEnum;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
@@ -85,7 +86,7 @@ class Card
      * Per-card visual overrides (glow / border / css class / holo preset);
      * each set field beats the extension's default in the resolution cascade.
      *
-     * @var array<string, string|bool>
+     * @var array<string, string>
      */
     #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
     private array $visualConfigOverride = [];
@@ -299,6 +300,45 @@ class Card
     public function setVisualConfigOverride(VisualConfig $visualConfig): static
     {
         $this->visualConfigOverride = $visualConfig->toArray();
+
+        return $this;
+    }
+
+    /**
+     * Virtual field for the back office: the holo preset stored inside the
+     * override JSON, exposed as a selectable enum.
+     */
+    public function getHoloEffect(): ?CardEffectEnum
+    {
+        return $this->getVisualConfigOverride()->holoEffect;
+    }
+
+    public function setHoloEffect(?CardEffectEnum $holoEffect): static
+    {
+        $this->visualConfigOverride = array_filter(
+            array_merge($this->visualConfigOverride, ['holoEffect' => $holoEffect?->value]),
+            static fn (mixed $value): bool => null !== $value,
+        );
+
+        return $this;
+    }
+
+    /**
+     * Virtual field for the back office: the glow colour stored inside the
+     * override JSON, exposed as a colour picker.
+     */
+    public function getGlowColor(): ?string
+    {
+        return $this->getVisualConfigOverride()->glow;
+    }
+
+    public function setGlowColor(?string $glow): static
+    {
+        $glow = null !== $glow && '' !== trim($glow) ? trim($glow) : null;
+        $this->visualConfigOverride = array_filter(
+            array_merge($this->visualConfigOverride, ['glow' => $glow]),
+            static fn (mixed $value): bool => null !== $value,
+        );
 
         return $this;
     }

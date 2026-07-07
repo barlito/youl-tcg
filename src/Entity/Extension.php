@@ -76,7 +76,7 @@ class Extension implements \Stringable
      * applied to the extension's cards, each card may override individual
      * fields.
      *
-     * @var array<string, string|bool>
+     * @var array<string, string>
      */
     #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
     private array $visualConfig = [];
@@ -272,6 +272,26 @@ class Extension implements \Stringable
     {
         $this->visualConfig = array_filter(
             array_merge($this->visualConfig, ['holoEffect' => $holoEffect?->value]),
+            static fn (mixed $value): bool => null !== $value,
+        );
+
+        return $this;
+    }
+
+    /**
+     * Virtual field for the back office: the glow colour stored inside the
+     * visual config JSON, exposed as a colour picker.
+     */
+    public function getGlowColor(): ?string
+    {
+        return $this->getVisualConfig()->glow;
+    }
+
+    public function setGlowColor(?string $glow): static
+    {
+        $glow = null !== $glow && '' !== trim($glow) ? trim($glow) : null;
+        $this->visualConfig = array_filter(
+            array_merge($this->visualConfig, ['glow' => $glow]),
             static fn (mixed $value): bool => null !== $value,
         );
 

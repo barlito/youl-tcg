@@ -21,9 +21,6 @@ final readonly class ResolvedCardVisual
         public ?string $borderColor = null,
         public ?string $cssClass = null,
         public ?CardEffectEnum $holoEffect = null,
-        public bool $showFrame = false,
-        public ?string $nameColor = null,
-        public ?string $frameGradient = null,
     ) {
     }
 

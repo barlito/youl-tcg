@@ -38,9 +38,6 @@ final readonly class CardVisualResolver
             borderColor: $override->borderColor ?? $config->borderColor,
             cssClass: $override->cssClass ?? $config->cssClass,
             holoEffect: $override->holoEffect ?? $config->holoEffect,
-            showFrame: $override->showFrame ?? $config->showFrame ?? false,
-            nameColor: $override->nameColor ?? $config->nameColor,
-            frameGradient: $override->frameGradient ?? $config->frameGradient,
         );
     }
 

@@ -28,13 +28,6 @@ final readonly class VisualConfig
         public ?CardEffectEnum $holoEffect = null,
         // Bundled foil texture (library) — an uploaded foil always wins over it.
         public ?FoilTextureEnum $foilTexture = null,
-        // Card frame: the card name (top-left, no background) + a custom
-        // gradient border rendered as DOM layers ABOVE the holo effect. The
-        // flag is meant per card (full-art artworks with baked-in text keep it
-        // off); colours/gradients are free CSS values, defaulted per extension.
-        public ?bool $showFrame = null,
-        public ?string $nameColor = null,
-        public ?string $frameGradient = null,
     ) {
     }
 
@@ -52,14 +45,11 @@ final readonly class VisualConfig
             // Invalid / unknown preset names fall through to null (no preset).
             holoEffect: CardEffectEnum::tryFromName(self::stringOrNull($data['holoEffect'] ?? null)),
             foilTexture: FoilTextureEnum::tryFromName(self::stringOrNull($data['foilTexture'] ?? null)),
-            showFrame: self::boolOrNull($data['showFrame'] ?? null),
-            nameColor: self::stringOrNull($data['nameColor'] ?? null),
-            frameGradient: self::stringOrNull($data['frameGradient'] ?? null),
         );
     }
 
     /**
-     * @return array<string, string|bool> only the set fields, ready for JSON storage
+     * @return array<string, string> only the set fields, ready for JSON storage
      */
     public function toArray(): array
     {
@@ -70,11 +60,8 @@ final readonly class VisualConfig
                 'cssClass' => $this->cssClass,
                 'holoEffect' => $this->holoEffect?->value,
                 'foilTexture' => $this->foilTexture?->value,
-                'showFrame' => $this->showFrame,
-                'nameColor' => $this->nameColor,
-                'frameGradient' => $this->frameGradient,
             ],
-            static fn (string | bool | null $value): bool => null !== $value,
+            static fn (?string $value): bool => null !== $value,
         );
     }
 
@@ -84,15 +71,7 @@ final readonly class VisualConfig
             && null === $this->borderColor
             && null === $this->cssClass
             && !$this->holoEffect instanceof CardEffectEnum
-            && !$this->foilTexture instanceof FoilTextureEnum
-            && null === $this->showFrame
-            && null === $this->nameColor
-            && null === $this->frameGradient;
-    }
-
-    private static function boolOrNull(mixed $value): ?bool
-    {
-        return \is_bool($value) ? $value : null;
+            && !$this->foilTexture instanceof FoilTextureEnum;
     }
 
     private static function stringOrNull(mixed $value): ?string

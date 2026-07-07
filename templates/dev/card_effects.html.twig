@@ -30,14 +30,6 @@
             color: var(--text-muted);
         }
         .pg-control input[type="range"] { width: 100%; accent-color: var(--primary); }
-        .pg-control input[type="text"] {
-            border: 1px solid var(--hairline);
-            background: var(--surface);
-            padding: .25rem .5rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: .72rem;
-            color: var(--text);
-        }
         .pg-control select {
             border: 1px solid var(--hairline);
             background: var(--surface);
@@ -96,8 +88,6 @@
                                      onerror="this.onerror=null;this.src='{{ asset('images/cards/default_card.png') }}';">
                                 <div class="card__shine"></div>
                                 <div class="card__glare"></div>
-                                <div class="card__frame" aria-hidden="true" hidden data-card-playground-target="frameLayer"></div>
-                                <div class="card__name" hidden data-card-playground-target="nameLayer">{{ playgroundCard.name }}</div>
                             </div>
                         </div>
                     </div>
@@ -136,23 +126,7 @@
                     </label>
                 </div>
 
-                <div class="pg-control">
-                    <label>Nom (couleur ou dégradé CSS)
-                        <input type="text" value="linear-gradient(180deg, #9ecbff, #2b6cb0)" spellcheck="false"
-                               data-card-playground-target="nameColor" data-action="input->card-playground#apply">
-                    </label>
-                    <label>Bordure (dégradé CSS)
-                        <input type="text" value="linear-gradient(160deg, #6ea8dc, #10182b 45%, #0b0712 60%, #7a1d1d)" spellcheck="false"
-                               data-card-playground-target="frameGradient" data-action="input->card-playground#apply">
-                    </label>
-                </div>
-
                 <div class="pg-control justify-end">
-                    <label class="flex items-center gap-2">
-                        <input type="checkbox" class="accent-primary"
-                               data-card-playground-target="frame" data-action="card-playground#apply">
-                        Cadre (nom + bordure)
-                    </label>
                     <label class="flex items-center gap-2">
                         <input type="checkbox" class="accent-primary"
                                data-card-playground-target="foil" data-action="card-playground#apply">
@@ -180,8 +154,8 @@
                 <div class="force-glow">
                     {{ include('components/CardComponent.html.twig', { card: demo.card }) }}
                     <div class="mt-2 px-1">
-                        <code class="text-sm text-ink">{{ demo.effect.value }}</code>
-                        <p class="text-xs text-ink-dim">{{ demo.effect.label }}</p>
+                        <code class="text-sm text-ink">{{ demo.code }}</code>
+                        <p class="text-xs text-ink-dim">{{ demo.label }}</p>
                     </div>
                 </div>
             {% endfor %}

@@ -6,10 +6,6 @@
 {%- if visual.foilUrl %}{% set styleVars = styleVars|merge(["--foil: url('#{visual.foilUrl}')"]) %}{% endif -%}
 {%- if visual.glow %}{% set styleVars = styleVars|merge(["--card-glow: #{visual.glow}"]) %}{% endif -%}
 {%- if visual.borderColor %}{% set styleVars = styleVars|merge(["--card-border: #{visual.borderColor}"]) %}{% endif -%}
-{%- if visual.showFrame -%}
-    {%- if visual.nameColor %}{% set styleVars = styleVars|merge(["--card-name-color: #{visual.nameColor}"]) %}{% endif -%}
-    {%- if visual.frameGradient %}{% set styleVars = styleVars|merge(["--card-frame: #{visual.frameGradient}"]) %}{% endif -%}
-{%- endif -%}
 {# holo rendering only exists through the presets: a card drawn holo whose
    cascade resolves no preset falls back to the basic recipe #}
 {%- set holoClass = visual.holoEffect ? visual.holoEffect.cssClass : (holo ? 'holo--basic' : null) -%}
@@ -30,12 +26,6 @@
                 <img src="{{ vich_uploader_asset(card) }}" alt="{{ card.name }}" onerror="this.onerror=null;this.src='{{ asset('images/cards/default_card.png') }}';">
                 <div class="card__shine"></div>
                 <div class="card__glare"></div>
-                {%- if visual.showFrame -%}
-                    {# frame layers ABOVE shine/glare: crisp whatever the holo preset,
-                       and untouched by the rembg mask (which only clips the effect) #}
-                    <div class="card__frame" aria-hidden="true"></div>
-                    <div class="card__name">{{ card.name }}</div>
-                {%- endif -%}
                 {%- if card.isUnique %}<div class="card__unique-badge" title="Carte unique — un seul exemplaire">1/1</div>{% endif -%}
             </div>
         </div>

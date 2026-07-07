@@ -15,6 +15,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ColorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 
 /**
@@ -82,6 +83,11 @@ class ExtensionCrudController extends AbstractCrudController
             ->setLabel('Foil texture (library)')
             ->setHelp('Bundled foil applied when neither the card nor the extension uploaded one (overrides the foilTexture JSON key)')
             ->setChoices($this->foilTextureChoices())
+            ->onlyOnForms()
+        ;
+        yield ColorField::new('glowColor')
+            ->setLabel('Glow')
+            ->setHelp('Default halo colour for the extension cards (empty = rarity colour)')
             ->onlyOnForms()
         ;
         yield Field::new('visualConfigJson')->setLabel('Visual config')->onlyOnDetail();

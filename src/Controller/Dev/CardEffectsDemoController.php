@@ -57,7 +57,19 @@ class CardEffectsDemoController extends AbstractController
                 'card' => $this->variant($referenceCard, $bareExtension, $effect->value)
                     ->setRarity(CardRarityEnum::RARE)
                     ->setVisualConfigOverride(new VisualConfig(holoEffect: $effect)),
-                'effect' => $effect,
+                'code' => $effect->value,
+                'label' => $effect->label(),
+            ];
+        }
+        // the bundled foil library, shown through the trainer recipe (the most
+        // texture-forward preset) so each texture is comparable at a glance
+        foreach (FoilTextureEnum::cases() as $texture) {
+            $presetDemos[] = [
+                'card' => $this->variant($referenceCard, $bareExtension, 'tex-' . $texture->value)
+                    ->setRarity(CardRarityEnum::RARE)
+                    ->setVisualConfigOverride(new VisualConfig(holoEffect: CardEffectEnum::TRAINER, foilTexture: $texture)),
+                'code' => 'foil ' . $texture->value,
+                'label' => $texture->label(),
             ];
         }
 

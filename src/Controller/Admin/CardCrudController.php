@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Admin\Field\ImageField as VichImageField;
 use App\Entity\Card;
+use App\Enum\Card\CardEffectEnum;
 use App\Enum\Card\FoilTextureEnum;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
@@ -18,6 +19,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ColorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
@@ -112,6 +114,7 @@ class CardCrudController extends AbstractCrudController
                 ));
             }
         }
+        yield FormField::addFieldset('Carte');
         yield Field::new('name');
         yield Field::new('description');
         yield ChoiceField::new('status')
@@ -120,6 +123,7 @@ class CardCrudController extends AbstractCrudController
         yield ChoiceField::new('rarity')
             ->setChoices(CardRarityEnum::cases())
         ;
+        yield AssociationField::new('extension');
         yield BooleanField::new('unique')
             ->setLabel('Unique Flag')
             ->renderAsSwitch(false)
@@ -129,30 +133,63 @@ class CardCrudController extends AbstractCrudController
             ->setHelp('Always drawn holo, whatever the slot holo chance')
             ->renderAsSwitch(false)
         ;
-        yield AssociationField::new('extension');
-        yield VichImageField::new('imageFile')->onlyOnForms();
+
+        yield FormField::addFieldset('Images');
+        yield VichImageField::new('imageFile')
+            ->setLabel('Artwork')
+            ->onlyOnForms()
+        ;
         yield VichImageField::new('imageFoilFile', allowDelete: true)
-            ->setLabel('Foil texture')
+            ->setLabel('Foil (upload)')
+            ->setHelp('Wins over the library foil below')
             ->onlyOnForms()
         ;
         yield VichImageField::new('imageMaskFile', allowDelete: true)
             ->setLabel('Holo mask')
             ->onlyOnForms()
         ;
+
+        // The simple knobs first; every select/picker is declared AFTER the JSON
+        // editor in the yield order below so its value is merged on top of the
+        // freshly decoded JSON instead of being overwritten by it.
+        yield FormField::addFieldset('Visuel')
+            ->setHelp('Cascade : la carte surcharge sa valeur, sinon celle de l\'extension s\'applique')
+        ;
         yield CodeEditorField::new('visualConfigOverrideJson')
-            ->setLabel('Visual overrides')
+            ->setLabel('Avancé (JSON)')
             ->setLanguage('js')
             ->onlyOnForms()
-            ->setHelp('Optional per-card overrides. Keys: glow, borderColor, cssClass, holoEffect (preset: shine|basic|cosmos|trainer), foilTexture (library: ancient|geometric|vmax|trainer, ignored if a foil is uploaded). Example: {"glow": "#ff3db0", "holoEffect": "cosmos", "foilTexture": "ancient"}')
+            ->setHelp('Keys: glow, borderColor, cssClass, holoEffect, foilTexture. The selects below win over their JSON key.')
         ;
-        // Declared AFTER the JSON editor so the chosen texture is merged on top
-        // of the freshly decoded JSON instead of being overwritten by it.
+        yield ChoiceField::new('holoEffect')
+            ->setLabel('Holo preset')
+            ->setChoices($this->effectChoices())
+            ->onlyOnForms()
+        ;
         yield ChoiceField::new('foilTexture')
             ->setLabel('Foil texture (library)')
-            ->setHelp('Bundled foil used when no foil file is uploaded (overrides the foilTexture JSON key)')
+            ->setHelp('Bundled foil used when no foil file is uploaded')
             ->setChoices($this->foilTextureChoices())
             ->onlyOnForms()
         ;
+        yield ColorField::new('glowColor')
+            ->setLabel('Glow')
+            ->setHelp('Halo colour of the card (empty = rarity colour)')
+            ->onlyOnForms()
+        ;
         yield Field::new('visualConfigOverrideJson')->setLabel('Visual overrides')->onlyOnDetail();
+    }
+
+    /**
+     * @return array<string, CardEffectEnum> label => enum case
+     */
+    private function effectChoices(): array
+    {
+        $choices = [];
+        foreach (CardEffectEnum::cases() as $effect) {
+            $choices[$effect->label()] = $effect;
+        }
+
+        return $choices;
     }
 }
