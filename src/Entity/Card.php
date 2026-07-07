@@ -42,6 +42,15 @@ class Card
     private bool $uniqueFlag = false;
 
     /**
+     * Owner of a one-of-one (unique) card. Null while unclaimed; set atomically
+     * the first time the card is drawn (CardRepository::claimUnique). A claimed
+     * unique is filtered out of the draw pool so it can never be drawn again.
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'claimed_by', referencedColumnName: 'discord_id', nullable: true)]
+    private ?DiscordUser $claimedBy = null;
+
+    /**
      * When true the card is always drawn holo, whatever the slot's holoChance
      * (e.g. legendaries that should always shine).
      */
@@ -138,6 +147,26 @@ class Card
         $this->uniqueFlag = $uniqueFlag;
 
         return $this;
+    }
+
+    public function getClaimedBy(): ?DiscordUser
+    {
+        return $this->claimedBy;
+    }
+
+    public function setClaimedBy(?DiscordUser $claimedBy): static
+    {
+        $this->claimedBy = $claimedBy;
+
+        return $this;
+    }
+
+    /**
+     * A unique card that has already been claimed by someone.
+     */
+    public function isClaimed(): bool
+    {
+        return $this->claimedBy instanceof DiscordUser;
     }
 
     public function isAlwaysHolo(): bool

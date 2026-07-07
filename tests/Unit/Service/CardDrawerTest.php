@@ -153,6 +153,74 @@ final class CardDrawerTest extends TestCase
         $drawer->draw($this->booster([['common' => 100]]));
     }
 
+    public function testDrawReplacementNeverReturnsAUniqueCard(): void
+    {
+        $unique = $this->card('Unique rare', CardRarityEnum::RARE)->setUnique(true);
+        $drawer = $this->createDrawer([
+            $unique,
+            $this->card('Plain rare', CardRarityEnum::RARE),
+        ]);
+        $booster = $this->booster([['rare' => 100]]);
+
+        for ($i = 0; $i < 100; ++$i) {
+            $replacement = $drawer->drawReplacement($booster, CardRarityEnum::RARE);
+
+            $this->assertFalse($replacement->card->isUnique());
+            $this->assertSame('Plain rare', $replacement->card->getName());
+        }
+    }
+
+    public function testDrawReplacementThrowsWhenOnlyUniqueCardsExist(): void
+    {
+        $drawer = $this->createDrawer([
+            $this->card('Unique rare', CardRarityEnum::RARE)->setUnique(true),
+        ]);
+
+        $this->expectException(NoCardAvailableException::class);
+
+        $drawer->drawReplacement($this->booster([['rare' => 100]]), CardRarityEnum::RARE);
+    }
+
+    public function testDrawReplacementKeepsTheHoloRolledBySlot(): void
+    {
+        $drawer = $this->createDrawer([
+            $this->card('Plain rare', CardRarityEnum::RARE),
+        ]);
+        $booster = $this->booster([['rare' => 100]]);
+
+        // Losing the unique must not also cost the holo the slot rolled.
+        $this->assertTrue($drawer->drawReplacement($booster, CardRarityEnum::RARE, holo: true)->holo);
+        $this->assertFalse($drawer->drawReplacement($booster, CardRarityEnum::RARE, holo: false)->holo);
+    }
+
+    public function testDrawReplacementDoesNotDesyncTheSeededMainStream(): void
+    {
+        $cards = [
+            $this->card('Common A', CardRarityEnum::COMMON),
+            $this->card('Common B', CardRarityEnum::COMMON),
+            $this->card('Plain rare', CardRarityEnum::RARE),
+        ];
+        $booster = $this->booster([['common' => 70, 'rare' => 30], ['common' => 70, 'rare' => 30]]);
+
+        $names = static fn (array $drawnCards): array => array_map(
+            static fn ($drawnCard): string => $drawnCard->card->getName() . ($drawnCard->holo ? '*' : ''),
+            $drawnCards,
+        );
+
+        // Reference: seeded draw with no replacement roll in between.
+        $reference = new RandomService();
+        $reference->seed(20260706);
+        $referenceDraw = $names(new CardDrawer($this->repositoryWith($cards), $reference)->draw($booster));
+
+        // Same seed, but a replacement roll happens first — the audit guarantee
+        // is that the stored seed still replays the main draw identically.
+        $random = new RandomService();
+        $random->seed(20260706);
+        $drawer = new CardDrawer($this->repositoryWith($cards), $random);
+        $drawer->drawReplacement($booster, CardRarityEnum::RARE);
+        $this->assertSame($referenceDraw, $names($drawer->draw($booster)));
+    }
+
     public function testSameSeedReproducesTheSameDraw(): void
     {
         $cards = [
@@ -195,7 +263,7 @@ final class CardDrawerTest extends TestCase
     private function repositoryWith(array $publishedCards): CardRepository
     {
         $cardRepository = $this->createStub(CardRepository::class);
-        $cardRepository->method('findBy')->willReturn($publishedCards);
+        $cardRepository->method('findDrawablePool')->willReturn($publishedCards);
 
         return $cardRepository;
     }

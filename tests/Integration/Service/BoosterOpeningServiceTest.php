@@ -133,6 +133,115 @@ final class BoosterOpeningServiceTest extends KernelTestCase
         $this->assertSame([], $this->entityManager->getRepository(BoosterOpening::class)->findBy(['discordUser' => $scenario['user']]));
     }
 
+    public function testUniqueCardIsClaimedByFirstOpenerAndNeverDrawnAgain(): void
+    {
+        $extension = new Extension()
+            ->setName('Unique test extension ' . uniqid())
+            ->setDescription('Test extension')
+            ->setStatus(ExtensionStatusEnum::PUBLISHED)
+        ;
+        $this->entityManager->persist($extension);
+
+        // The only RARE card is a one-of-one; a filler COMMON gives the draw a
+        // fallback once the unique is claimed.
+        $unique = new Card()
+            ->setName('One of one')
+            ->setDescription('Test card')
+            ->setStatus(CardStatusEnum::PUBLISHED)
+            ->setRarity(CardRarityEnum::RARE)
+            ->setExtension($extension)
+            ->setUnique(true)
+        ;
+        $unique->setImageName('default_card.png');
+        $this->entityManager->persist($unique);
+
+        $filler = new Card()
+            ->setName('Filler common')
+            ->setDescription('Test card')
+            ->setStatus(CardStatusEnum::PUBLISHED)
+            ->setRarity(CardRarityEnum::COMMON)
+            ->setExtension($extension)
+        ;
+        $filler->setImageName('default_card.png');
+        $this->entityManager->persist($filler);
+
+        $booster = new Booster()
+            ->setExtension($extension)
+            ->setRarityRates([['rarities' => ['rare' => 100], 'holoChance' => 0]])
+        ;
+        $booster->setImageName('default_card.png');
+        $this->entityManager->persist($booster);
+
+        $alice = new DiscordUser()->setDiscordId('uniq-alice-' . uniqid())->setUsername('Alice');
+        $bob = new DiscordUser()->setDiscordId('uniq-bob-' . uniqid())->setUsername('Bob');
+        foreach ([$alice, $bob] as $user) {
+            $this->entityManager->persist($user);
+            $this->entityManager->persist(new UserBooster()->setDiscordUser($user)->setBooster($booster)->setQuantity(1));
+        }
+        $this->entityManager->flush();
+
+        // Alice opens first: the RARE slot draws the only rare card (the unique) and claims it.
+        $this->openingService->open($alice, $booster);
+        // Bob opens next: the claimed unique is filtered out of the pool, so the
+        // RARE slot falls back to the common — Bob can never get the 1/1.
+        $this->openingService->open($bob, $booster);
+
+        $this->entityManager->clear();
+
+        $claimed = $this->entityManager->getRepository(Card::class)->find($unique->getId());
+        $this->assertNotNull($claimed?->getClaimedBy());
+        $this->assertSame($alice->getDiscordId(), $claimed->getClaimedBy()->getDiscordId());
+
+        $this->assertNotNull(
+            $this->entityManager->getRepository(UserCard::class)->findOneBy(['discordUser' => $alice, 'card' => $unique]),
+            'The first opener must own the unique card.',
+        );
+        $this->assertNull(
+            $this->entityManager->getRepository(UserCard::class)->findOneBy(['discordUser' => $bob, 'card' => $unique]),
+            'A claimed 1/1 must never be drawn by another player.',
+        );
+    }
+
+    public function testExtensionLeftWithOnlyClaimedUniquesIsNoLongerDrawable(): void
+    {
+        $extension = new Extension()
+            ->setName('Claimed-out extension ' . uniqid())
+            ->setDescription('Test extension')
+            ->setStatus(ExtensionStatusEnum::PUBLISHED)
+        ;
+        $this->entityManager->persist($extension);
+
+        // The ONLY published card is a one-of-one unique.
+        $unique = new Card()
+            ->setName('Sole one of one')
+            ->setDescription('Test card')
+            ->setStatus(CardStatusEnum::PUBLISHED)
+            ->setRarity(CardRarityEnum::RARE)
+            ->setExtension($extension)
+            ->setUnique(true)
+        ;
+        $unique->setImageName('default_card.png');
+        $this->entityManager->persist($unique);
+
+        $owner = new DiscordUser()->setDiscordId('uniq-owner-' . uniqid())->setUsername('Owner');
+        $this->entityManager->persist($owner);
+        $this->entityManager->flush();
+
+        $cardRepository = $this->entityManager->getRepository(Card::class);
+        \assert($cardRepository instanceof \App\Repository\CardRepository);
+
+        // Before the claim, the hub/controller drawability check lists the extension…
+        $this->assertContains((string) $extension->getId(), $cardRepository->findExtensionIdsWithPublishedCards());
+
+        $cardRepository->claimUnique($unique, $owner);
+
+        // …and once its only card is claimed, both the drawability check and the
+        // actual draw pool agree the extension is exhausted (no more "Ouvrir"
+        // button leading straight into a draw error).
+        $this->assertNotContains((string) $extension->getId(), $cardRepository->findExtensionIdsWithPublishedCards());
+        $this->assertSame([], $cardRepository->findDrawablePool($extension));
+    }
+
     /**
      * @param list<array<string, int>>|null $rarityRates plain weight maps, wrapped per-slot with $holoChance
      *

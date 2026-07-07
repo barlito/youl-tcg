@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Card;
+use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
@@ -30,9 +31,14 @@ class CardRepository extends ServiceEntityRepository
      */
     public function findExtensionIdsWithPublishedCards(): array
     {
+        // Same drawability rule as findDrawablePool (a claimed 1/1 unique is not
+        // drawable): the hub's "ouvrable" state and the opening page must agree
+        // with what CardDrawer can actually draw, or an extension left with only
+        // claimed uniques would show "Ouvrir" and then fail the draw.
         return array_map(static fn (mixed $id): string => (string) $id, array_values($this->createQueryBuilder('c')
             ->select('IDENTITY(c.extension) AS extensionId')
             ->andWhere('c.status = :status')
+            ->andWhere('c.uniqueFlag = false OR c.claimedBy IS NULL')
             ->setParameter('status', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
             ->distinct()
             ->getQuery()
@@ -55,6 +61,49 @@ class CardRepository extends ServiceEntityRepository
             ->orderBy('c.name', 'ASC')
             ->getQuery()
             ->getResult());
+    }
+
+    /**
+     * The draw pool of an extension: published cards, EXCLUDING one-of-one
+     * unique cards that are already claimed (so a claimed unique can never be
+     * drawn again). Available (unclaimed) uniques stay in the pool.
+     *
+     * @return list<Card>
+     */
+    public function findDrawablePool(Extension $extension): array
+    {
+        return array_values($this->createQueryBuilder('c')
+            ->andWhere('c.extension = :extension')
+            ->andWhere('c.status = :status')
+            ->andWhere('c.uniqueFlag = false OR c.claimedBy IS NULL')
+            ->setParameter('extension', $extension)
+            ->setParameter('status', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->getQuery()
+            ->getResult());
+    }
+
+    /**
+     * Atomically claims a one-of-one unique card for a user: a single
+     * conditional UPDATE that only succeeds while the card is still unclaimed.
+     * Two concurrent openings serialise on the row, so exactly one wins.
+     *
+     * @return bool true if this call claimed the card, false if it was already taken
+     */
+    public function claimUnique(Card $card, DiscordUser $discordUser): bool
+    {
+        $affected = $this->createQueryBuilder('c')
+            ->update()
+            ->set('c.claimedBy', ':owner')
+            ->where('c = :card')
+            ->andWhere('c.uniqueFlag = true')
+            ->andWhere('c.claimedBy IS NULL')
+            ->setParameter('owner', $discordUser)
+            ->setParameter('card', $card)
+            ->getQuery()
+            ->execute()
+        ;
+
+        return 1 === $affected;
     }
 
     /**

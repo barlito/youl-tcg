@@ -9,7 +9,6 @@ use App\Entity\Booster;
 use App\Entity\Card;
 use App\Entity\Extension;
 use App\Enum\Entity\CardRarityEnum;
-use App\Enum\Entity\CardStatusEnum;
 use App\Exception\Booster\NoCardAvailableException;
 use App\Repository\CardRepository;
 use App\Service\Random\RandomService;
@@ -58,18 +57,49 @@ final readonly class CardDrawer
     }
 
     /**
-     * @return array<string, non-empty-list<Card>> published cards grouped by rarity value
+     * Draws a single replacement card of (or near) the given rarity, excluding
+     * ALL unique cards. Used when a drawn unique was claimed by someone else in
+     * a concurrent opening: the slot falls back to another card of the rarity,
+     * KEEPING the holo the slot originally rolled (losing the unique must not
+     * also cost a holo the booster config guaranteed).
+     *
+     * Rolls on the RNG side stream: whether a replacement happens depends on
+     * concurrent claims, so it must not desync the seed-replay of the main draw.
      */
-    private function loadPool(Extension $extension): array
+    public function drawReplacement(Booster $booster, CardRarityEnum $rarity, bool $holo = false): DrawnCard
     {
-        $cards = $this->cardRepository->findBy([
-            'extension' => $extension,
-            'status' => CardStatusEnum::PUBLISHED,
-        ]);
+        $pool = $this->loadPool($booster->getExtension(), excludeUniques: true);
 
+        if ([] === $pool) {
+            throw new NoCardAvailableException(
+                \sprintf('Extension "%s" has no non-unique card for a replacement draw.', $booster->getExtension()->getName()),
+                'Ce booster n\'a aucune carte à tirer pour le moment, réessaie plus tard.',
+            );
+        }
+
+        $resolved = $this->resolveAvailableRarity($pool, $rarity);
+        $candidates = $pool[$resolved->value];
+        $card = $candidates[$this->randomService->getSideInt(0, \count($candidates) - 1)];
+
+        return new DrawnCard($card, $resolved, $holo || $card->isAlwaysHolo());
+    }
+
+    /**
+     * Published cards of the extension grouped by rarity, EXCLUDING claimed
+     * one-of-one uniques (filtered in SQL). With $excludeUniques every unique
+     * card is dropped — used to build a replacement pool free of uniques.
+     *
+     * @return array<string, non-empty-list<Card>>
+     */
+    private function loadPool(Extension $extension, bool $excludeUniques = false): array
+    {
         $pool = [];
 
-        foreach ($cards as $card) {
+        foreach ($this->cardRepository->findDrawablePool($extension) as $card) {
+            if ($excludeUniques && $card->isUnique()) {
+                continue;
+            }
+
             $pool[$card->getRarity()->value][] = $card;
         }
 
