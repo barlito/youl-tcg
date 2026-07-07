@@ -69,6 +69,22 @@
                      data-carousel-target="track"
                      data-action="wheel->carousel#wheel:!passive"
                      data-testid="completion-strip">
+                    {# Tuile « Tout » : retour à la collection complète + complétion globale #}
+                    <a href="{{ path('collection') }}"
+                       {{ currentExtension is null ? 'data-carousel-active' }}
+                       class="group relative h-36 w-44 shrink-0 snap-start overflow-hidden border bg-surface {{ currentExtension is null ? 'border-primary shadow-[0_0_14px_#a435f055]' : 'border-hairline hover:border-primary/60' }}">
+                        <div class="absolute inset-0 bg-gradient-to-br from-primary/35 via-[#2a0f44] to-magenta/40" aria-hidden="true"></div>
+                        <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-black/90" aria-hidden="true"></div>
+
+                        <p class="absolute inset-x-3 top-2.5 truncate font-display text-[13px] font-bold uppercase leading-tight text-white">Tout</p>
+                        <div class="absolute inset-x-3 bottom-2.5">
+                            <p class="font-display text-3xl font-bold tracking-[-0.04em] text-primary [text-shadow:0_0_14px_#a435f077]">{{ completionPct }}%</p>
+                            <div class="mt-1.5 h-1 bg-white/15">
+                                <div class="h-full bg-gradient-to-r from-primary to-magenta" style="width: {{ completionPct }}%;"></div>
+                            </div>
+                            <p class="chip-mono mt-1.5 text-white/70">{{ ownedTotalDistinct }}/{{ totalPublished }} cartes</p>
+                        </div>
+                    </a>
                     {% for universe in universes|sort((a, b) => (b.percentage - a.percentage) ?: (a.extension.name < b.extension.name ? -1 : 1)) %}
                         {% set isActive = currentExtension is not null and currentExtension.id == universe.extension.id %}
                         <a href="{{ path('collection', { slug: universe.extension.slug }) }}"
@@ -103,27 +119,15 @@
             </div>
         </section>
 
-        {# --------------------------------------------------------- Filtres #}
-        <section class="px-6 pb-4 pt-8 lg:px-12">
-            <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4">
-                <nav class="flex flex-wrap" data-testid="filters">
-                    {{ _self.filter_tab(path('collection'), 'Tout', ownedTotalDistinct, currentExtension is null) }}
-                    {% for universe in universes %}
-                        {{ _self.filter_tab(
-                            path('collection', { slug: universe.extension.slug }),
-                            universe.extension.name,
-                            universe.owned,
-                            currentExtension is not null and currentExtension.id == universe.extension.id,
-                        ) }}
-                    {% endfor %}
-                </nav>
-                <span class="font-mono text-[11px] tracking-[.15em] text-ink-dim">TRI: RARETÉ ↓</span>
-            </div>
-        </section>
-
         {# ---------------------------------------------------------- Grille #}
-        <section class="px-6 pb-24 pt-6 lg:px-12">
+        <section class="px-6 pb-24 pt-8 lg:px-12">
             <div class="mx-auto max-w-7xl">
+                <div class="mb-6 flex items-center justify-between">
+                    <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
+                        {{ currentExtension is not null ? currentExtension.name : 'Toutes les cartes' }}
+                    </h2>
+                    <span class="font-mono text-[11px] tracking-[.15em] text-ink-dim">TRI: RARETÉ ↓</span>
+                </div>
                 {% if userCards is not empty %}
                     <div class="grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5" data-testid="collection-grid">
                         {% for userCard in userCards %}
@@ -168,10 +172,3 @@
         </section>
     </main>
 {% endblock %}
-
-{% macro filter_tab(url, label, count, isActive) %}
-    <a href="{{ url }}"
-       class="border border-hairline px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.1em] {{ isActive ? 'bg-primary text-black' : 'text-ink-muted hover:text-ink-strong' }}">
-        {{ label }} · {{ count }}
-    </a>
-{% endmacro %}

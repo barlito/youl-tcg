@@ -73,14 +73,18 @@ final class CollectionControllerTest extends WebTestCase
         $this->assertStringContainsString('0/2 cartes', $strip);
     }
 
-    public function testFilterTabsShowOwnedCounts(): void
+    public function testCompletionStripLeadsWithTheAllCardsTile(): void
     {
         $crawler = $this->client->request('GET', '/collection');
 
         self::assertResponseIsSuccessful();
-        $filters = $crawler->filter('[data-testid="filters"]')->text();
-        $this->assertStringContainsString(\sprintf('%s · 2', $this->extensionA->getName()), $filters);
-        $this->assertStringContainsString(\sprintf('%s · 0', $this->extensionB->getName()), $filters);
+        // First tile is « Tout » (global completion), active by default since no
+        // extension filter is applied. The base fixtures add published cards on
+        // top of the scenario's, so only the owned count (2) is asserted exactly.
+        $allTile = $crawler->filter('[data-testid="completion-strip"] > a')->first();
+        $this->assertStringContainsString('Tout', $allTile->text());
+        $this->assertMatchesRegularExpression('#\b\d+%.*\b2/\d+ cartes#s', $allTile->text());
+        $this->assertNotNull($allTile->attr('data-carousel-active'));
     }
 
     public function testGridShowsOwnedCardsWithQuantityBadges(): void
@@ -164,10 +168,10 @@ final class CollectionControllerTest extends WebTestCase
         $this->assertCount(1, $grid->filter(\sprintf('img[alt="%s"]', $this->cardsA[0]->getName())));
         $this->assertCount(1, $grid->filter(\sprintf('img[alt="%s"]', $this->cardsA[1]->getName())));
 
-        // Active tab is highlighted.
+        // The filtered universe's tile is the active one in the completion strip.
         $this->assertStringContainsString(
             $this->extensionA->getName(),
-            $crawler->filter('[data-testid="filters"] a.bg-primary')->text(),
+            $crawler->filter('[data-testid="completion-strip"] a[data-carousel-active]')->text(),
         );
     }
 
