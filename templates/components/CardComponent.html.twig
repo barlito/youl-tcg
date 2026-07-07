@@ -6,11 +6,11 @@
 {%- if visual.foilUrl %}{% set styleVars = styleVars|merge(["--foil: url('#{visual.foilUrl}')"]) %}{% endif -%}
 {%- if visual.glow %}{% set styleVars = styleVars|merge(["--card-glow: #{visual.glow}"]) %}{% endif -%}
 {%- if visual.borderColor %}{% set styleVars = styleVars|merge(["--card-border: #{visual.borderColor}"]) %}{% endif -%}
-{%- if visual.holoIntensity is not null %}{% set styleVars = styleVars|merge(["--holo-intensity: #{visual.holoIntensity}"]) %}{% endif -%}
-{%- if visual.holoSaturation is not null %}{% set styleVars = styleVars|merge(["--holo-saturation: #{visual.holoSaturation}"]) %}{% endif -%}
-{%- if visual.holoGlitter is not null %}{% set styleVars = styleVars|merge(["--holo-glitter: #{visual.holoGlitter}"]) %}{% endif -%}
+{# holo rendering only exists through the presets: a card drawn holo whose
+   cascade resolves no preset falls back to the basic recipe #}
+{%- set holoClass = visual.holoEffect ? visual.holoEffect.cssClass : (holo ? 'holo--basic' : null) -%}
 <div id="{{ id }}"
-     class="card interactive{{ visual.hasMask ? ' masked' }}{{ holo ? ' holo' }}{{ card.isUnique ? ' unique' }}{{ visual.cssClass ? ' ' ~ visual.cssClass }}{{ visual.holoEffect ? ' ' ~ visual.holoEffect.cssClass }}"
+     class="card interactive{{ visual.hasMask ? ' masked' }}{{ holo ? ' holo' }}{{ card.isUnique ? ' unique' }}{{ visual.cssClass ? ' ' ~ visual.cssClass }}{{ holoClass ? ' ' ~ holoClass }}"
      data-rarity="{{ card.rarity.value }}"
      data-controller="card"
      {%- if styleVars is not empty %} style="{{ styleVars|join('; ') }}"{% endif %}>

@@ -68,6 +68,46 @@ final class CardComponentRenderingTest extends WebTestCase
         $this->assertNull($node->attr('style'));
     }
 
+    public function testHoloCardWithoutPresetFallsBackToBasic(): void
+    {
+        // The per-rarity holo recipes are gone: a card rendered holo whose
+        // cascade resolves no preset must light up through holo--basic.
+        $card = $this->createOwnedCard(CardRarityEnum::COMMON);
+        $this->entityManager->flush();
+
+        $html = self::getContainer()->get('twig')
+            ->render('components/CardComponent.html.twig', ['card' => $card, 'holo' => true])
+        ;
+
+        $this->assertStringContainsString('holo--basic', $html);
+    }
+
+    public function testHoloCardKeepsItsConfiguredPreset(): void
+    {
+        $card = $this->createOwnedCard(CardRarityEnum::COMMON);
+        $card->setVisualConfigOverride(new \App\Dto\VisualConfig(holoEffect: \App\Enum\Card\CardEffectEnum::COSMOS));
+        $this->entityManager->flush();
+
+        $html = self::getContainer()->get('twig')
+            ->render('components/CardComponent.html.twig', ['card' => $card, 'holo' => true])
+        ;
+
+        $this->assertStringContainsString('holo--cosmos', $html);
+        $this->assertStringNotContainsString('holo--basic', $html);
+    }
+
+    public function testNonHoloCardWithoutPresetGetsNoHoloClass(): void
+    {
+        $card = $this->createOwnedCard(CardRarityEnum::COMMON);
+        $this->entityManager->flush();
+
+        $html = self::getContainer()->get('twig')
+            ->render('components/CardComponent.html.twig', ['card' => $card])
+        ;
+
+        $this->assertStringNotContainsString('holo--', $html);
+    }
+
     private function createOwnedCard(CardRarityEnum $rarity): Card
     {
         $extension = new Extension()

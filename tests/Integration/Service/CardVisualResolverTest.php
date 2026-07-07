@@ -88,21 +88,6 @@ final class CardVisualResolverTest extends KernelTestCase
         $this->assertNull($resolved->cssClass);
     }
 
-    public function testHoloTuningCascadesCardOverExtension(): void
-    {
-        $extension = $this->extension()->setVisualConfig(
-            new VisualConfig(holoIntensity: 0.4, holoSaturation: 1.1, holoGlitter: 0.3),
-        );
-        // the card only overrides intensity; saturation/glitter fall through
-        $card = $this->card($extension)->setVisualConfigOverride(new VisualConfig(holoIntensity: 0.9));
-
-        $resolved = $this->resolver->resolve($card);
-
-        $this->assertSame(0.9, $resolved->holoIntensity);
-        $this->assertSame(1.1, $resolved->holoSaturation);
-        $this->assertSame(0.3, $resolved->holoGlitter);
-    }
-
     public function testHoloEffectCascadesCardOverExtension(): void
     {
         $extension = $this->extension()->setVisualConfig(new VisualConfig(holoEffect: CardEffectEnum::BASIC));
@@ -113,9 +98,9 @@ final class CardVisualResolverTest extends KernelTestCase
 
     public function testHoloEffectFallsBackToExtensionThenNull(): void
     {
-        $extension = $this->extension()->setVisualConfig(new VisualConfig(holoEffect: CardEffectEnum::SECRET));
+        $extension = $this->extension()->setVisualConfig(new VisualConfig(holoEffect: CardEffectEnum::TRAINER));
 
-        $this->assertSame(CardEffectEnum::SECRET, $this->resolver->resolve($this->card($extension))->holoEffect);
+        $this->assertSame(CardEffectEnum::TRAINER, $this->resolver->resolve($this->card($extension))->holoEffect);
         $this->assertNull($this->resolver->resolve($this->card($this->extension()))->holoEffect);
     }
 

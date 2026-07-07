@@ -71,11 +71,11 @@ class Extension implements \Stringable
     private ?string $imageMaskName = null;
 
     /**
-     * Default visual configuration (glow / border / css class / holo tuning &
-     * preset) applied to the extension's cards, each card may override
-     * individual fields.
+     * Default visual configuration (glow / border / css class / holo preset)
+     * applied to the extension's cards, each card may override individual
+     * fields.
      *
-     * @var array<string, string|float>
+     * @var array<string, string>
      */
     #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
     private array $visualConfig = [];
@@ -265,7 +265,7 @@ class Extension implements \Stringable
 
     /**
      * Merges the chosen preset into the existing visual config without
-     * clobbering the other keys (glow, holoIntensity, ...).
+     * clobbering the other keys (glow, borderColor, ...).
      */
     public function setHoloEffect(?CardEffectEnum $holoEffect): static
     {

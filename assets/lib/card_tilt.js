@@ -26,8 +26,8 @@
  *   and `transform: rotateX/Y` on `.card__rotator`; the `interacting` class is
  *   toggled on the root while the spring loop runs (CSS hides the layers at rest).
  *
- * Tuning the look is pure CSS (holo.css): --holo-intensity / --holo-saturation /
- * --holo-glitter, set per rarity and overridable inline per card.
+ * Tuning the look is pure CSS: the holo presets live in holo-presets.css,
+ * the rarity glow in holo.css.
  */
 
 const SPRING_STIFFNESS = 160;

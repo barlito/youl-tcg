@@ -81,10 +81,10 @@ class Card
     private ?string $imageFoilName = null;
 
     /**
-     * Per-card visual overrides (glow / border / css class); each set field
-     * beats the extension's default in the resolution cascade.
+     * Per-card visual overrides (glow / border / css class / holo preset);
+     * each set field beats the extension's default in the resolution cascade.
      *
-     * @var array<string, float|string>
+     * @var array<string, string>
      */
     #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
     private array $visualConfigOverride = [];
