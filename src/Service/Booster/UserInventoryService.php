@@ -76,10 +76,12 @@ class UserInventoryService
     public function addCards(DiscordUser $discordUser, array $credits): array
     {
         $existing = [];
-        foreach ($this->userCardRepository->findBy([
+        foreach (
+            $this->userCardRepository->findBy([
             'discordUser' => $discordUser,
             'card' => array_map(static fn (array $credit): Card => $credit['card'], $credits),
-        ]) as $userCard) {
+            ]) as $userCard
+        ) {
             $existing[(string) $userCard->getCard()->getId()] = $userCard;
         }
 
