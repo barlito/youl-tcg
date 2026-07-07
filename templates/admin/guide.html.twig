@@ -1,0 +1,193 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}📖 Guide admin{% endblock %}
+
+{% block main %}
+    <style>
+        .guide { max-width: 980px; line-height: 1.65; }
+        .guide h2 { margin: 2.2em 0 .6em; padding-bottom: .25em; border-bottom: 2px solid var(--color-primary, #4f46e5); }
+        .guide h3 { margin: 1.6em 0 .4em; }
+        .guide table { width: 100%; border-collapse: collapse; margin: .8em 0 1.2em; }
+        .guide th, .guide td { border: 1px solid rgba(128,128,128,.35); padding: .45em .7em; text-align: left; vertical-align: top; }
+        .guide th { background: rgba(128,128,128,.12); }
+        .guide code { background: rgba(128,128,128,.15); padding: .1em .35em; border-radius: 3px; }
+        .guide pre { background: rgba(128,128,128,.12); padding: .8em 1em; border-radius: 6px; overflow-x: auto; }
+        .guide .toc { background: rgba(128,128,128,.08); border: 1px solid rgba(128,128,128,.25); border-radius: 6px; padding: 1em 1.4em; }
+        .guide .tip { border-left: 4px solid #22c55e; background: rgba(34,197,94,.08); padding: .6em .9em; margin: .8em 0; border-radius: 0 6px 6px 0; }
+        .guide .warn { border-left: 4px solid #f59e0b; background: rgba(245,158,11,.08); padding: .6em .9em; margin: .8em 0; border-radius: 0 6px 6px 0; }
+    </style>
+
+    <div class="guide">
+        <p>
+            Tout ce qu'il faut savoir pour administrer Youl TCG sans rien casser :
+            les entités, ce qui s'uploade (et en quelle taille), le système visuel des
+            cartes et les règles de publication.
+        </p>
+
+        <div class="toc">
+            <strong>Sommaire</strong>
+            <ol>
+                <li><a href="#statuts">La règle d'or : les statuts</a></li>
+                <li><a href="#flow">Créer un univers de A à Z (checklist)</a></li>
+                <li><a href="#extension">Extension (univers)</a></li>
+                <li><a href="#carte">Carte</a></li>
+                <li><a href="#images-carte">Artwork, mask &amp; foil : comment ça marche</a></li>
+                <li><a href="#visuel">Système visuel : cascade, presets, preview</a></li>
+                <li><a href="#booster">Booster &amp; taux de drop</a></li>
+                <li><a href="#bannieres">Bannières d'univers</a></li>
+                <li><a href="#tailles">Récap : tailles d'images recommandées</a></li>
+                <li><a href="#ne-pas-toucher">Ce qu'on ne touche jamais à la main</a></li>
+            </ol>
+        </div>
+
+        <h2 id="statuts">1. La règle d'or : les statuts</h2>
+        <p>
+            Extensions et cartes ont un statut <code>Draft</code> / <code>Published</code>.
+            <strong>Rien n'est visible des joueurs tant que ce n'est pas publié</strong> :
+        </p>
+        <ul>
+            <li>Une extension <em>draft</em> n'apparaît nulle part (homepage, /univers, hub des boosters, collection) — même si ses cartes sont publiées.</li>
+            <li>Une carte <em>draft</em> n'est ni tirable dans les boosters, ni comptée dans la complétion, ni listée dans le set.</li>
+            <li>Un booster n'a pas de statut propre : il est visible dès que <strong>son extension</strong> est publiée (voir <a href="#booster">§7</a> pour la nuance <em>claimable</em>).</li>
+        </ul>
+        <div class="tip">Prépare tout en draft, vérifie, puis publie l'extension en dernier : c'est l'interrupteur général.</div>
+
+        <h2 id="flow">2. Créer un univers de A à Z</h2>
+        <ol>
+            <li>Créer l'<strong>Extension</strong> (statut Draft) : nom, description complète, image de couverture.</li>
+            <li>Créer les <strong>Cartes</strong> : artwork obligatoire, rareté, description. Publier les cartes prêtes.</li>
+            <li>Ajouter les <strong>masks</strong> (à la main ou via <code>castor holo:masks &lt;slug&gt;</code>) et éventuels <strong>foils</strong> pour les cartes premium.</li>
+            <li>Régler le <strong>visuel</strong> : preset holo + glow au niveau extension, surcharges par carte si besoin (preview live dans le formulaire carte).</li>
+            <li>Créer le(s) <strong>Booster(s)</strong> : les slots <code>rarityRates</code> définissent le nombre de cartes et les taux.</li>
+            <li>Uploader une ou plusieurs <strong>Bannières d'univers</strong> pour la page /univers/&lt;slug&gt;.</li>
+            <li>Passer l'extension en <strong>Published</strong> → tout devient visible d'un coup.</li>
+        </ol>
+
+        <h2 id="extension">3. Extension (univers)</h2>
+        <table>
+            <tr><th>Champ</th><th>Rôle</th></tr>
+            <tr><td>Nom</td><td>Affiché partout. Le <em>slug</em> d'URL (<code>/univers/cyberpunk</code>, <code>/collection/cyberpunk</code>) est généré automatiquement depuis le nom — il ne se modifie pas à la main.</td></tr>
+            <tr><td>Code du set</td><td>Purement cosmétique, affiché en chip sur les tuiles univers (ex. « CYB-01 »). Libre : si un univers revient plus tard, incrémente toi-même (CYB-02). Vide = pas de chip.</td></tr>
+            <tr><td>Description</td><td>Affichée <strong>en entier</strong> sur la page univers, tronquée à ~90 caractères sur les tuiles homepage/index. Soigne la première phrase.</td></tr>
+            <tr><td>Statut</td><td>L'interrupteur général (cf. §1).</td></tr>
+            <tr><td>Image</td><td>La couverture : tuiles homepage &amp; /univers, carrousel de complétion de la collection, et fond du pack composite quand le booster n'a pas d'image propre. <strong>Si absente, l'app utilise automatiquement l'artwork de la carte la plus rare de l'univers</strong> — c'est un fallback très correct, l'upload est donc optionnel.</td></tr>
+            <tr><td>Default foil texture / holo mask</td><td>Fallback holo pour <em>toutes</em> les cartes de l'extension qui n'ont pas le leur (cf. §5, cascade).</td></tr>
+            <tr><td>Visual config + selects</td><td>Le visuel par défaut des cartes de l'univers (cf. §6).</td></tr>
+        </table>
+
+        <h2 id="carte">4. Carte</h2>
+        <table>
+            <tr><th>Champ</th><th>Rôle</th></tr>
+            <tr><td>Nom / Description</td><td>Le nom sert d'ordre alphabétique secondaire partout (le tri principal est la rareté).</td></tr>
+            <tr><td>Rareté</td><td>4 paliers : <code>common</code> (gris), <code>uncommon</code> (vert), <code>rare</code> (bleu), <code>legendary</code> (orange). Détermine le glow par défaut et le classement visuel.</td></tr>
+            <tr><td>Unique (1/1)</td><td>Exemplaire unique <strong>global</strong> : le premier joueur qui la tire la verrouille pour tout le monde (champ <em>claimedBy</em> en détail). Une fois réclamée elle ne peut plus être tirée — les ouvertures suivantes reçoivent une carte de remplacement de même rareté. La page univers affiche « droppée / encore dans le pool », jamais le détenteur.</td></tr>
+            <tr><td>Always holo</td><td>La carte sort <em>toujours</em> en version holo, quel que soit le <code>holoChance</code> du slot du booster.</td></tr>
+            <tr><td>Statut</td><td>Cf. §1. Publier = tirable + comptée dans la complétion.</td></tr>
+        </table>
+        <div class="warn">
+            L'artwork principal est <strong>obligatoire</strong> et non supprimable depuis le
+            formulaire (une carte publiée sans image casserait tous ses rendus).
+            Masks et foils, eux, ont la case « supprimer ».
+        </div>
+
+        <h2 id="images-carte">5. Artwork, mask &amp; foil : comment ça marche</h2>
+        <p>Trois images par carte, chacune avec un rôle précis dans l'effet holo :</p>
+        <table>
+            <tr><th>Image</th><th>Rôle</th><th>Taille conseillée</th></tr>
+            <tr>
+                <td><strong>Artwork</strong> (obligatoire)</td>
+                <td>Le visuel de la carte. La carte s'affiche en portrait (ratio ~0.72) et l'image est recadrée en <em>cover</em> : cadre le sujet au centre, évite les éléments importants collés aux bords hauts/bas.</td>
+                <td>1024×1024 minimum (le standard actuel du set). Carré ou portrait.</td>
+            </tr>
+            <tr>
+                <td><strong>Mask</strong> (optionnel)</td>
+                <td><strong>OÙ</strong> l'effet holo s'affiche : zones claires/opaques = effet visible, zones noires/transparentes = pas d'effet. Sans mask, l'effet couvre toute la carte.</td>
+                <td>Exactement le même cadrage que l'artwork (même image, même taille), sinon l'effet est décalé.</td>
+            </tr>
+            <tr>
+                <td><strong>Foil</strong> (optionnel)</td>
+                <td><strong>QUELLE</strong> texture brille dans les zones du mask (métal, arc-en-ciel, motif…). Gagne sur la texture de bibliothèque (§6).</td>
+                <td>~750×1024 portrait (comme les textures fournies). Peut être plus abstrait, il est mélangé à l'artwork.</td>
+            </tr>
+        </table>
+        <h3>Générer les masks automatiquement</h3>
+        <pre>castor holo:masks &lt;slug-extension&gt; [--variant background|subject] [--blur 1.5]</pre>
+        <ul>
+            <li><code>background</code> (défaut) = « reverse holo » : le fond brille, le personnage reste net — le bon choix dans 90 % des cas.</li>
+            <li><code>subject</code> = l'inverse : seul le personnage brille.</li>
+            <li>La commande ne traite que les cartes publiées <strong>sans mask existant</strong> : relançable sans risque, elle n'écrase rien.</li>
+        </ul>
+
+        <h2 id="visuel">6. Système visuel : cascade, presets, preview</h2>
+        <p>
+            Chaque réglage visuel se résout en cascade :
+            <strong>valeur de la carte → valeur de l'extension → défaut lié à la rareté</strong>.
+            Concrètement : règle l'extension une fois, ne surcharge par carte que l'exception.
+        </p>
+        <table>
+            <tr><th>Clé</th><th>Effet</th></tr>
+            <tr><td><code>holoEffect</code></td><td>Le preset holo (select « Holo preset ») : <strong>shine</strong> (arc-en-ciel simple, marche sans mask ni foil), <strong>basic</strong> (holo doux généraliste — c'est aussi le fallback quand une carte holo n'a pas de preset), <strong>cosmos</strong> (galaxie scintillante), <strong>trainer</strong> (full-art premium : donne le meilleur avec un mask + foil).</td></tr>
+            <tr><td><code>foilTexture</code></td><td>Texture de bibliothèque (select « Foil texture ») : Ancient, Geometric, VMAX, Trainer. Utilisée seulement si ni la carte ni l'extension n'ont uploadé de foil. Priorité complète : foil de la carte → foil de l'extension → foilTexture (carte puis extension) → défaut du preset.</td></tr>
+            <tr><td><code>glow</code></td><td>Couleur du halo autour de la carte (color picker « Glow »). Vide = couleur de la rareté.</td></tr>
+            <tr><td><code>borderColor</code></td><td>Couleur de la bordure d'accent de la carte.</td></tr>
+            <tr><td><code>cssClass</code></td><td>Classe CSS libre ajoutée à la carte (usage avancé, en pratique on n'y touche pas).</td></tr>
+        </table>
+        <div class="tip">
+            Les selects du formulaire gagnent sur la même clé du JSON « Avancé » — utilise les selects,
+            le JSON n'est là que pour les cas exotiques. Dans le formulaire carte, la
+            <strong>preview flottante</strong> applique tes réglages en direct (sans rien enregistrer) :
+            fie-toi à elle. En environnement de dev, <code>/dev/card-effects</code> expose
+            tous les presets côte à côte.
+        </div>
+
+        <h2 id="booster">7. Booster &amp; taux de drop</h2>
+        <table>
+            <tr><th>Champ</th><th>Rôle</th></tr>
+            <tr><td>Extension</td><td>L'univers dont les cartes sont tirées.</td></tr>
+            <tr><td>Nom</td><td>Optionnel. Vide = le booster s'affiche du nom de l'extension. Renseigné (ex. « Bleach Rare ») = affiché à la place, l'extension passe en sous-titre. Utile quand un univers a plusieurs boosters.</td></tr>
+            <tr><td>Image</td><td>Le <strong>design complet</strong> du pack : si présente, elle est affichée telle quelle (aucun texte par-dessus). Si absente, le pack est composé automatiquement : image de l'extension en fond + logo + nom + nombre de cartes. Format portrait ~840×1300 (c'est la définition du rendu).</td></tr>
+            <tr><td>Claimable</td><td><code>true</code> (défaut) = récupérable gratuitement sur le hub. <code>false</code> = distribution event/code uniquement : invisible sur le hub et la page univers <em>sauf</em> pour ceux qui en possèdent, et le claim est refusé côté serveur quoi qu'il arrive.</td></tr>
+        </table>
+        <h3>Le JSON <code>rarityRates</code> — le cœur du booster</h3>
+        <p><strong>1 entrée = 1 carte du pack</strong> (3 entrées = booster de 3 cartes). Chaque entrée :</p>
+        <pre>[
+  { "rarities": { "common": 70, "uncommon": 30 },            "holoChance": 0  },
+  { "rarities": { "common": 50, "uncommon": 35, "rare": 15 }, "holoChance": 10 },
+  { "rarities": { "rare": 80, "legendary": 20 },              "holoChance": 100 }
+]</pre>
+        <ul>
+            <li><code>rarities</code> : des <strong>poids relatifs</strong> (pas forcément des %) — <code>{"common": 7, "rare": 3}</code> vaut <code>{"common": 70, "rare": 30}</code>. Ils sont normalisés pour l'affichage du panneau « Taux » côté joueur.</li>
+            <li><code>holoChance</code> : probabilité (0–100) que la carte de CE slot sorte en holo.</li>
+            <li>Raretés valides : <code>common</code>, <code>uncommon</code>, <code>rare</code>, <code>legendary</code>. Le formulaire refuse tout JSON invalide avec un message précis.</li>
+            <li>Si une rareté tirée n'a aucune carte publiée dans l'extension, le tirage retombe automatiquement sur le palier le plus proche qui en a.</li>
+        </ul>
+        <div class="tip">Quota joueur : <strong>2 packs gratuits par jour</strong>, remise à zéro à minuit (Europe/Paris). C'est un décompte en base, rien à administrer.</div>
+
+        <h2 id="bannieres">8. Bannières d'univers</h2>
+        <ul>
+            <li>Menu « Bannières d'univers » : chaque bannière est liée à une extension, avec une <strong>position</strong> (plus petit = premier).</li>
+            <li>Une seule bannière = héro fixe ; plusieurs = <strong>carrousel</strong> (flèches + swipe) sur la page /univers/&lt;slug&gt;.</li>
+            <li>Format <strong>paysage plein écran</strong> : affichée sur toute la largeur (~1920 px) pour ~420 px de haut, recadrée en cover. Recommandé : <strong>1920×640 minimum</strong>, sujet centré verticalement, pas de texte incrusté près des bords bas (le nom + les stats de l'univers se superposent en bas à gauche).</li>
+            <li>Aucune bannière ? La page retombe sur l'image de l'extension, puis sur l'artwork de la carte la plus rare : rien ne casse.</li>
+        </ul>
+
+        <h2 id="tailles">9. Récap : tailles d'images recommandées</h2>
+        <table>
+            <tr><th>Upload</th><th>Où</th><th>Taille conseillée</th><th>Notes</th></tr>
+            <tr><td>Artwork carte</td><td>Carte → Images</td><td>1024×1024 min</td><td>Obligatoire. Recadré portrait (cover), sujet centré.</td></tr>
+            <tr><td>Mask</td><td>Carte → Images (ou Extension pour le défaut)</td><td>= artwork</td><td>Clair = effet, sombre/transparent = rien. Générable via castor.</td></tr>
+            <tr><td>Foil</td><td>Carte → Images (ou Extension pour le défaut)</td><td>~750×1024</td><td>Texture, pas un visuel : motifs abstraits bienvenus.</td></tr>
+            <tr><td>Image extension</td><td>Extension</td><td>≥ 800 px de large</td><td>Optionnelle (fallback = carte la plus rare). Sert aussi de fond de pack.</td></tr>
+            <tr><td>Image booster</td><td>Booster</td><td>840×1300 portrait</td><td>Design complet : rien n'est dessiné dessus.</td></tr>
+            <tr><td>Bannière univers</td><td>Bannières d'univers</td><td>1920×640 min paysage</td><td>Texte de la page superposé en bas à gauche.</td></tr>
+        </table>
+
+        <h2 id="ne-pas-toucher">10. Ce qu'on ne touche jamais à la main</h2>
+        <ul>
+            <li><strong>Utilisateurs Discord et rôles</strong> : créés et synchronisés automatiquement à la connexion (JWT). Ne jamais créer/modifier en base.</li>
+            <li><strong>Inventaires</strong> (cartes et boosters possédés) : alimentés par les claims et les ouvertures. Une retouche manuelle fausse les compteurs et l'historique.</li>
+            <li><strong>Historique d'ouverture</strong> (claims, openings, seed RNG) : c'est l'audit — chaque tirage est rejouable grâce à sa seed. Lecture seule.</li>
+            <li><strong>claimedBy d'une carte unique</strong> : posé atomiquement par le premier tirage. Le vider rendrait l'unique tirable une deuxième fois.</li>
+        </ul>
+    </div>
+{% endblock %}
