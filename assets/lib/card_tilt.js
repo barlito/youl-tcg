@@ -36,11 +36,21 @@ const SPRING_DAMPING = 22;
 // damped so the card glides to centre rather than snapping.
 const POPOVER_STIFFNESS = 90;
 const POPOVER_DAMPING = 18;
-// Largest zoom factor when a card is activated (pokeholo uses 1.75).
-const MAX_POPOVER_SCALE = 1.75;
+// Largest zoom factor when a card is activated. High cap on purpose: the real
+// limit is the 90% viewport fit computed in activate(), so the card gets as
+// big as the screen allows whatever its size in the grid.
+const MAX_POPOVER_SCALE = 3;
+// Full turn the card makes around Y while gliding to the viewport centre —
+// the click-to-zoom reads as "the card flips out of the grid into your hand".
+const POPOVER_FLIP_DEG = 360;
 // Clamp dt so a backgrounded tab doesn't make the integration explode.
 const MAX_DT = 0.032;
-const SETTLE_THRESHOLD = 0.01;
+// Per-spring rest tolerance. A quarter of a degree/pixel is invisible, and
+// waiting for less keeps the loop (and the pixelated GPU layer) alive for
+// seconds while the 360° flip creeps to zero. Unit-scaled springs (opacity
+// 0..1, scale ~1..3) need a much finer tolerance or the final snap would jump.
+const SETTLE_EPSILONS = { opacity: 0.01, scale: 0.005 };
+const SETTLE_EPSILON = 0.25;
 
 const clamp = (value, min = 0, max = 100) => Math.min(Math.max(value, min), max);
 const round = (value, precision = 3) => parseFloat(value.toFixed(precision));
@@ -54,16 +64,21 @@ export class CardTilt {
     constructor(element) {
         this.element = element;
         this.rotator = element.querySelector('.card__rotator');
+        // The zoom translate/scale lives on the translater, NOT on the root:
+        // every pointer/centre computation must measure the translater's rect,
+        // or a zoomed card tracks the mouse against its empty grid slot.
+        this.translater = element.querySelector('.card__translater') || element;
         this.springs = {
             rotateX: this._spring(0),
             rotateY: this._spring(0),
             glareX: this._spring(50),
             glareY: this._spring(50),
             opacity: this._spring(0),
-            // popover springs (click-to-zoom): centre translation + scale
+            // popover springs (click-to-zoom): centre translation + scale + flip
             scale: this._spring(1),
             translateX: this._spring(0),
             translateY: this._spring(0),
+            flip: this._spring(0),
         };
         this.pointerInside = false;
         this.active = false;
@@ -98,6 +113,7 @@ export class CardTilt {
         if (activeInstance === this) {
             activeInstance = null;
         }
+        this._restoreAncestors();
         this._stopLoop();
     }
 
@@ -123,10 +139,13 @@ export class CardTilt {
         this.active = true;
         this.element.classList.add('active');
 
-        const rect = this.element.getBoundingClientRect();
-        const scaleW = (window.innerWidth / rect.width) * 0.9;
-        const scaleH = (window.innerHeight / rect.height) * 0.9;
+        const rect = this.translater.getBoundingClientRect();
+        // ~3/4 of the viewport: the poke-holo presence — big, not wall-to-wall.
+        const scaleW = (window.innerWidth / rect.width) * 0.75;
+        const scaleH = (window.innerHeight / rect.height) * 0.75;
         this.springs.scale.target = Math.min(scaleW, scaleH, MAX_POPOVER_SCALE);
+        this.springs.flip.target = POPOVER_FLIP_DEG;
+        this._boostAncestors();
         this._setCenter();
 
         this._bindActiveListeners();
@@ -143,6 +162,7 @@ export class CardTilt {
         this.springs.scale.target = 1;
         this.springs.translateX.target = 0;
         this.springs.translateY.target = 0;
+        this.springs.flip.target = 0; // spins back the other way on the way home
         if (activeInstance === this) {
             activeInstance = null;
         }
@@ -152,9 +172,9 @@ export class CardTilt {
 
     /** Aim the translate springs so the card sits at the viewport centre. */
     _setCenter() {
-        const rect = this.element.getBoundingClientRect();
-        // rect already includes the current translate, so add it back to get the
-        // delta from the card's resting position to the viewport centre.
+        const rect = this.translater.getBoundingClientRect();
+        // The translater's rect includes the current translate, so add it back
+        // to get the delta from the card's resting position to the centre.
         this.springs.translateX.target = round(
             window.innerWidth / 2 - rect.left - rect.width / 2 + this.springs.translateX.value,
         );
@@ -187,8 +207,52 @@ export class CardTilt {
         }
     }
 
+    /**
+     * A zoomed card must paint above everything, but any ancestor that creates
+     * a stacking context (transform/filter/z-index/opacity wrappers — the
+     * homepage hero does exactly that) traps its z-index. While active, lift
+     * every such ancestor; restored once the card has settled back home.
+     */
+    _boostAncestors() {
+        if (this._boosted) {
+            return;
+        }
+        this._boosted = [];
+        let node = this.element.parentElement;
+        while (node && node !== document.body) {
+            const style = getComputedStyle(node);
+            const createsContext = style.zIndex !== 'auto'
+                || style.transform !== 'none'
+                || style.filter !== 'none'
+                || (style.backdropFilter && style.backdropFilter !== 'none')
+                || parseFloat(style.opacity) < 1
+                || style.isolation === 'isolate'
+                || style.willChange.includes('transform')
+                || style.willChange.includes('opacity');
+            if (createsContext) {
+                this._boosted.push([node, node.style.position, node.style.zIndex]);
+                if (style.position === 'static') {
+                    node.style.position = 'relative'; // z-index needs a positioned box
+                }
+                node.style.zIndex = '500';
+            }
+            node = node.parentElement;
+        }
+    }
+
+    _restoreAncestors() {
+        if (!this._boosted) {
+            return;
+        }
+        for (const [node, position, zIndex] of this._boosted) {
+            node.style.position = position;
+            node.style.zIndex = zIndex;
+        }
+        this._boosted = null;
+    }
+
     _handlePointerMove(event) {
-        const rect = this.element.getBoundingClientRect();
+        const rect = this.translater.getBoundingClientRect();
         if (!rect.width || !rect.height) {
             return;
         }
@@ -221,6 +285,10 @@ export class CardTilt {
         if (this.frame !== null) {
             return;
         }
+        // back on a compositor layer + 3D context while the springs animate
+        this.translater.style.willChange = '';
+        this.rotator.style.willChange = '';
+        this.element.classList.remove('is-flat');
         this.element.classList.add('interacting');
         this.lastTime = performance.now();
         this.frame = requestAnimationFrame((now) => this._tick(now));
@@ -237,11 +305,12 @@ export class CardTilt {
         const dt = Math.min((now - this.lastTime) / 1000, MAX_DT);
         this.lastTime = now;
 
-        // The popover springs (scale / translate) use a softer, slower spring
-        // than the tilt springs so the zoom glides instead of snapping.
-        const popover = new Set(['scale', 'translateX', 'translateY']);
+        // The popover springs (scale / translate / flip) use a softer, slower
+        // spring than the tilt springs so the zoom (and its spin) glides at the
+        // poke-holo pace instead of snapping.
+        const popover = new Set(['scale', 'translateX', 'translateY', 'flip']);
 
-        let energy = 0;
+        let settled = true;
         for (const [name, spring] of Object.entries(this.springs)) {
             const stiffness = popover.has(name) ? POPOVER_STIFFNESS : SPRING_STIFFNESS;
             const damping = popover.has(name) ? POPOVER_DAMPING : SPRING_DAMPING;
@@ -249,26 +318,56 @@ export class CardTilt {
                 - damping * spring.velocity;
             spring.velocity += acceleration * dt;
             spring.value += spring.velocity * dt;
-            energy += Math.abs(spring.velocity) + Math.abs(spring.value - spring.target);
+            const epsilon = SETTLE_EPSILONS[name] ?? SETTLE_EPSILON;
+            if (Math.abs(spring.value - spring.target) > epsilon || Math.abs(spring.velocity) > epsilon) {
+                settled = false;
+            }
         }
 
-        this._render();
-
-        // Stop once everything has settled (a zoomed-in card keeps its scale via
-        // the persisted CSS vars + the .active class; the .card.active CSS rule
-        // holds its z-index above the grid).
-        if (!this.pointerInside && energy < SETTLE_THRESHOLD) {
+        // Stop as soon as every spring is within tolerance — snapped exactly on
+        // target so the final frame is pixel-perfect. The next pointermove or
+        // click restarts the loop, so idling here only burns frames. The hover
+        // state (interacting class + holo layers) is only dropped once the
+        // pointer has actually left.
+        if (settled) {
+            for (const spring of Object.values(this.springs)) {
+                spring.value = spring.target;
+                spring.velocity = 0;
+            }
+            this._render();
             this._stopLoop();
-            this.element.classList.remove('interacting');
+            if (!this.pointerInside) {
+                this.element.classList.remove('interacting');
+                if (!this.active) {
+                    this._restoreAncestors(); // back in the grid: drop the lift
+                }
+            }
+            // Crispness at rest: inside a 3D rendering context (perspective +
+            // preserve-3d) the GPU pins the raster at LAYOUT size and merely
+            // stretches it — visibly pixelated once zoomed, dpr 1 worst. When
+            // the card has settled flat (identity rotation), drop out of 3D
+            // entirely (is-flat + transform none) and release will-change: the
+            // browser re-rasterises at the real on-screen scale. _startLoop
+            // restores the 3D context the moment anything moves again.
+            this.translater.style.willChange = 'auto';
+            this.rotator.style.willChange = 'auto';
+            const flat = Math.abs(this.springs.rotateX.value) < 0.1
+                && Math.abs(this.springs.rotateY.value) < 0.1
+                && Math.abs(this.springs.flip.value % 360) < 0.5;
+            if (flat) {
+                this.rotator.style.transform = 'none';
+                this.element.classList.add('is-flat');
+            }
 
             return;
         }
 
+        this._render();
         this.frame = requestAnimationFrame((nextNow) => this._tick(nextNow));
     }
 
     _render() {
-        const { rotateX, rotateY, glareX, glareY, opacity, scale, translateX, translateY } = this.springs;
+        const { rotateX, rotateY, glareX, glareY, opacity, scale, translateX, translateY, flip } = this.springs;
         const pointerFromCenter = clamp(
             Math.sqrt((glareY.value - 50) ** 2 + (glareX.value - 50) ** 2) / 50,
             0,
@@ -288,7 +387,9 @@ export class CardTilt {
         style.setProperty('--translate-x', `${translateX.value}px`);
         style.setProperty('--translate-y', `${translateY.value}px`);
 
-        this.rotator.style.transform = `rotateX(${rotateX.value}deg) rotateY(${rotateY.value}deg)`;
+        // Snap sub-degree flip residue so the settled card is perfectly flat.
+        const flipDeg = Math.abs(flip.value - flip.target) < 0.5 ? flip.target : flip.value;
+        this.rotator.style.transform = `rotateX(${rotateX.value}deg) rotateY(${rotateY.value + flipDeg}deg)`;
     }
 }
 

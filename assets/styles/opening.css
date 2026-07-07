@@ -96,9 +96,11 @@
      * tall screen) instead of the cramped ~640px the old 58vh/700px cap produced. */
     width: min(54vw, 1180px, calc(78vh * 0.92));
     aspect-ratio: .92;
-    /* small upward bias; the pack is now top-aligned inside the canvas (JS), so the
-     * heavy lifting is done there and we only nudge the stage up a touch */
-    margin-top: clamp(-48px, -2.5vh, -8px);
+    /* upward bias; the pack is top-aligned inside the canvas (JS) but the column
+     * centers its content (justify-content), so only HALF of this margin actually
+     * moves the pack up — hence the seemingly large values (≈-99px at 900px of
+     * viewport ≈ a ~38px visual lift). The clipped canvas top is empty/transparent. */
+    margin-top: clamp(-140px, -11vh, -30px);
 }
 @media (max-width: 900px) {
     .opening__pack-stage {
@@ -153,12 +155,21 @@
 .opening__showcase {
     position: absolute;
     inset: -8% -6%;
+    /* the showcase is centered on the stage, which the pack-phase margin above
+     * pulls up; push the reveal back down by the same visual offset (half the
+     * extra margin — flex centering absorbs the other half) so its composition
+     * stays put: the rarity label must clear the 64px header, not slide under it */
+    transform: translateY(clamp(11px, 4.25vh, 46px));
     z-index: 5;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+}
+/* the small mobile stage margin needs no reveal compensation */
+@media (max-width: 900px) {
+    .opening__showcase { transform: none; }
 }
 
 .opening__aura {

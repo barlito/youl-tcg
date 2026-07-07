@@ -27,6 +27,14 @@ final class BoosterHub extends AbstractController
     #[LiveProp]
     public ?string $error = null;
 
+    /**
+     * Inventory is read twice per render (hero total + packs grid): memoize
+     * the query for the lifetime of the (per-request) component instance.
+     *
+     * @var array<string, int>|null
+     */
+    private ?array $inventory = null;
+
     public function __construct(
         private readonly BoosterRepository $boosterRepository,
         private readonly CardRepository $cardRepository,
@@ -88,13 +96,25 @@ final class BoosterHub extends AbstractController
      */
     public function getInventory(): array
     {
+        if (null !== $this->inventory) {
+            return $this->inventory;
+        }
+
         $inventory = [];
 
         foreach ($this->userBoosterRepository->findBy(['discordUser' => $this->getDiscordUser()]) as $userBooster) {
             $inventory[(string) $userBooster->getBooster()->getId()] = $userBooster->getQuantity();
         }
 
-        return $inventory;
+        return $this->inventory = $inventory;
+    }
+
+    /**
+     * Total unopened boosters across every pack type, for the hero counter.
+     */
+    public function getTotalOwned(): int
+    {
+        return array_sum($this->getInventory());
     }
 
     #[LiveAction]
@@ -112,6 +132,7 @@ final class BoosterHub extends AbstractController
 
         try {
             $this->boosterClaimService->claim($this->getDiscordUser(), $booster);
+            $this->inventory = null; // the memoized inventory is stale after a claim
         } catch (BoosterException $exception) {
             $this->error = $exception->getUserMessage();
         }

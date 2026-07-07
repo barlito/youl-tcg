@@ -25,7 +25,10 @@ class BoosterRepository extends ServiceEntityRepository
     public function findPublished(): array
     {
         return $this->createQueryBuilder('booster')
+            // addSelect hydrates the extension in the same query: the hub reads
+            // extension.name/image on every booster, one lazy load each otherwise
             ->join('booster.extension', 'extension')
+            ->addSelect('extension')
             ->andWhere('extension.status = :status')
             ->setParameter('status', ExtensionStatusEnum::PUBLISHED)
             ->orderBy('extension.name', 'ASC')
