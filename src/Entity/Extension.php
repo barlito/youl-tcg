@@ -76,7 +76,7 @@ class Extension implements \Stringable
      * applied to the extension's cards, each card may override individual
      * fields.
      *
-     * @var array<string, string>
+     * @var array<string, string|bool>
      */
     #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
     private array $visualConfig = [];

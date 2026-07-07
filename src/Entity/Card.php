@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Dto\VisualConfig;
+use App\Enum\Card\FoilTextureEnum;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\CardRepository;
@@ -84,7 +85,7 @@ class Card
      * Per-card visual overrides (glow / border / css class / holo preset);
      * each set field beats the extension's default in the resolution cascade.
      *
-     * @var array<string, string>
+     * @var array<string, string|bool>
      */
     #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
     private array $visualConfigOverride = [];
@@ -298,6 +299,29 @@ class Card
     public function setVisualConfigOverride(VisualConfig $visualConfig): static
     {
         $this->visualConfigOverride = $visualConfig->toArray();
+
+        return $this;
+    }
+
+    /**
+     * Virtual field for the back office: the bundled foil texture stored
+     * inside the override JSON, exposed as a selectable enum.
+     */
+    public function getFoilTexture(): ?FoilTextureEnum
+    {
+        return $this->getVisualConfigOverride()->foilTexture;
+    }
+
+    /**
+     * Merges the chosen texture into the existing override without clobbering
+     * the other keys (glow, holoEffect, ...).
+     */
+    public function setFoilTexture(?FoilTextureEnum $foilTexture): static
+    {
+        $this->visualConfigOverride = array_filter(
+            array_merge($this->visualConfigOverride, ['foilTexture' => $foilTexture?->value]),
+            static fn (mixed $value): bool => null !== $value,
+        );
 
         return $this;
     }

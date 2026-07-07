@@ -108,6 +108,40 @@ final class CardComponentRenderingTest extends WebTestCase
         $this->assertStringNotContainsString('holo--', $html);
     }
 
+    public function testFrameRendersNameAndGradientBorderAboveTheHoloLayers(): void
+    {
+        $card = $this->createOwnedCard(CardRarityEnum::COMMON);
+        $card->setVisualConfigOverride(new \App\Dto\VisualConfig(
+            showFrame: true,
+            nameColor: 'linear-gradient(180deg, #9ecbff, #2b6cb0)',
+            frameGradient: 'linear-gradient(160deg, #6ea8dc, #7a1d1d)',
+        ));
+        $this->entityManager->flush();
+
+        $html = self::getContainer()->get('twig')
+            ->render('components/CardComponent.html.twig', ['card' => $card])
+        ;
+
+        $this->assertStringContainsString('card__frame', $html);
+        $this->assertStringContainsString('card__name', $html);
+        $this->assertStringContainsString($card->getName(), $html);
+        $this->assertStringContainsString('--card-name-color: linear-gradient(180deg, #9ecbff, #2b6cb0)', $html);
+        $this->assertStringContainsString('--card-frame: linear-gradient(160deg, #6ea8dc, #7a1d1d)', $html);
+    }
+
+    public function testNoFrameByDefault(): void
+    {
+        $card = $this->createOwnedCard(CardRarityEnum::COMMON);
+        $this->entityManager->flush();
+
+        $html = self::getContainer()->get('twig')
+            ->render('components/CardComponent.html.twig', ['card' => $card])
+        ;
+
+        $this->assertStringNotContainsString('card__frame', $html);
+        $this->assertStringNotContainsString('card__name', $html);
+    }
+
     private function createOwnedCard(CardRarityEnum $rarity): Card
     {
         $extension = new Extension()

@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Admin\Field\ImageField as VichImageField;
 use App\Entity\Card;
+use App\Enum\Card\FoilTextureEnum;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -18,8 +19,10 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
+use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 use Vich\UploaderBundle\Templating\Helper\UploaderHelper;
 
@@ -30,8 +33,24 @@ use Vich\UploaderBundle\Templating\Helper\UploaderHelper;
  */
 class CardCrudController extends AbstractCrudController
 {
-    public function __construct(private readonly UploaderHelper $uploaderHelper, private readonly AssetMapperInterface $assetMapper)
+    public function __construct(
+        private readonly UploaderHelper $uploaderHelper,
+        private readonly AssetMapperInterface $assetMapper,
+        private readonly UrlGeneratorInterface $urlGenerator,
+    ) {
+    }
+
+    /**
+     * @return array<string, FoilTextureEnum> label => enum case
+     */
+    private function foilTextureChoices(): array
     {
+        $choices = [];
+        foreach (FoilTextureEnum::cases() as $texture) {
+            $choices[$texture->label()] = $texture;
+        }
+
+        return $choices;
     }
 
     public static function getEntityFqcn(): string
@@ -83,6 +102,16 @@ class CardCrudController extends AbstractCrudController
             })
         ;
         yield Field::new('id')->onlyOnDetail();
+        if (Crud::PAGE_EDIT === $pageName) {
+            $card = $this->getContext()?->getEntity()->getInstance();
+            if ($card instanceof Card) {
+                // EA help strings render as raw HTML: good enough to host the iframe
+                yield FormField::addFieldset('Preview (état sauvegardé)')->setHelp(\sprintf(
+                    '<iframe src="%s" style="width: 320px; height: 460px; border: 0; border-radius: 12px;" title="Preview" loading="lazy"></iframe>',
+                    $this->urlGenerator->generate('admin_card_preview', ['id' => (string) $card->getId()]),
+                ));
+            }
+        }
         yield Field::new('name');
         yield Field::new('description');
         yield ChoiceField::new('status')
@@ -115,6 +144,14 @@ class CardCrudController extends AbstractCrudController
             ->setLanguage('js')
             ->onlyOnForms()
             ->setHelp('Optional per-card overrides. Keys: glow, borderColor, cssClass, holoEffect (preset: shine|basic|cosmos|trainer), foilTexture (library: ancient|geometric|vmax|trainer, ignored if a foil is uploaded). Example: {"glow": "#ff3db0", "holoEffect": "cosmos", "foilTexture": "ancient"}')
+        ;
+        // Declared AFTER the JSON editor so the chosen texture is merged on top
+        // of the freshly decoded JSON instead of being overwritten by it.
+        yield ChoiceField::new('foilTexture')
+            ->setLabel('Foil texture (library)')
+            ->setHelp('Bundled foil used when no foil file is uploaded (overrides the foilTexture JSON key)')
+            ->setChoices($this->foilTextureChoices())
+            ->onlyOnForms()
         ;
         yield Field::new('visualConfigOverrideJson')->setLabel('Visual overrides')->onlyOnDetail();
     }
