@@ -48,10 +48,13 @@ class BaseController extends AbstractController
         ]);
     }
 
+    /**
+     * Legacy "coming soon" url: the universe pages live at /univers now.
+     */
     #[Route('/extensions', name: 'extensions')]
     public function extensions(): Response
     {
-        return $this->render('pages/coming_soon.html.twig');
+        return $this->redirectToRoute('universes', [], Response::HTTP_MOVED_PERMANENTLY);
     }
 
     #[Route('/boosters', name: 'boosters')]

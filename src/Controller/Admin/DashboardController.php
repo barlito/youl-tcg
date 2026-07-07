@@ -7,6 +7,7 @@ namespace App\Controller\Admin;
 use App\Entity\Booster;
 use App\Entity\Card;
 use App\Entity\Extension;
+use App\Entity\ExtensionBanner;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
@@ -46,6 +47,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Card Settings');
         yield MenuItem::linkToCrud('Cards', 'fas fa-wallet', Card::class);
         yield MenuItem::linkToCrud('Extensions', 'fa fa-chart-bar', Extension::class);
+        yield MenuItem::linkToCrud('Bannières d\'univers', 'fa fa-image', ExtensionBanner::class);
         yield MenuItem::linkToCrud('Boosters', 'fa fa-box-open', Booster::class);
     }
 }

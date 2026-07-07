@@ -12,7 +12,7 @@
         <nav class="hidden items-center gap-7 font-display text-sm font-semibold uppercase tracking-[.1em] md:flex">
             {{ _self.nav_link('homepage', 'Accueil') }}
             {{ _self.nav_link('collection', 'Collection') }}
-            {{ _self.nav_link('extensions', 'Univers') }}
+            {{ _self.nav_link('universes', 'Univers') }}
             {{ _self.nav_link('boosters', 'Boosters') }}
             {{ _self.nav_soon('Échanges') }}
             {{ _self.nav_soon('Duels') }}
@@ -36,8 +36,9 @@
 </header>
 
 {% macro nav_link(route, label) %}
+    {# starts with = les sous-pages allument aussi l'entrée (universes_show → Univers) #}
     <a href="{{ path(route) }}"
-       class="text-ink-muted hover:text-ink-strong {{ app.request.get('_route') == route ? 'active' : '' }}">{{ label }}</a>
+       class="text-ink-muted hover:text-ink-strong {{ app.request.get('_route')|default('') starts with route ? 'active' : '' }}">{{ label }}</a>
 {% endmacro %}
 
 {% macro nav_soon(label) %}

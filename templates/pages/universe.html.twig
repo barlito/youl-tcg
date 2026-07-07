@@ -1,0 +1,186 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+    YOUL TCG — {{ extension.name }}
+{% endblock %}
+
+{% block body %}
+    {% set ownedCount = ownedByCardId|length %}
+    {% set totalCount = catalog|length %}
+    {% set percentage = totalCount > 0 ? ((ownedCount / totalCount) * 100)|round : 0 %}
+    {% set banners = extension.banners|filter(banner => banner.imageName) %}
+    {% set rarityLabels = { common: 'Commune', uncommon: 'Peu commune', rare: 'Rare', legendary: 'Légendaire' } %}
+
+    <main>
+        {# --------------------------------------------- Héro / bannières #}
+        <section class="relative border-b border-hairline" data-controller="carousel">
+            <div class="scrollbar-hidden flex h-80 snap-x snap-mandatory overflow-x-auto md:h-[26rem]"
+                 data-carousel-target="track"
+                 data-action="wheel->carousel#wheel:!passive"
+                 data-testid="banner-carousel">
+                {% if banners|length > 0 %}
+                    {% for banner in banners %}
+                        <div class="relative h-full w-full shrink-0 snap-center">
+                            <img src="{{ vich_uploader_asset(banner) }}" alt=""
+                                 class="absolute inset-0 h-full w-full object-cover" {{ not loop.first ? 'loading="lazy"' }}>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    {# pas de bannière uploadée : image extension → artwork de la carte
+                       la plus rare → gradient seul #}
+                    <div class="relative h-full w-full shrink-0">
+                        <div class="absolute inset-0 bg-gradient-to-br from-[#2a0f44] via-[#7a1f9c] to-magenta opacity-60" aria-hidden="true"></div>
+                        {% set fallbackUrl = extension.imageName
+                            ? vich_uploader_asset(extension)
+                            : (coverImage ? asset('images/cards/' ~ coverImage)) %}
+                        {% if fallbackUrl %}
+                            <img src="{{ fallbackUrl }}" alt="" onerror="this.remove()"
+                                 class="absolute inset-0 h-full w-full object-cover object-top opacity-50">
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+
+            {# contenu par-dessus les slides (laisse passer les gestes de swipe) #}
+            <div class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/65 to-transparent px-6 pb-8 pt-28 lg:px-12">
+                <div class="mx-auto max-w-7xl">
+                    <p class="eyebrow">Univers</p>
+                    <h1 class="mt-1 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-white md:text-6xl">
+                        {{ extension.name }}
+                    </h1>
+                    <p class="mt-2 max-w-2xl text-sm leading-relaxed text-white/80">{{ extension.description }}</p>
+
+                    <div class="chip-mono mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-white/90" data-testid="universe-stats">
+                        <span>◈ Complétion <span class="font-bold text-primary">{{ ownedCount }}/{{ totalCount }}</span> · {{ percentage }}%</span>
+                        {% if boosters|length > 0 %}
+                            <span>▣ {{ boosters|length }} booster{{ boosters|length > 1 ? 's' }}</span>
+                        {% endif %}
+                        {% if uniquesTotal > 0 %}
+                            <span data-testid="uniques-status">
+                                ◆ Unique{{ uniquesTotal > 1 ? 's' }} 1/1 :
+                                {% if uniquesClaimed == uniquesTotal %}
+                                    <span class="text-magenta">{{ uniquesClaimed }}/{{ uniquesTotal }} droppée{{ uniquesTotal > 1 ? 's' }}</span>
+                                {% else %}
+                                    <span class="text-live">{{ uniquesTotal - uniquesClaimed }}/{{ uniquesTotal }} encore dans le pool</span>
+                                {% endif %}
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="mt-3 h-1 max-w-md bg-white/15">
+                        <div class="h-full bg-gradient-to-r from-primary to-magenta shadow-[0_0_10px_#a435f0]" style="width: {{ percentage }}%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            {% if banners|length > 1 %}
+                <div class="absolute right-6 top-6 flex gap-1.5">
+                    <button type="button" data-action="carousel#prev" aria-label="Bannière précédente"
+                            class="border border-white/25 bg-black/60 px-3 py-1 font-mono text-sm text-white/80 backdrop-blur transition-colors hover:border-primary hover:text-primary">◂</button>
+                    <button type="button" data-action="carousel#next" aria-label="Bannière suivante"
+                            class="border border-white/25 bg-black/60 px-3 py-1 font-mono text-sm text-white/80 backdrop-blur transition-colors hover:border-primary hover:text-primary">▸</button>
+                </div>
+            {% endif %}
+        </section>
+
+        {# ------------------------------------------------------------ Set #}
+        <section class="px-6 pb-16 pt-10 lg:px-12">
+            <div class="mx-auto max-w-7xl">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
+                        Le set · {{ totalCount }} cartes
+                    </h2>
+                    <span class="font-mono text-[11px] tracking-[.15em] text-ink-dim">TRI: RARETÉ ↓</span>
+                </div>
+
+                <div class="mt-8 grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5" data-testid="set-grid">
+                    {% for card in catalog %}
+                        {% set userCard = ownedByCardId[card.id ~ ''] ?? null %}
+                        <div class="card-tile relative">
+                            {% if userCard %}
+                                {{ include('components/CardComponent.html.twig', { card: card, holo: userCard.holoQuantity > 0 }) }}
+                                <div class="card-tile__chips pointer-events-none absolute -right-2 -top-2 z-10 flex gap-1.5">
+                                    <span class="chip-mono bg-black/90 px-2 py-1 font-bold text-white">×{{ userCard.quantity }}</span>
+                                    {% if userCard.holoQuantity > 0 %}
+                                        <span class="chip-mono bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black">✦{{ userCard.holoQuantity }}</span>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                {# carte non possédée : dos de carte, aucun indice (nom / rareté) #}
+                                <div class="flex aspect-[0.718] items-center justify-center overflow-hidden rounded-[4.55%/3.5%] border border-hairline bg-surface"
+                                     data-testid="masked-card">
+                                    <span class="h-full w-full bg-cover bg-center opacity-50" aria-hidden="true"
+                                          style="background-image: url('{{ asset('images/card-back.svg') }}');"></span>
+                                </div>
+                            {% endif %}
+                            <span class="card-tile__chips chip-mono absolute -left-2 -top-2 z-10 border border-hairline bg-black/90 px-2 py-1 font-bold {{ userCard ? 'text-ink-strong' : 'text-ink-dim' }}">
+                                N°{{ '%02d'|format(loop.index) }}
+                            </span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        {# ------------------------------------------------------- Boosters #}
+        {% if boosters|length > 0 %}
+            <section class="border-t border-hairline px-6 pb-24 pt-10 lg:px-12">
+                <div class="mx-auto max-w-7xl">
+                    <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
+                        Boosters de l'univers
+                    </h2>
+
+                    <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4" data-testid="universe-boosters">
+                        {% for booster in boosters %}
+                            {% set owned = ownedBoosterCounts[booster.id ~ '']|default(0) %}
+                            <article class="group relative flex flex-col rounded-2xl border border-hairline bg-surface p-4 transition duration-300 hover:-translate-y-1 hover:border-primary/40">
+                                <p class="text-center font-mono text-[10px] font-bold uppercase tracking-[.2em] text-ink-dim">Cartes de{{ booster.name ? ' ' ~ booster.extension.name }}</p>
+                                <h3 class="mt-1 text-center font-display text-lg font-bold uppercase leading-tight tracking-[-0.02em] text-ink-strong">{{ booster.displayName }}</h3>
+
+                                <div class="relative mx-auto mt-4 flex h-52 w-full items-center justify-center">
+                                    <canvas width="840" height="1300"
+                                            data-controller="pack-front"
+                                            data-pack-front-bg-url-value="{{ booster.imageName ? vich_uploader_asset(booster) : (booster.extension.imageName ? vich_uploader_asset(booster.extension) : '') }}"
+                                            data-pack-front-fallback-url-value="{{ asset('images/ytcg_background.png') }}"
+                                            data-pack-front-logo-url-value="{{ asset('images/ytcg_logo.png') }}"
+                                            data-pack-front-name-value="{{ booster.displayName }}"
+                                            data-pack-front-count-value="{{ booster.cardCount }}"
+                                            data-pack-front-plain-value="{{ booster.imageName ? 'true' : 'false' }}"
+                                            class="relative h-full w-auto -rotate-3 rounded-xl shadow-2xl ring-1 ring-white/10 transition duration-300 group-hover:-rotate-1 group-hover:scale-[1.04]"></canvas>
+                                </div>
+
+                                <div class="mt-4 border-t border-hairline pt-3">
+                                    <div class="flex min-h-7 items-center justify-between gap-2">
+                                        {% if owned > 0 %}
+                                            <span class="chip-mono border border-primary/40 bg-primary/10 px-2 py-1 font-bold text-primary">
+                                                ◈ {{ owned }} pack{{ owned > 1 ? 's' }}
+                                            </span>
+                                            <a href="{{ path('booster_open', { id: booster.id }) }}"
+                                               class="flex items-center gap-1 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-strong transition hover:text-primary">
+                                                Ouvrir <span aria-hidden="true">›</span>
+                                            </a>
+                                        {% else %}
+                                            <span class="chip-mono border border-transparent px-2 py-1 text-ink-dim">◈ Aucun pack</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="mt-2 flex items-center">
+                                        {% if booster.claimable %}
+                                            <a href="{{ path('boosters') }}"
+                                               class="px-2 font-mono text-[11px] font-bold uppercase tracking-[.1em] text-primary transition hover:text-ink-strong">
+                                                + Récupérer sur le hub
+                                            </a>
+                                        {% else %}
+                                            <span class="px-2 font-mono text-[11px] uppercase tracking-[.1em] text-soon"
+                                                  title="Ce pack se gagne en event ou via un code — il n'est pas récupérable.">
+                                                ✕ Non récupérable
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+    </main>
+{% endblock %}

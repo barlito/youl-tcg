@@ -113,7 +113,11 @@
                 <div class="mt-10 grid gap-4 md:grid-cols-[2fr_1fr_1fr] md:grid-rows-[320px_280px]">
                     {% for item in extensions %}
                         {% set extension = item.extension %}
-                        <article class="relative min-h-[240px] overflow-hidden bg-surface {{ loop.first ? 'notched-corner md:row-span-2' : '' }}">
+                        <article class="group relative min-h-[240px] overflow-hidden bg-surface transition-colors {{ loop.first ? 'notched-corner md:row-span-2' : '' }}">
+                            {# toute la tuile mène à la page de l'univers #}
+                            <a href="{{ path('universes_show', { slug: extension.slug }) }}"
+                               class="absolute inset-0 z-10"
+                               aria-label="Univers {{ extension.name }}"></a>
                             {% if extension.imageName %}
                                 <img src="{{ vich_uploader_asset(extension) }}" alt="{{ extension.name }}"
                                      class="absolute inset-0 h-full w-full object-cover">

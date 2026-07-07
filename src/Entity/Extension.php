@@ -82,6 +82,15 @@ class Extension implements \Stringable
     private array $visualConfig = [];
 
     /**
+     * Hero banners of the universe page, position ascending (carousel order).
+     *
+     * @var Collection<int, ExtensionBanner>
+     */
+    #[ORM\OneToMany(targetEntity: ExtensionBanner::class, mappedBy: 'extension')]
+    #[ORM\OrderBy(['position' => 'ASC', 'createdAt' => 'ASC'])]
+    private Collection $banners;
+
+    /**
      * @var Collection<int, Card>
      */
     #[Assert\Valid]
@@ -97,6 +106,7 @@ class Extension implements \Stringable
 
     public function __construct()
     {
+        $this->banners = new ArrayCollection();
         $this->cards = new ArrayCollection();
         $this->boosters = new ArrayCollection();
     }
@@ -315,6 +325,24 @@ class Extension implements \Stringable
             array_merge($this->visualConfig, ['foilTexture' => $foilTexture?->value]),
             static fn (mixed $value): bool => null !== $value,
         );
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ExtensionBanner>
+     */
+    public function getBanners(): Collection
+    {
+        return $this->banners;
+    }
+
+    public function addBanner(ExtensionBanner $banner): static
+    {
+        if (!$this->banners->contains($banner)) {
+            $this->banners->add($banner);
+            $banner->setExtension($this);
+        }
 
         return $this;
     }
