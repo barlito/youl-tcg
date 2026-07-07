@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); if printf '%s' \"$INPUT\" | grep -qE '\"command\"[[:space:]]*:[[:space:]]*\"git commit'; then set -o pipefail; { make fix_style && git diff --cached --name-only -z | xargs -0 -r git add -- && make check_style; } 2>&1 | grep -vE 'overriding recipe for target|ignoring old recipe for target'; else true; fi",
+            "timeout": 180,
+            "statusMessage": "Auto-fix + code quality (cs-fixer, rector, phpcs, phpmd, phpstan)..."
+          }
+        ]
+      }
+    ]
+  }
+}
