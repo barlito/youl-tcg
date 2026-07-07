@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Twig\Components;
 
+use App\Dto\DrawnCard;
 use App\Entity\Booster;
 use App\Entity\BoosterOpening as BoosterOpeningEntity;
 use App\Entity\Card;
@@ -47,6 +48,17 @@ final class BoosterOpening extends AbstractController
      */
     #[LiveProp]
     public array $newCardIds = [];
+
+    /**
+     * The drawn slots in TRUE draw order ({cardId, holo} per slot), captured at
+     * open() time — the audit rows aggregate duplicates, so the slot order only
+     * survives here. The reveal follows it faithfully: the player reads per-slot
+     * drop rates, the cards must come out slot by slot.
+     *
+     * @var list<array{cardId: string, holo: bool}>
+     */
+    #[LiveProp]
+    public array $revealOrder = [];
 
     #[LiveProp]
     public ?string $error = null;
@@ -108,8 +120,9 @@ final class BoosterOpening extends AbstractController
     }
 
     /**
-     * Drawn cards in reveal order (rarest revealed last — the climax), holo copies
-     * flagged so the CardComponent lights up its holo layers.
+     * Drawn cards in DRAW order: the reveal mirrors the booster's slot order
+     * (whose per-slot rates the player can read), not a rarest-last re-sort —
+     * a lucky legendary on slot 1 comes out first.
      *
      * @return list<array{card: Card, holo: bool}>
      */
@@ -119,20 +132,17 @@ final class BoosterOpening extends AbstractController
             return [];
         }
 
-        $rank = $this->rarityRanks();
-
-        $cards = [];
+        $cardsById = [];
         foreach ($this->opening->getBoosterOpeningCards() as $openingCard) {
-            $card = $openingCard->getCard();
-            for ($copy = 0; $copy < $openingCard->getQuantity(); ++$copy) {
-                $cards[] = ['card' => $card, 'holo' => $copy < $openingCard->getHoloQuantity()];
-            }
+            $cardsById[(string) $openingCard->getCard()->getId()] = $openingCard->getCard();
         }
 
-        usort(
-            $cards,
-            static fn (array $a, array $b): int => $rank[$a['card']->getRarity()->value] <=> $rank[$b['card']->getRarity()->value],
-        );
+        $cards = [];
+        foreach ($this->revealOrder as $slot) {
+            if (isset($cardsById[$slot['cardId']])) {
+                $cards[] = ['card' => $cardsById[$slot['cardId']], 'holo' => $slot['holo']];
+            }
+        }
 
         return $cards;
     }
@@ -209,12 +219,18 @@ final class BoosterOpening extends AbstractController
         $this->ownedCardIdsCache = array_fill_keys($ownedBefore, true);
 
         try {
-            $this->opening = $this->boosterOpeningService->open($user, $this->getBooster());
+            $result = $this->boosterOpeningService->open($user, $this->getBooster());
         } catch (BoosterException $exception) {
             $this->error = $exception->getUserMessage();
 
             return;
         }
+
+        $this->opening = $result->opening;
+        $this->revealOrder = array_map(
+            static fn (DrawnCard $drawnCard): array => ['cardId' => (string) $drawnCard->card->getId(), 'holo' => $drawnCard->holo],
+            $result->drawnCards,
+        );
 
         $this->newCardIds = [];
         foreach ($this->opening->getBoosterOpeningCards() as $openingCard) {
@@ -230,6 +246,7 @@ final class BoosterOpening extends AbstractController
     {
         $this->opening = null;
         $this->newCardIds = [];
+        $this->revealOrder = [];
         $this->error = null;
     }
 
