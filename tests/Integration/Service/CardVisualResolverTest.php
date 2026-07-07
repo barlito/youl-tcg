@@ -87,6 +87,21 @@ final class CardVisualResolverTest extends KernelTestCase
         $this->assertNull($resolved->cssClass);
     }
 
+    public function testHoloTuningCascadesCardOverExtension(): void
+    {
+        $extension = $this->extension()->setVisualConfig(
+            new VisualConfig(holoIntensity: 0.4, holoSaturation: 1.1, holoGlitter: 0.3),
+        );
+        // the card only overrides intensity; saturation/glitter fall through
+        $card = $this->card($extension)->setVisualConfigOverride(new VisualConfig(holoIntensity: 0.9));
+
+        $resolved = $this->resolver->resolve($card);
+
+        $this->assertSame(0.9, $resolved->holoIntensity);
+        $this->assertSame(1.1, $resolved->holoSaturation);
+        $this->assertSame(0.3, $resolved->holoGlitter);
+    }
+
     private function extension(): Extension
     {
         return new Extension()->setName('Test extension')->setDescription('Test');

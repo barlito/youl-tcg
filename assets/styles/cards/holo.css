@@ -11,7 +11,13 @@
 
 .card {
     --card-opacity: 0;
-    --holo-intensity: .6;
+    /* Holo knobs — defaulted per rarity below, overridable per card/extension via
+     * inline vars from the BO visual config (inline always wins over these).
+     * Target = a subtle shimmer that lets the native artwork stay dominant
+     * (poke-holo "Dedenne reverse" reference), NOT a rainbow repaint. */
+    --holo-intensity: .5;
+    --holo-saturation: .9;
+    --holo-glitter: .4;
 }
 
 /* ------------------------------------------------ Perf : éteint hors survol */
@@ -24,29 +30,46 @@
 
 /* ----------------------------------------- Glow et intensité par rareté */
 
+/*
+ * Rarities differ by SATURATION and GLITTER density, not by brightness/intensity
+ * escalation — an epic must stay as readable as an uncommon, just more chatoyant
+ * (poke-holo principle). Intensity is kept low and flat across the high tiers.
+ */
+/* --rarity-* come from the host theme; the fallbacks keep this file self-contained
+ * (the effect works even if you copy it into an app without the project tokens). */
 .card[data-rarity="common"] {
-    --holo-intensity: .25;
-    --card-glow: var(--rarity-common);
+    --holo-intensity: .22;
+    --holo-saturation: .8;
+    --card-glow: var(--rarity-common, #9aa3b2);
 }
 
 .card[data-rarity="uncommon"] {
-    --holo-intensity: .45;
-    --card-glow: var(--rarity-uncommon);
+    --holo-intensity: .32;
+    --holo-saturation: .85;
+    --card-glow: var(--rarity-uncommon, #5be584);
 }
 
 .card[data-rarity="rare"] {
-    --holo-intensity: .7;
-    --card-glow: var(--rarity-rare);
+    --holo-intensity: .4;
+    --holo-saturation: .9;
+    --holo-glitter: .25;
+    --card-glow: var(--rarity-rare, #54a8ff);
 }
 
+/* epic & legendary keep the SAME (low) saturation — they only differ by glitter
+ * density, never by saturation/brightness (so they stay as readable as a rare) */
 .card[data-rarity="epic"] {
-    --holo-intensity: .9;
-    --card-glow: var(--rarity-epic);
+    --holo-intensity: .46;
+    --holo-saturation: .9;
+    --holo-glitter: .35;
+    --card-glow: var(--rarity-epic, #a435f0);
 }
 
 .card[data-rarity="legendary"] {
-    --holo-intensity: 1;
-    --card-glow: var(--rarity-legendary);
+    --holo-intensity: .52;
+    --holo-saturation: .95;
+    --holo-glitter: .5;
+    --card-glow: var(--rarity-legendary, #ff8a2b);
 }
 
 /* Glow pendant l'interaction (même recette que .card.active dans base.css) */
@@ -114,10 +137,16 @@
     background-size: cover, 500% 100%, 100% 100%;
     background-position: center, var(--background-x, 50%) center, center;
     background-blend-mode: color-dodge, color-dodge, normal;
+    /*
+     * brightness is KEPT BELOW 1 (max .72): color-dodge is additive and saturates
+     * bright artwork to white instantly, so we darken first to leave headroom. This
+     * is the single most important anti-cramage setting (poke-holo uses ~.75). The
+     * pointer only nudges it within a small band — it never reaches 1.
+     */
     filter:
-        brightness(calc(.55 + var(--pointer-from-center, 0) * .4))
-        contrast(2.2)
-        saturate(.9);
+        brightness(calc(.5 + var(--pointer-from-center, 0) * .22))
+        contrast(1.8)
+        saturate(var(--holo-saturation, 1));
     mix-blend-mode: color-dodge;
     opacity: calc(var(--card-opacity) * var(--holo-intensity));
 }
@@ -138,20 +167,25 @@
         var(--sunpillar-clr-6)
     );
     mix-blend-mode: color-dodge;
-    filter: saturate(1.4);
-    opacity: calc(var(--card-opacity) * .35);
+    filter: saturate(var(--holo-saturation, 1)) brightness(.55);
+    /* the conic rainbow is what "repaints" the card in magenta/cyan — keep it a
+     * faint accent (gated by intensity), not a wash */
+    opacity: calc(var(--card-opacity) * var(--holo-intensity) * .15);
 }
 
-/* legendary : glitter en trame croisée + glare renforcé */
+/* epic / legendary : glitter en trame croisée (densité = --holo-glitter) + glare */
+/* overlay (pas color-dodge) : ça pétille sans cramer, et la densité différencie
+ * les raretés sans toucher au brightness. */
 
+.card[data-rarity="epic"] .card__shine::after,
 .card[data-rarity="legendary"] .card__shine::after {
     content: '';
     background-image:
-        repeating-linear-gradient(45deg, rgba(255, 255, 255, .25) 0 1px, transparent 1px 4px),
-        repeating-linear-gradient(-45deg, rgba(255, 255, 255, .18) 0 1px, transparent 1px 3px);
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, .16) 0 1px, transparent 1px 4px),
+        repeating-linear-gradient(-45deg, rgba(255, 255, 255, .12) 0 1px, transparent 1px 3px);
     background-position: var(--background-x, 50%) var(--background-y, 50%);
     mix-blend-mode: overlay;
-    opacity: calc(var(--card-opacity) * .8);
+    opacity: calc(var(--card-opacity) * var(--holo-glitter, .5));
 }
 
 .card[data-rarity="legendary"] .card__glare {
