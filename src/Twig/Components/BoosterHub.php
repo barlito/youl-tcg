@@ -6,6 +6,7 @@ namespace App\Twig\Components;
 
 use App\Entity\Booster;
 use App\Entity\BoosterOpening;
+use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Enum\Entity\CardRarityEnum;
 use App\Exception\Booster\BoosterException;
@@ -119,6 +120,39 @@ final class BoosterHub extends AbstractController
         }
 
         return $summary;
+    }
+
+    /**
+     * Individual drawn cards in reveal order: rarest revealed last (the climax),
+     * holo copies flagged so the CardComponent lights up its holo layers.
+     *
+     * @return list<array{card: Card, holo: bool}>
+     */
+    public function getRevealCards(): array
+    {
+        if (!$this->opening instanceof BoosterOpening) {
+            return [];
+        }
+
+        $rank = array_flip(array_map(
+            static fn (CardRarityEnum $rarity): string => $rarity->value,
+            CardRarityEnum::ascending(),
+        ));
+
+        $cards = [];
+        foreach ($this->opening->getBoosterOpeningCards() as $openingCard) {
+            $card = $openingCard->getCard();
+            for ($copy = 0; $copy < $openingCard->getQuantity(); ++$copy) {
+                $cards[] = ['card' => $card, 'holo' => $copy < $openingCard->getHoloQuantity()];
+            }
+        }
+
+        usort(
+            $cards,
+            static fn (array $a, array $b): int => $rank[$a['card']->getRarity()->value] <=> $rank[$b['card']->getRarity()->value],
+        );
+
+        return $cards;
     }
 
     #[LiveAction]
