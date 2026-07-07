@@ -53,6 +53,16 @@ final class BoosterOpening extends AbstractController
 
     private ?Booster $boosterCache = null;
 
+    /**
+     * Owned card ids for the mask (see getOwnedCardIds). Memoized per request:
+     * open() seeds it with its pre-draw snapshot — the post-credit owned set
+     * minus newCardIds is exactly the pre-draw set, so the re-render needs no
+     * second findOwnedCardIds query.
+     *
+     * @var array<string, true>|null
+     */
+    private ?array $ownedCardIdsCache = null;
+
     public function __construct(
         private readonly BoosterRepository $boosterRepository,
         private readonly CardRepository $cardRepository,
@@ -164,13 +174,17 @@ final class BoosterOpening extends AbstractController
      */
     public function getOwnedCardIds(): array
     {
+        if (null !== $this->ownedCardIdsCache) {
+            return $this->ownedCardIdsCache;
+        }
+
         $owned = array_fill_keys($this->userCardRepository->findOwnedCardIds($this->getDiscordUser()), true);
 
         foreach ($this->newCardIds as $cardId) {
             unset($owned[$cardId]);
         }
 
-        return $owned;
+        return $this->ownedCardIdsCache = $owned;
     }
 
     public function getOwnedCount(): int
@@ -190,6 +204,9 @@ final class BoosterOpening extends AbstractController
 
         $user = $this->getDiscordUser();
         $ownedBefore = $this->userCardRepository->findOwnedCardIds($user);
+        // the re-render's mask (owned minus newCardIds) IS the pre-draw set:
+        // seed the memo so it doesn't re-query after the credit
+        $this->ownedCardIdsCache = array_fill_keys($ownedBefore, true);
 
         try {
             $this->opening = $this->boosterOpeningService->open($user, $this->getBooster());

@@ -135,7 +135,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 4. UI: `/boosters` is the opening hub (`BoosterHub` Live Component — claim, open, loot summary). The engine is fully tested at the service level.
 
 **Common Traits:**
-- `IdUuidTrait` (LOCAL: `App\Entity\Traits` — NOT the barlito/utils one): UUID primary keys. The vendor trait types `$id` as `?string` against a UuidType column, which makes Doctrine flag `id` as changed on every hydrated entity (each flush then rewrites every loaded row and trashes updated_at). The local copy types it `?Uuid`; `getId()` still returns `?string`. Fix upstream in barlito/utils before switching back.
+- `IdUuidTrait` (from barlito/utils **>= 2.0.1 only**): UUID primary keys. Older versions typed `$id` as `?string` against the UuidType column, making Doctrine flag `id` as changed on every hydrated entity (each flush rewrote every loaded row and trashed updated_at) — fixed upstream in barlito/utils#13.
 - `TimestampableEntity` (Gedmo): createdAt/updatedAt timestamps
 
 ### Authentication Flow

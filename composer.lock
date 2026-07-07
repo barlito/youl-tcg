@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "barlito/utils",
-            "version": "v2.0.0",
+            "version": "v2.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/barlito/utils.git",
-                "reference": "4dca1e50c16b68110e5e8513f657e692a3cd4898"
+                "reference": "1747706a7fe6bfc49f3ef55d56fd4917c037e1fd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/barlito/utils/zipball/4dca1e50c16b68110e5e8513f657e692a3cd4898",
-                "reference": "4dca1e50c16b68110e5e8513f657e692a3cd4898",
+                "url": "https://api.github.com/repos/barlito/utils/zipball/1747706a7fe6bfc49f3ef55d56fd4917c037e1fd",
+                "reference": "1747706a7fe6bfc49f3ef55d56fd4917c037e1fd",
                 "shasum": ""
             },
             "require": {
@@ -71,9 +71,9 @@
             "description": "My personal library of utilities",
             "support": {
                 "issues": "https://github.com/barlito/utils/issues",
-                "source": "https://github.com/barlito/utils/tree/v2.0.0"
+                "source": "https://github.com/barlito/utils/tree/v2.0.1"
             },
-            "time": "2026-06-09T16:58:10+00:00"
+            "time": "2026-07-07T12:07:11+00:00"
         },
         {
             "name": "beberlei/doctrineextensions",

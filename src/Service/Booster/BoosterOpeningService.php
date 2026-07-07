@@ -50,8 +50,17 @@ final readonly class BoosterOpeningService
 
             $drawnCards = $this->resolveUniqueClaims($discordUser, $booster, $this->cardDrawer->draw($booster));
 
-            foreach ($this->aggregate($drawnCards) as $aggregated) {
-                $this->userInventoryService->addCard($discordUser, $aggregated['card']->card, $aggregated['quantity'], $aggregated['holoQuantity']);
+            $aggregatedDraw = $this->aggregate($drawnCards);
+            // single inventory lookup for the whole draw (addCards), not one per card
+            $this->userInventoryService->addCards($discordUser, array_values(array_map(
+                static fn (array $aggregated): array => [
+                    'card' => $aggregated['card']->card,
+                    'quantity' => $aggregated['quantity'],
+                    'holoQuantity' => $aggregated['holoQuantity'],
+                ],
+                $aggregatedDraw,
+            )));
+            foreach ($aggregatedDraw as $aggregated) {
                 $opening->addBoosterOpeningCard(new BoosterOpeningCard($opening, $aggregated['card']->card, $aggregated['quantity'], $aggregated['holoQuantity']));
             }
 
