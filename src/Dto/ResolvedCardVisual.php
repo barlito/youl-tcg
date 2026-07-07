@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Dto;
 
+use App\Enum\Card\CardEffectEnum;
+
 /**
  * The visual properties of a card after the resolution cascade
  * (card -> extension -> system default), ready to be consumed by
@@ -21,6 +23,7 @@ final readonly class ResolvedCardVisual
         public ?float $holoIntensity = null,
         public ?float $holoSaturation = null,
         public ?float $holoGlitter = null,
+        public ?CardEffectEnum $holoEffect = null,
     ) {
     }
 

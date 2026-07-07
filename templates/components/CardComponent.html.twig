@@ -10,7 +10,7 @@
 {%- if visual.holoSaturation is not null %}{% set styleVars = styleVars|merge(["--holo-saturation: #{visual.holoSaturation}"]) %}{% endif -%}
 {%- if visual.holoGlitter is not null %}{% set styleVars = styleVars|merge(["--holo-glitter: #{visual.holoGlitter}"]) %}{% endif -%}
 <div id="{{ id }}"
-     class="card interactive{{ visual.hasMask ? ' masked' }}{{ holo ? ' holo' }}{{ visual.cssClass ? ' ' ~ visual.cssClass }}"
+     class="card interactive{{ visual.hasMask ? ' masked' }}{{ holo ? ' holo' }}{{ visual.cssClass ? ' ' ~ visual.cssClass }}{{ visual.holoEffect ? ' ' ~ visual.holoEffect.cssClass }}"
      data-rarity="{{ card.rarity.value }}"
      data-controller="card"
      {%- if styleVars is not empty %} style="{{ styleVars|join('; ') }}"{% endif %}>

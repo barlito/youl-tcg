@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}
-    DEV — Effets de cartes
+    DEV — Playground effets de cartes
 {% endblock %}
 
 {% block body %}
@@ -17,21 +17,161 @@
                 0 0 40px -30px var(--card-glow),
                 0 0 50px -20px var(--card-glow);
         }
+
+        /* plain CSS on purpose: @apply only works in files compiled by the
+           tailwind bundle (assets/styles/app.css), never in an inline <style> */
+        .pg-control { display: flex; flex-direction: column; gap: .25rem; }
+        .pg-control label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: .75rem;
+            line-height: 1rem;
+            text-transform: uppercase;
+            letter-spacing: .15em;
+            color: var(--text-muted);
+        }
+        .pg-control input[type="range"] { width: 100%; accent-color: var(--primary); }
+        .pg-control select {
+            border: 1px solid var(--hairline);
+            background: var(--surface);
+            padding: .25rem .5rem;
+            font-size: .875rem;
+            color: var(--text);
+        }
     </style>
+
+    {# the foil/mask actually resolved on the shown card (its own upload, else its
+       extension's), falling back to the pokeholo demo textures when the card has none #}
+    {% set pv = card_visual(playgroundCard) %}
+    {% set demoFoil = pv.foilUrl ?: asset('images/holo/poke/illusion.png') %}
+    {% set demoMask = pv.maskUrl ?: asset('images/holo/poke/illusion-mask.png') %}
 
     <main class="container mx-auto py-10 px-4">
         <div class="mb-8">
             <p class="eyebrow">dev only · /dev/card-effects</p>
-            <h1 class="mt-1 font-display text-4xl font-bold text-ink-strong">Effets de cartes — raretés &amp; holo</h1>
+            <h1 class="mt-1 font-display text-4xl font-bold text-ink-strong">Playground — presets holo (portage pokeholo)</h1>
             <p class="mt-2 max-w-3xl text-ink-muted">
-                Chaque carte reçoit son glow (<code class="text-primary">--card-glow</code>) et sa recette holo
-                (calques de <code class="text-primary">card__shine</code>) via <code class="text-primary">data-rarity</code> —
-                cf. <code class="text-primary">assets/styles/cards/holo.css</code>. Le glow est forcé en permanence ;
-                <strong>survole une carte</strong> pour le 3D + springs + holo.
+                Les <strong>presets</strong> (<code class="text-primary">holo--*</code>, cf. <code class="text-primary">assets/styles/cards/holo-presets.css</code>)
+                sont un <strong>portage fidèle</strong> des recettes de
+                <a class="text-primary underline" href="https://poke-holo.simey.me/" target="_blank" rel="noopener">poke-holo.simey.me</a>
+                (textures raster réelles dans <code class="text-primary">/images/holo/poke/</code>). Choisis un preset + une
+                rareté et <strong>survole la carte</strong> pour le tilt 3D + le holo plein régime.
+            </p>
+            <p class="mt-2 max-w-3xl text-xs text-amber-300/80">
+                ⚠️ Les molettes <code>--holo-intensity / saturation / glitter</code> ne pilotent plus que la recette
+                <em>par rareté</em> (section « 5 paliers » sans preset). Les presets pokeholo les ignorent (rendu fidèle, pleine intensité).
+            </p>
+            <p class="mt-2 font-mono text-xs text-ink-muted">
+                Carte affichée : <strong class="text-primary">{{ playgroundCard.name }}</strong>
+                (<code class="text-primary">id {{ playgroundCard.id }}</code>) —
+                cible une autre via <code class="text-primary">?card=&lt;id&gt;</code> (l'id est sur la fiche carte dans <code class="text-primary">/admin</code>).
+                Les toggles <em>Foil / Holo mask</em> appliquent {{ pv.foilUrl or pv.maskUrl ? 'le foil/mask uploadés sur cette carte' : 'les textures de démo (la carte n’a pas de foil/mask)' }}.
             </p>
         </div>
 
-        <h2 class="mb-4 font-display text-2xl font-bold text-ink-strong">Les 5 paliers</h2>
+        {# ---------------------------------------------------------------- Playground #}
+        <div data-controller="card-playground"
+             class="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,230px)_1fr] lg:items-start">
+
+            <div class="force-glow mx-auto w-full max-w-[210px]">
+                {# Card markup inlined so we can attach the playground target + demo textures.
+                   Mirrors templates/components/CardComponent.html.twig structure. #}
+                <div data-card-playground-target="card"
+                     data-controller="card"
+                     data-demo-foil="{{ demoFoil }}"
+                     data-demo-mask="{{ demoMask }}"
+                     class="card interactive holo"
+                     data-rarity="legendary">
+                    <div class="card__translater">
+                        <div class="card__rotator">
+                            <div class="card__front">
+                                <img src="{{ vich_uploader_asset(playgroundCard) }}" alt="{{ playgroundCard.name }}"
+                                     onerror="this.onerror=null;this.src='{{ asset('images/cards/default_card.png') }}';">
+                                <div class="card__shine"></div>
+                                <div class="card__glare"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-5 border border-hairline bg-surface/60 p-6 sm:grid-cols-2">
+                <div class="pg-control">
+                    <label>Preset
+                        <select data-card-playground-target="effect" data-action="card-playground#apply">
+                            {% for effect in effects %}
+                                <option value="{{ effect.value }}"{{ effect.value == 'shine' ? ' selected' }}>{{ effect.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </div>
+
+                <div class="pg-control">
+                    <label>Rareté
+                        <select data-card-playground-target="rarity" data-action="card-playground#apply">
+                            {% for rarity in rarities %}
+                                <option value="{{ rarity.value }}"{{ rarity.value == 'legendary' ? ' selected' }}>{{ rarity.value }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </div>
+
+                <div class="pg-control">
+                    <label>Intensity · <span data-card-playground-target="intensityOut">0.52</span></label>
+                    <input type="range" min="0" max="1" step="0.02" value="0.52"
+                           data-card-playground-target="intensity" data-action="input->card-playground#apply">
+                </div>
+
+                <div class="pg-control">
+                    <label>Saturation · <span data-card-playground-target="saturationOut">0.95</span></label>
+                    <input type="range" min="0" max="3" step="0.05" value="0.95"
+                           data-card-playground-target="saturation" data-action="input->card-playground#apply">
+                </div>
+
+                <div class="pg-control">
+                    <label>Glitter · <span data-card-playground-target="glitterOut">0.50</span></label>
+                    <input type="range" min="0" max="2" step="0.05" value="0.5"
+                           data-card-playground-target="glitter" data-action="input->card-playground#apply">
+                </div>
+
+                <div class="pg-control justify-end">
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" class="accent-primary"
+                               data-card-playground-target="foil" data-action="card-playground#apply">
+                        Foil texture
+                    </label>
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" class="accent-primary"
+                               data-card-playground-target="mask" data-action="card-playground#apply">
+                        Holo mask
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        {# ---------------------------------------------------------------- Gallery presets #}
+        <h2 class="mb-4 mt-14 font-display text-2xl font-bold text-ink-strong">Tous les presets (recettes pokeholo)</h2>
+        <p class="mb-4 max-w-3xl text-ink-muted">
+            Chaque carte porte un <code class="text-primary">holoEffect</code> différent. Cartes éteintes au repos —
+            <strong>survole</strong> (et clique pour zoomer) pour révéler le tilt 3D + le holo. Les presets <code class="text-primary">shine</code>
+            (amazing-rare), <code class="text-primary">rainbow</code>, <code class="text-primary">secret</code>,
+            <code class="text-primary">vmax</code>, <code class="text-primary">vstar</code> et <code class="text-primary">trainer</code>
+            embarquent leur propre <em>foil</em> raster pokeholo par défaut (illusion / geometric / vmaxbg / ancient / trainerbg) ;
+            une carte qui upload son propre foil l'écrase (<code class="text-primary">?card=&lt;id&gt;</code>).
+        </p>
+        <div class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-6">
+            {% for demo in presetDemos %}
+                <div class="force-glow">
+                    {{ include('components/CardComponent.html.twig', { card: demo.card }) }}
+                    <div class="mt-2 px-1">
+                        <code class="text-sm text-ink">{{ demo.effect.value }}</code>
+                        <p class="text-xs text-ink-dim">{{ demo.effect.label }}</p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {# ---------------------------------------------------------------- Rarity tiers #}
+        <h2 class="mb-4 mt-14 font-display text-2xl font-bold text-ink-strong">Les 5 paliers (défaut data-rarity)</h2>
         <div class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-5">
             {% for demo in rarityDemos %}
                 <div class="force-glow">
@@ -44,31 +184,13 @@
             {% endfor %}
         </div>
 
-        <h2 class="mb-4 mt-12 font-display text-2xl font-bold text-ink-strong">Override libre du glow</h2>
-        <p class="mb-4 max-w-3xl text-ink-muted">
-            Chaque carte porte un <code class="text-primary">visualConfigOverride</code> qui écrase la couleur du palier
-            via <code class="text-primary">CardVisualResolver</code> : c'est la <strong>cascade carte → extension → défaut</strong>
-            réelle (et non plus un simple wrapper CSS).
-        </p>
-        <div class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
-            {% for demo in overrideDemos %}
-                <div class="force-glow">
-                    {{ include('components/CardComponent.html.twig', { card: demo.card }) }}
-                    <div class="mt-2 flex items-center gap-2 px-1">
-                        <span class="inline-block h-4 w-4 rounded-full border border-white/30" style="background: {{ demo.glow }};"></span>
-                        <code class="text-sm text-ink">{{ demo.label }}</code>
-                        <span class="font-mono text-xs text-ink-dim">{{ demo.glow }}</span>
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
-
-        <div class="mt-12 max-w-3xl border border-hairline bg-surface/60 p-6">
+        <div class="mt-14 max-w-3xl border border-hairline bg-surface/60 p-6">
             <h2 class="mb-3 font-display text-xl font-bold text-ink-strong">Notes</h2>
             <ul class="list-inside list-disc space-y-2 text-ink-muted">
-                <li><strong>Masques/foils Vich</strong> : une carte avec <code class="text-primary">imageMaskName</code>/<code class="text-primary">imageFoilName</code> reçoit la classe <code class="text-primary">masked</code> et les variables <code class="text-primary">--mask</code>/<code class="text-primary">--foil</code> (cf. CardComponent) — uploade un masque en admin pour le voir ici.</li>
-                <li><strong>Springs</strong> : la rotation est lissée par une boucle rAF maison (plus d'anime.js) ; les calques d'effet sont éteints hors interaction (perf grille).</li>
-                <li><strong>Config visuelle extension → carte</strong> : câblée — <code class="text-primary">Extension.visualConfig</code> (défaut) overridable par <code class="text-primary">Card.visualConfigOverride</code>, résolus par <code class="text-primary">CardVisualResolver</code> (glow / border / classe CSS + foil/mask Vich en cascade).</li>
+                <li><strong>Portage fidèle pokeholo</strong> : chaque preset reprend verbatim une recette de <code class="text-primary">pokemon-cards-css</code> (mapping dans l'en-tête de <code class="text-primary">holo-presets.css</code>) ; seuls les sélecteurs <code class="text-primary">[data-rarity]</code> sont réécrits en <code class="text-primary">.card.holo--*</code>.</li>
+                <li><strong>Full-art</strong> : les <code class="text-primary">clip-path</code> de cadre (fenêtre d'artwork) sont retirés — nos cartes sont des illustrations plein cadre, comme les v-/trainer-full-art pokeholo.</li>
+                <li><strong>Textures</strong> : raster pokeholo dans <code class="text-primary">public/images/holo/poke/</code> (glitter, grain, illusion, cosmos-*, metal, vmaxbg, ancient, trainerbg, geometric).</li>
+                <li><strong>Cascade</strong> : <code class="text-primary">Card.visualConfigOverride.holoEffect</code> &gt; <code class="text-primary">Extension.visualConfig.holoEffect</code> &gt; recette de rareté (aucun preset).</li>
             </ul>
         </div>
     </main>

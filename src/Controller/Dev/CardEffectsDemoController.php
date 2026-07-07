@@ -7,19 +7,23 @@ namespace App\Controller\Dev;
 use App\Dto\VisualConfig;
 use App\Entity\Card;
 use App\Entity\Extension;
+use App\Enum\Card\CardEffectEnum;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\CardRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\When;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Uid\Uuid;
 
 /**
- * Dev-only showcase of card visual effects: the same card rendered at the
- * five rarity tiers (glow + holo recipe keyed by data-rarity, see
- * assets/styles/cards/holo.css), plus free-color overrides exercising the
- * real visual-config cascade (Card::visualConfigOverride beating the
- * data-rarity default through CardVisualResolver).
+ * Dev-only playground for card visual effects (route /dev/card-effects):
+ *  - an interactive demo card driven by a control panel (range sliders for the
+ *    --holo-* knobs, selects for the holo preset + rarity, foil/mask toggles)
+ *    wired by the card_playground Stimulus controller;
+ *  - a gallery rendering every CardEffectEnum preset side by side;
+ *  - the five rarity tiers (pure data-rarity defaults).
  *
  * The service only exists in the dev container (#[When]) and the route is
  * declared in config/routes.yaml under when@dev (a #[Route] attribute would
@@ -28,23 +32,33 @@ use Symfony\Component\HttpFoundation\Response;
 #[When(env: 'dev')]
 class CardEffectsDemoController extends AbstractController
 {
-    /**
-     * Free glow overrides: any color works (a per-card override beats the
-     * extension default and the data-rarity default).
-     */
-    private const array GLOW_OVERRIDES = [
-        'violet arcade' => '#a435f0',
-        'magenta arcade' => '#ff3db0',
-    ];
-
-    public function __invoke(CardRepository $cardRepository): Response
+    public function __invoke(Request $request, CardRepository $cardRepository): Response
     {
-        $referenceCard = $cardRepository->findOneBy(['status' => CardStatusEnum::PUBLISHED])
+        // ?card=<uuid> targets a specific card (e.g. to preview the foil / mask
+        // uploaded on it); names collide, so we match on the id. Falls back to the
+        // first published card. The Uuid guard avoids a conversion error on garbage.
+        $id = trim($request->query->getString('card'));
+        $referenceCard = ('' !== $id && Uuid::isValid($id) ? $cardRepository->find($id) : null)
+            ?? $cardRepository->findOneBy(['status' => CardStatusEnum::PUBLISHED])
             ?? throw $this->createNotFoundException('No published card found, load the fixtures first.');
 
-        // A bare transient extension so the rarity showcase shows pure
-        // data-rarity defaults, free of any extension-level glow config.
+        // A bare transient extension so the showcase shows pure data-rarity
+        // defaults, free of any extension-level config.
         $bareExtension = new Extension()->setName('Demo')->setDescription('Demo');
+
+        $playgroundCard = $this->variant($referenceCard, $bareExtension, 'playground')
+            ->setRarity(CardRarityEnum::LEGENDARY)
+        ;
+
+        $presetDemos = [];
+        foreach (CardEffectEnum::cases() as $effect) {
+            $presetDemos[] = [
+                'card' => $this->variant($referenceCard, $bareExtension, $effect->value)
+                    ->setRarity(CardRarityEnum::RARE)
+                    ->setVisualConfigOverride(new VisualConfig(holoEffect: $effect)),
+                'effect' => $effect,
+            ];
+        }
 
         $rarityDemos = [];
         foreach (CardRarityEnum::cases() as $rarity) {
@@ -55,19 +69,12 @@ class CardEffectsDemoController extends AbstractController
             ];
         }
 
-        $overrideDemos = [];
-        foreach (self::GLOW_OVERRIDES as $label => $glow) {
-            $overrideDemos[] = [
-                'card' => $this->variant($referenceCard, $bareExtension, $label)
-                    ->setVisualConfigOverride(new VisualConfig(glow: $glow)),
-                'label' => $label,
-                'glow' => $glow,
-            ];
-        }
-
         return $this->render('dev/card_effects.html.twig', [
+            'playgroundCard' => $playgroundCard,
+            'presetDemos' => $presetDemos,
             'rarityDemos' => $rarityDemos,
-            'overrideDemos' => $overrideDemos,
+            'effects' => CardEffectEnum::cases(),
+            'rarities' => CardRarityEnum::cases(),
         ]);
     }
 

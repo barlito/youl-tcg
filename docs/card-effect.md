@@ -10,7 +10,8 @@ step are required. Grab three files, use the markup, done.
 |------|------|--------------|
 | `assets/lib/card_tilt.js` | The driver: pointer tracking, spring-damped motion, writes the CSS variables. | none (vanilla ES module) |
 | `assets/styles/cards/base.css` | The 3D structure (perspective, rotator, faces, shine/glare boxes). | none (defines its own tokens) |
-| `assets/styles/cards/holo.css` | The foil / shine / glare / glitter recipes, per rarity. | reads the vars above; `--rarity-*` colours have built-in fallbacks |
+| `assets/styles/cards/holo.css` | The foil / shine / glare / glitter recipes, per rarity (the fallback when a card has no preset). | reads the vars above; `--rarity-*` colours have built-in fallbacks |
+| `assets/styles/cards/holo-presets.css` | Named holo presets — a **faithful port of poke-holo.simey.me** (one recipe per card type), overriding the rarity recipe. | same base.css tokens + the pokeholo raster textures in `public/images/holo/poke/` |
 
 `base.css` already defines `--card-aspect`, `--card-radius`, `--card-edge`,
 `--card-back` and the `--sunpillar-*` rainbow palette, so the two CSS files are
@@ -33,10 +34,72 @@ self-contained.
 </div>
 ```
 
-- `data-rarity` ∈ `common | uncommon | rare | epic | legendary` selects the recipe.
-- Add `holo` to the class list for a card that should keep a soft holo veil **at
-  rest** (not only on hover).
-- Add `masked` + `--mask: url(...)` to clip the foil to a holo mask (cosmos-style).
+- `data-rarity` ∈ `common | uncommon | rare | epic | legendary` selects the
+  fallback recipe (used only when no `holo--<preset>` class is present).
+- By default the holo only shows **on hover** (and while zoomed). Add `holo` to
+  the class list for a card that should keep a soft holo veil **at rest** too
+  (used by the booster reveal, not by the collection grid).
+- Add `masked` + `--mask: url(...)` to clip the holo to a mask region.
+- Add a `holo--<preset>` class (see below) to swap the rarity recipe for a named
+  pokeholo preset. **Presets drive the layers entirely and do NOT read the
+  `--holo-*` knobs** (those only tune the rarity fallback).
+- **Click a card to zoom** it to the centre of the viewport (`card_tilt.js`
+  popover); click again, click outside or press `Esc` to close. Disabled inside
+  the booster opening (which owns its own click handling).
+
+## Holo presets (`holo-presets.css`)
+
+A preset is a single class on `.card` that **fully replaces** the shine/glare
+recipe with a verbatim port of one poke-holo.simey.me card type (see the mapping
+in the header of `holo-presets.css`). Each preset ships its own default foil
+texture; uploading a foil on the card/extension overrides it (`--foil`).
+
+| Class | `holoEffect` value | pokeholo recipe | Default foil (`/images/holo/poke/`) |
+|-------|--------------------|-----------------|-------------------------------------|
+| `holo--shine` | `shine` | amazing-rare | — (glitter only) |
+| `holo--basic` | `basic` | regular-holo | — (linear sunpillar bars) |
+| `holo--reverse` | `reverse` | reverse-holo | — (soft-light/difference sweep) |
+| `holo--cosmos` | `cosmos` | cosmos-holo | `cosmos-bottom/middle/top.png` (galaxy) |
+| `holo--rainbow` | `rainbow` | rainbow/secret | `illusion-mask.png` |
+| `holo--secret` | `secret` | secret-rare (gold) | `geometric.png` |
+| `holo--vmax` | `vmax` | v-max | `vmaxbg.jpg` |
+| `holo--vstar` | `vstar` | v-star | `ancient.png` |
+| `holo--trainer` | `trainer` | v-full-art + trainer-full-art | `trainerbg.png` |
+
+Adaptation vs upstream: the artwork-window `clip-path`s are dropped (our cards
+are full-art, like pokeholo's v-/trainer-full-art), and the per-energy-type and
+trainer-gallery special-cases are removed.
+
+```html
+<div class="card interactive holo holo--cosmos" data-rarity="rare"> … </div>
+```
+
+Live preview + a side-by-side gallery of every preset: `/dev/card-effects`
+(dev-only playground, `CardEffectsDemoController` + `card_playground_controller.js`).
+
+## Bundled holo textures (`public/images/holo/poke/`)
+
+The raster textures pulled from the pokeholo repo, used as the default foils /
+glitter / grain of the presets above. They are versioned with the bundle so the
+presets render out of the box; a per-card/extension foil upload overrides them.
+
+| File | Use |
+|------|-----|
+| `glitter.png` | sparkle layer (`shine`, `rainbow`, `secret`) |
+| `grain.webp` | film grain |
+| `illusion.png` / `illusion-mask.png` | foil illusion (`rainbow`, demo foil/mask) |
+| `cosmos-bottom/middle/top.png` | the 3 galaxy layers of `cosmos` |
+| `vmaxbg.jpg` | `vmax` foil |
+| `ancient.png` | `vstar` foil |
+| `trainerbg.png` | `trainer` foil |
+| `geometric.png` | `secret` foil |
+
+A **per-card or per-extension** foil/mask uploaded in the BO (Vich, stored in
+`public/images/foils|masks/`, git-ignored) overrides the preset default via the
+inline `--foil` / `--mask` vars emitted by `CardComponent`.
+
+> For the practical, step-by-step guide on configuring a card and **authoring a
+> good foil and mask**, see [`docs/card-setup-guide.md`](./card-setup-guide.md).
 
 ## Wiring the JS
 
@@ -78,6 +141,10 @@ rest — important for a grid of many cards).
 
 ## Tuning the look (per card / per set)
 
+> These three knobs tune the **rarity fallback recipe only** (cards without a
+> `holo--<preset>` class). The pokeholo presets are self-contained and ignore
+> them — to retune a preset, edit its recipe in `holo-presets.css`.
+
 Three knobs drive the holo, defaulted per rarity in `holo.css` and **overridable
 inline** (inline always wins):
 
@@ -99,9 +166,15 @@ and would otherwise blow bright artwork out to white.
 
 ## How this maps to the back office (this app only)
 
-The same three knobs (+ `glow`, `borderColor`, `cssClass`) live in the
-`VisualConfig` JSON edited in EasyAdmin, resolved **card → extension → rarity
-default** by `CardVisualResolver`, and emitted as the inline vars above by
-`CardComponent`. Foil/mask **textures** are Vich uploads on the Card/Extension and
-become `--foil` / `--mask`. So a non-technical admin tunes the foil layers and the
-holo strength without touching CSS.
+The same three knobs (+ `glow`, `borderColor`, `cssClass`, `holoEffect`) live in
+the `VisualConfig` JSON edited in EasyAdmin, resolved **card → extension → rarity
+default** by `CardVisualResolver`, and emitted as the inline vars / classes above
+by `CardComponent`. Foil/mask **textures** are Vich uploads on the Card/Extension
+and become `--foil` / `--mask`. So a non-technical admin tunes the foil layers and
+the holo strength without touching CSS.
+
+`holoEffect` is backed by the `CardEffectEnum`. On the **Extension** form it is a
+dedicated *Holo preset* dropdown (merged into the visual-config JSON); on the
+**Card** form it is set through the `holoEffect` key of the JSON override
+(`{"holoEffect": "cosmos"}`). The cascade is the usual card override → extension →
+none (pure rarity recipe).
