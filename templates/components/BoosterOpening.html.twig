@@ -80,7 +80,7 @@
                     </div>
 
                     <button type="button" class="opening__next" data-booster-opening-target="next"
-                            data-action="booster-opening#advance" hidden>Carte suivante ▸</button>
+                            data-action="booster-opening#advance">Carte suivante ▸</button>
                     <p class="opening__counter" data-booster-opening-target="counter"></p>
 
                     {# end-of-opening actions, grouped with the revealed card #}
@@ -125,54 +125,132 @@
 
         </section>
 
-        {# ============================================ RIGHT: the set contents #}
+        {# ===================================== RIGHT: reveal tracker + set contents #}
         <aside class="opening__panel" data-testid="opening-aside">
-            <header class="opening__panel-head">
-                <p class="opening__panel-title">{{ extension.name }}</p>
-                <p class="opening__panel-sub">
-                    {{ booster.cardCount }} cartes / pack · {{ catalog|length }} dans l'extension
-                </p>
-                <p class="opening__panel-best">
-                    Meilleure trouvaille
-                    <span data-booster-opening-target="best">—</span>
-                </p>
-                {% if opening %}
-                    <p class="opening__panel-best">
-                        Révélé
-                        <span><span data-booster-opening-target="revealedCount">0</span> / {{ revealCards|length }}</span>
-                    </p>
-                {% endif %}
-            </header>
 
-            <div class="opening__slots" data-testid="opening-slots">
-                {% for card in catalog %}
-                    {% set info = drawn[card.id ~ '']|default(null) %}
-                    {# "owned" for masking = had it BEFORE this opening (so freshly drawn
-                       cards stay a mystery until the reveal lights them up) #}
-                    {% set isOwned = (ownedCardIds[card.id ~ ''] is defined) and (card.id ~ '' not in newCardIds) %}
-                    <div class="opening__slot"
-                         data-booster-opening-target="slot"
-                         data-card-id="{{ card.id }}"
-                         data-card-name="{{ card.name }}"
-                         data-rarity="{{ card.rarity.value }}"
-                         data-drawn="{{ info ? '1' : '0' }}"
-                         data-owned="{{ isOwned ? '1' : '0' }}"
-                         style="--slot-rar: var(--rarity-{{ card.rarity.value }});">
-                        <div class="opening__slot-img">
-                            <span class="opening__slot-back" aria-hidden="true"
-                                  style="background-image: url('{{ asset('images/card-back.svg') }}');"></span>
-                            <img src="{{ vich_uploader_asset(card) }}" alt="{{ isOwned ? card.name : '' }}"
-                                 onerror="this.onerror=null;this.src='{{ asset('images/cards/default_card.png') }}';">
-                            {% if info %}
-                                {% if info.holoQuantity > 0 %}<span class="opening__slot-holo">HOLO</span>{% endif %}
-                                {% if info.quantity > 1 %}<span class="opening__slot-qty">×{{ info.quantity }}</span>{% endif %}
-                                {% if info.new %}<span class="opening__slot-new">NOUVEAU</span>{% endif %}
-                            {% endif %}
-                        </div>
-                        <p class="opening__slot-name">{{ isOwned ? card.name : 'Non révélée' }}</p>
+            {# ---- Zone 1: reveal tracker (pinned, the pack being opened) ---- #}
+            <section class="opening__track" data-testid="opening-track">
+                <header class="opening__track-head">
+                    <p class="opening__track-count">
+                        Révélé
+                        <span><b data-booster-opening-target="revealedCount">0</b> / {{ booster.cardCount }} cartes</span>
+                    </p>
+                    <p class="opening__track-best">
+                        Meilleure trouvaille
+                        <span data-booster-opening-target="best">—</span>
+                    </p>
+                </header>
+
+                <div class="opening__track-grid" style="--track-count: {{ booster.cardCount }};">
+                    {% if opening %}
+                        {% for reveal in revealCards %}
+                            {% set rarity = reveal.card.rarity.value %}
+                            <div class="opening__track-tile"
+                                 data-booster-opening-target="track"
+                                 data-reveal-index="{{ loop.index0 }}"
+                                 style="--slot-rar: var(--rarity-{{ rarity }});">
+                                <div class="opening__track-img">
+                                    <span class="opening__track-back" aria-hidden="true"
+                                          style="background-image: url('{{ asset('images/card-back.svg') }}');"></span>
+                                    <img loading="lazy" src="{{ vich_uploader_asset(reveal.card) }}" alt=""
+                                         onerror="this.onerror=null;this.src='{{ asset('images/cards/default_card.png') }}';">
+                                    {% if reveal.holo %}<span class="opening__track-holo">HOLO</span>{% endif %}
+                                    {% if reveal.card.id ~ '' in newCardIds %}<span class="opening__track-new">NOUVEAU</span>{% endif %}
+                                </div>
+                                <p class="opening__track-name" data-name="{{ reveal.card.name }}">Non révélée</p>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        {% for i in 1..booster.cardCount %}
+                            <div class="opening__track-tile is-empty">
+                                <div class="opening__track-img">
+                                    <span class="opening__track-back" aria-hidden="true"
+                                          style="background-image: url('{{ asset('images/card-back.svg') }}');"></span>
+                                </div>
+                                <p class="opening__track-name">Non révélée</p>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </section>
+
+            {# ---- Zone 2: full set contents (search + sort, scrolls on its own) ---- #}
+            <section class="opening__set" data-controller="set-contents">
+                <header class="opening__set-head">
+                    <div class="opening__set-titleline">
+                        <p class="opening__set-title">Contenu du set</p>
+                        <p class="opening__set-meta">
+                            <span data-set-contents-target="count">{{ catalog|length }}</span> cartes · {{ extension.name }}
+                        </p>
                     </div>
-                {% endfor %}
-            </div>
+                    <div class="opening__set-controls">
+                        <div class="opening__search">
+                            <span class="opening__search-icon" aria-hidden="true">⌕</span>
+                            <input type="search" class="opening__search-input"
+                                   placeholder="Rechercher des cartes…"
+                                   data-set-contents-target="search"
+                                   data-action="input->set-contents#filter">
+                            <button type="button" class="opening__search-clear" hidden
+                                    data-set-contents-target="clear"
+                                    data-action="set-contents#clear" aria-label="Effacer la recherche">✕</button>
+                        </div>
+                        <select class="opening__sort" aria-label="Trier"
+                                data-set-contents-target="sort" data-action="set-contents#sort">
+                            <option value="default">Rareté</option>
+                            <option value="name-asc">Nom (A→Z)</option>
+                            <option value="name-desc">Nom (Z→A)</option>
+                        </select>
+                    </div>
+                </header>
+
+                <div class="opening__set-scroll" data-set-contents-target="scroll"
+                     data-action="scroll->set-contents#onScroll">
+                    <div class="opening__set-grid" data-set-contents-target="grid" data-testid="opening-slots">
+                        {% for card in catalog %}
+                            {% set rarity = card.rarity.value %}
+                            {% set cardId = card.id ~ '' %}
+                            {% set isOwned = ownedCardIds[cardId] is defined %}
+                            {% set isPending = not isOwned and cardId in newCardIds %}
+                            {# cards the user doesn't own stay hidden behind a card back
+                               (no art, no name, no rarity hint) — pure checklist mystery.
+                               Cards FIRST won by the ongoing opening are masked too
+                               (is-pending) and unmasked flip by flip by the reveal
+                               controller, so this list never spoils the showcase. #}
+                            <article class="opening__card-tile{{ isOwned ? '' : ' is-masked' }}{{ isPending ? ' is-pending' }}"
+                                     data-set-contents-target="tile"
+                                     data-name="{{ isOwned ? card.name|lower : '' }}"
+                                     data-rarity="{{ isOwned ? rarity : '' }}"
+                                     {% if isPending %}data-card-id="{{ cardId }}" data-pending-name="{{ card.name|lower }}" data-pending-rarity="{{ rarity }}"{% endif %}
+                                     {% if isOwned %}style="--tile-rar: var(--rarity-{{ rarity }});"{% endif %}>
+                                <div class="opening__card-art">
+                                    {% if isOwned or isPending %}
+                                        <img loading="lazy" src="{{ vich_uploader_asset(card) }}" alt="{{ isOwned ? card.name : '' }}"
+                                             {% if isPending %}hidden{% endif %}
+                                             onerror="this.onerror=null;this.src='{{ asset('images/cards/default_card.png') }}';">
+                                    {% endif %}
+                                    {% if not isOwned %}
+                                        <span class="opening__card-back" aria-hidden="true"
+                                              style="background-image: url('{{ asset('images/card-back.svg') }}');"></span>
+                                    {% endif %}
+                                </div>
+                                <p class="opening__card-name"{% if isPending %} data-reveal-name="{{ card.name }}"{% endif %}>{{ isOwned ? card.name : 'Non révélée' }}</p>
+                                {% if isOwned %}
+                                    <p class="opening__card-tier">{{ rarityLabels[rarity]|default(rarity) }}</p>
+                                {% elseif isPending %}
+                                    <p class="opening__card-tier" hidden data-reveal-tier="{{ rarityLabels[rarity]|default(rarity) }}"></p>
+                                {% endif %}
+                            </article>
+                        {% endfor %}
+                    </div>
+                    <p class="opening__set-empty" data-set-contents-target="empty" hidden>
+                        Aucune carte ne correspond à ta recherche.
+                    </p>
+                </div>
+
+                <button type="button" class="opening__set-top" hidden
+                        data-set-contents-target="top" data-action="set-contents#scrollTop"
+                        aria-label="Remonter en haut de la liste">↑ Haut</button>
+            </section>
 
         </aside>
 

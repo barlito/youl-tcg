@@ -78,8 +78,8 @@ final class BoosterOpening extends AbstractController
     }
 
     /**
-     * The extension's published cards ("set contents"), rarest last so the aside
-     * reads common → legendary like the reveal order.
+     * The extension's published cards ("set contents"), rarest FIRST then name —
+     * this is also the catalog order the aside numbers the cards by (n°1 = rarest).
      *
      * @return list<Card>
      */
@@ -90,8 +90,8 @@ final class BoosterOpening extends AbstractController
 
         usort(
             $cards,
-            static fn (Card $a, Card $b): int => [$rank[$a->getRarity()->value], $a->getName()]
-                <=> [$rank[$b->getRarity()->value], $b->getName()],
+            static fn (Card $a, Card $b): int => ($rank[$b->getRarity()->value] <=> $rank[$a->getRarity()->value])
+                ?: $a->getName() <=> $b->getName(),
         );
 
         return $cards;
@@ -155,11 +155,22 @@ final class BoosterOpening extends AbstractController
      * Card ids the user owns (or has owned). The set list masks every other card
      * as "?" so the opening only reveals what the player actually has / gets.
      *
+     * Cards FIRST acquired by the ongoing opening are excluded on purpose: the
+     * inventory is already credited when the component re-renders, and listing
+     * them would spoil the showcase before a single flip. They render as
+     * `is-pending` tiles that the reveal controller unmasks flip by flip.
+     *
      * @return array<string, true> card id => true
      */
     public function getOwnedCardIds(): array
     {
-        return array_fill_keys($this->userCardRepository->findOwnedCardIds($this->getDiscordUser()), true);
+        $owned = array_fill_keys($this->userCardRepository->findOwnedCardIds($this->getDiscordUser()), true);
+
+        foreach ($this->newCardIds as $cardId) {
+            unset($owned[$cardId]);
+        }
+
+        return $owned;
     }
 
     public function getOwnedCount(): int

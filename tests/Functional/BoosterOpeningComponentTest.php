@@ -57,6 +57,71 @@ final class BoosterOpeningComponentTest extends WebTestCase
         $this->assertSame($booster->getCardCount(), $totalCards);
     }
 
+    public function testSetContentsMasksUnownedCardsWithoutLeakingThem(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $booster = $this->firstPublishedBooster();
+
+        $component = $this->createLiveComponent(
+            BoosterOpening::class,
+            data: ['boosterId' => (string) $booster->getId()],
+            client: $client,
+        );
+
+        $crawler = new Crawler((string) $component->render());
+        $tiles = $crawler->filter('.opening__card-tile');
+        $this->assertGreaterThan(0, $tiles->count());
+
+        // Empty inventory, nothing opened yet: every tile is masked and carries
+        // no name, rarity, artwork url or unmask payload in the DOM.
+        $tiles->each(function (Crawler $tile): void {
+            $this->assertStringContainsString('is-masked', (string) $tile->attr('class'));
+            $this->assertSame('', (string) $tile->attr('data-name'));
+            $this->assertSame('', (string) $tile->attr('data-rarity'));
+            $this->assertNull($tile->attr('data-card-id'));
+            $this->assertSame('Non révélée', trim($tile->filter('.opening__card-name')->text()));
+            $this->assertCount(0, $tile->filter('img'));
+        });
+    }
+
+    public function testFreshlyDrawnCardsStayMaskedAsPendingUntilTheFlip(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $booster = $this->firstPublishedBooster();
+        $this->claim($user, $booster);
+
+        $component = $this->createLiveComponent(
+            BoosterOpening::class,
+            data: ['boosterId' => (string) $booster->getId()],
+            client: $client,
+        );
+        $component->call('open');
+
+        $crawler = new Crawler((string) $component->render());
+
+        // Empty inventory before the opening: every drawn card is new, so the set
+        // list must not unmask a single tile server-side — the reveal controller
+        // promotes the is-pending tiles flip by flip.
+        $this->assertCount(0, $crawler->filter('.opening__card-tile:not(.is-masked)'));
+
+        $pending = $crawler->filter('.opening__card-tile.is-pending');
+        $newCardIds = $component->component()->newCardIds;
+        $this->assertCount(\count($newCardIds), $pending);
+
+        $pending->each(function (Crawler $tile) use ($newCardIds): void {
+            // masked presentation…
+            $this->assertSame('', (string) $tile->attr('data-name'));
+            $this->assertSame('Non révélée', trim($tile->filter('.opening__card-name')->text()));
+            // …but the unmask payload is on board for the flip
+            $this->assertContains((string) $tile->attr('data-card-id'), $newCardIds);
+            $this->assertNotSame('', (string) $tile->attr('data-pending-name'));
+            $this->assertNotSame('', (string) $tile->attr('data-pending-rarity'));
+            $this->assertNotNull($tile->filter('img')->attr('hidden'), 'Pending artwork must stay hidden until the flip.');
+        });
+    }
+
     public function testRevealRendersCardsOrderedRarestLast(): void
     {
         $client = static::createClient();

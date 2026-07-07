@@ -14,9 +14,11 @@ import { Controller } from '@hotwired/stimulus';
  * `pack3d:opened` → `startReveal()`, which presents the drawn cards one at a time
  * in the centre showcase, each face-DOWN with the remaining cards stacked behind
  * it (packs.com style). Clicking the card flips it (3D rotateY) to reveal the
- * face — per-card state machine 'back' → 'flipping' → 'face' — which lights up the
- * matching card in the right-hand set list. Cards run common → rarest (climax
- * last); when the last one is up it surfaces the "open another / back" footer.
+ * face — per-card state machine 'back' → 'flipping' → 'face' — which flips the
+ * matching tile in the right-hand reveal tracker (zone 1 of the aside) from its
+ * back to the real card. Cards run common → rarest (climax last); when the last
+ * one is up it surfaces the "open another / back" footer. The lower aside zone
+ * (set contents: search/sort) is a separate `set-contents` controller.
  *
  * No anime.js: plain `setTimeout` timelines + CSS animations.
  */
@@ -44,7 +46,7 @@ const FLIP_MS = 560;
 export default class extends Controller {
     static targets = [
         'showcase', 'aura', 'label', 'card', 'flip', 'stack', 'next', 'counter',
-        'slot', 'best', 'revealedCount', 'flash', 'foot', 'cta',
+        'track', 'best', 'revealedCount', 'flash', 'foot', 'cta',
     ];
 
     static values = {
@@ -106,6 +108,14 @@ export default class extends Controller {
         // every card face-down again, nothing current
         this.cardTargets?.forEach((node) => node.classList.remove('is-current', 'is-pop'));
         this.flipTargets?.forEach((flip) => flip.classList.remove('is-flipped'));
+        // reveal tracker back to all-mystery
+        this.trackTargets?.forEach((tile) => {
+            tile.classList.remove('is-revealed', 'is-popping');
+            const name = tile.querySelector('.opening__track-name');
+            if (name) {
+                name.textContent = 'Non révélée';
+            }
+        });
         if (this.hasLabelTarget) {
             this.labelTarget.textContent = '';
             this.labelTarget.classList.remove('is-on');
@@ -114,12 +124,14 @@ export default class extends Controller {
         if (this.hasFootTarget) {
             this.footTarget.hidden = true;
         }
-        // the "carte suivante" button only surfaces once a card has been flipped
+        // The "carte suivante" button and counter keep their slot in the flow at all
+        // times — we only fade them (is-shown / is-hidden), never display:none them,
+        // so the centred showcase height stays constant and the card never jumps.
         if (this.hasNextTarget) {
-            this.nextTarget.hidden = true;
+            this.nextTarget.classList.remove('is-shown');
         }
         if (this.hasCounterTarget) {
-            this.counterTarget.hidden = false;
+            this.counterTarget.classList.remove('is-hidden');
             this.counterTarget.textContent = '';
         }
         // restore the tear CTA that _end() hides
@@ -215,7 +227,7 @@ export default class extends Controller {
         this.element.classList.remove('is-shiny');
 
         if (this.hasNextTarget) {
-            this.nextTarget.hidden = true;
+            this.nextTarget.classList.remove('is-shown');
         }
         // cards still waiting behind this one
         this._updateStack(this.lastIndex - index);
@@ -241,7 +253,7 @@ export default class extends Controller {
         const index = this.revealIndex;
         const isLast = index === this.lastIndex;
         const card = this.cardTargets[index];
-        const { rarity, cardId } = card.dataset;
+        const { rarity } = card.dataset;
         const color = RARITY_COLOR[rarity] || '#ffffff';
         const shiny = SHINY.has(rarity);
 
@@ -270,7 +282,8 @@ export default class extends Controller {
             this._flash(0.24, 140);
         }
 
-        this._lightSlot(cardId);
+        this._revealTrack(index);
+        this._unmaskSetTile(card.dataset.cardId);
         this._bumpBest(rarity);
         this._updateRevealedCount(index + 1);
         this._updateStack(this.lastIndex - index);
@@ -279,7 +292,7 @@ export default class extends Controller {
             // rarest card is last: it stays on screen and the loot/actions surface
             this._end();
         } else if (this.hasNextTarget) {
-            this.nextTarget.hidden = false;
+            this.nextTarget.classList.add('is-shown');
             if (this.hasCounterTarget) {
                 this.counterTarget.textContent = `${index + 1} / ${this.countValue} · CLIQUE POUR CONTINUER`;
             }
@@ -301,10 +314,10 @@ export default class extends Controller {
         // keep the last card on screen; retire the in-showcase prompt + tear CTA
         // and surface the back / open-another actions under the booster
         if (this.hasNextTarget) {
-            this.nextTarget.hidden = true;
+            this.nextTarget.classList.remove('is-shown');
         }
         if (this.hasCounterTarget) {
-            this.counterTarget.hidden = true;
+            this.counterTarget.classList.add('is-hidden');
         }
         if (this.hasCtaTarget) {
             this.ctaTarget.hidden = true;
@@ -325,8 +338,9 @@ export default class extends Controller {
         this.cardState = 'face';
         this.flipTargets.forEach((flip) => flip.classList.add('is-flipped'));
         this._updateStack(0);
-        this.cardTargets.forEach((card) => {
-            this._lightSlot(card.dataset.cardId);
+        this.cardTargets.forEach((card, index) => {
+            this._revealTrack(index);
+            this._unmaskSetTile(card.dataset.cardId);
             this._bumpBest(card.dataset.rarity);
         });
         this._updateRevealedCount(this.countValue);
@@ -344,19 +358,53 @@ export default class extends Controller {
         }
     }
 
-    // ----------------------------------------------------- set list (aside)
-    _lightSlot(cardId) {
-        const slot = this.slotTargets.find((node) => node.dataset.cardId === cardId);
-        if (!slot) {
+    // -------------------------------------------- reveal tracker (zone 1 aside)
+    // flip the matching tile in the top "Révélé x/N" grid from its back to the
+    // real card, in sync with the centre flip
+    _revealTrack(index) {
+        const tile = this.trackTargets[index];
+        if (!tile) {
             return;
         }
-        slot.classList.add('is-revealed');
-        // reveal the real name (masked as "???" until owned / revealed)
-        const nameEl = slot.querySelector('.opening__slot-name');
-        if (nameEl && slot.dataset.cardName) {
-            nameEl.textContent = slot.dataset.cardName;
+        tile.classList.add('is-revealed');
+        const nameEl = tile.querySelector('.opening__track-name');
+        if (nameEl && nameEl.dataset.name) {
+            nameEl.textContent = nameEl.dataset.name;
         }
-        this._retrigger(slot, 'is-popping');
+        this._retrigger(tile, 'is-popping');
+    }
+
+    // -------------------------------------------- set contents (zone 2 aside)
+    // A card FIRST won by this opening is server-rendered masked (`is-pending`,
+    // full data carried in data-* attributes) so the set list cannot spoil the
+    // showcase; flip by flip we promote its tile to the regular owned rendering.
+    _unmaskSetTile(cardId) {
+        if (!cardId) {
+            return;
+        }
+        this.element.querySelectorAll(`.opening__card-tile.is-pending[data-card-id="${cardId}"]`).forEach((tile) => {
+            tile.classList.remove('is-masked', 'is-pending');
+            tile.dataset.name = tile.dataset.pendingName || '';
+            tile.dataset.rarity = tile.dataset.pendingRarity || '';
+            if (tile.dataset.rarity) {
+                tile.style.setProperty('--tile-rar', `var(--rarity-${tile.dataset.rarity})`);
+            }
+            tile.querySelector('.opening__card-back')?.remove();
+            const img = tile.querySelector('img');
+            if (img) {
+                img.hidden = false;
+            }
+            const name = tile.querySelector('.opening__card-name');
+            if (name && name.dataset.revealName) {
+                name.textContent = name.dataset.revealName;
+            }
+            const tier = tile.querySelector('.opening__card-tier');
+            if (tier && tier.dataset.revealTier) {
+                tier.textContent = tier.dataset.revealTier;
+                tier.hidden = false;
+            }
+            this._retrigger(tile, 'is-popping');
+        });
     }
 
     _bumpBest(rarity) {

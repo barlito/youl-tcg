@@ -90,18 +90,20 @@
 .opening__pack-stage {
     position: relative;
     /* Size from the smallest of width AND height budgets (single dimension, so the
-     * aspect ratio is never distorted). The `58vh * 0.92` term caps the height to
-     * the viewport so the pack + CTA stay on screen on short displays. */
-    width: min(56vw, 700px, calc(58vh * 0.92));
+     * aspect ratio is never distorted). The `78vh * 0.92` term caps the height to
+     * the viewport so the pack + CTA stay on screen; the height budget is what
+     * usually wins on a desktop, giving a packs.com-sized canvas (~900-1100px on a
+     * tall screen) instead of the cramped ~640px the old 58vh/700px cap produced. */
+    width: min(54vw, 1180px, calc(78vh * 0.92));
     aspect-ratio: .92;
-    /* lift the optical centre toward ~44% of the view (it sat ~52% — centred below
-     * the 64px header — which read as "hanging low" with a big void on top) */
-    margin-top: clamp(-96px, -7vh, -24px);
+    /* small upward bias; the pack is now top-aligned inside the canvas (JS), so the
+     * heavy lifting is done there and we only nudge the stage up a touch */
+    margin-top: clamp(-48px, -2.5vh, -8px);
 }
 @media (max-width: 900px) {
     .opening__pack-stage {
-        width: min(86vw, 520px, calc(50vh * 0.92));
-        margin-top: -8px;
+        width: min(92vw, 640px, calc(56vh * 0.92));
+        margin-top: -6px;
     }
 }
 
@@ -120,7 +122,11 @@
     display: block;
     width: 100%;
     height: 100%;
-    /* fade the bottom so the model's folded seal blends off-frame (packs.com crops it) */
+    /* Fade the bottom so the model's folded seal blends off-frame (packs.com crops
+     * it). The cut is a PROPORTION of the canvas height: since the stage keeps a
+     * fixed .92 aspect, enlarging it scales the canvas uniformly and this fade
+     * stays pinned to the same spot on the model — no need to retune when the pack
+     * grows. (The mesh is also sunk in JS so the seal mostly runs off-canvas.) */
     -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
 }
@@ -176,6 +182,10 @@
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
     font-size: clamp(24px, 3.4vw, 38px);
+    line-height: 1.1;
+    /* reserve one line even while empty (face-down) so the rarity label appearing
+     * on reveal doesn't grow the showcase and shove the card up */
+    min-height: 1.1em;
     text-transform: uppercase;
     letter-spacing: -.02em;
     white-space: nowrap;
@@ -271,7 +281,13 @@
     letter-spacing: .15em;
     text-transform: uppercase;
     cursor: pointer;
+    /* always keep its slot in the flow — fade only, never display:none, so the
+     * centred showcase height stays constant and the card doesn't jump up */
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity .2s ease;
 }
+.opening__next.is-shown { visibility: visible; opacity: 1; }
 .opening__next:hover { border-color: var(--primary); }
 .opening__counter {
     z-index: 2;
@@ -280,7 +296,10 @@
     font-size: 10px;
     letter-spacing: .15em;
     color: #6a5a8a;
+    transition: opacity .2s ease;
 }
+/* hidden at the end of the opening, but its slot stays reserved (no layout shift) */
+.opening__counter.is-hidden { visibility: hidden; opacity: 0; }
 
 /* --------------------------------------------------- CTA / instruction line */
 .opening__cta {
@@ -314,95 +333,52 @@
 }
 .opening__skip:hover { border-color: var(--primary); color: var(--primary); }
 
-/* ------------------------------------------------ right: the set list (aside) */
+/* ============================ right: reveal tracker + set contents (aside) */
 .opening__panel {
     flex: 0 0 42%;
     display: flex;
     flex-direction: column;
     border-left: 1px solid #ffffff14;
     background: #140a26;
-    max-height: calc(100vh - 64px);
+    /* fixed so zone 2 can own its own scroll without growing the page */
+    height: calc(100vh - 64px);
+    min-height: 0;
 }
 @media (max-width: 900px) {
-    .opening__panel { flex: 0 0 auto; border-left: none; border-top: 1px solid #ffffff14; max-height: 56vh; }
+    .opening__panel { flex: 0 0 auto; border-left: none; border-top: 1px solid #ffffff14; height: auto; max-height: 72vh; }
 }
-.opening__panel-head {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    padding: 18px 18px 14px;
-    border-bottom: 1px solid #ffffff12;
-    background: #140a26;
+
+/* ----------------------------------------- zone 1: reveal tracker (pinned) */
+.opening__track {
+    flex: 0 0 auto;
+    padding: 16px 18px;
+    border-bottom: 1px solid #ffffff14;
+    background: #160c29;
 }
-.opening__panel-title {
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 700;
-    font-size: 17px;
-    letter-spacing: -.01em;
-    text-transform: uppercase;
-    color: #fff;
-}
-.opening__panel-sub {
-    margin-top: 4px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    letter-spacing: .08em;
-    color: #6a5a8a;
-}
-.opening__panel-best {
+.opening__track-head {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: space-between;
-    margin-top: 9px;
+    gap: 12px;
+    margin-bottom: 12px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
     color: #6a5a8a;
 }
-.opening__panel-best span { font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+.opening__track-count b { color: #fff; font-variant-numeric: tabular-nums; }
+.opening__track-count span { color: #b9a8cf; }
+.opening__track-best { text-align: right; }
+.opening__track-best span { display: block; margin-top: 3px; font-weight: 700; color: #fff; }
 
-.opening__slots {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    padding: 18px;
+.opening__track-grid {
     display: grid;
-    /* fixed-ish card size that stays sane whether the set has 3 cards or 300 —
-       auto-fill keeps a small set from blowing up to fill the column */
-    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-    gap: 18px 14px;
-    align-content: start;
-    justify-content: start;
+    grid-template-columns: repeat(var(--track-count, 3), minmax(0, 1fr));
+    gap: 10px;
 }
-@media (max-width: 560px) { .opening__slots { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); } }
-
-/* a card in the set: dimmed until it is drawn & revealed, then lit + framed */
-.opening__slot {
-    opacity: 1;
-    transition: opacity .45s ease;
-}
-.opening__slot.is-popping .opening__slot-img { animation: opening-slotPop .5s ease-out; }
-
-/* mystery slots: cards you don't own (and haven't owned) sit behind a card back
- * until you get them — revealed live in this opening, or already in your collection.
- * On reveal the back fades out and cross-dissolves into the real card art. */
-.opening__slot-img img { transition: opacity .4s ease; }
-.opening__slot[data-owned="0"]:not(.is-revealed) .opening__slot-img img { opacity: 0; }
-.opening__slot-back {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    background-color: #140a26;
-    background-position: center;
-    background-size: cover;
-    background-repeat: no-repeat;
-    opacity: 0;
-    transition: opacity .4s ease;
-    pointer-events: none;
-}
-.opening__slot[data-owned="0"]:not(.is-revealed) .opening__slot-back { opacity: 1; }
-
-.opening__slot-img {
+.opening__track-tile { min-width: 0; }
+.opening__track-img {
     position: relative;
     aspect-ratio: var(--card-aspect, .718);
     border-radius: 8px;
@@ -410,54 +386,51 @@
     border: 1.5px solid #ffffff14;
     background: #0c0618;
 }
-.opening__slot.is-revealed .opening__slot-img {
+.opening__track-tile.is-revealed .opening__track-img {
     border-color: var(--slot-rar, #ffffff33);
     box-shadow: 0 0 14px -2px var(--slot-rar, transparent), 0 8px 18px #0008;
 }
-.opening__slot-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
-
-/* badges only show once the slot is revealed */
-.opening__slot-holo,
-.opening__slot-qty,
-.opening__slot-new {
+.opening__track-tile.is-popping .opening__track-img { animation: opening-slotPop .5s ease-out; }
+.opening__track-img img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity .4s ease;
+}
+.opening__track-tile.is-revealed .opening__track-img img { opacity: 1; }
+.opening__track-back {
     position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: #140a26 center/cover no-repeat;
+    opacity: 1;
+    transition: opacity .4s ease;
+    pointer-events: none;
+}
+.opening__track-tile.is-revealed .opening__track-back { opacity: 0; }
+
+.opening__track-holo,
+.opening__track-new {
+    position: absolute;
+    z-index: 2;
     opacity: 0;
     transition: opacity .3s ease .2s;
+    padding: 1px 5px;
+    border-radius: 3px;
     font-family: 'JetBrains Mono', monospace;
     font-weight: 700;
     letter-spacing: .08em;
-}
-.opening__slot.is-revealed .opening__slot-holo,
-.opening__slot.is-revealed .opening__slot-qty,
-.opening__slot.is-revealed .opening__slot-new { opacity: 1; }
-.opening__slot-holo {
-    top: 5px;
-    right: 5px;
-    padding: 1px 5px;
-    border-radius: 3px;
     font-size: 8px;
     color: #0b0712;
-    background: linear-gradient(90deg, #ff3db0, #c9a0ff);
 }
-.opening__slot-qty {
-    bottom: 5px;
-    right: 5px;
-    padding: 1px 6px;
-    border-radius: 3px;
-    font-size: 10px;
-    color: #fff;
-    background: #000a;
-}
-.opening__slot-new {
-    top: 5px;
-    left: 5px;
-    padding: 1px 5px;
-    border-radius: 3px;
-    font-size: 8px;
-    color: #0b0712;
-    background: linear-gradient(90deg, var(--primary, #c9a0ff), #ff3db0);
-}
-.opening__slot-name {
+.opening__track-tile.is-revealed .opening__track-holo,
+.opening__track-tile.is-revealed .opening__track-new { opacity: 1; }
+.opening__track-holo { top: 5px; right: 5px; background: linear-gradient(90deg, #ff3db0, #c9a0ff); }
+.opening__track-new { top: 5px; left: 5px; background: linear-gradient(90deg, var(--primary, #c9a0ff), #ff3db0); }
+
+.opening__track-name {
     margin-top: 6px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 9.5px;
@@ -468,6 +441,179 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* ------------------------------------ zone 2: set contents (own scroll) */
+.opening__set {
+    position: relative;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.opening__set-head {
+    flex: 0 0 auto;
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid #ffffff12;
+    background: #140a26;
+}
+.opening__set-titleline {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.opening__set-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -.01em;
+    text-transform: uppercase;
+    color: #fff;
+}
+.opening__set-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .06em;
+    color: #6a5a8a;
+    text-align: right;
+}
+.opening__set-meta span { color: #b9a8cf; font-weight: 700; }
+
+.opening__set-controls { display: flex; gap: 8px; }
+.opening__search { position: relative; flex: 1 1 auto; }
+.opening__search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6a5a8a;
+    font-size: 14px;
+    pointer-events: none;
+}
+.opening__search-input {
+    width: 100%;
+    padding: 8px 30px 8px 28px;
+    background: #0c0618;
+    border: 1px solid #ffffff1f;
+    border-radius: 8px;
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+}
+.opening__search-input::placeholder { color: #6a5a8a; }
+.opening__search-input:focus { outline: none; border-color: var(--primary, #c9a0ff); }
+.opening__search-input::-webkit-search-cancel-button { display: none; }
+.opening__search-clear {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    background: transparent;
+    border: none;
+    color: #8a7aae;
+    cursor: pointer;
+    font-size: 11px;
+}
+.opening__search-clear:hover { color: #fff; }
+.opening__sort {
+    flex: 0 0 auto;
+    padding: 8px 10px;
+    background: #0c0618;
+    border: 1px solid #ffffff1f;
+    border-radius: 8px;
+    color: #cdbff0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+}
+.opening__sort:focus { outline: none; border-color: var(--primary, #c9a0ff); }
+
+.opening__set-scroll {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 16px 18px 24px;
+    min-height: 0;
+}
+.opening__set-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 16px 12px;
+    align-content: start;
+}
+@media (max-width: 560px) { .opening__set-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); } }
+
+.opening__card-tile { position: relative; min-width: 0; }
+.opening__card-art {
+    position: relative;
+    aspect-ratio: var(--card-aspect, .718);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1.5px solid var(--tile-rar, #ffffff1f);
+    background: #0c0618;
+    /* rarity halo */
+    box-shadow: 0 0 16px -4px var(--tile-rar, transparent), 0 8px 18px #0007;
+}
+.opening__card-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* masked (unowned) tile: card back, no halo, muted label */
+.opening__card-back {
+    position: absolute;
+    inset: 0;
+    background: #140a26 center/cover no-repeat;
+}
+.opening__card-tile.is-masked .opening__card-name { color: #6a5a8a; }
+/* freshly-won tile promoted by the reveal controller: same pop as the tracker */
+.opening__card-tile.is-popping .opening__card-art { animation: opening-slotPop .5s ease-out; }
+.opening__card-name {
+    margin-top: 6px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: #e7d8ff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.opening__card-tier {
+    margin-top: 1px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--tile-rar, #6a5a8a);
+}
+
+.opening__set-empty {
+    padding: 24px 8px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .06em;
+    color: #6a5a8a;
+}
+
+.opening__set-top {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 4;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid #a435f066;
+    background: #1a0f30ee;
+    color: #cdbff0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: .06em;
+    cursor: pointer;
+    box-shadow: 0 6px 18px #0008;
+}
+.opening__set-top:hover { border-color: var(--primary); color: #fff; }
 
 /* end-of-opening actions, grouped right under the revealed card (inside the
  * showcase, which is pointer-events:none once done — so re-enable them here) */
@@ -502,6 +648,7 @@
 .opening__flash.is-on { opacity: var(--flash, .3); }
 
 @media (prefers-reduced-motion: reduce) {
-    .opening__slot,
+    .opening__track-tile,
     .opening__reveal-card { animation: none !important; }
+    .opening__flip { transition: none !important; }
 }

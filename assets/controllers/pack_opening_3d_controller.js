@@ -46,6 +46,12 @@ const IDLE_ROCK_AMP = 0.1; // gentle yaw rock (rad)
 const IDLE_ROCK_SPEED = 0.55;
 const BASE_TILT = 0.1; // slight resting lean so the pack never reads flat
 
+// framing: scaled pack height (world units) and the gap kept above the tear band.
+// The view is ~3.78 units tall (camera z=6, fov 35°), so a height of 5.2 fills the
+// frame and overflows the bottom (the seal), which the CSS mask fades out.
+const PACK_FILL_HEIGHT = 5.2;
+const PACK_TOP_MARGIN = 0.15;
+
 // Front-face UV rect baked into the GLTF (U 0.111..0.896, V 0.085..0.996),
 // in pixels on the 1618×6672 sheet with flipY=false → pixelY = (1-V)·H.
 const SHEET = { w: 1618, h: 6672 };
@@ -136,11 +142,14 @@ export default class extends Controller {
         // glossy plastic-film reflections + a key/rim rig. The env hotspot lives
         // top-left, so tilting the pack sweeps a specular highlight across it.
         this.scene.environment = this._buildEnvironment();
+        // glossy foil rig. Key kept slightly more frontal (Y 3.5→2.4) so it doesn't
+        // rake the top edge as hard, but otherwise the punchy original values — the
+        // pale rim that looked like a "border" came from the texture frame, not here.
         const key = new THREE.DirectionalLight(0xffffff, 2.2);
-        key.position.set(-2.5, 3.5, 4);
+        key.position.set(-2.5, 2.4, 4.5);
         this.scene.add(key);
-        const rim = new THREE.DirectionalLight(0xc9a0ff, 1.3);
-        rim.position.set(3, 1.5, -2);
+        const rim = new THREE.DirectionalLight(0xc9a0ff, 1.2);
+        rim.position.set(3, 1.2, -2);
         this.scene.add(rim);
         this.scene.add(new THREE.AmbientLight(0xffffff, 0.3));
 
@@ -165,7 +174,7 @@ export default class extends Controller {
                 metalness: 0.6,
                 roughness: 0.28,
                 clearcoat: 1,
-                clearcoatRoughness: 0.18,
+                clearcoatRoughness: 0.22,
                 envMapIntensity: 1.4,
                 side: THREE.DoubleSide,
             });
@@ -183,10 +192,16 @@ export default class extends Controller {
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         this.pack.position.sub(center);
-        // fill most of the frame (packs.com immersion); headroom kept for the peel
-        // flap + idle bob so the pack never clips at the canvas edges
-        const fit = 4.6 / Math.max(size.x, size.y, size.z);
+        // packs.com framing: scale on the pack's HEIGHT so the body fills the frame,
+        // then TOP-ALIGN it — the top (pretty tear band) sits just inside the frame
+        // and the taller body runs off the bottom edge, where the folded seal is
+        // masked out in CSS. Computing the sink from the camera frustum keeps the
+        // pack glued to the top whatever the screen/canvas size (no magic offset).
+        const fit = PACK_FILL_HEIGHT / size.y;
         this.pack.scale.setScalar(fit);
+        const halfPack = (size.y * fit) / 2;
+        const halfView = this.camera.position.z * Math.tan((this.camera.fov * Math.PI / 180) / 2);
+        this.pack.position.y -= halfPack - (halfView - PACK_TOP_MARGIN);
         this.pivot = new THREE.Group();
         this.pivot.add(this.pack);
         this.scene.add(this.pivot);
@@ -227,6 +242,7 @@ export default class extends Controller {
             const texture = await new THREE.TextureLoader().loadAsync(value);
             texture.flipY = false; // glTF UV convention
             texture.colorSpace = THREE.SRGBColorSpace;
+            texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
 
             return texture;
         }
@@ -286,8 +302,12 @@ export default class extends Controller {
                 for (let x = 0; x < w; x++) {
                     // x-derivative of gentle vertical creases → R channel
                     const crease = Math.sin((x / w) * Math.PI * 26) * 32;
-                    // dense crimp ridges near the very top edge → extra wobble
-                    const crimp = y < 24 ? Math.sin((x / w) * Math.PI * 80) * 70 : 0;
+                    // Faint crimp ridges fading in toward the very top edge. Kept
+                    // subtle and feathered (no hard cutoff) so the tear band blends
+                    // with the body instead of catching a bright specular rim — the
+                    // old amplitude (70) + sharp y<24 cutoff lit a pale line along it.
+                    const crimpFalloff = Math.max(0, 1 - y / 28); // 1 at the top → 0 by ~28px
+                    const crimp = Math.sin((x / w) * Math.PI * 80) * 16 * crimpFalloff;
                     const i = (y * w + x) * 4;
                     data[i] = Math.max(0, Math.min(255, 128 + crease + crimp));
                     data[i + 1] = 128; // flat in Y
@@ -385,15 +405,20 @@ export default class extends Controller {
             ? await this._loadImage(this.logoUrlValue)
             : null;
 
+        // render the front at 3× — it gets stretched into a tall UV rect, so the
+        // extra resolution keeps the wordmark/logo/art from looking pixelated
+        const scale = 3;
         const front = document.createElement('canvas');
-        front.width = PACK_FRONT_W;
-        front.height = PACK_FRONT_H;
+        front.width = PACK_FRONT_W * scale;
+        front.height = PACK_FRONT_H * scale;
         drawPackFront(front.getContext('2d'), {
             hero,
             logo,
             name: this.hasExtensionNameValue ? this.extensionNameValue : '',
             count: this.hasCardCountValue && this.cardCountValue ? this.cardCountValue : 5,
             fallback,
+            scale,
+            border: false, // the chrome frame becomes a parasitic light rim on the 3D pack
         });
 
         const sheet = document.createElement('canvas');
@@ -420,6 +445,9 @@ export default class extends Controller {
         const texture = new THREE.CanvasTexture(sheet);
         texture.flipY = false;
         texture.colorSpace = THREE.SRGBColorSpace;
+        // the pack is always tilted in 3D — without anisotropy the angled surface
+        // samples the texture poorly and looks pixelated/aliased even at high res
+        texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
 
         return texture;
     }
@@ -486,11 +514,23 @@ export default class extends Controller {
 
     // lean toward the cursor anywhere on screen, normalised against the pack centre
     _trackPointer(event) {
-        const rect = this.element.getBoundingClientRect();
+        const zone = this._zoneEl || (this._zoneEl = this.element.closest('.opening__pack-col') || this.element);
+        const rect = zone.getBoundingClientRect();
+        // only react to the cursor inside the opening zone (left column) — hovering
+        // the set list on the right must not tilt the pack
+        if (
+            event.clientX < rect.left || event.clientX > rect.right
+            || event.clientY < rect.top || event.clientY > rect.bottom
+        ) {
+            this.pointer.x = 0;
+            this.pointer.y = 0;
+
+            return;
+        }
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
-        this.pointer.x = Math.max(-1, Math.min(1, (event.clientX - centerX) / (window.innerWidth / 2)));
-        this.pointer.y = Math.max(-1, Math.min(1, (event.clientY - centerY) / (window.innerHeight / 2)));
+        this.pointer.x = Math.max(-1, Math.min(1, (event.clientX - centerX) / (rect.width / 2)));
+        this.pointer.y = Math.max(-1, Math.min(1, (event.clientY - centerY) / (rect.height / 2)));
     }
 
     dragEnd() {
