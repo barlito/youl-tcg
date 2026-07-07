@@ -28,12 +28,28 @@ readonly class JwtAuthenticated
         }
 
         $tokenRoles = $payload['roles'] ?? [];
-        $userRoles = $user->getRoles();
 
-        if ($tokenRoles !== $userRoles) {
+        // Compare canonical sets: getRoles() always appends ROLE_USER, so a
+        // raw comparison against a token without it (or ordered differently)
+        // mismatches forever — flushing an UPDATE on every single request.
+        if ($this->normalize($tokenRoles) !== $this->normalize($user->getRoles())) {
             $user->setRoles($tokenRoles);
             $this->entityManager->persist($user);
             $this->entityManager->flush();
         }
+    }
+
+    /**
+     * @param list<string> $roles
+     *
+     * @return list<string>
+     */
+    private function normalize(array $roles): array
+    {
+        $roles[] = 'ROLE_USER';
+        $roles = array_values(array_unique($roles));
+        sort($roles);
+
+        return $roles;
     }
 }

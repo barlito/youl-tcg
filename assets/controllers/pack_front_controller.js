@@ -26,6 +26,10 @@ export default class extends Controller {
     };
 
     connect() {
+        // Stimulus reuses the instance when the element is detached then
+        // re-attached (e.g. a morph moving the node): re-arm the kill switch
+        // or the canvas would stay frozen on its last bitmap forever.
+        this._gone = false;
         this.element.width = PACK_FRONT_W;
         this.element.height = PACK_FRONT_H;
         this._redraw();
