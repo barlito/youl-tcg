@@ -14,7 +14,6 @@ use App\Enum\Entity\ExtensionStatusEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\Uid\Uuid;
 
 final class CollectionControllerTest extends WebTestCase
 {
@@ -97,7 +96,7 @@ final class CollectionControllerTest extends WebTestCase
 
     public function testExtensionFilterOnlyShowsItsCards(): void
     {
-        $crawler = $this->client->request('GET', '/collection?extension=' . $this->extensionA->getId());
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug());
 
         self::assertResponseIsSuccessful();
         $grid = $crawler->filter('[data-testid="collection-grid"]');
@@ -113,7 +112,7 @@ final class CollectionControllerTest extends WebTestCase
 
     public function testEmptyStateWhenNoCardOwnedInExtension(): void
     {
-        $crawler = $this->client->request('GET', '/collection?extension=' . $this->extensionB->getId());
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionB->getSlug());
 
         self::assertResponseIsSuccessful();
         $this->assertCount(0, $crawler->filter('[data-testid="collection-grid"]'));
@@ -122,16 +121,52 @@ final class CollectionControllerTest extends WebTestCase
 
     public function testUnknownExtensionIsNotFound(): void
     {
-        $this->client->request('GET', '/collection?extension=' . Uuid::v4());
+        // a well-formed but non-existent slug → controller 404
+        $this->client->request('GET', '/collection/this-extension-does-not-exist');
 
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testMalformedExtensionIsNotFound(): void
+    public function testMalformedSlugIsNotFound(): void
     {
-        $this->client->request('GET', '/collection?extension=not-a-uuid');
+        // chars outside the [a-z0-9-] route requirement → no route matches → 404
+        $this->client->request('GET', '/collection/Invalid_Slug');
 
         self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testLegacyExtensionQueryParamRedirectsToTheSlugRoute(): void
+    {
+        $this->client->request('GET', '/collection?extension=' . $this->extensionA->getId());
+
+        self::assertResponseRedirects('/collection/' . $this->extensionA->getSlug(), 301);
+    }
+
+    public function testLegacyExtensionQueryParamWithUnknownIdIsNotFound(): void
+    {
+        // the query-param filter 404ed on unknown values — the redirect keeps that contract
+        $this->client->request('GET', '/collection?extension=00000000-0000-0000-0000-000000000000');
+
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testGridOrdersOwnedCardsRarestFirst(): void
+    {
+        // a legendary and a rare on top of the owned commons — the grid must lead with them
+        $legendary = $this->createCard($this->extensionA, 'Rarity test legendary ' . uniqid(), rarity: CardRarityEnum::LEGENDARY);
+        $rare = $this->createCard($this->extensionA, 'Rarity test rare ' . uniqid(), rarity: CardRarityEnum::RARE);
+        $this->createUserCard($legendary, quantity: 1);
+        $this->createUserCard($rare, quantity: 1);
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/collection');
+
+        self::assertResponseIsSuccessful();
+        $names = $crawler->filter('[data-testid="collection-grid"] img[alt]')->extract(['alt']);
+        $names = array_values(array_filter($names, static fn (string $name): bool => '' !== $name));
+
+        $this->assertSame($legendary->getName(), $names[0] ?? null, 'Rarest card must come first.');
+        $this->assertSame($rare->getName(), $names[1] ?? null, 'Then the rare, before the commons.');
     }
 
     /**
@@ -172,13 +207,13 @@ final class CollectionControllerTest extends WebTestCase
         return $extension;
     }
 
-    private function createCard(Extension $extension, string $name, CardStatusEnum $status = CardStatusEnum::PUBLISHED): Card
+    private function createCard(Extension $extension, string $name, CardStatusEnum $status = CardStatusEnum::PUBLISHED, CardRarityEnum $rarity = CardRarityEnum::COMMON): Card
     {
         $card = new Card()
             ->setName($name)
             ->setDescription('Test card')
             ->setStatus($status)
-            ->setRarity(CardRarityEnum::COMMON)
+            ->setRarity($rarity)
             ->setExtension($extension)
         ;
         $card->setImageName('default_card.png');

@@ -17,16 +17,30 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 class CollectionController extends AbstractController
 {
-    #[Route('/collection', name: 'collection')]
+    #[Route('/collection/{slug}', name: 'collection', requirements: ['slug' => '[a-z0-9-]+'], defaults: ['slug' => null])]
     public function __invoke(
         Request $request,
         #[CurrentUser] DiscordUser $user,
         UserCardRepository $userCardRepository,
         ExtensionRepository $extensionRepository,
         BoosterClaimQuotaInterface $boosterClaimQuota,
+        ?string $slug = null,
     ): Response {
         $extensions = $extensionRepository->findPublishedWithPublishedCardCount();
-        $currentExtension = $this->resolveExtensionFilter($request, $extensions);
+
+        // Legacy pre-slug urls (/collection?extension=<uuid>): redirect to the slug
+        // route instead of silently ignoring the filter; unknown id stays a 404,
+        // the contract the query-param version already had.
+        $legacyId = $request->query->getString('extension');
+        if (null === $slug && '' !== $legacyId) {
+            return $this->redirectToRoute(
+                'collection',
+                ['slug' => $this->resolveLegacyExtensionId($legacyId, $extensions)->getSlug()],
+                Response::HTTP_MOVED_PERMANENTLY,
+            );
+        }
+
+        $currentExtension = $this->resolveExtensionFilter($slug, $extensions);
 
         $ownedByExtension = $userCardRepository->countOwnedGroupedByExtension($user);
 
@@ -58,26 +72,37 @@ class CollectionController extends AbstractController
     }
 
     /**
-     * Resolves the ?extension= query parameter against the published
-     * extensions already loaded: no Doctrine lookup, so a malformed uuid is
-     * a plain 404 instead of a conversion error.
-     *
      * @param list<array{extension: Extension, cardCount: int}> $extensions
      */
-    private function resolveExtensionFilter(Request $request, array $extensions): ?Extension
+    private function resolveLegacyExtensionId(string $id, array $extensions): Extension
     {
-        $extensionId = $request->query->getString('extension');
-
-        if ('' === $extensionId) {
-            return null;
-        }
-
         foreach ($extensions as $item) {
-            if ((string) $item['extension']->getId() === $extensionId) {
+            if (((string) $item['extension']->getId()) === $id) {
                 return $item['extension'];
             }
         }
 
-        throw $this->createNotFoundException(\sprintf('Unknown extension "%s".', $extensionId));
+        throw $this->createNotFoundException(\sprintf('Unknown extension "%s".', $id));
+    }
+
+    /**
+     * Resolves the {slug} route parameter against the published extensions already
+     * loaded: no extra Doctrine lookup, and an unknown slug is a plain 404.
+     *
+     * @param list<array{extension: Extension, cardCount: int}> $extensions
+     */
+    private function resolveExtensionFilter(?string $slug, array $extensions): ?Extension
+    {
+        if (null === $slug || '' === $slug) {
+            return null;
+        }
+
+        foreach ($extensions as $item) {
+            if ($item['extension']->getSlug() === $slug) {
+                return $item['extension'];
+            }
+        }
+
+        throw $this->createNotFoundException(\sprintf('Unknown extension "%s".', $slug));
     }
 }

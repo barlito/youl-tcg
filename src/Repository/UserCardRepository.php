@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\UserCard;
+use App\Enum\Entity\CardRarityEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -21,8 +22,8 @@ class UserCardRepository extends ServiceEntityRepository
     }
 
     /**
-     * Owned inventory entries (most recently obtained first), with the card
-     * and its extension eagerly hydrated for the collection grid.
+     * Owned inventory entries with the card and its extension eagerly hydrated for
+     * the collection grid, sorted by rarity (rarest first) then name.
      *
      * @return list<UserCard>
      */
@@ -36,7 +37,6 @@ class UserCardRepository extends ServiceEntityRepository
             ->andWhere('uc.discordUser = :user')
             ->andWhere('uc.quantity > 0 OR uc.holoQuantity > 0')
             ->setParameter('user', $discordUser)
-            ->orderBy('uc.updatedAt', 'DESC')
         ;
 
         if ($extension instanceof Extension) {
@@ -46,8 +46,22 @@ class UserCardRepository extends ServiceEntityRepository
             ;
         }
 
-        /** @var list<UserCard> */
-        return $queryBuilder->getQuery()->getResult();
+        /** @var list<UserCard> $cards */
+        $cards = $queryBuilder->getQuery()->getResult();
+
+        // Rarity is a string-backed enum (alphabetical ≠ rarity order), so rank it
+        // in PHP: rarest first, ties broken by name. The owned set is small.
+        $rank = array_flip(array_map(
+            static fn (CardRarityEnum $rarity): string => $rarity->value,
+            CardRarityEnum::ascending(),
+        ));
+        usort(
+            $cards,
+            static fn (UserCard $a, UserCard $b): int => ($rank[$b->getCard()->getRarity()->value] <=> $rank[$a->getCard()->getRarity()->value])
+                ?: $a->getCard()->getName() <=> $b->getCard()->getName(),
+        );
+
+        return $cards;
     }
 
     /**

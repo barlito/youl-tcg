@@ -74,14 +74,14 @@
                     {{ _self.filter_tab(path('collection'), 'Tout', ownedTotalDistinct, currentExtension is null) }}
                     {% for universe in universes %}
                         {{ _self.filter_tab(
-                            path('collection', { extension: universe.extension.id }),
+                            path('collection', { slug: universe.extension.slug }),
                             universe.extension.name,
                             universe.owned,
                             currentExtension is not null and currentExtension.id == universe.extension.id,
                         ) }}
                     {% endfor %}
                 </nav>
-                <span class="font-mono text-[11px] tracking-[.15em] text-ink-dim">TRI: RÉCENTS ↓</span>
+                <span class="font-mono text-[11px] tracking-[.15em] text-ink-dim">TRI: RARETÉ ↓</span>
             </div>
         </section>
 
