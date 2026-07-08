@@ -1,0 +1,104 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to rollback to (e.g. v1.2.0)"
+        required: true
+        type: string
+      skip-migration-rollback:
+        description: "Skip automatic migration rollback (if no schema changes between versions)"
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_HOST: ssh://${{ vars.SERVER_USERNAME }}@${{ vars.SERVER_HOST }}:${{ vars.SERVER_PORT }}
+      STACK_NAME: ytcg
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: 'true'
+          fetch-depth: 0
+
+      - name: Setup castor
+        uses: castor-php/setup-castor@v1.0.0
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p ${{ vars.SERVER_PORT }} ${{ vars.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_READ_WRITE_DELETE_ACCESS_TOKEN }}
+
+      - name: Detect migration version to rollback to
+        if: ${{ ! inputs.skip-migration-rollback }}
+        id: detect-migration
+        run: |
+          TARGET_TAG="${{ inputs.tag }}"
+
+          # List migration files present in the target tag
+          TARGET_MIGRATIONS=$(git ls-tree -r --name-only "$TARGET_TAG" -- migrations/ 2>/dev/null | grep 'Version' | sort)
+
+          if [ -z "$TARGET_MIGRATIONS" ]; then
+            echo "No migrations found in target tag $TARGET_TAG"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            echo "has_diff=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # List current migration files
+          CURRENT_MIGRATIONS=$(find migrations/ -name 'Version*.php' 2>/dev/null | sort)
+
+          # Find migrations that exist now but NOT in the target tag (added after target)
+          NEW_MIGRATIONS=$(comm -23 <(echo "$CURRENT_MIGRATIONS") <(echo "$TARGET_MIGRATIONS"))
+
+          if [ -z "$NEW_MIGRATIONS" ]; then
+            echo "No new migrations since $TARGET_TAG — no rollback needed"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            echo "has_diff=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Migrations added since $TARGET_TAG:"
+          echo "$NEW_MIGRATIONS"
+
+          # The target version is the latest migration that EXISTS in the target tag
+          LATEST_TARGET=$(echo "$TARGET_MIGRATIONS" | tail -1)
+          # Extract class name from filename: migrations/Version20240101120000.php → DoctrineMigrations\Version20240101120000
+          VERSION_CLASS=$(basename "$LATEST_TARGET" .php)
+          DOCTRINE_VERSION="DoctrineMigrations\\${VERSION_CLASS}"
+
+          echo "Will rollback to: $DOCTRINE_VERSION"
+          echo "version=$DOCTRINE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "has_diff=true" >> "$GITHUB_OUTPUT"
+
+      - name: Backup database before rollback
+        run: make db.backup
+
+      - name: Rollback Doctrine migrations
+        if: ${{ ! inputs.skip-migration-rollback && steps.detect-migration.outputs.has_diff == 'true' }}
+        run: |
+          echo "Rolling back migrations to ${{ steps.detect-migration.outputs.version }}..."
+          docker exec -t $(docker ps --filter name="${STACK_NAME}_php" -q | head -1) \
+            bin/console doctrine:migrations:migrate "${{ steps.detect-migration.outputs.version }}" --no-interaction
+
+      - name: Rollback main service
+        run: |
+          make docker.service.update args="--image barlito/youl-tcg:${{ inputs.tag }} ${STACK_NAME}_php"
+          castor barlito:castor:wait-php-container
+
+      - name: Smoke test
+        run: make smoke.test
