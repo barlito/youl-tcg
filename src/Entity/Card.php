@@ -183,10 +183,13 @@ class Card
         return $this;
     }
 
-    public function getExtension(): Extension
+    /**
+     * Nullable on purpose: EasyAdmin reads every field of the EMPTY entity on
+     * the "new" form — a strict getter turns that page into a 500. A persisted
+     * card always has one (NotBlank + JoinColumn non-null).
+     */
+    public function getExtension(): ?Extension
     {
-        \assert($this->extension instanceof Extension);
-
         return $this->extension;
     }
 

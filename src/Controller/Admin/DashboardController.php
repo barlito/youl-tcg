@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
-use App\Entity\Booster;
-use App\Entity\Card;
-use App\Entity\Extension;
-use App\Entity\ExtensionBanner;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
@@ -45,10 +41,11 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToDashboard('Dashboard', 'fa fa-home');
 
         yield MenuItem::section('Card Settings');
-        yield MenuItem::linkToCrud('Cards', 'fas fa-wallet', Card::class);
-        yield MenuItem::linkToCrud('Extensions', 'fa fa-chart-bar', Extension::class);
-        yield MenuItem::linkToCrud('Bannières d\'univers', 'fa fa-image', ExtensionBanner::class);
-        yield MenuItem::linkToCrud('Boosters', 'fa fa-box-open', Booster::class);
+        yield MenuItem::linkTo(CardCrudController::class, 'Cards', 'fas fa-wallet');
+        yield MenuItem::linkToRoute('Ajout en masse', 'fa fa-images', 'admin_cards_batch');
+        yield MenuItem::linkTo(ExtensionCrudController::class, 'Extensions', 'fa fa-chart-bar');
+        yield MenuItem::linkTo(ExtensionBannerCrudController::class, 'Bannières d\'univers', 'fa fa-image');
+        yield MenuItem::linkTo(BoosterCrudController::class, 'Boosters', 'fa fa-box-open');
 
         yield MenuItem::section('Aide');
         yield MenuItem::linkToRoute('Guide admin', 'fa fa-book', 'admin_guide');

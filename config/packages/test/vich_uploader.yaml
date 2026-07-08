@@ -1,0 +1,17 @@
+# En test, les uploads partent dans le cache du kernel : les tests d'upload
+# (batch de cartes…) ne doivent pas semer de fichiers dans public/images,
+# qui est un volume de contenu réel.
+vich_uploader:
+    mappings:
+        cards:
+            upload_destination: '%kernel.cache_dir%/uploads/cards'
+        boosters:
+            upload_destination: '%kernel.cache_dir%/uploads/boosters'
+        extensions:
+            upload_destination: '%kernel.cache_dir%/uploads/extensions'
+        banners:
+            upload_destination: '%kernel.cache_dir%/uploads/banners'
+        masks:
+            upload_destination: '%kernel.cache_dir%/uploads/masks'
+        foils:
+            upload_destination: '%kernel.cache_dir%/uploads/foils'
