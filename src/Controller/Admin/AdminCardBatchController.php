@@ -71,13 +71,15 @@ class AdminCardBatchController extends AbstractController
             $this->entityManager->flush();
 
             $this->addFlash('success', \sprintf(
-                '%d carte(s) créée(s) en brouillon dans « %s » — noms dérivés des fichiers, descriptions à compléter.',
+                '%d carte(s) créée(s) en brouillon dans « %s » — noms dérivés des fichiers, descriptions à compléter (CRUD Cards).',
                 \count($data['images']),
                 $data['extension']->getName(),
             ));
 
+            // redirect vers la page elle-même (route custom) : générer une URL
+            // d'action CRUD sans pretty URLs est déprécié par EasyAdmin 4.14+
             return $this->redirect(
-                $this->adminUrlGenerator->setController(CardCrudController::class)->setAction('index')->generateUrl(),
+                $this->adminUrlGenerator->setRoute('admin_cards_batch')->generateUrl(),
             );
         }
 
