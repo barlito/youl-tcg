@@ -10,7 +10,7 @@ jobs:
 
     permissions:
       contents: read
-      # écriture du buildcache sur GHCR (login GITHUB_TOKEN natif)
+      # buildcache is written to GHCR (native GITHUB_TOKEN login)
       packages: write
 
     steps:
@@ -18,12 +18,12 @@ jobs:
         with:
           submodules: 'true'
 
-      # Buildx + cache type=registry permettent de réutiliser les layers Docker
-      # entre runs, indépendamment du ref Git. type=gha aurait été branch-scoped
-      # → chaque tag aurait son cache isolé. Le cache vit sur GHCR (gratuit,
-      # sans rate limit) et PAS sur Docker Hub : chaque layer de cache compte
-      # comme un pull dans le quota du compte (~200/6h en plan gratuit) — c'est
-      # ce qui a fait tomber la release v1.0.1 en 429 un jour de CI chargée.
+      # Buildx + type=registry cache reuse Docker layers across runs regardless
+      # of the Git ref. type=gha would be ref-scoped → every tag would get an
+      # isolated, empty cache. The cache lives on GHCR (free, no rate limit)
+      # and NOT on Docker Hub: every cache layer counts as a pull against the
+      # account quota (~200/6h on the free plan) — that's what 429'd the
+      # v1.0.1 release on a busy CI day.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
