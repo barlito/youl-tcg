@@ -206,6 +206,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 ### Configuration Notes
 
 **Environment Variables (required):**
+- `APP_SECRET`: kernel secret (signs Live Component checksums — an empty value 500s every page rendering one, hub and admin included)
 - `DATABASE_URL`: PostgreSQL connection string
 - `JWT_SECRET_KEY`: Path to JWT private key
 - `JWT_PUBLIC_KEY`: Path to JWT public key
