@@ -177,8 +177,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 **Asset Pipeline:**
 - Uses Symfony AssetMapper (no Webpack/build step)
 - Importmap manages dependencies
-- Flowbite UI components for carousels and dropdowns
-- Tailwind CSS for styling
+- Tailwind CSS for styling (carousels are the in-house `carousel` Stimulus controller)
 
 ### File Uploads
 
