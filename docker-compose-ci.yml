@@ -5,6 +5,12 @@ services:
     db:
         container_name: ytcg_db
 
+    # un override ne peut pas supprimer un service : le profile jamais activé
+    # fait ignorer adminer par pull/build/up — inutile en CI, il comptait pour
+    # un tiers des pulls Docker Hub de chaque job (quota du compte)
+    adminer:
+        profiles: [jamais-en-ci]
+
 networks:
     traefik_traefik_proxy:
         external: false
