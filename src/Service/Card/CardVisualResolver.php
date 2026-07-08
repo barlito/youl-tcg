@@ -31,6 +31,10 @@ final readonly class CardVisualResolver
     public function resolve(Card $card): ResolvedCardVisual
     {
         $extension = $card->getExtension();
+
+        if (!$extension instanceof Extension) {
+            throw new \LogicException(\sprintf('Card "%s" has no extension: only persisted cards can be visually resolved.', $card->getName()));
+        }
         $override = $card->getVisualConfigOverride();
         $config = $extension->getVisualConfig();
 
