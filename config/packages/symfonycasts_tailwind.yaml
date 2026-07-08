@@ -1,0 +1,5 @@
+symfonycasts_tailwind:
+    # sans épinglage, le bundle télécharge le DERNIER CLI Tailwind (v4) sur tout
+    # environnement froid (image CI, prod) — incompatible avec notre setup v3
+    # (tailwind.config.js + directives @tailwind). À bumper avec la migration v4.
+    binary_version: 'v3.4.17'
