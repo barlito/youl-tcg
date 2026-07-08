@@ -1,0 +1,22 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}🖼️ Ajout de cartes en masse{% endblock %}
+
+{% block main %}
+    <div style="max-width: 720px;">
+        <p>
+            Une carte est créée <strong>par fichier uploadé</strong> : nom dérivé du nom de
+            fichier (<code>ahri_kda.png</code> → « Ahri Kda »), statut <strong>Draft</strong>,
+            description à compléter. Tu affines ensuite chaque carte (description, visuel,
+            mask/foil) depuis le CRUD Cards avant de publier — rien n'est visible des joueurs
+            tant que la carte n'est pas publiée.
+        </p>
+
+        {{ form_start(form) }}
+            <div class="mb-3">{{ form_row(form.extension) }}</div>
+            <div class="mb-3">{{ form_row(form.rarity) }}</div>
+            <div class="mb-3">{{ form_row(form.images) }}</div>
+            <button type="submit" class="btn btn-primary">Créer les cartes</button>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}
