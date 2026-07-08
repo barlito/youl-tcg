@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "32369721db7a15db40d132e9626939b9",
+    "content-hash": "f23784a1c9bdeed32623d5942d6f104b",
     "packages": [
         {
             "name": "barlito/utils",
