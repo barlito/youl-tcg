@@ -17,11 +17,11 @@
                     <h1 class="mt-6 font-display text-[clamp(2.75rem,4.8vw,6rem)] font-bold uppercase leading-[.9] tracking-[-0.05em] text-ink-strong">
                         Ouvre.<br>
                         <span class="text-primary">Collectionne.</span><br>
-                        <span class="bg-gradient-to-r from-primary to-magenta bg-clip-text text-transparent">Frime.</span>
+                        <span class="bg-gradient-to-r from-primary to-magenta bg-clip-text text-transparent">Gros Youl.</span>
                     </h1>
                     <p class="mt-7 max-w-md text-[17px] leading-normal text-ink-muted">
-                        Le TCG fan-made où tous tes univers préférés s'affrontent.
-                        Ouvre tes packs quotidiens, chasse les légendaires et complète ta collection.
+                        Le TCG youl-made où tous tes univers préférés s'affrontent.
+                        Ouvre tes packs quotidiens, chasse les légendaires et complète ta collection de gros youl.
                     </p>
                     <div class="mt-8 flex flex-wrap gap-3">
                         <a href="{{ path('boosters') }}" class="btn-arcade">Ouvrir un pack ▸</a>
@@ -66,6 +66,7 @@
             '✦ %d cartes à collectionner'|format(cardsTotal),
             '✦ 2 packs / jour',
             '✦ %d paliers de rareté'|format(rarities|length),
+            '✦ 100 % youl-made',
         ] %}
         {# La boucle marquee = 2 copies de la piste, translateX(-50%). Chaque
            copie répète les items 3× pour rester plus large que le viewport :
