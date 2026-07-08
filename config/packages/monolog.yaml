@@ -44,8 +44,11 @@ when@prod:
                 type: stream
                 path: php://stdout
                 level: info
+                # deprecations are dev/CI concerns (phpunit failOnDeprecation is
+                # the guard rail) — in prod they only flood stdout on every hit
+                channels: ["!deprecation"]
 
             console:
                 type: console
                 process_psr_3_messages: false
-                channels: ["!event", "!doctrine"]
+                channels: ["!event", "!doctrine", "!deprecation"]
