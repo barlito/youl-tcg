@@ -40,8 +40,14 @@ db.backup:
 # Tailwind est requis pour rendre base.html.twig (TailwindCssAssetCompiler lève
 # une exception si var/tailwind/tailwind.built.css est absent) — nécessaire en CI
 # avant les tests fonctionnels qui rendent des pages.
+# Retry : au premier build, le bundle télécharge son binaire depuis GitHub
+# Releases, qui 504 par intervalles (2 runs cassés le 2026-07-09) — une fois
+# le binaire présent (cache CI ou var/tailwind local), plus aucun réseau.
 tailwind.build:
-	docker exec -t $(app_container_id) bin/console tailwind:build --minify
+	@for i in 1 2 3 4 5; do \
+		docker exec -t $(app_container_id) bin/console tailwind:build --minify && exit 0; \
+		echo "tailwind:build KO (tentative $$i/5) — retry dans 20s"; sleep 20; \
+	done; echo "tailwind:build KO après 5 tentatives"; exit 1
 
 # Smoke test : curl GET / → fail si non-2xx. Sert de garde-fou post-deploy/update.
 smoke.test:
