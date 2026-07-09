@@ -87,6 +87,48 @@ final class HomepageTest extends WebTestCase
         $this->assertStringNotContainsString($draftExtension->getName(), $grid);
     }
 
+    public function testLiveBadgeOnlyShowsWithAClaimableBooster(): void
+    {
+        $this->authenticateClient($this->client);
+
+        // two fresh published universes: they take the newest featured slots
+        $liveExtension = $this->createPublishedExtension('Univers live ' . uniqid());
+        $this->entityManager->persist(
+            new Booster()
+                ->setExtension($liveExtension)
+                ->setName('Pack Claimable Home')
+                ->setRarityRates([['rarities' => ['common' => 100], 'holoChance' => 0]]),
+        );
+        $silentExtension = $this->createPublishedExtension('Univers silencieux ' . uniqid());
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        $badgeIn = static fn (Extension $extension): int => $crawler
+            ->filterXPath(\sprintf(
+                '//article[.//a[@href="/univers/%s"]]//*[@data-testid="live-badge"]',
+                $extension->getSlug(),
+            ))
+            ->count()
+        ;
+
+        $this->assertSame(1, $badgeIn($liveExtension));
+        $this->assertSame(0, $badgeIn($silentExtension));
+    }
+
+    private function createPublishedExtension(string $name): Extension
+    {
+        $extension = new Extension()
+            ->setName($name)
+            ->setDescription('Extension de test homepage')
+            ->setStatus(ExtensionStatusEnum::PUBLISHED)
+        ;
+        $this->entityManager->persist($extension);
+
+        return $extension;
+    }
+
     public function testHomepageSurvivesEmptyDayCards(): void
     {
         $this->authenticateClient($this->client);

@@ -59,6 +59,38 @@ final class UniverseControllerTest extends WebTestCase
         );
     }
 
+    public function testLiveBadgeOnlyShowsWithAClaimableBooster(): void
+    {
+        // a published universe whose only booster is event-only (non claimable)
+        $eventExtension = new Extension()
+            ->setName('Univers event ' . uniqid())
+            ->setDescription('Distribution par code uniquement')
+            ->setStatus(ExtensionStatusEnum::PUBLISHED)
+        ;
+        $this->entityManager->persist($eventExtension);
+        $this->entityManager->persist(
+            new Booster()
+                ->setExtension($eventExtension)
+                ->setName('Pack Event Only')
+                ->setClaimable(false)
+                ->setRarityRates([['rarities' => ['common' => 100], 'holoChance' => 0]]),
+        );
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/univers');
+
+        self::assertResponseIsSuccessful();
+        $grid = $crawler->filter('[data-testid="universes-grid"]');
+        $badgeIn = static fn (string $slug): int => $grid
+            ->filter(\sprintf('a[href="/univers/%s"] [data-testid="live-badge"]', $slug))
+            ->count()
+        ;
+
+        // the scenario extension has a claimable booster, the event one doesn't
+        $this->assertSame(1, $badgeIn($this->extension->getSlug()));
+        $this->assertSame(0, $badgeIn($eventExtension->getSlug()));
+    }
+
     public function testShowRendersHeroWithFullDescriptionAndStats(): void
     {
         $crawler = $this->client->request('GET', '/univers/' . $this->extension->getSlug());
