@@ -61,6 +61,7 @@ class UniverseController extends AbstractController
                 'owned' => $owned,
                 'percentage' => $item['cardCount'] > 0 ? (int) round($owned / $item['cardCount'] * 100) : 0,
                 'coverImage' => $coverImages[$extensionId] ?? null,
+                'hasClaimableBooster' => $item['hasClaimableBooster'],
             ];
         }, $extensions);
 

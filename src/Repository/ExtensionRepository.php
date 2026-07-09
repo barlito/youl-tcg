@@ -22,14 +22,19 @@ class ExtensionRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return list<array{extension: Extension, cardCount: int}>
+     * hasClaimableBooster drives the LIVE badge on the universe tiles: an
+     * universe is "live" only when at least one of its boosters is claimable.
+     *
+     * @return list<array{extension: Extension, cardCount: int, hasClaimableBooster: bool}>
      */
     public function findPublishedWithPublishedCardCount(): array
     {
-        /** @var list<array{0: Extension, cardCount: string|int}> $rows */
+        // both joins fan out the rows, hence the DISTINCT counts
+        /** @var list<array{0: Extension, cardCount: string|int, claimableBoosterCount: string|int}> $rows */
         $rows = $this->createQueryBuilder('e')
-            ->select('e', 'COUNT(c.id) AS cardCount')
+            ->select('e', 'COUNT(DISTINCT c.id) AS cardCount', 'COUNT(DISTINCT b.id) AS claimableBoosterCount')
             ->leftJoin('e.cards', 'c', 'WITH', 'c.status = :cardStatus')
+            ->leftJoin('e.boosters', 'b', 'WITH', 'b.claimable = true')
             ->andWhere('e.status = :status')
             ->setParameter('cardStatus', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
             ->setParameter('status', ExtensionStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
@@ -40,7 +45,11 @@ class ExtensionRepository extends ServiceEntityRepository
         ;
 
         return array_map(
-            static fn (array $row): array => ['extension' => $row[0], 'cardCount' => (int) $row['cardCount']],
+            static fn (array $row): array => [
+                'extension' => $row[0],
+                'cardCount' => (int) $row['cardCount'],
+                'hasClaimableBooster' => (int) $row['claimableBoosterCount'] > 0,
+            ],
             $rows,
         );
     }
