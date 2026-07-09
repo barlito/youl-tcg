@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Admin\Field\ImageField as VichImageField;
+use App\Admin\FoilSizeSliderScript;
+use App\Dto\VisualConfig;
 use App\Entity\Card;
 use App\Enum\Card\CardEffectEnum;
 use App\Enum\Card\FoilTextureEnum;
@@ -28,6 +30,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
+use Symfony\Component\Form\Extension\Core\Type\RangeType;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
@@ -209,7 +212,7 @@ class CardCrudController extends AbstractCrudController
                     const query = new URLSearchParams({ live: '1' });
                     const json = jsonValue().trim();
                     if (json && json !== '[]' && json !== '{}') { query.set('json', json); }
-                    for (const [key, input] of [['holoEffect', field('holoEffect')], ['foilTexture', field('foilTexture')]]) {
+                    for (const [key, input] of [['holoEffect', field('holoEffect')], ['foilTexture', field('foilTexture')], ['foilSize', field('foilSize')]]) {
                         if (input && input.value) { query.set(key, input.value); }
                     }
                     const glow = field('glowColor');
@@ -224,7 +227,7 @@ class CardCrudController extends AbstractCrudController
                 setInterval(refresh, 1500); // catches CodeMirror edits that fire no form event
             })();
             </script>
-            HTML);
+            HTML)->addHtmlContentToBody(FoilSizeSliderScript::HTML);
     }
 
     /**
@@ -293,7 +296,7 @@ class CardCrudController extends AbstractCrudController
             ->setLabel('Avancé (JSON)')
             ->setLanguage('js')
             ->onlyOnForms()
-            ->setHelp('Keys: glow, borderColor, cssClass, holoEffect, foilTexture. The selects below win over their JSON key.')
+            ->setHelp('Keys: glow, borderColor, cssClass, holoEffect, foilTexture, foilSize (10-100, 100 = cover). The selects below win over their JSON key.')
         ;
         yield ChoiceField::new('holoEffect')
             ->setLabel('Holo preset')
@@ -304,6 +307,18 @@ class CardCrudController extends AbstractCrudController
             ->setLabel('Foil texture (library)')
             ->setHelp('Bundled foil used when no foil file is uploaded')
             ->setChoices($this->foilTextureChoices())
+            ->onlyOnForms()
+        ;
+        yield Field::new('foilSize')
+            ->setLabel('Foil zoom')
+            ->setFormType(RangeType::class)
+            ->setFormTypeOption('attr', [
+                'min' => VisualConfig::FOIL_SIZE_AUTO,
+                'max' => VisualConfig::FOIL_SIZE_MAX,
+                'step' => 5,
+                'data-foil-size' => '',
+            ])
+            ->setHelp('Taille du foil : tout à gauche = Auto (réglage du preset), 100 % = cover (pleine carte), entre les deux = motif tilé de N % de la largeur')
             ->onlyOnForms()
         ;
         yield ColorField::new('glowColor')

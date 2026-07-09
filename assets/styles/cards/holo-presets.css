@@ -107,7 +107,8 @@
             rgba(181, 139, 164, 0.5) 50%,
             hsl(0, 0%, 0%) 60%
         );
-    background-size: cover, cover;
+    /* la couche foil suit --imgsize (slider foilSize) ; cover par défaut via .card */
+    background-size: var(--imgsize), cover;
     background-position: center center, center center;
     background-blend-mode: color-burn;
     mix-blend-mode: lighten;
@@ -375,7 +376,8 @@
 .card.holo--trainer .card__shine:after {
     --space: 5%;
     --angle: 133deg;
-    --imgsize: cover;
+    /* pas de --imgsize ici : le cover vient du défaut partagé de .card, et une
+       déclaration sur .card__shine battrait le slider foilSize (inline) */
     /* fallback: a masked card without its own foil must keep the trainer look
        (the :not(.masked) rule below can't reach it, and an unset var() kills
        the whole background-image) */
@@ -463,19 +465,20 @@
     background-size: 170% 170%;
 }
 
-/* trainer foil default (upstream :not(.masked)) — trainerbg est déclaré sur
-   .card et non sur .card__shine : une custom property posée sur l'élément
-   lui-même bat toujours la valeur héritée (style inline du composant
-   compris), ce qui écrasait le foil uploadé / foilTexture de bibliothèque.
-   Déclaré sur le parent, c'est un simple défaut que l'inline surclasse. */
+/* trainer foil default (upstream :not(.masked)) — trainerbg et le tiling 20%
+   sont déclarés sur .card et non sur .card__shine : une custom property posée
+   sur l'élément lui-même bat toujours la valeur héritée (style inline du
+   composant compris), ce qui écrasait le foil uploadé / foilTexture de
+   bibliothèque et le zoom foilSize. Déclarés sur le parent, ce sont de
+   simples défauts que l'inline surclasse. */
 .card.holo--trainer:not(.masked) {
     --foil: url('/images/holo/poke/trainerbg.png');
+    --imgsize: 20%;
 }
 
 .card.holo--trainer:not(.masked) .card__shine,
 .card.holo--trainer:not(.masked) .card__shine:after {
     --mask: none;
-    --imgsize: 20%;
     background-blend-mode: color-burn, hue, hard-light;
     filter: brightness(calc((var(--pointer-from-center)*0.05) + .6)) contrast(1.5) saturate(1.2);
 }

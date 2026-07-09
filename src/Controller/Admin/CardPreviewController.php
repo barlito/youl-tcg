@@ -65,7 +65,9 @@ class CardPreviewController extends AbstractController
             }
         }
 
-        foreach (['holoEffect', 'foilTexture', 'glow'] as $key) {
+        // foilSize inclus : la position « Auto » du slider (sous FOIL_SIZE_MIN)
+        // est neutralisée par la validation de fromArray, comme à la sauvegarde
+        foreach (['holoEffect', 'foilTexture', 'glow', 'foilSize'] as $key) {
             $value = $request->query->getString($key);
             if ('' !== $value) {
                 $data[$key] = $value;

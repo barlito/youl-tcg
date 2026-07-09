@@ -95,6 +95,33 @@ A **per-card or per-extension** foil/mask uploaded in the BO (Vich, stored in
 `public/uploads/foils|masks/`, git-ignored) overrides the preset default via the
 inline `--foil` / `--mask` vars emitted by `CardComponent`.
 
+### Foil zoom (`foilSize` / `--imgsize`)
+
+The rendered size of the foil layer is driven by the `--imgsize` custom
+property (consumed by the presets that draw `--foil`: `shine` and `trainer`):
+`cover` stretches the texture over the whole card, `N%` tiles it as a repeated
+motif of N % of the card width. Defaults: `cover` everywhere (shared `.card`
+default), except the trainer preset on a non-masked card (20 % tiling,
+declared as a **parent-level default** on `.card.holo--trainer:not(.masked)`
+so the inline value can always win). The BO exposes it as the `foilSize`
+slider / JSON key (`10`–`100`, `100` = cover, resolved card → extension); any
+new preset that renders `--foil` should size that layer with `var(--imgsize)`
+to stay compatible with the slider.
+
+### Adding a library foil texture (`FoilTextureEnum`)
+
+Drop the file in `public/images/holo/poke/`, add a case to
+`App\Enum\Card\FoilTextureEnum` (`url()` + `label()`) — the BO selects pick it
+up automatically. Sizing guidelines (based on the bundled set — ancient and
+geometric are 300×300, trainerbg 208×208, vmaxbg 600×400):
+
+- **~300×300 px, square** is the sweet spot: big enough to stay sharp in
+  `cover` on a card, small enough to tile nicely at low `foilSize` values;
+- **seamless/tileable** if possible — with the `foilSize` slider any texture
+  can be tiled, and visible seams break the effect;
+- keep it light (**< 100 KB**, PNG/WebP/JPEG): the texture loads on every
+  card of a grid.
+
 > For the practical, step-by-step guide on configuring a card and **authoring a
 > good foil and mask**, see [`docs/card-setup-guide.md`](./card-setup-guide.md).
 
@@ -144,7 +171,8 @@ along with the rarity recipes.)
 
 ## How this maps to the back office (this app only)
 
-The visual keys (`glow`, `borderColor`, `cssClass`, `holoEffect`) live in the
+The visual keys (`glow`, `borderColor`, `cssClass`, `holoEffect`,
+`foilTexture`, `foilSize`) live in the
 `VisualConfig` JSON edited in EasyAdmin, resolved **card → extension** by
 `CardVisualResolver` (a holo card without preset falls back to `holo--basic`),
 and emitted as the inline vars / classes above by `CardComponent`. Foil/mask **textures** are Vich uploads on the Card/Extension

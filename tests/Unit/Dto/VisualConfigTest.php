@@ -88,4 +88,25 @@ final class VisualConfigTest extends TestCase
         $this->assertNull(VisualConfig::fromArray(['foilTexture' => 'nope'])->foilTexture);
         $this->assertFalse((new VisualConfig(foilTexture: FoilTextureEnum::VMAX))->isEmpty());
     }
+
+    public function testFoilSizeRoundTripsAndAcceptsNumericStrings(): void
+    {
+        $array = (new VisualConfig(foilSize: 45))->toArray();
+
+        $this->assertSame(['foilSize' => 45], $array);
+        $this->assertSame(45, VisualConfig::fromArray($array)->foilSize);
+        // le live preview et le JSON éditable envoient des chaînes
+        $this->assertSame(45, VisualConfig::fromArray(['foilSize' => '45'])->foilSize);
+        $this->assertFalse((new VisualConfig(foilSize: 45))->isEmpty());
+    }
+
+    public function testFoilSizeRejectsOutOfRangeValues(): void
+    {
+        // la position « Auto » du slider (sous FOIL_SIZE_MIN) = pas d'override
+        $this->assertNull(VisualConfig::fromArray(['foilSize' => VisualConfig::FOIL_SIZE_AUTO])->foilSize);
+        $this->assertNull(VisualConfig::fromArray(['foilSize' => 0])->foilSize);
+        $this->assertNull(VisualConfig::fromArray(['foilSize' => 101])->foilSize);
+        $this->assertNull(VisualConfig::fromArray(['foilSize' => 'cover'])->foilSize);
+        $this->assertNull(VisualConfig::fromArray([])->foilSize);
+    }
 }

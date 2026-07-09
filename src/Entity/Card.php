@@ -86,7 +86,7 @@ class Card
      * Per-card visual overrides (glow / border / css class / holo preset);
      * each set field beats the extension's default in the resolution cascade.
      *
-     * @var array<string, string>
+     * @var array<string, string|int>
      */
     #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
     private array $visualConfigOverride = [];
@@ -376,6 +376,28 @@ class Card
     {
         $this->visualConfigOverride = array_filter(
             array_merge($this->visualConfigOverride, ['foilTexture' => $foilTexture?->value]),
+            static fn (mixed $value): bool => null !== $value,
+        );
+
+        return $this;
+    }
+
+    /**
+     * Virtual field for the back office: the foil zoom stored inside the
+     * override JSON, exposed as a range slider. A range input has no empty
+     * state, so the slider's leftmost position (FOIL_SIZE_AUTO, below the
+     * valid range) stands for "no override" — same trick as the #000000
+     * sentinel of the glow colour picker.
+     */
+    public function getFoilSize(): int
+    {
+        return $this->getVisualConfigOverride()->foilSize ?? VisualConfig::FOIL_SIZE_AUTO;
+    }
+
+    public function setFoilSize(?int $foilSize): static
+    {
+        $this->visualConfigOverride = array_filter(
+            array_merge($this->visualConfigOverride, ['foilSize' => VisualConfig::foilSizeOrNull($foilSize)]),
             static fn (mixed $value): bool => null !== $value,
         );
 

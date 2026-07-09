@@ -45,6 +45,7 @@ final readonly class CardVisualResolver
             borderColor: $override->borderColor ?? $config->borderColor,
             cssClass: $override->cssClass ?? $config->cssClass,
             holoEffect: $override->holoEffect ?? $config->holoEffect,
+            foilSize: $override->foilSize ?? $config->foilSize,
         );
     }
 
