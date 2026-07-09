@@ -4,29 +4,33 @@ vich_uploader:
     metadata:
         type: attribute
 
+    # Tout le contenu uploadé vit sous public/uploads/ : c'est le seul chemin
+    # monté en volume en prod. public/images/ (textures holo, card-back,
+    # defaults) est statique et vient de l'image Docker — un upload qui y
+    # écrirait disparaîtrait au déploiement suivant.
     mappings:
         cards:
-            uri_prefix: /images/cards
-            upload_destination: '%kernel.project_dir%/public/images/cards'
+            uri_prefix: /uploads/cards
+            upload_destination: '%kernel.project_dir%/public/uploads/cards'
             namer: Vich\UploaderBundle\Naming\SmartUniqueNamer
             inject_on_load: false
         boosters:
-            uri_prefix: /images/boosters
-            upload_destination: '%kernel.project_dir%/public/images/boosters'
+            uri_prefix: /uploads/boosters
+            upload_destination: '%kernel.project_dir%/public/uploads/boosters'
             namer: Vich\UploaderBundle\Naming\SmartUniqueNamer
         extensions:
-            uri_prefix: /images/extensions
-            upload_destination: '%kernel.project_dir%/public/images/extensions'
+            uri_prefix: /uploads/extensions
+            upload_destination: '%kernel.project_dir%/public/uploads/extensions'
             namer: Vich\UploaderBundle\Naming\SmartUniqueNamer
         banners:
-            uri_prefix: /images/banners
-            upload_destination: '%kernel.project_dir%/public/images/banners'
+            uri_prefix: /uploads/banners
+            upload_destination: '%kernel.project_dir%/public/uploads/banners'
             namer: Vich\UploaderBundle\Naming\SmartUniqueNamer
         masks:
-            uri_prefix: /images/masks
-            upload_destination: '%kernel.project_dir%/public/images/masks'
+            uri_prefix: /uploads/masks
+            upload_destination: '%kernel.project_dir%/public/uploads/masks'
             namer: Vich\UploaderBundle\Naming\SmartUniqueNamer
         foils:
-            uri_prefix: /images/foils
-            upload_destination: '%kernel.project_dir%/public/images/foils'
+            uri_prefix: /uploads/foils
+            upload_destination: '%kernel.project_dir%/public/uploads/foils'
             namer: Vich\UploaderBundle\Naming\SmartUniqueNamer

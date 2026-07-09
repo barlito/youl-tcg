@@ -95,7 +95,7 @@
                             <div class="absolute inset-0 bg-gradient-to-br from-[#2a0f44] via-[#7a1f9c] to-magenta opacity-50" aria-hidden="true"></div>
                             {% set coverUrl = universe.extension.imageName
                                 ? vich_uploader_asset(universe.extension)
-                                : (universe.coverImage ? asset('images/cards/' ~ universe.coverImage)) %}
+                                : (universe.coverImage ? asset('uploads/cards/' ~ universe.coverImage)) %}
                             {% if coverUrl %}
                                 <img src="{{ coverUrl }}" alt="" loading="lazy" onerror="this.remove()"
                                      class="absolute inset-0 h-full w-full object-cover object-top opacity-60 transition-opacity duration-300 group-hover:opacity-90">

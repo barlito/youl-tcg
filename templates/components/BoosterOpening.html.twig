@@ -155,7 +155,7 @@
                                     <span class="opening__track-back" aria-hidden="true"
                                           style="background-image: url('{{ asset('images/card-back.svg') }}');"></span>
                                     <img loading="lazy" src="{{ vich_uploader_asset(reveal.card) }}" alt=""
-                                         onerror="this.onerror=null;this.src='{{ asset('images/cards/default_card.png') }}';">
+                                         onerror="this.onerror=null;this.src='{{ asset('images/default_card.png') }}';">
                                     {% if reveal.holo %}<span class="opening__track-holo">HOLO</span>{% endif %}
                                     {% if reveal.card.id ~ '' in newCardIds %}<span class="opening__track-new">NOUVEAU</span>{% endif %}
                                 </div>
@@ -228,7 +228,7 @@
                                     {% if isOwned or isPending %}
                                         <img loading="lazy" src="{{ vich_uploader_asset(card) }}" alt="{{ isOwned ? card.name : '' }}"
                                              {% if isPending %}hidden{% endif %}
-                                             onerror="this.onerror=null;this.src='{{ asset('images/cards/default_card.png') }}';">
+                                             onerror="this.onerror=null;this.src='{{ asset('images/default_card.png') }}';">
                                     {% endif %}
                                     {% if not isOwned %}
                                         <span class="opening__card-back" aria-hidden="true"

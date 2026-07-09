@@ -46,7 +46,7 @@ class ExtensionBannerCrudController extends AbstractCrudController
         ;
         yield ImageField::new('imageName')
             ->setLabel('Bannière')
-            ->setBasePath('/images/banners')
+            ->setBasePath('/uploads/banners')
             ->onlyOnIndex()
         ;
         yield IntegerField::new('position')

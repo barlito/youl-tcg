@@ -92,7 +92,7 @@ presets render out of the box; a per-card/extension foil upload overrides them.
 | `trainerbg.png` | `trainer` foil |
 
 A **per-card or per-extension** foil/mask uploaded in the BO (Vich, stored in
-`public/images/foils|masks/`, git-ignored) overrides the preset default via the
+`public/uploads/foils|masks/`, git-ignored) overrides the preset default via the
 inline `--foil` / `--mask` vars emitted by `CardComponent`.
 
 > For the practical, step-by-step guide on configuring a card and **authoring a

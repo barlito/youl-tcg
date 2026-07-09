@@ -1,0 +1,4 @@
+# Contenu uploadé (VichUploader) — jamais versionné. En prod ce dossier est
+# un volume ; les sous-dossiers sont créés par le Dockerfile (ownership www).
+*
+!.gitignore

@@ -32,7 +32,7 @@
                         <div class="absolute inset-0 bg-gradient-to-br from-[#2a0f44] via-[#7a1f9c] to-magenta opacity-60" aria-hidden="true"></div>
                         {% set fallbackUrl = extension.imageName
                             ? vich_uploader_asset(extension)
-                            : (coverImage ? asset('images/cards/' ~ coverImage)) %}
+                            : (coverImage ? asset('uploads/cards/' ~ coverImage)) %}
                         {% if fallbackUrl %}
                             <img src="{{ fallbackUrl }}" alt="" onerror="this.remove()"
                                  class="absolute inset-0 h-full w-full object-cover object-top opacity-50">

@@ -37,8 +37,8 @@ final class CardVisualResolverTest extends KernelTestCase
 
         $resolved = $this->resolver->resolve($card);
 
-        $this->assertSame('/images/foils/card-foil.png', $resolved->foilUrl);
-        $this->assertSame('/images/masks/card-mask.png', $resolved->maskUrl);
+        $this->assertSame('/uploads/foils/card-foil.png', $resolved->foilUrl);
+        $this->assertSame('/uploads/masks/card-mask.png', $resolved->maskUrl);
         $this->assertTrue($resolved->hasMask());
     }
 
@@ -107,7 +107,7 @@ final class CardVisualResolverTest extends KernelTestCase
         $card = $this->card($extension);
         $card->setImageFoilName('own_foil.png');
 
-        $this->assertSame('/images/foils/own_foil.png', $this->resolver->resolve($card)->foilUrl);
+        $this->assertSame('/uploads/foils/own_foil.png', $this->resolver->resolve($card)->foilUrl);
     }
 
     private function extension(): Extension

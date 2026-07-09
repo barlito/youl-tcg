@@ -88,7 +88,7 @@ final class AdminCardBatchTest extends WebTestCase
     {
         $tmp = tempnam(sys_get_temp_dir(), 'batch-art-');
         \assert(false !== $tmp);
-        copy(__DIR__ . '/../../public/images/cards/default_card.png', $tmp);
+        copy(__DIR__ . '/../../public/images/default_card.png', $tmp);
 
         return [
             'tmp_name' => $tmp,

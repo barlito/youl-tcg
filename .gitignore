@@ -31,16 +31,10 @@
 /assets/vendor/
 ###< symfony/asset-mapper ###
 
-###> images ###
-/public/images/cards/
-!/public/images/cards/default_card.png
-/public/images/masks/
-/public/images/foils/
-/public/images/extensions/
-!/public/images/extensions/default_extension.png
-/public/images/boosters/
-/public/images/banners/
-###< images ###
+###> uploads (contenu Vich — volume en prod, public/images reste statique) ###
+/public/uploads/*
+!/public/uploads/.gitignore
+###< uploads ###
 
 ###> Castor ###
 .castor.stub.php
