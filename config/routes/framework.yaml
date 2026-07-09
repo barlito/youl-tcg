@@ -2,3 +2,11 @@ when@dev:
     _errors:
         resource: '@FrameworkBundle/Resources/config/routing/errors.xml'
         prefix: /_error
+
+# La preview /_error/{code} force showException=false : c'est le seul moyen de
+# rendre les templates d'erreur custom sous kernel.debug (les vraies 40x/500
+# affichent la page de debug), donc on l'expose aussi en test.
+when@test:
+    _errors:
+        resource: '@FrameworkBundle/Resources/config/routing/errors.xml'
+        prefix: /_error

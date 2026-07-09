@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}404 — YOUL TCG{% endblock %}
+
+{% block body %}
+    <main class="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-6 py-24 text-center">
+        <div class="glow-ambient" aria-hidden="true"></div>
+        <div class="relative">
+            <span class="inline-block bg-primary px-2.5 py-1 font-mono text-[11px] font-bold tracking-[.15em] text-black">✖ CARTE INTROUVABLE</span>
+            <h1 class="mt-6 font-display text-[clamp(5rem,16vw,11rem)] font-bold uppercase leading-[.85] tracking-[-0.05em] text-ink-strong">
+                4<span class="text-primary">0</span>4
+            </h1>
+            <p class="mx-auto mt-6 max-w-md text-[17px] leading-normal text-ink-muted">
+                Cette page n'existe pas — ou a été retirée de la rotation.
+            </p>
+            <div class="mt-8 flex flex-wrap justify-center gap-3">
+                <a href="{{ path('homepage') }}" class="btn-arcade">Retour à l'accueil ▸</a>
+                <a href="{{ path('boosters') }}" class="btn-ghost">Ouvrir un pack</a>
+            </div>
+        </div>
+    </main>
+{% endblock %}

@@ -1,0 +1,86 @@
+{# Repli générique (500, 503, …) : volontairement autonome — pas d'extends,
+   pas d'asset()/path() — pour rester rendable même si le layout, le routeur
+   ou les assets sont la cause de l'erreur. #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Erreur {{ status_code }} — YOUL TCG</title>
+    <style>
+        /* Tokens Violet Arcade recopiés en dur (theme.css peut être indisponible) */
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0b0712;
+            color: #f0e8f7;
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+            text-align: center;
+        }
+        .glow {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, #a435f033, transparent 60%);
+            filter: blur(60px);
+        }
+        .chip {
+            display: inline-block;
+            background: #a435f0;
+            color: #000;
+            padding: 4px 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .15em;
+        }
+        h1 {
+            margin: 24px 0 0;
+            font-size: clamp(4rem, 14vw, 9rem);
+            font-weight: 700;
+            line-height: .85;
+            letter-spacing: -0.05em;
+            text-transform: uppercase;
+            color: #fff;
+        }
+        h1 span { color: #a435f0; }
+        p {
+            margin: 24px auto 0;
+            max-width: 28rem;
+            font-size: 17px;
+            line-height: 1.5;
+            color: #b9a8cf;
+        }
+        a {
+            display: inline-block;
+            margin-top: 32px;
+            padding: 14px 28px;
+            background: #a435f0;
+            color: #000;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: .15em;
+            text-transform: uppercase;
+            text-decoration: none;
+            clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+        }
+        a:hover { background: #ff3db0; }
+    </style>
+</head>
+<body>
+<div class="glow" aria-hidden="true"></div>
+<main>
+    {% set code = status_code ~ '' %}
+    <span class="chip">✖ {{ status_text|upper }}</span>
+    <h1>{{ code|slice(0, 1) }}<span>{{ code|slice(1, 1) }}</span>{{ code|slice(2) }}</h1>
+    <p>
+        Le serveur a pioché une mauvaise carte. On est dessus —
+        réessaie dans quelques instants.
+    </p>
+    <a href="/">Retour à l'accueil ▸</a>
+</main>
+</body>
+</html>
