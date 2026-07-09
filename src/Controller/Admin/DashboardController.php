@@ -7,14 +7,15 @@ namespace App\Controller\Admin;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
-use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 class DashboardController extends AbstractDashboardController
 {
     public function __construct(
-        private readonly AdminUrlGenerator $adminUrlGenerator,
+        #[Autowire(env: 'APP_VERSION')]
+        private readonly string $appVersion,
     ) {
     }
 
@@ -22,14 +23,21 @@ class DashboardController extends AbstractDashboardController
     #[\Override]
     public function index(): Response
     {
-        return $this->redirect($this->adminUrlGenerator->setController(CardCrudController::class)->generateUrl());
+        // Literal legacy URL on purpose (same shape the functional tests use):
+        // AdminUrlGenerator triggers the EA 4.14 "non-pretty URLs" deprecation,
+        // which fails the suite. To revisit with the EasyAdmin 5 migration.
+        return $this->redirect('/admin?crudAction=index&crudControllerFqcn=' . rawurlencode(CardCrudController::class));
     }
 
     #[\Override]
     public function configureDashboard(): Dashboard
     {
+        // the title accepts raw HTML; appVersion is the image release tag (see .env)
         return Dashboard::new()
-            ->setTitle('YTCG Admin')
+            ->setTitle(\sprintf(
+                'YTCG Admin <span class="badge badge-secondary" data-testid="app-version">%s</span>',
+                htmlspecialchars($this->appVersion),
+            ))
             ->setFaviconPath('ytcg_logo.png')
             ->renderContentMaximized()
         ;
