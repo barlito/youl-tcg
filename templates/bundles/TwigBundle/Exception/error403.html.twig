@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}403 — YOUL TCG{% endblock %}
+
+{% block body %}
+    <main class="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-6 py-24 text-center">
+        <div class="glow-ambient" aria-hidden="true"></div>
+        <div class="relative">
+            <span class="inline-block bg-magenta px-2.5 py-1 font-mono text-[11px] font-bold tracking-[.15em] text-black">⛔ ACCÈS REFUSÉ</span>
+            <h1 class="mt-6 font-display text-[clamp(5rem,16vw,11rem)] font-bold uppercase leading-[.85] tracking-[-0.05em] text-ink-strong">
+                4<span class="text-magenta">0</span>3
+            </h1>
+            <p class="mx-auto mt-6 max-w-md text-[17px] leading-normal text-ink-muted">
+                Cette zone est verrouillée. Ton deck n'a pas le niveau requis pour entrer ici.
+            </p>
+            <div class="mt-8 flex flex-wrap justify-center gap-3">
+                <a href="{{ path('homepage') }}" class="btn-arcade">Retour à l'accueil ▸</a>
+            </div>
+        </div>
+    </main>
+{% endblock %}

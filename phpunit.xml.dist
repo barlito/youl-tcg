@@ -14,6 +14,11 @@
         <ini name="display_errors" value="1" />
         <ini name="error_reporting" value="-1" />
         <server name="APP_ENV" value="test" force="true" />
+        <!-- Sans ça, kernel.runtime_mode.web = false sous PHPUnit (SAPI cli) et le
+             sélecteur d'error renderer (Symfony 7.3+) répond avec le CliErrorRenderer
+             (dump ANSI) au lieu de la chaîne HTML/Twig — les pages d'erreur custom
+             deviendraient intestables. -->
+        <server name="APP_RUNTIME_MODE" value="web=1" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
     </php>
 
