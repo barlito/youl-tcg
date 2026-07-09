@@ -49,8 +49,8 @@ final class CardComponentRenderingTest extends WebTestCase
         $this->assertSame('legendary', $node->attr('data-rarity'));
 
         $style = (string) $node->attr('style');
-        $this->assertStringContainsString("--mask: url('/images/masks/demo_mask.png')", $style);
-        $this->assertStringContainsString("--foil: url('/images/foils/demo_foil.png')", $style);
+        $this->assertStringContainsString("--mask: url('/uploads/masks/demo_mask.png')", $style);
+        $this->assertStringContainsString("--foil: url('/uploads/foils/demo_foil.png')", $style);
     }
 
     public function testPlainCardHasNoMaskWiring(): void
@@ -94,6 +94,22 @@ final class CardComponentRenderingTest extends WebTestCase
 
         $this->assertStringContainsString('holo--cosmos', $html);
         $this->assertStringNotContainsString('holo--basic', $html);
+    }
+
+    public function testArtworkComesFromUploadsAndErrorFallbackFromStatic(): void
+    {
+        // Contrat du split volume/statique : le contenu uploadé (Vich) sort de
+        // /uploads/ (monté en volume en prod), le repli d'erreur de /images/
+        // (statique, embarqué dans l'image Docker).
+        $card = $this->createOwnedCard(CardRarityEnum::COMMON);
+        $this->entityManager->flush();
+
+        $html = self::getContainer()->get('twig')
+            ->render('components/CardComponent.html.twig', ['card' => $card])
+        ;
+
+        $this->assertStringContainsString('src="/uploads/cards/default_card.png"', $html);
+        $this->assertStringContainsString("this.src='/images/default_card.png'", $html);
     }
 
     public function testNonHoloCardWithoutPresetGetsNoHoloClass(): void

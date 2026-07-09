@@ -3,7 +3,10 @@ services:
         image: barlito/youl-tcg:${TAG}
         volumes:
             - ytcg_caddy_data:/data
-            - ytcg_public_data:/app/public/images
+            # Uniquement le contenu uploadé (Vich) : public/images/ (textures
+            # holo, card-back, defaults) est statique et doit venir de l'image
+            # Docker à chaque déploiement — ne jamais le monter en volume.
+            - ytcg_uploads_data:/app/public/uploads
         environment:
             # kernel.secret : signe notamment les checksums des Live Components —
             # vide, toute page qui en rend un (hub, admin) tombe en 500
@@ -82,7 +85,7 @@ services:
 volumes:
     ytcg_db_data:
     ytcg_caddy_data:
-    ytcg_public_data:
+    ytcg_uploads_data:
 
 networks:
     traefik_traefik_proxy:

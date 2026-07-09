@@ -79,6 +79,11 @@ RUN set -eux; \
 RUN php bin/console tailwind:build --minify; \
     php bin/console asset-map:compile;
 
-RUN chown -R www:www var public/images 2>/dev/null || true
+# Les sous-dossiers d'upload doivent exister dans l'image AVANT le premier
+# montage du volume : Docker copie leur contenu ET leur ownership dans un
+# volume nommé vide, c'est ce qui donne un volume writable par www d'emblée.
+RUN mkdir -p public/uploads/cards public/uploads/masks public/uploads/foils \
+        public/uploads/boosters public/uploads/extensions public/uploads/banners; \
+    chown -R www:www var public/uploads
 
 USER www

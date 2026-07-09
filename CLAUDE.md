@@ -181,19 +181,17 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 ### File Uploads
 
-**VichUploaderBundle Mappings:**
-- `cards`: Main card artwork → `/public/images/cards/`
-- `masks`: Foil/holo masks → `/public/images/masks/`
-- `foils`: Foil textures → `/public/images/foils/`
-- `boosters`: Booster images → `/public/images/boosters/`
-- `extensions`: Extension images → `/public/images/extensions/`
-- `banners`: Universe page hero banners (ExtensionBanner) → `/public/images/banners/`
+**Uploaded content vs static assets — the split matters in prod:**
+- `public/uploads/` = Vich-uploaded content ONLY. It is the ONLY path mounted as a volume in prod (`ytcg_uploads_data`); anything written elsewhere under `public/` is lost on the next deploy.
+- `public/images/` = static, git-tracked, baked into the Docker image (holo/poke textures used by `holo-presets.css` and `FoilTextureEnum`, `card-back.svg`, `default_card.png`, `default_extension.png`). NEVER mount a volume over it: the volume would shadow the image content forever (a stale volume is exactly what made the cosmos textures 404 in prod).
 
-**Upload Routes:**
-- `/images/cards/{filename}`
-- `/images/masks/{filename}`
-- `/images/foils/{filename}`
-- `/images/extensions/{filename}`
+**VichUploaderBundle Mappings (all under `/public/uploads/`, served at `/uploads/{mapping}/{filename}`):**
+- `cards`: Main card artwork
+- `masks`: Foil/holo masks
+- `foils`: Foil textures (per-card/extension uploads — the shared library uses the static `FoilTextureEnum` textures instead)
+- `boosters`: Booster images
+- `extensions`: Extension images
+- `banners`: Universe page hero banners (ExtensionBanner)
 
 ### Custom Doctrine Features
 
@@ -220,7 +218,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - `ytcg_db_data`: PostgreSQL data persistence
 - `ytcg_caddy_data`: Caddy certificates
 - `ytcg_caddy_config`: Caddy configuration
-- `./public/images`: Card images (mounted for persistence in production)
+- `ytcg_uploads_data`: Vich uploads (`/app/public/uploads`) — the only app-content volume; `public/images` stays image-baked
 
 ## Development Guidelines
 

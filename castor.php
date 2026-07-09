@@ -66,7 +66,7 @@ import('make/castor_entrypoint.php');
 
 /**
  * Batch holo masks for a whole extension: rembg every published card artwork
- * that has NO mask yet, drop the masks into public/images/masks/ and point
+ * that has NO mask yet, drop the masks into public/uploads/masks/ and point
  * card.image_mask_name at them. Hand-made masks are never clobbered
  * (only image_mask_name IS NULL is touched — use --force to redo those too,
  * existing uploads still stay untouched).
@@ -112,7 +112,7 @@ function holoMasks(
 
     $artworks = [];
     foreach ($matches as [, $id, $image]) {
-        $path = __DIR__ . '/public/images/cards/' . $image;
+        $path = __DIR__ . '/public/uploads/cards/' . $image;
         if (is_file($path)) {
             $artworks[$id] = $image;
         } else {
@@ -125,12 +125,12 @@ function holoMasks(
     // u2net model load dominates the cost)
     capture('docker build -q -t ytcg-holo tools/holo', context: context()->withTimeout(600));
     $files = implode(' ', array_map(
-        static fn (string $image): string => escapeshellarg('public/images/cards/' . $image),
+        static fn (string $image): string => escapeshellarg('public/uploads/cards/' . $image),
         $artworks,
     ));
     $out = capture(
         'docker run --rm -v "$PWD:/work" ytcg-holo ' . $files
-        . ' --out public/images/masks --only ' . $variant . ' --blur ' . $blur,
+        . ' --out public/uploads/masks --only ' . $variant . ' --blur ' . $blur,
         context: context()->withTimeout(3600),
     );
     io()->write($out . PHP_EOL);
@@ -139,7 +139,7 @@ function holoMasks(
     $updated = 0;
     foreach ($artworks as $id => $image) {
         $mask = pathinfo($image, PATHINFO_FILENAME) . '-mask-' . $variant . '.png';
-        if (!is_file(__DIR__ . '/public/images/masks/' . $mask)) {
+        if (!is_file(__DIR__ . '/public/uploads/masks/' . $mask)) {
             io()->warning('mask not produced for ' . $image);
 
             continue;
