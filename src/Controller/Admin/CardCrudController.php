@@ -10,12 +10,15 @@ use App\Enum\Card\CardEffectEnum;
 use App\Enum\Card\FoilTextureEnum;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
+use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\BatchActionDto;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
@@ -25,6 +28,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 use Vich\UploaderBundle\Templating\Helper\UploaderHelper;
 
@@ -38,6 +43,7 @@ class CardCrudController extends AbstractCrudController
     public function __construct(
         private readonly UploaderHelper $uploaderHelper,
         private readonly AssetMapperInterface $assetMapper,
+        private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -79,7 +85,76 @@ class CardCrudController extends AbstractCrudController
     #[\Override]
     public function configureActions(Actions $actions): Actions
     {
-        return $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
+        return $actions
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->addBatchAction(
+                Action::new('publishCards', 'Publier')
+                    ->linkToCrudAction('publishCards')
+                    ->addCssClass('btn btn-primary')
+                    ->setIcon('fa fa-eye'),
+            )
+            ->addBatchAction(
+                Action::new('draftCards', 'Repasser en brouillon')
+                    ->linkToCrudAction('draftCards')
+                    ->addCssClass('btn btn-secondary')
+                    ->setIcon('fa fa-eye-slash'),
+            )
+        ;
+    }
+
+    /**
+     * @param AdminContext<Card>   $context
+     * @param BatchActionDto<Card> $batchActionDto
+     */
+    public function publishCards(AdminContext $context, BatchActionDto $batchActionDto): Response
+    {
+        return $this->applyStatusBatch($context, $batchActionDto, CardStatusEnum::PUBLISHED, 'publiée(s)');
+    }
+
+    /**
+     * @param AdminContext<Card>   $context
+     * @param BatchActionDto<Card> $batchActionDto
+     */
+    public function draftCards(AdminContext $context, BatchActionDto $batchActionDto): Response
+    {
+        return $this->applyStatusBatch($context, $batchActionDto, CardStatusEnum::DRAFT, 'repassée(s) en brouillon');
+    }
+
+    /**
+     * Mêmes gardes que le batchDelete natif d'EasyAdmin : rejet si le FQCN
+     * posté (contrôlé par le client) ne vise pas ce CRUD, puis token CSRF lié
+     * à l'action ET au FQCN — le FQCN étant validé d'abord, le token exigé est
+     * de fait toujours celui minté pour Card par le listing.
+     *
+     * @param AdminContext<Card>   $context
+     * @param BatchActionDto<Card> $batchActionDto
+     */
+    private function applyStatusBatch(AdminContext $context, BatchActionDto $batchActionDto, CardStatusEnum $status, string $successLabel): Response
+    {
+        if (Card::class !== $batchActionDto->getEntityFqcn()) {
+            throw new BadRequestHttpException();
+        }
+
+        if (!$this->isCsrfTokenValid('ea-batch-action-' . $batchActionDto->getName() . '-' . $batchActionDto->getEntityFqcn(), $batchActionDto->getCsrfToken())) {
+            return $this->redirectToRoute($context->getDashboardRouteName());
+        }
+
+        $updated = 0;
+        foreach ($batchActionDto->getEntityIds() as $entityId) {
+            $card = $this->entityManager->find(Card::class, $entityId);
+            if ($card instanceof Card && $status !== $card->getStatus()) {
+                $card->setStatus($status);
+                ++$updated;
+            }
+        }
+        $this->entityManager->flush();
+
+        $this->addFlash('success', \sprintf('%d carte%s %s.', $updated, $updated > 1 ? 's' : '', $successLabel));
+
+        // retour au listing d'origine (filtres/tri conservés) — c'est le remplacement
+        // documenté de BatchActionDto::getReferrerUrl(), déprécié en EA 4.22 ; et
+        // AdminUrlGenerator déprécie les URLs non-pretty, donc pas d'URL regénérée
+        return $this->redirect($context->getRequest()->headers->get('referer') ?? '/admin');
     }
 
     /**
