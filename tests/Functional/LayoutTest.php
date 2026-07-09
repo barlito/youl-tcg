@@ -63,6 +63,31 @@ final class LayoutTest extends WebTestCase
         $this->assertCount(1, $crawler->filter('header a[href="/logout"]'));
     }
 
+    public function testFooterShowsDeployedVersion(): void
+    {
+        $client = self::createClient();
+        $this->authenticateClient($client);
+
+        $crawler = $client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        // APP_VERSION defaults to 'dev' outside a release image (see .env)
+        $this->assertSame('dev', $crawler->filter('footer [data-testid="app-version"]')->text());
+    }
+
+    public function testAdminTitleShowsDeployedVersion(): void
+    {
+        $client = self::createClient();
+        $this->authenticateClient($client);
+
+        $client->request('GET', '/admin');
+        $crawler = $client->followRedirect();
+
+        self::assertResponseIsSuccessful();
+        $this->assertGreaterThan(0, $crawler->filter('[data-testid="app-version"]')->count());
+        $this->assertSame('dev', $crawler->filter('[data-testid="app-version"]')->first()->text());
+    }
+
     public function testAdminLinkOnlyVisibleForAdmin(): void
     {
         $client = self::createClient();
