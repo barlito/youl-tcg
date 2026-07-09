@@ -57,7 +57,7 @@ class Extension implements \Stringable
      * applied to the extension's cards, each card may override individual
      * fields.
      *
-     * @var array<string, string>
+     * @var array<string, string|int>
      */
     #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
     private array $visualConfig = [];
@@ -265,6 +265,28 @@ class Extension implements \Stringable
     {
         $this->visualConfig = array_filter(
             array_merge($this->visualConfig, ['foilTexture' => $foilTexture?->value]),
+            static fn (mixed $value): bool => null !== $value,
+        );
+
+        return $this;
+    }
+
+    /**
+     * Virtual field for the back office: the foil zoom stored inside the
+     * visual config JSON, exposed as a range slider. A range input has no
+     * empty state, so the slider's leftmost position (FOIL_SIZE_AUTO, below
+     * the valid range) stands for "no override" — same trick as the #000000
+     * sentinel of the glow colour picker.
+     */
+    public function getFoilSize(): int
+    {
+        return $this->getVisualConfig()->foilSize ?? VisualConfig::FOIL_SIZE_AUTO;
+    }
+
+    public function setFoilSize(?int $foilSize): static
+    {
+        $this->visualConfig = array_filter(
+            array_merge($this->visualConfig, ['foilSize' => VisualConfig::foilSizeOrNull($foilSize)]),
             static fn (mixed $value): bool => null !== $value,
         );
 

@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Admin\Field\ImageField as VichImageField;
+use App\Admin\FoilSizeSliderScript;
+use App\Dto\VisualConfig;
 use App\Entity\Extension;
 use App\Enum\Card\CardEffectEnum;
 use App\Enum\Card\FoilTextureEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
@@ -18,6 +21,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ColorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
+use Symfony\Component\Form\Extension\Core\Type\RangeType;
 
 /**
  * @extends AbstractCrudController<Extension>
@@ -37,6 +41,12 @@ class ExtensionCrudController extends AbstractCrudController
         return $crud
             ->renderContentMaximized()
         ;
+    }
+
+    #[\Override]
+    public function configureAssets(Assets $assets): Assets
+    {
+        return parent::configureAssets($assets)->addHtmlContentToBody(FoilSizeSliderScript::HTML);
     }
 
     #[\Override]
@@ -71,7 +81,7 @@ class ExtensionCrudController extends AbstractCrudController
             ->setLabel('Visual config')
             ->setLanguage('js')
             ->onlyOnForms()
-            ->setHelp('Default visuals for the extension cards. Keys: glow, borderColor, cssClass, holoEffect (preset: shine|basic|cosmos|trainer). Example: {"glow": "#a435f0", "borderColor": "#ff3db0", "holoEffect": "basic"}')
+            ->setHelp('Default visuals for the extension cards. Keys: glow, borderColor, cssClass, holoEffect (preset: shine|basic|cosmos|trainer), foilTexture, foilSize (10-100, 100 = cover). Example: {"glow": "#a435f0", "borderColor": "#ff3db0", "holoEffect": "basic"}')
         ;
         // Declared AFTER the JSON editor so the chosen preset is merged on top of
         // the freshly decoded JSON instead of being overwritten by it.
@@ -85,6 +95,18 @@ class ExtensionCrudController extends AbstractCrudController
             ->setLabel('Foil texture (library)')
             ->setHelp('Bundled foil applied when neither the card nor the extension uploaded one (overrides the foilTexture JSON key)')
             ->setChoices($this->foilTextureChoices())
+            ->onlyOnForms()
+        ;
+        yield Field::new('foilSize')
+            ->setLabel('Foil zoom')
+            ->setFormType(RangeType::class)
+            ->setFormTypeOption('attr', [
+                'min' => VisualConfig::FOIL_SIZE_AUTO,
+                'max' => VisualConfig::FOIL_SIZE_MAX,
+                'step' => 5,
+                'data-foil-size' => '',
+            ])
+            ->setHelp('Taille de foil par défaut des cartes du set : tout à gauche = Auto (réglage du preset), 100 % = cover, entre les deux = motif tilé (overridable par carte)')
             ->onlyOnForms()
         ;
         yield ColorField::new('glowColor')

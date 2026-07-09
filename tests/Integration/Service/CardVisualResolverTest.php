@@ -110,6 +110,25 @@ final class CardVisualResolverTest extends KernelTestCase
         $this->assertSame('/uploads/foils/own_foil.png', $this->resolver->resolve($card)->foilUrl);
     }
 
+    public function testFoilSizeFallsBackThroughTheCascade(): void
+    {
+        $extension = $this->extension()->setVisualConfig(new VisualConfig(foilSize: 30));
+        $card = $this->card($extension)->setVisualConfigOverride(new VisualConfig(foilSize: 60));
+
+        $this->assertSame(60, $this->resolver->resolve($card)->foilSize);
+        $this->assertSame(30, $this->resolver->resolve($this->card($extension))->foilSize);
+        $this->assertNull($this->resolver->resolve($this->card($this->extension()))->foilSize);
+    }
+
+    public function testFoilSizeCssMapsCoverAndTiling(): void
+    {
+        $extension = $this->extension();
+
+        $this->assertSame('45%', $this->resolver->resolve($this->card($extension)->setVisualConfigOverride(new VisualConfig(foilSize: 45)))->foilSizeCss());
+        $this->assertSame('cover', $this->resolver->resolve($this->card($extension)->setVisualConfigOverride(new VisualConfig(foilSize: 100)))->foilSizeCss());
+        $this->assertNull($this->resolver->resolve($this->card($extension))->foilSizeCss());
+    }
+
     private function extension(): Extension
     {
         return new Extension()->setName('Test extension')->setDescription('Test');

@@ -19,6 +19,14 @@ use App\Enum\Card\FoilTextureEnum;
  */
 final readonly class VisualConfig
 {
+    // foilSize : zoom du foil en pourcentage de la largeur de la carte.
+    // 100 = cover (pleine carte), en dessous = motif tilé de plus en plus
+    // petit. En dehors de [MIN, MAX] (dont la position « Auto » du slider
+    // admin, sous MIN) la valeur est ignorée → réglage du preset.
+    public const int FOIL_SIZE_MIN = 10;
+    public const int FOIL_SIZE_MAX = 100;
+    public const int FOIL_SIZE_AUTO = 5;
+
     public function __construct(
         public ?string $glow = null,
         public ?string $borderColor = null,
@@ -28,6 +36,9 @@ final readonly class VisualConfig
         public ?CardEffectEnum $holoEffect = null,
         // Bundled foil texture (library) — an uploaded foil always wins over it.
         public ?FoilTextureEnum $foilTexture = null,
+        // Foil zoom percent (FOIL_SIZE_MIN..FOIL_SIZE_MAX, 100 = cover);
+        // null = the preset's own sizing.
+        public ?int $foilSize = null,
     ) {
     }
 
@@ -45,11 +56,12 @@ final readonly class VisualConfig
             // Invalid / unknown preset names fall through to null (no preset).
             holoEffect: CardEffectEnum::tryFromName(self::stringOrNull($data['holoEffect'] ?? null)),
             foilTexture: FoilTextureEnum::tryFromName(self::stringOrNull($data['foilTexture'] ?? null)),
+            foilSize: self::foilSizeOrNull($data['foilSize'] ?? null),
         );
     }
 
     /**
-     * @return array<string, string> only the set fields, ready for JSON storage
+     * @return array<string, string|int> only the set fields, ready for JSON storage
      */
     public function toArray(): array
     {
@@ -60,8 +72,9 @@ final readonly class VisualConfig
                 'cssClass' => $this->cssClass,
                 'holoEffect' => $this->holoEffect?->value,
                 'foilTexture' => $this->foilTexture?->value,
+                'foilSize' => $this->foilSize,
             ],
-            static fn (?string $value): bool => null !== $value,
+            static fn (string | int | null $value): bool => null !== $value,
         );
     }
 
@@ -71,7 +84,21 @@ final readonly class VisualConfig
             && null === $this->borderColor
             && null === $this->cssClass
             && !$this->holoEffect instanceof CardEffectEnum
-            && !$this->foilTexture instanceof FoilTextureEnum;
+            && !$this->foilTexture instanceof FoilTextureEnum
+            && null === $this->foilSize;
+    }
+
+    public static function foilSizeOrNull(mixed $value): ?int
+    {
+        if (\is_string($value) && ctype_digit($value)) {
+            $value = (int) $value;
+        }
+
+        if (!\is_int($value)) {
+            return null;
+        }
+
+        return $value >= self::FOIL_SIZE_MIN && $value <= self::FOIL_SIZE_MAX ? $value : null;
     }
 
     private static function stringOrNull(mixed $value): ?string

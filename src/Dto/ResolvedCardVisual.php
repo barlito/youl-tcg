@@ -21,11 +21,25 @@ final readonly class ResolvedCardVisual
         public ?string $borderColor = null,
         public ?string $cssClass = null,
         public ?CardEffectEnum $holoEffect = null,
+        // Foil zoom percent (100 = cover); null = the preset's own sizing.
+        public ?int $foilSize = null,
     ) {
     }
 
     public function hasMask(): bool
     {
         return null !== $this->maskUrl;
+    }
+
+    /**
+     * Value for the --imgsize CSS custom property (foil background-size).
+     */
+    public function foilSizeCss(): ?string
+    {
+        return match (true) {
+            null === $this->foilSize => null,
+            $this->foilSize >= 100 => 'cover',
+            default => $this->foilSize . '%',
+        };
     }
 }

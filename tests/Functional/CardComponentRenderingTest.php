@@ -112,6 +112,33 @@ final class CardComponentRenderingTest extends WebTestCase
         $this->assertStringContainsString("this.src='/images/default_card.png'", $html);
     }
 
+    public function testFoilSizeEmitsTheImgsizeVariable(): void
+    {
+        $card = $this->createOwnedCard(CardRarityEnum::COMMON);
+        $card->setVisualConfigOverride(new \App\Dto\VisualConfig(foilSize: 45));
+        $this->entityManager->flush();
+
+        $html = self::getContainer()->get('twig')
+            ->render('components/CardComponent.html.twig', ['card' => $card])
+        ;
+
+        $this->assertStringContainsString('--imgsize: 45%', $html);
+    }
+
+    public function testWithoutFoilSizeNoImgsizeVariableIsEmitted(): void
+    {
+        // pas d'override --imgsize : le réglage du preset (cover, ou le tiling
+        // 20% du trainer non maské) doit rester maître
+        $card = $this->createOwnedCard(CardRarityEnum::COMMON);
+        $this->entityManager->flush();
+
+        $html = self::getContainer()->get('twig')
+            ->render('components/CardComponent.html.twig', ['card' => $card])
+        ;
+
+        $this->assertStringNotContainsString('--imgsize', $html);
+    }
+
     public function testNonHoloCardWithoutPresetGetsNoHoloClass(): void
     {
         $card = $this->createOwnedCard(CardRarityEnum::COMMON);
