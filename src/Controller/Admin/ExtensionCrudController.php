@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Admin\Field\ImageField as VichImageField;
 use App\Entity\Extension;
 use App\Enum\Card\CardEffectEnum;
 use App\Enum\Card\FoilTextureEnum;
@@ -16,6 +17,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ColorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 
 /**
  * @extends AbstractCrudController<Extension>
@@ -54,6 +56,16 @@ class ExtensionCrudController extends AbstractCrudController
         yield Field::new('description');
         yield ChoiceField::new('status')
             ->setChoices(ExtensionStatusEnum::cases())
+        ;
+        yield ImageField::new('imageName')
+            ->setLabel('Image')
+            ->setBasePath('/uploads/extensions')
+            ->onlyOnIndex()
+        ;
+        yield VichImageField::new('imageFile', allowDelete: true)
+            ->setLabel('Image (tuile univers)')
+            ->setHelp('Fond des tuiles de l\'univers (accueil, /univers, collection). Sans image : artwork de la carte publiée la plus rare, sinon gradient seul.')
+            ->onlyOnForms()
         ;
         yield CodeEditorField::new('visualConfigJson')
             ->setLabel('Visual config')
