@@ -463,11 +463,18 @@
     background-size: 170% 170%;
 }
 
-/* trainer foil default (upstream :not(.masked)) */
+/* trainer foil default (upstream :not(.masked)) — trainerbg est déclaré sur
+   .card et non sur .card__shine : une custom property posée sur l'élément
+   lui-même bat toujours la valeur héritée (style inline du composant
+   compris), ce qui écrasait le foil uploadé / foilTexture de bibliothèque.
+   Déclaré sur le parent, c'est un simple défaut que l'inline surclasse. */
+.card.holo--trainer:not(.masked) {
+    --foil: url('/images/holo/poke/trainerbg.png');
+}
+
 .card.holo--trainer:not(.masked) .card__shine,
 .card.holo--trainer:not(.masked) .card__shine:after {
     --mask: none;
-    --foil: url('/images/holo/poke/trainerbg.png');
     --imgsize: 20%;
     background-blend-mode: color-burn, hue, hard-light;
     filter: brightness(calc((var(--pointer-from-center)*0.05) + .6)) contrast(1.5) saturate(1.2);
