@@ -93,7 +93,14 @@ class AdminCardBatchController extends AbstractController
      */
     private function buildForm(): FormInterface
     {
-        return $this->createFormBuilder()
+        return $this->createFormBuilder(options: [
+            // rendered by the root form_errors(form) when PHP drops a POST
+            // bigger than post_max_size (the option only accepts a callable)
+            'upload_max_size_message' => static fn (): string => \sprintf(
+                'Lot trop lourd : le serveur accepte %s par envoi — fais plusieurs lots.',
+                \ini_get('post_max_size'),
+            ),
+        ])
             ->add('extension', EntityType::class, [
                 'class' => Extension::class,
                 'choice_label' => 'name',
