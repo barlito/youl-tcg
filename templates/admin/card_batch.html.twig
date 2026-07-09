@@ -13,6 +13,10 @@
         </p>
 
         {{ form_start(form) }}
+            {# ROOT form errors: this is where the post_max_size rejection lands
+               (Symfony submits the form with a global error when PHP dropped
+               the body) — without this line the page stays silent #}
+            <div class="mb-3">{{ form_errors(form) }}</div>
             <div class="mb-3">{{ form_row(form.extension) }}</div>
             <div class="mb-3">{{ form_row(form.rarity) }}</div>
             <div class="mb-3">{{ form_row(form.images) }}</div>
