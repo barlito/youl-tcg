@@ -15,6 +15,7 @@ use App\Repository\BoosterRepository;
 use App\Repository\CardRepository;
 use App\Repository\UserBoosterRepository;
 use App\Repository\UserCardRepository;
+use App\Service\Analytics\AnalyticsTrackerInterface;
 use App\Service\Booster\BoosterOpeningService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -81,6 +82,7 @@ final class BoosterOpening extends AbstractController
         private readonly UserBoosterRepository $userBoosterRepository,
         private readonly UserCardRepository $userCardRepository,
         private readonly BoosterOpeningService $boosterOpeningService,
+        private readonly AnalyticsTrackerInterface $analyticsTracker,
     ) {
     }
 
@@ -239,6 +241,21 @@ final class BoosterOpening extends AbstractController
                 $this->newCardIds[] = $cardId;
             }
         }
+
+        $booster = $this->getBooster();
+        $ranks = $this->rarityRanks();
+        $bestRarity = array_reduce(
+            $result->drawnCards,
+            static fn (CardRarityEnum $best, DrawnCard $drawnCard): CardRarityEnum => ($ranks[$drawnCard->rarity->value] ?? 0) > ($ranks[$best->value] ?? 0) ? $drawnCard->rarity : $best,
+            CardRarityEnum::ascending()[0],
+        );
+        $this->analyticsTracker->track('booster_opened', [
+            'booster' => $booster->getDisplayName(),
+            'extension' => $booster->getExtension()->getName(),
+            'best_rarity' => $bestRarity->value,
+            'holo_count' => \count(array_filter($result->drawnCards, static fn (DrawnCard $drawnCard): bool => $drawnCard->holo)),
+            'new_cards' => \count($this->newCardIds),
+        ]);
     }
 
     #[LiveAction]
