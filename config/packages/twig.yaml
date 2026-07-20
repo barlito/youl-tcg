@@ -3,6 +3,9 @@ twig:
     globals:
         # release tag of the running image (footer + admin), 'dev' outside prod
         app_version: '%env(APP_VERSION)%'
+        # umami pageview snippet (base layout); empty = snippet not rendered
+        umami_url: '%env(UMAMI_URL)%'
+        umami_website_id: '%env(UMAMI_WEBSITE_ID)%'
 
 when@test:
     twig:
