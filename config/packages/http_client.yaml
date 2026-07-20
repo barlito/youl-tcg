@@ -1,0 +1,8 @@
+framework:
+    http_client:
+        scoped_clients:
+            # autowired as HttpClientInterface $umamiClient (UmamiAnalyticsTracker);
+            # short timeout: analytics must never noticeably slow a user action
+            umami.client:
+                base_uri: '%env(UMAMI_INGEST_URL)%'
+                timeout: 2
