@@ -47,9 +47,11 @@ class Card
      * Owner of a one-of-one (unique) card. Null while unclaimed; set atomically
      * the first time the card is drawn (CardRepository::claimUnique). A claimed
      * unique is filtered out of the draw pool so it can never be drawn again.
+     * ON DELETE SET NULL frees the card if the owner is removed (matches the
+     * constraint created by Version20260618130000).
      */
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(name: 'claimed_by', referencedColumnName: 'discord_id', nullable: true)]
+    #[ORM\JoinColumn(name: 'claimed_by', referencedColumnName: 'discord_id', nullable: true, onDelete: 'SET NULL')]
     private ?DiscordUser $claimedBy = null;
 
     /**
