@@ -103,7 +103,8 @@ readonly class JwtInvalid
         $username = $payload['username'] ?? null;
         $roles = $payload['roles'] ?? [];
 
-        if (!\is_string($discordId) || '' === $discordId
+        if (
+            !\is_string($discordId) || '' === $discordId
             || !\is_string($username) || '' === $username
             || !\is_array($roles)
         ) {
