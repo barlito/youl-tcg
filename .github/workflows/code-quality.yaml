@@ -32,14 +32,12 @@ jobs:
       - name: Deploy stack
         run: USER_ID=$(id -u) GROUP_ID=$(id -g) make deploy.ci github_token=${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run php cs fixer
-        run: make cs_fixer.dry_run
-
-      - name: Run php cs
-        run: make phpcs
-
-      - name: Run phpstan
-        run: make phpstan
+      # Même gate que le `make quality` local : composer.validate + phpcs
+      # + cs_fixer.dry_run + phpstan + rector.dry_run (cible check_style du
+      # submodule make/), tout tourne via docker exec dans le conteneur php
+      # déployé ci-dessus.
+      - name: Run quality checks
+        run: make quality
 
       - name: Undeploy stack
         run: make docker.undeploy.ci
