@@ -1,4 +1,7 @@
 {%- set holo = holo|default(false) -%}
+{#- lazy: opt-in for grid usages (collection / univers) — keep the default
+    eager where the card is visible immediately (homepage, opening reveal) -#}
+{%- set lazy = lazy|default(false) -%}
 {%- set id = id|default(card.id) -%}
 {%- set visual = card_visual(card) -%}
 {%- set styleVars = [] -%}
@@ -24,7 +27,7 @@
                 <img src="{{ asset('images/card-back.svg') }}" alt="" draggable="false">
             </div>
             <div class="card__front">
-                <img src="{{ vich_uploader_asset(card) }}" alt="{{ card.name }}" onerror="this.onerror=null;this.src='{{ asset('images/default_card.png') }}';">
+                <img src="{{ vich_uploader_asset(card) }}" alt="{{ card.name }}"{% if lazy %} loading="lazy"{% endif %} decoding="async" onerror="this.onerror=null;this.src='{{ asset('images/default_card.png') }}';">
                 <div class="card__shine"></div>
                 <div class="card__glare"></div>
                 {%- if card.isUnique %}<div class="card__unique-badge" title="Carte unique — un seul exemplaire">1/1</div>{% endif -%}

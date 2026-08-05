@@ -140,7 +140,7 @@
                                  {%- if ownsHolo and ownsNormal %} data-controller="holo-toggle"
                                  data-holo-toggle-holo-class-value="{{ card_visual(userCard.card).holoEffect.cssClass ?? 'holo--basic' }}"
                                  {%- endif %}>
-                                {{ include('components/CardComponent.html.twig', { card: userCard.card, holo: ownsHolo }) }}
+                                {{ include('components/CardComponent.html.twig', { card: userCard.card, holo: ownsHolo, lazy: true }) }}
                                 <div class="card-tile__chips pointer-events-none absolute -right-2 -top-2 z-10 flex gap-1.5">
                                     <span class="chip-mono bg-black/90 px-2 py-1 font-bold text-white">×{{ userCard.quantity }}</span>
                                     {% if ownsHolo %}
