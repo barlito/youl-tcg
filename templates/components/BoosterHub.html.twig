@@ -67,8 +67,8 @@
                             {% set drawable = drawableBoosterIds[booster.id]|default(false) %}
                             <article class="group relative flex flex-col rounded-2xl border border-hairline bg-surface p-4 transition duration-300 hover:-translate-y-1 hover:border-primary/40">
                                 {# centred eyebrow + booster name (packs.com header) — the eyebrow
-                                   carries the extension when the booster has its own name #}
-                                <p class="text-center font-mono text-[10px] font-bold uppercase tracking-[.2em] text-ink-dim">Cartes de{{ booster.name ? ' ' ~ booster.extension.name }}</p>
+                                   always names the extension, like displayName falls back to it #}
+                                <p class="text-center font-mono text-[10px] font-bold uppercase tracking-[.2em] text-ink-dim">Cartes de {{ booster.extension.name }}</p>
                                 <h3 class="mt-1 text-center font-display text-lg font-bold uppercase leading-tight tracking-[-0.02em] text-ink-strong">{{ booster.displayName }}</h3>
 
                                 {# tilted pack with a trading card peeking out behind it #}
