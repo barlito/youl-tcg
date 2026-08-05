@@ -8,8 +8,8 @@ use App\Entity\Booster;
 use App\Entity\DiscordUser;
 use App\Exception\Booster\BoosterException;
 use App\Repository\BoosterRepository;
-use App\Repository\CardRepository;
 use App\Repository\UserBoosterRepository;
+use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\BoosterClaimService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Uid\Uuid;
@@ -37,28 +37,24 @@ final class BoosterHub extends AbstractController
 
     public function __construct(
         private readonly BoosterRepository $boosterRepository,
-        private readonly CardRepository $cardRepository,
         private readonly UserBoosterRepository $userBoosterRepository,
+        private readonly BoosterAvailabilityService $boosterAvailability,
         private readonly BoosterClaimService $boosterClaimService,
     ) {
     }
 
     /**
-     * The hub list: a non-claimable booster (event/code distribution) is hidden
-     * from everyone except the users who already own copies — they still need
-     * to see it (and its drop rates) to open theirs.
+     * The hub list: the published boosters the user is allowed to see
+     * (claimable, or event/code ones they already own copies of).
      *
      * @return list<Booster>
      */
     public function getBoosters(): array
     {
-        $inventory = $this->getInventory();
-
-        return array_values(array_filter(
+        return $this->boosterAvailability->filterVisible(
             $this->boosterRepository->findPublished(),
-            static fn (Booster $booster): bool => $booster->isClaimable()
-                || ($inventory[(string) $booster->getId()] ?? 0) > 0,
-        ));
+            $this->getInventory(),
+        );
     }
 
     public function getRemainingClaims(): int
@@ -81,24 +77,15 @@ final class BoosterHub extends AbstractController
     }
 
     /**
-     * Booster ids whose extension has at least one published card, i.e. the
-     * boosters that can actually be opened. Boosters over an empty extension
-     * are surfaced as "à venir" rather than letting the user hit a draw error.
+     * Booster ids that can actually be opened (their extension has at least
+     * one published card). Boosters over an empty extension are surfaced as
+     * "à venir" rather than letting the user hit a draw error.
      *
      * @return array<string, true> booster id => true
      */
     public function getDrawableBoosterIds(): array
     {
-        $extensionIds = array_flip($this->cardRepository->findExtensionIdsWithPublishedCards());
-
-        $drawable = [];
-        foreach ($this->getBoosters() as $booster) {
-            if (isset($extensionIds[(string) $booster->getExtension()->getId()])) {
-                $drawable[(string) $booster->getId()] = true;
-            }
-        }
-
-        return $drawable;
+        return $this->boosterAvailability->drawableBoosterIds($this->getBoosters());
     }
 
     /**

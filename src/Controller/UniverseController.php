@@ -15,6 +15,7 @@ use App\Repository\CardRepository;
 use App\Repository\ExtensionRepository;
 use App\Repository\UserBoosterRepository;
 use App\Repository\UserCardRepository;
+use App\Service\Booster\BoosterAvailabilityService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -41,6 +42,7 @@ class UniverseController extends AbstractController
         private readonly CardRepository $cardRepository,
         private readonly UserCardRepository $userCardRepository,
         private readonly UserBoosterRepository $userBoosterRepository,
+        private readonly BoosterAvailabilityService $boosterAvailability,
     ) {
     }
 
@@ -112,20 +114,18 @@ class UniverseController extends AbstractController
     }
 
     /**
-     * Same visibility rule as the hub: claimable boosters, plus non-claimable
-     * ones (event / code) the user actually owns copies of.
+     * Same visibility rule as the hub, via BoosterAvailabilityService:
+     * claimable boosters, plus non-claimable ones (event / code) the user
+     * actually owns copies of.
      *
      * @return list<Booster>
      */
     private function visibleBoosters(Extension $extension, DiscordUser $user): array
     {
-        $ownedCounts = $this->ownedBoosterCounts($user);
-
-        return array_values(array_filter(
+        return $this->boosterAvailability->filterVisible(
             $this->boosterRepository->findBy(['extension' => $extension], ['name' => 'ASC', 'id' => 'ASC']),
-            static fn (Booster $booster): bool => $booster->isClaimable()
-                || ($ownedCounts[(string) $booster->getId()] ?? 0) > 0,
-        ));
+            $this->ownedBoosterCounts($user),
+        );
     }
 
     /**
