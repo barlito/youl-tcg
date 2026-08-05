@@ -155,14 +155,9 @@ class UniverseController extends AbstractController
      */
     private function sortRarestFirst(array $cards): array
     {
-        $rank = array_flip(array_map(
-            static fn (CardRarityEnum $rarity): string => $rarity->value,
-            CardRarityEnum::ascending(),
-        ));
-
         usort(
             $cards,
-            static fn (Card $a, Card $b): int => ($rank[$b->getRarity()->value] <=> $rank[$a->getRarity()->value])
+            static fn (Card $a, Card $b): int => CardRarityEnum::compareRarestFirst($a->getRarity(), $b->getRarity())
                 ?: $a->getName() <=> $b->getName(),
         );
 

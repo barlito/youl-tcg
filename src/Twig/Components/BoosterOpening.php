@@ -108,11 +108,10 @@ final class BoosterOpening extends AbstractController
     public function getExtensionCatalog(): array
     {
         $cards = $this->cardRepository->findPublishedByExtension($this->getBooster()->getExtension());
-        $rank = $this->rarityRanks();
 
         usort(
             $cards,
-            static fn (Card $a, Card $b): int => ($rank[$b->getRarity()->value] <=> $rank[$a->getRarity()->value])
+            static fn (Card $a, Card $b): int => CardRarityEnum::compareRarestFirst($a->getRarity(), $b->getRarity())
                 ?: $a->getName() <=> $b->getName(),
         );
 
@@ -248,17 +247,6 @@ final class BoosterOpening extends AbstractController
         $this->newCardIds = [];
         $this->revealOrder = [];
         $this->error = null;
-    }
-
-    /**
-     * @return array<string, int> rarity value => ascending rank
-     */
-    private function rarityRanks(): array
-    {
-        return array_flip(array_map(
-            static fn (CardRarityEnum $rarity): string => $rarity->value,
-            CardRarityEnum::ascending(),
-        ));
     }
 
     private function getDiscordUser(): DiscordUser

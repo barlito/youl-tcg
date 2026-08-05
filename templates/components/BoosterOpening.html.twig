@@ -8,7 +8,6 @@
     {% set ownedCount = this.ownedCount %}
     {% set ownedCardIds = this.ownedCardIds %}
     {% set newCardIds = this.newCardIds %}
-    {% set rarityLabels = { common: 'Commune', uncommon: 'Peu commune', rare: 'Rare', legendary: 'Légendaire' } %}
     {% set raritySuffix = { rare: ' !', legendary: ' !!!' } %}
 
     <div class="opening opening--page"
@@ -63,7 +62,7 @@
                                  data-card-id="{{ reveal.card.id }}"
                                  data-rarity="{{ rarity }}"
                                  data-shiny="{{ rarity in ['rare', 'legendary'] ? '1' : '0' }}"
-                                 data-label="{{ rarityLabels[rarity]|default(rarity) }}{{ raritySuffix[rarity]|default('') }}">
+                                 data-label="{{ reveal.card.rarity.label }}{{ raritySuffix[rarity]|default('') }}">
                                 {# flip scene: back faces the player until they click to reveal the front #}
                                 <div class="opening__flip" data-booster-opening-target="flip">
                                     <div class="opening__flip-face opening__flip-front">
@@ -237,9 +236,9 @@
                                 </div>
                                 <p class="opening__card-name"{% if isPending %} data-reveal-name="{{ card.name }}"{% endif %}>{{ isOwned ? card.name : 'Non révélée' }}</p>
                                 {% if isOwned %}
-                                    <p class="opening__card-tier">{{ rarityLabels[rarity]|default(rarity) }}</p>
+                                    <p class="opening__card-tier">{{ card.rarity.label }}</p>
                                 {% elseif isPending %}
-                                    <p class="opening__card-tier" hidden data-reveal-tier="{{ rarityLabels[rarity]|default(rarity) }}"></p>
+                                    <p class="opening__card-tier" hidden data-reveal-tier="{{ card.rarity.label }}"></p>
                                 {% endif %}
                             </article>
                         {% endfor %}

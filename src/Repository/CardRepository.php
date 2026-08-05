@@ -127,18 +127,13 @@ class CardRepository extends ServiceEntityRepository
             ->getArrayResult()
         ;
 
-        $rank = [];
-        foreach (CardRarityEnum::ascending() as $index => $rarity) {
-            $rank[$rarity->value] = $index;
-        }
-
         $covers = [];
         $bestKeys = [];
         foreach ($rows as $row) {
             $extensionId = (string) $row['extensionId'];
-            $rarityValue = $row['rarity'] instanceof CardRarityEnum ? $row['rarity']->value : $row['rarity'];
+            $rarity = $row['rarity'] instanceof CardRarityEnum ? $row['rarity'] : CardRarityEnum::tryFrom($row['rarity']);
             // rarest first, then name ascending: comparable sort keys
-            $key = [-($rank[$rarityValue] ?? -1), $row['name']];
+            $key = [-($rarity?->rank() ?? -1), $row['name']];
 
             if (!isset($bestKeys[$extensionId]) || $key < $bestKeys[$extensionId]) {
                 $bestKeys[$extensionId] = $key;

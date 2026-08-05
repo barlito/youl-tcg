@@ -51,13 +51,9 @@ class UserCardRepository extends ServiceEntityRepository
 
         // Rarity is a string-backed enum (alphabetical ≠ rarity order), so rank it
         // in PHP: rarest first, ties broken by name. The owned set is small.
-        $rank = array_flip(array_map(
-            static fn (CardRarityEnum $rarity): string => $rarity->value,
-            CardRarityEnum::ascending(),
-        ));
         usort(
             $cards,
-            static fn (UserCard $a, UserCard $b): int => ($rank[$b->getCard()->getRarity()->value] <=> $rank[$a->getCard()->getRarity()->value])
+            static fn (UserCard $a, UserCard $b): int => CardRarityEnum::compareRarestFirst($a->getCard()->getRarity(), $b->getCard()->getRarity())
                 ?: $a->getCard()->getName() <=> $b->getCard()->getName(),
         );
 

@@ -9,7 +9,6 @@
     {% set totalCount = catalog|length %}
     {% set percentage = totalCount > 0 ? ((ownedCount / totalCount) * 100)|round : 0 %}
     {% set banners = extension.banners|filter(banner => banner.imageName) %}
-    {% set rarityLabels = { common: 'Commune', uncommon: 'Peu commune', rare: 'Rare', legendary: 'Légendaire' } %}
 
     <main>
         {# --------------------------------------------- Héro / bannières #}
