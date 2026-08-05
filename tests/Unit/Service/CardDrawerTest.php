@@ -8,6 +8,7 @@ use App\Entity\Booster;
 use App\Entity\Card;
 use App\Entity\Extension;
 use App\Enum\Entity\CardRarityEnum;
+use App\Exception\Booster\EmptyRarityRatesException;
 use App\Exception\Booster\NoCardAvailableException;
 use App\Repository\CardRepository;
 use App\Service\Booster\CardDrawer;
@@ -142,6 +143,25 @@ final class CardDrawerTest extends TestCase
             $this->assertFalse($drawnCards[0]->holo);
             $this->assertTrue($drawnCards[1]->holo);
         }
+    }
+
+    public function testThrowsWhenRarityRatesAreEmpty(): void
+    {
+        // The guard must fire before any pool load or roll: an empty slot list
+        // would otherwise "draw" zero cards while the caller already debited
+        // the booster in the same transaction.
+        $cardRepository = $this->createMock(CardRepository::class);
+        $cardRepository->expects($this->never())->method('findDrawablePool');
+        $drawer = new CardDrawer($cardRepository, new RandomService());
+
+        $booster = new Booster()
+            ->setExtension($this->extension())
+            ->setRarityRates([])
+        ;
+
+        $this->expectException(EmptyRarityRatesException::class);
+
+        $drawer->draw($booster);
     }
 
     public function testThrowsWhenExtensionHasNoPublishedCard(): void
