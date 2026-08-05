@@ -16,13 +16,18 @@ use Symfony\Component\Validator\Test\ConstraintValidatorTestCase;
  */
 final class ValidRarityRatesValidatorTest extends ConstraintValidatorTestCase
 {
-    private ValidRarityRates $constraint;
+    /**
+     * The parent class already declares a protected $constraint property:
+     * redeclaring it (or narrowing its visibility) is a PHP fatal error,
+     * hence the distinct name.
+     */
+    private ValidRarityRates $rarityRatesConstraint;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->constraint = new ValidRarityRates();
+        $this->rarityRatesConstraint = new ValidRarityRates();
     }
 
     public function testValidRarityRatesRaiseNoViolation(): void
@@ -30,7 +35,7 @@ final class ValidRarityRatesValidatorTest extends ConstraintValidatorTestCase
         $this->validator->validate([
             ['rarities' => ['common' => 100], 'holoChance' => 0],
             ['rarities' => ['common' => 60, 'rare' => 30, 'legendary' => 10], 'holoChance' => 100],
-        ], $this->constraint);
+        ], $this->rarityRatesConstraint);
 
         $this->assertNoViolation();
     }
@@ -39,14 +44,14 @@ final class ValidRarityRatesValidatorTest extends ConstraintValidatorTestCase
     {
         $this->expectException(UnexpectedValueException::class);
 
-        $this->validator->validate('not-an-array', $this->constraint);
+        $this->validator->validate('not-an-array', $this->rarityRatesConstraint);
     }
 
     public function testEmptySlotListIsRejected(): void
     {
-        $this->validator->validate([], $this->constraint);
+        $this->validator->validate([], $this->rarityRatesConstraint);
 
-        $this->buildViolation($this->constraint->emptyMessage)->assertRaised();
+        $this->buildViolation($this->rarityRatesConstraint->emptyMessage)->assertRaised();
     }
 
     #[DataProvider('provideMalformedSlots')]
@@ -55,9 +60,9 @@ final class ValidRarityRatesValidatorTest extends ConstraintValidatorTestCase
         $this->validator->validate([
             ['rarities' => ['common' => 100], 'holoChance' => 10],
             $slot,
-        ], $this->constraint);
+        ], $this->rarityRatesConstraint);
 
-        $this->buildViolation($this->constraint->invalidSlotMessage)
+        $this->buildViolation($this->rarityRatesConstraint->invalidSlotMessage)
             ->setParameter('{{ slot }}', '2')
             ->assertRaised()
         ;
@@ -78,9 +83,9 @@ final class ValidRarityRatesValidatorTest extends ConstraintValidatorTestCase
     {
         $this->validator->validate([
             ['rarities' => $rarities, 'holoChance' => 10],
-        ], $this->constraint);
+        ], $this->rarityRatesConstraint);
 
-        $this->buildViolation($this->constraint->invalidRaritiesMessage)
+        $this->buildViolation($this->rarityRatesConstraint->invalidRaritiesMessage)
             ->setParameter('{{ slot }}', '1')
             ->assertRaised()
         ;
@@ -99,9 +104,9 @@ final class ValidRarityRatesValidatorTest extends ConstraintValidatorTestCase
     {
         $this->validator->validate([
             ['rarities' => ['epic' => 10], 'holoChance' => 10],
-        ], $this->constraint);
+        ], $this->rarityRatesConstraint);
 
-        $this->buildViolation($this->constraint->invalidRarityMessage)
+        $this->buildViolation($this->rarityRatesConstraint->invalidRarityMessage)
             ->setParameter('{{ slot }}', '1')
             ->setParameter('{{ rarity }}', 'epic')
             ->setParameter('{{ rarities }}', implode(', ', array_column(CardRarityEnum::cases(), 'value')))
@@ -114,9 +119,9 @@ final class ValidRarityRatesValidatorTest extends ConstraintValidatorTestCase
     {
         $this->validator->validate([
             ['rarities' => ['common' => $weight], 'holoChance' => 10],
-        ], $this->constraint);
+        ], $this->rarityRatesConstraint);
 
-        $this->buildViolation($this->constraint->invalidWeightMessage)
+        $this->buildViolation($this->rarityRatesConstraint->invalidWeightMessage)
             ->setParameter('{{ slot }}', '1')
             ->setParameter('{{ rarity }}', 'common')
             ->assertRaised()
@@ -138,9 +143,9 @@ final class ValidRarityRatesValidatorTest extends ConstraintValidatorTestCase
     {
         $this->validator->validate([
             ['rarities' => ['common' => 100], 'holoChance' => $holoChance],
-        ], $this->constraint);
+        ], $this->rarityRatesConstraint);
 
-        $this->buildViolation($this->constraint->invalidHoloChanceMessage)
+        $this->buildViolation($this->rarityRatesConstraint->invalidHoloChanceMessage)
             ->setParameter('{{ slot }}', '1')
             ->assertRaised()
         ;
@@ -160,13 +165,13 @@ final class ValidRarityRatesValidatorTest extends ConstraintValidatorTestCase
     {
         $this->validator->validate([
             ['rarities' => ['epic' => 0], 'holoChance' => 10],
-        ], $this->constraint);
+        ], $this->rarityRatesConstraint);
 
-        $this->buildViolation($this->constraint->invalidRarityMessage)
+        $this->buildViolation($this->rarityRatesConstraint->invalidRarityMessage)
             ->setParameter('{{ slot }}', '1')
             ->setParameter('{{ rarity }}', 'epic')
             ->setParameter('{{ rarities }}', implode(', ', array_column(CardRarityEnum::cases(), 'value')))
-            ->buildNextViolation($this->constraint->invalidWeightMessage)
+            ->buildNextViolation($this->rarityRatesConstraint->invalidWeightMessage)
             ->setParameter('{{ slot }}', '1')
             ->setParameter('{{ rarity }}', 'epic')
             ->assertRaised()
