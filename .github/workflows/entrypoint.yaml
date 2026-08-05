@@ -17,3 +17,38 @@ jobs:
   test:
     uses: ./.github/workflows/test.yaml
     secrets: inherit
+
+  # Le scan Trivy rebuild l'image prod : trop lourd pour chaque push, on ne
+  # le déclenche que quand un fichier influant sur la surface de l'image
+  # change. La couverture complète reste assurée par le cron hebdomadaire
+  # de security.yaml.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      security: ${{ steps.filter.outputs.security }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          base: master
+          filters: |
+            security:
+              - '.docker/**'
+              - 'docker-compose*.yml'
+              - 'composer.lock'
+              - '.github/workflows/security.yaml'
+
+  # Call the security workflow (Trivy). Le token par défaut du repo est
+  # read-only : le workflow appelé ne peut pas demander plus que ce que le
+  # job appelant accorde, il faut donc élever les permissions ici (upload
+  # SARIF vers GitHub Security).
+  security:
+    needs: changes
+    if: needs.changes.outputs.security == 'true'
+    permissions:
+      contents: read
+      security-events: write
+    uses: ./.github/workflows/security.yaml
+    secrets: inherit
