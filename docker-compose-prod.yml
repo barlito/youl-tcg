@@ -64,24 +64,6 @@ services:
         networks:
             - ytcg_internal
 
-    adminer:
-        image: adminer
-        deploy:
-            labels:
-                - traefik.enable=true
-
-                - traefik.http.services.ytcg_adminer.loadbalancer.server.port=8080
-
-                - traefik.http.routers.ytcg_adminer.rule=Host(`ytcg-adminer.barlito.fr`)
-                - traefik.http.routers.ytcg_adminer.entrypoints=http
-
-                - traefik.http.routers.ytcg_adminer-secure.rule=Host(`ytcg-adminer.barlito.fr`)
-                - traefik.http.routers.ytcg_adminer-secure.entrypoints=https
-                - traefik.http.routers.ytcg_adminer-secure.tls=true
-        networks:
-            - ytcg_internal
-            - traefik_traefik_proxy
-
 volumes:
     ytcg_db_data:
     ytcg_caddy_data:
