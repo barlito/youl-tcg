@@ -20,6 +20,9 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
 
 #[Vich\Uploadable]
 #[ORM\Entity(repositoryClass: CardRepository::class)]
+// Almost every card query filters on extension + status (draw pool, set
+// contents, published-extension lookups): index the pair.
+#[ORM\Index(columns: ['extension_id', 'status'])]
 class Card
 {
     use IdUuidTrait;
