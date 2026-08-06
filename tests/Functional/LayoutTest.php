@@ -88,6 +88,18 @@ final class LayoutTest extends WebTestCase
         $this->assertSame('dev', $crawler->filter('[data-testid="app-version"]')->first()->text());
     }
 
+    public function testUmamiSnippetIsAbsentWhenUnconfigured(): void
+    {
+        $client = self::createClient();
+        $this->authenticateClient($client);
+
+        $crawler = $client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        // UMAMI_URL / UMAMI_WEBSITE_ID default to '' (see .env): no tracking
+        $this->assertCount(0, $crawler->filter('script[data-website-id]'));
+    }
+
     public function testAdminLinkOnlyVisibleForAdmin(): void
     {
         $client = self::createClient();

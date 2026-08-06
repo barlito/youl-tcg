@@ -70,10 +70,55 @@ services:
             - ytcg_internal
             - traefik_traefik_proxy
 
+    # Umami local : même image épinglée qu'en prod (stack obs) pour tester le
+    # snippet et les events serveur avant déploiement
+    umami:
+        image: ghcr.io/umami-software/umami:postgresql-v2.19.0
+        environment:
+            DATABASE_TYPE: postgresql
+            DATABASE_URL: postgresql://postgres:root@ytcg_umami_db:5432/umami
+            APP_SECRET: local-dev-umami-secret
+            DISABLE_TELEMETRY: 1
+            TZ: Europe/Paris
+        deploy:
+            labels:
+                - traefik.enable=true
+
+                - traefik.http.services.ytcg_umami.loadbalancer.server.port=3000
+
+                - traefik.http.routers.ytcg_umami.rule=Host(`umami.local.barlito.fr`)
+                - traefik.http.routers.ytcg_umami.entrypoints=http
+
+                - traefik.http.routers.ytcg_umami-secure.rule=Host(`umami.local.barlito.fr`)
+                - traefik.http.routers.ytcg_umami-secure.entrypoints=https
+                - traefik.http.routers.ytcg_umami-secure.tls=true
+        networks:
+            - ytcg_internal
+            - traefik_traefik_proxy
+
+    umami_db:
+        image: postgres:18
+        environment:
+            POSTGRES_PASSWORD: root
+            POSTGRES_DB: umami
+            TZ: Europe/Paris
+            PGTZ: Europe/Paris
+        volumes:
+            # postgres:18 a déplacé PGDATA : on monte /var/lib/postgresql (et plus .../data)
+            - ytcg_umami_db_data:/var/lib/postgresql:rw
+        healthcheck:
+            test: [ "CMD-SHELL", "pg_isready -U postgres"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        networks:
+            - ytcg_internal
+
 volumes:
     ytcg_caddy_data:
     ytcg_caddy_config:
     ytcg_db_data:
+    ytcg_umami_db_data:
 
 networks:
     traefik_traefik_proxy:

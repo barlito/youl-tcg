@@ -11,6 +11,13 @@ services:
     adminer:
         profiles: [never-in-ci]
 
+    # same treatment: local analytics are pointless in CI
+    umami:
+        profiles: [never-in-ci]
+
+    umami_db:
+        profiles: [never-in-ci]
+
 networks:
     traefik_traefik_proxy:
         external: false
