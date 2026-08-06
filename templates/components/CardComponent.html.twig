@@ -53,10 +53,10 @@
                         {%- else %}
                         <span class="card-frame__ext">{{ card.extension.name }}</span>
                         {%- endif %}
+                        <span class="card-frame__rarity" aria-hidden="true"></span>
                     </div>
                 </div>
                 {% endif -%}
-                {%- if card.isUnique %}<div class="card__unique-badge" title="Carte unique — un seul exemplaire">1/1</div>{% endif -%}
             </div>
         </div>
     </div>

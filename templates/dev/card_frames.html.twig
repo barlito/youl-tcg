@@ -45,6 +45,22 @@
             {% endfor %}
         </div>
 
+        {# ------------------------------------------------ rarity icons #}
+        <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">Icônes de rareté</h2>
+        <p class="mb-4 max-w-3xl text-ink-muted">
+            Formes CSS pures façon Pokémon, en bas à gauche du cadre : rond commun, losange uncommon,
+            étoile rare, étoile légendaire (plus grande + glow). Couleurs de la palette rareté.
+            Clones transients : les fixtures dev sont toutes communes.
+        </p>
+        <div class="grid grid-cols-2 gap-6 md:grid-cols-4">
+            {% for demo in rarityDemos %}
+                {{ include('components/CardComponent.html.twig', {
+                    card: demo,
+                    id: 'rarity-' ~ demo.rarity.value,
+                }) }}
+            {% endfor %}
+        </div>
+
         {# ------------------------------------------------ name typography #}
         <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">Typo du nom — <code class="text-primary text-lg">nameFont</code></h2>
         <p class="mb-4 max-w-3xl text-ink-muted">

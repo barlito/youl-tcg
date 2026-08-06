@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Dev;
 
+use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\CardRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -43,8 +44,20 @@ class CardFramesDemoController extends AbstractController
             throw $this->createNotFoundException('No published card found, load the fixtures first.');
         }
 
+        $cards = array_values($cards);
+
+        // the dev fixtures are all-common: transient clones (never persisted)
+        // force one card per rarity so every icon shape is previewable
+        $rarityDemos = [];
+        foreach (CardRarityEnum::cases() as $rarity) {
+            $demo = clone $cards[0];
+            $demo->setRarity($rarity);
+            $rarityDemos[] = $demo;
+        }
+
         return $this->render('dev/card_frames.html.twig', [
-            'cards' => array_values($cards),
+            'cards' => $cards,
+            'rarityDemos' => $rarityDemos,
         ]);
     }
 }
