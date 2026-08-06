@@ -1,0 +1,35 @@
+# Contexte de build Docker : n'embarquer que ce que .docker/Dockerfile
+# consomme réellement. NE PAS exclure .docker/ (COPY de app.ini,
+# app.prod.ini et du Caddyfile), ni composer.*/symfony.lock, .env,
+# importmap.php, assets/, config/, src/, templates/, migrations/, bin/,
+# translations/, tailwind.config.js, public/ (index.php + images statiques).
+
+# VCS / CI (le Dockerfile fait déjà rm -rf .github après COPY)
+.git
+.github
+
+# Outillage local
+.idea
+.claude
+docs
+
+# Généré au build dans l'image — ne jamais écraser le vendor --no-dev
+# ni le var/ créés par le Dockerfile avec des artefacts locaux
+vendor
+var
+node_modules
+
+# Contenu runtime : uploads Vich (volume en prod) et assets compilés
+# (asset-map:compile les régénère dans l'image)
+public/uploads
+public/assets
+
+# Dev/test uniquement (bundles Alice scopés dev/test, autoload-dev ignoré
+# par --no-dev)
+tests
+fixtures
+
+# Secrets et overrides locaux — ne doivent jamais entrer dans l'image
+.env.local
+.env.local.php
+.env.*.local

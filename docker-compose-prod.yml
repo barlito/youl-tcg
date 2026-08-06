@@ -1,6 +1,6 @@
 services:
     php:
-        image: barlito/youl-tcg:${TAG}
+        image: barlito/youl-tcg:${TAG:?TAG is required}
         volumes:
             - ytcg_caddy_data:/data
             # Uniquement le contenu uploadé (Vich) : public/images/ (textures
@@ -10,11 +10,11 @@ services:
         environment:
             # kernel.secret : signe notamment les checksums des Live Components —
             # vide, toute page qui en rend un (hub, admin) tombe en 500
-            APP_SECRET: "${APP_SECRET}"
-            DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@ytcg_db:5432/ytcg?serverVersion=18&charset=utf8"
-            JWT_PUBLIC_KEY: "${JWT_PUBLIC_KEY}"
-            JWT_SECRET_KEY: "${JWT_SECRET_KEY}"
-            JWT_PASSPHRASE: "${JWT_PASSPHRASE}"
+            APP_SECRET: "${APP_SECRET:?APP_SECRET is required}"
+            DATABASE_URL: "postgresql://${DB_USER:?DB_USER is required}:${DB_PASSWORD:?DB_PASSWORD is required}@ytcg_db:5432/ytcg?serverVersion=18&charset=utf8"
+            JWT_PUBLIC_KEY: "${JWT_PUBLIC_KEY:?JWT_PUBLIC_KEY is required}"
+            JWT_SECRET_KEY: "${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}"
+            JWT_PASSPHRASE: "${JWT_PASSPHRASE:?JWT_PASSPHRASE is required}"
             TZ: Europe/Paris
         tty: true
         deploy:
@@ -47,7 +47,7 @@ services:
     db:
         image: postgres:18
         environment:
-            POSTGRES_PASSWORD: ${DB_PASSWORD}
+            POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
             POSTGRES_DB: ytcg
             TZ: Europe/Paris
             PGTZ: Europe/Paris
@@ -63,24 +63,6 @@ services:
             retries: 5
         networks:
             - ytcg_internal
-
-    adminer:
-        image: adminer
-        deploy:
-            labels:
-                - traefik.enable=true
-
-                - traefik.http.services.ytcg_adminer.loadbalancer.server.port=8080
-
-                - traefik.http.routers.ytcg_adminer.rule=Host(`ytcg-adminer.barlito.fr`)
-                - traefik.http.routers.ytcg_adminer.entrypoints=http
-
-                - traefik.http.routers.ytcg_adminer-secure.rule=Host(`ytcg-adminer.barlito.fr`)
-                - traefik.http.routers.ytcg_adminer-secure.entrypoints=https
-                - traefik.http.routers.ytcg_adminer-secure.tls=true
-        networks:
-            - ytcg_internal
-            - traefik_traefik_proxy
 
 volumes:
     ytcg_db_data:
