@@ -70,8 +70,7 @@ services:
             - ytcg_internal
             - traefik_traefik_proxy
 
-    # Umami local : même image épinglée qu'en prod (stack obs) pour tester le
-    # snippet et les events serveur avant déploiement
+    # même image épinglée qu'en prod (stack obs)
     umami:
         image: ghcr.io/umami-software/umami:postgresql-v2.19.0
         environment:
