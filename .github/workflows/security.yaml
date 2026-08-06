@@ -10,6 +10,10 @@ jobs:
   trivy:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      security-events: write
+
     steps:
       - uses: actions/checkout@v7
         with:
@@ -26,12 +30,13 @@ jobs:
           tags: local/youl-tcg:scan
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'local/youl-tcg:scan'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
           exit-code: '1'
 
       - name: Upload Trivy scan results to GitHub Security

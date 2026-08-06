@@ -49,6 +49,9 @@ tailwind.build:
 		echo "tailwind:build KO (tentative $$i/5) — retry dans 20s"; sleep 20; \
 	done; echo "tailwind:build KO après 5 tentatives"; exit 1
 
+doctrine.schema_validate.ci:
+	docker exec -t $(app_container_id) bin/console doctrine:schema:validate --env=test
+
 # Smoke test : curl GET / → fail si non-2xx. Sert de garde-fou post-deploy/update.
 smoke.test:
 	@echo "🩺 Smoke test https://$(prod_host)/..."

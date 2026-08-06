@@ -17,3 +17,31 @@ jobs:
   test:
     uses: ./.github/workflows/test.yaml
     secrets: inherit
+
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      security: ${{ steps.filter.outputs.security }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          base: master
+          filters: |
+            security:
+              - '.docker/**'
+              - 'docker-compose*.yml'
+              - 'composer.lock'
+              - '.github/workflows/security.yaml'
+
+  # Call the security workflow
+  security:
+    needs: changes
+    if: needs.changes.outputs.security == 'true'
+    permissions:
+      contents: read
+      security-events: write
+    uses: ./.github/workflows/security.yaml
+    secrets: inherit

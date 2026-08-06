@@ -38,6 +38,9 @@ jobs:
           make doctrine.migrate.ci
           make doctrine.load_fixtures.ci
 
+      - name: Validate Doctrine schema
+        run: make doctrine.schema_validate.ci
+
       # The tailwind bundle downloads its binary from GitHub Releases on first
       # build — a flaky external dependency (a 504 broke a run on 2026-07-09).
       # /app is bind-mounted in CI, so the binary lands in var/tailwind on the

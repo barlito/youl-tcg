@@ -14,6 +14,14 @@ jobs:
         with:
           submodules: 'true'
 
+      - name: Validate docker compose files
+        run: |
+          docker compose -f docker-compose.yml config -q
+          docker compose -f docker-compose.yml -f docker-compose-ci.yml config -q
+          TAG=ci APP_SECRET=dummy DB_USER=dummy DB_PASSWORD=dummy \
+          JWT_PUBLIC_KEY=dummy JWT_SECRET_KEY=dummy JWT_PASSPHRASE=dummy \
+          docker compose -f docker-compose-prod.yml config -q
+
       - name: Setup castor
         uses: castor-php/setup-castor@v1.0.0
 
@@ -32,14 +40,8 @@ jobs:
       - name: Deploy stack
         run: USER_ID=$(id -u) GROUP_ID=$(id -g) make deploy.ci github_token=${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run php cs fixer
-        run: make cs_fixer.dry_run
-
-      - name: Run php cs
-        run: make phpcs
-
-      - name: Run phpstan
-        run: make phpstan
+      - name: Run quality checks
+        run: make quality
 
       - name: Undeploy stack
         run: make docker.undeploy.ci
