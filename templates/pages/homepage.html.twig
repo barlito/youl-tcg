@@ -53,13 +53,8 @@
         </section>
 
         {# ---------------------------------------------------------- Ticker #}
-        {# Paliers de rareté (source unique ticker + section Raretés) : doit suivre CardRarityEnum #}
-        {% set rarities = [
-            {label: 'Common', chip: 'C', color: 'var(--rarity-common)'},
-            {label: 'Uncommon', chip: 'U', color: 'var(--rarity-uncommon)'},
-            {label: 'Rare', chip: 'R', color: 'var(--rarity-rare)'},
-            {label: 'Legendary', chip: 'L', color: 'var(--rarity-legendary)'},
-        ] %}
+        {# Paliers de rareté (ticker + section Raretés) : directement CardRarityEnum, labels FR inclus #}
+        {% set rarities = card_rarities() %}
         {% set tickerItems = [
             "✦ %s packs ouverts"|format(packsOpenedCount|number_format(0, ',', ' ')),
             '✦ %d univers'|format(universesTotal),
@@ -184,11 +179,12 @@
                 {# Pas de « drop rate » global affiché : les vrais taux sont définis slot par slot, booster par booster #}
                 <div class="grid md:grid-cols-4">
                     {% for rarity in rarities %}
+                        {% set color = 'var(--rarity-' ~ rarity.value ~ ')' %}
                         <div class="px-5 py-8 {{ not loop.last ? 'md:border-r md:border-white/10' }}"
-                             style="border-top: 3px solid {{ rarity.color }}; background: linear-gradient(180deg, color-mix(in srgb, {{ rarity.color }} 9%, transparent), transparent);">
-                            <p class="chip-mono font-bold !tracking-[.2em]" style="color: {{ rarity.color }};">TIER {{ '%02d'|format(loop.index) }}</p>
+                             style="border-top: 3px solid {{ color }}; background: linear-gradient(180deg, color-mix(in srgb, {{ color }} 9%, transparent), transparent);">
+                            <p class="chip-mono font-bold !tracking-[.2em]" style="color: {{ color }};">TIER {{ '%02d'|format(loop.index) }}</p>
                             <p class="mt-4 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong">
-                                {{ rarity.chip }}<span class="text-2xl" style="color: {{ rarity.color }};"> · {{ rarity.label }}</span>
+                                {{ rarity.value|first|upper }}<span class="text-2xl" style="color: {{ color }};"> · {{ rarity.label }}</span>
                             </p>
                         </div>
                     {% endfor %}

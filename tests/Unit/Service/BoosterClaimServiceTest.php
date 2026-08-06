@@ -10,6 +10,8 @@ use App\Entity\Extension;
 use App\Enum\Entity\ExtensionStatusEnum;
 use App\Exception\Booster\BoosterNotClaimableException;
 use App\Exception\Booster\DailyClaimLimitReachedException;
+use App\Repository\CardRepository;
+use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\BoosterClaimQuotaInterface;
 use App\Service\Booster\BoosterClaimService;
 use App\Service\Booster\UserInventoryService;
@@ -38,7 +40,7 @@ final class BoosterClaimServiceTest extends TestCase
         $entityManager->expects($this->once())->method('persist');
         $entityManager->expects($this->once())->method('flush');
 
-        $service = new BoosterClaimService($this->quotaWithRemaining(2), $inventory, $entityManager, $clock);
+        $service = new BoosterClaimService($this->quotaWithRemaining(2), $inventory, $entityManager, $clock, $this->availability());
 
         $claim = $service->claim($user, $booster);
 
@@ -60,6 +62,7 @@ final class BoosterClaimServiceTest extends TestCase
             $inventory,
             $entityManager,
             new MockClock('2026-06-10 12:00:00', 'UTC'),
+            $this->availability(),
         );
 
         $this->expectException(DailyClaimLimitReachedException::class);
@@ -77,6 +80,7 @@ final class BoosterClaimServiceTest extends TestCase
             $inventory,
             $this->createStub(EntityManagerInterface::class),
             new MockClock('2026-06-10 12:00:00', 'UTC'),
+            $this->availability(),
         );
 
         $this->expectException(BoosterNotClaimableException::class);
@@ -98,6 +102,7 @@ final class BoosterClaimServiceTest extends TestCase
             $inventory,
             $this->createStub(EntityManagerInterface::class),
             new MockClock('2026-06-10 12:00:00', 'UTC'),
+            $this->availability(),
         );
 
         try {
@@ -120,10 +125,16 @@ final class BoosterClaimServiceTest extends TestCase
             $this->createStub(UserInventoryService::class),
             $this->createStub(EntityManagerInterface::class),
             new MockClock('2026-06-10 12:00:00', 'UTC'),
+            $this->availability(),
         );
 
         $this->assertSame(1, $service->getRemainingClaims(new DiscordUser()));
         $this->assertSame($resetTime, $service->getNextResetTime());
+    }
+
+    private function availability(): BoosterAvailabilityService
+    {
+        return new BoosterAvailabilityService($this->createStub(CardRepository::class));
     }
 
     private function quotaWithRemaining(int $remaining): BoosterClaimQuotaInterface

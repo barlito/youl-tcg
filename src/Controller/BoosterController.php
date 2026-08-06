@@ -6,8 +6,8 @@ namespace App\Controller;
 
 use App\Entity\DiscordUser;
 use App\Repository\BoosterRepository;
-use App\Repository\CardRepository;
 use App\Repository\UserBoosterRepository;
+use App\Service\Booster\BoosterAvailabilityService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -26,8 +26,8 @@ class BoosterController extends AbstractController
         string $id,
         #[CurrentUser] DiscordUser $user,
         BoosterRepository $boosterRepository,
-        CardRepository $cardRepository,
         UserBoosterRepository $userBoosterRepository,
+        BoosterAvailabilityService $boosterAvailability,
     ): Response {
         // A malformed uuid must be a plain 404 instead of a Doctrine conversion error.
         $booster = Uuid::isValid($id) ? $boosterRepository->find($id) : null;
@@ -36,14 +36,9 @@ class BoosterController extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        $drawableExtensionIds = array_flip($cardRepository->findExtensionIdsWithPublishedCards());
         $userBooster = $userBoosterRepository->findOneBy(['discordUser' => $user, 'booster' => $booster]);
 
-        if (
-            !isset($drawableExtensionIds[(string) $booster->getExtension()->getId()])
-            || null === $userBooster
-            || $userBooster->getQuantity() < 1
-        ) {
+        if (!$boosterAvailability->isOpenable($booster, $userBooster?->getQuantity() ?? 0)) {
             $this->addFlash('error', "Ce pack n'est pas ouvrable pour le moment.");
 
             return $this->redirectToRoute('boosters');

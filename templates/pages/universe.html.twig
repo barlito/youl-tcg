@@ -9,7 +9,6 @@
     {% set totalCount = catalog|length %}
     {% set percentage = totalCount > 0 ? ((ownedCount / totalCount) * 100)|round : 0 %}
     {% set banners = extension.banners|filter(banner => banner.imageName) %}
-    {% set rarityLabels = { common: 'Commune', uncommon: 'Peu commune', rare: 'Rare', legendary: 'Légendaire' } %}
 
     <main>
         {# --------------------------------------------- Héro / bannières #}
@@ -130,7 +129,7 @@
                         {% for booster in boosters %}
                             {% set owned = ownedBoosterCounts[booster.id ~ '']|default(0) %}
                             <article class="group relative flex flex-col rounded-2xl border border-hairline bg-surface p-4 transition duration-300 hover:-translate-y-1 hover:border-primary/40">
-                                <p class="text-center font-mono text-[10px] font-bold uppercase tracking-[.2em] text-ink-dim">Cartes de{{ booster.name ? ' ' ~ booster.extension.name }}</p>
+                                <p class="text-center font-mono text-[10px] font-bold uppercase tracking-[.2em] text-ink-dim">Cartes de {{ booster.extension.name }}</p>
                                 <h3 class="mt-1 text-center font-display text-lg font-bold uppercase leading-tight tracking-[-0.02em] text-ink-strong">{{ booster.displayName }}</h3>
 
                                 <div class="relative mx-auto mt-4 flex h-52 w-full items-center justify-center">

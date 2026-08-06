@@ -7,7 +7,6 @@ namespace App\Service\Booster;
 use App\Entity\Booster;
 use App\Entity\BoosterClaim;
 use App\Entity\DiscordUser;
-use App\Enum\Entity\ExtensionStatusEnum;
 use App\Exception\Booster\BoosterNotClaimableException;
 use App\Exception\Booster\DailyClaimLimitReachedException;
 use Doctrine\DBAL\LockMode;
@@ -26,6 +25,7 @@ final readonly class BoosterClaimService
         private UserInventoryService $userInventoryService,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private BoosterAvailabilityService $boosterAvailability,
     ) {
     }
 
@@ -48,14 +48,14 @@ final readonly class BoosterClaimService
         // Server-side guards, not just UI: a forged live action must not claim
         // an event/code-only booster, nor one whose extension is unpublished
         // (its uuid can leak — the booster simply isn't available).
-        if (!$booster->isClaimable()) {
+        if (!$this->boosterAvailability->isClaimable($booster)) {
             throw new BoosterNotClaimableException(
                 \sprintf('Booster "%s" is not claimable (event/code distribution only).', $booster->getDisplayName()),
                 'Ce pack ne peut pas être récupéré ici — il se gagne en event ou via un code.',
             );
         }
 
-        if (ExtensionStatusEnum::PUBLISHED !== $booster->getExtension()->getStatus()) {
+        if (!$this->boosterAvailability->hasPublishedExtension($booster)) {
             throw new BoosterNotClaimableException(
                 \sprintf('Booster "%s" belongs to an unpublished extension.', $booster->getDisplayName()),
                 'Ce pack n\'est pas disponible.',

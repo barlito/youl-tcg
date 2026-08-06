@@ -61,15 +61,13 @@
                     {% set inventory = this.inventory %}
                     {% set remainingClaims = this.remainingClaims %}
                     {% set drawableBoosterIds = this.drawableBoosterIds %}
-                    {% set rarityLabels = { common: 'Commune', uncommon: 'Peu commune', rare: 'Rare', legendary: 'Légendaire' } %}
                     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" data-testid="boosters-grid">
                         {% for booster in this.boosters %}
                             {% set owned = inventory[booster.id]|default(0) %}
                             {% set drawable = drawableBoosterIds[booster.id]|default(false) %}
                             <article class="group relative flex flex-col rounded-2xl border border-hairline bg-surface p-4 transition duration-300 hover:-translate-y-1 hover:border-primary/40">
-                                {# centred eyebrow + booster name (packs.com header) — the eyebrow
-                                   carries the extension when the booster has its own name #}
-                                <p class="text-center font-mono text-[10px] font-bold uppercase tracking-[.2em] text-ink-dim">Cartes de{{ booster.name ? ' ' ~ booster.extension.name }}</p>
+                                {# centred eyebrow + booster name (packs.com header) #}
+                                <p class="text-center font-mono text-[10px] font-bold uppercase tracking-[.2em] text-ink-dim">Cartes de {{ booster.extension.name }}</p>
                                 <h3 class="mt-1 text-center font-display text-lg font-bold uppercase leading-tight tracking-[-0.02em] text-ink-strong">{{ booster.displayName }}</h3>
 
                                 {# tilted pack with a trading card peeking out behind it #}
@@ -150,7 +148,7 @@
                                                         <div class="mb-1.5 flex flex-wrap items-baseline gap-x-2 font-mono text-[11px]">
                                                             <span class="text-ink-dim">Carte {{ loop.index }} ·</span>
                                                             {% for rarity, rate in slot.rates %}
-                                                                <span style="color: var(--rarity-{{ rarity }});">{{ rarityLabels[rarity]|default(rarity) }} {{ rate == rate|round ? rate|round : rate }}%</span>
+                                                                <span style="color: var(--rarity-{{ rarity }});">{{ rarity_label(rarity) }} {{ rate == rate|round ? rate|round : rate }}%</span>
                                                             {% endfor %}
                                                             {% if slot.holoChance > 0 %}
                                                                 <span class="text-magenta">✦ Holo {{ slot.holoChance }}%</span>

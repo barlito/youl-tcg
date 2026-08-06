@@ -29,4 +29,35 @@ final class CardRarityEnumTest extends TestCase
             CardRarityEnum::ascending(),
         );
     }
+
+    public function testRankFollowsTheAscendingOrder(): void
+    {
+        // rank() and ascending() are two views of the same scale: lock them together
+        foreach (CardRarityEnum::ascending() as $index => $rarity) {
+            $this->assertSame($index, $rarity->rank());
+        }
+    }
+
+    public function testLabelExposesTheFrenchPlayerFacingNames(): void
+    {
+        $this->assertSame('Commune', CardRarityEnum::COMMON->label());
+        $this->assertSame('Peu commune', CardRarityEnum::UNCOMMON->label());
+        $this->assertSame('Rare', CardRarityEnum::RARE->label());
+        $this->assertSame('Légendaire', CardRarityEnum::LEGENDARY->label());
+    }
+
+    public function testCompareRarestFirstSortsFromLegendaryToCommon(): void
+    {
+        $rarities = [
+            CardRarityEnum::UNCOMMON,
+            CardRarityEnum::LEGENDARY,
+            CardRarityEnum::COMMON,
+            CardRarityEnum::RARE,
+        ];
+
+        usort($rarities, CardRarityEnum::compareRarestFirst(...));
+
+        $this->assertSame(array_reverse(CardRarityEnum::ascending()), $rarities);
+        $this->assertSame(0, CardRarityEnum::compareRarestFirst(CardRarityEnum::RARE, CardRarityEnum::RARE));
+    }
 }
