@@ -6,9 +6,12 @@
 
 {% block body %}
     <style>
-        /* every demo card renders at the same fixed size */
-        .demo-grid { display: flex; flex-wrap: wrap; gap: 1.5rem; }
-        .demo-grid .card { width: 220px; }
+        /* every demo card renders at the same size: 4 per row, extras wrap */
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 1.5rem;
+        }
     </style>
 
     <main class="container mx-auto py-10 px-4">
@@ -45,8 +48,8 @@
         <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">Icônes de rareté</h2>
         <p class="mb-4 max-w-3xl text-ink-muted">
             Formes CSS pures façon Pokémon, en bas à gauche du cadre : rond commun, losange uncommon,
-            étoile rare, <strong>deux étoiles</strong> légendaire (+ glow), <strong>couronne dorée</strong>
-            pour une carte unique 1/1 (remplace l'ancien badge). Couleurs de la palette rareté.
+            étoile rare, <strong>deux étoiles chevauchées</strong> légendaire, <strong>couronne</strong>
+            pour une carte unique 1/1 (remplace l'ancien badge). Blanc, contour noir.
             Clones transients : les fixtures dev sont toutes communes.
         </p>
         <div id="rarity-grid" class="demo-grid">
