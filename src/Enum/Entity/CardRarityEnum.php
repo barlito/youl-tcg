@@ -20,8 +20,7 @@ enum CardRarityEnum: string
     }
 
     /**
-     * Ascending rarity rank (0 = COMMON … 3 = LEGENDARY), the single source
-     * for every rarity sort. Must stay consistent with ascending().
+     * Ascending rank (0 = COMMON … 3 = LEGENDARY); must stay consistent with ascending().
      */
     public function rank(): int
     {
@@ -47,8 +46,7 @@ enum CardRarityEnum: string
     }
 
     /**
-     * usort comparator for the catalog/pokédex order: rarest first. Name
-     * tiebreaks stay at the call sites.
+     * Rarest-first usort comparator; name tiebreaks stay at the call sites.
      */
     public static function compareRarestFirst(self $a, self $b): int
     {

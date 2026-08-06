@@ -132,10 +132,6 @@ final class BoosterClaimServiceTest extends TestCase
         $this->assertSame($resetTime, $service->getNextResetTime());
     }
 
-    /**
-     * The claim path only uses the pure predicates, never the card
-     * repository: a real service over a stubbed repository is enough.
-     */
     private function availability(): BoosterAvailabilityService
     {
         return new BoosterAvailabilityService($this->createStub(CardRepository::class));

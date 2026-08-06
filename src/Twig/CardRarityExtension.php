@@ -8,8 +8,7 @@ use App\Enum\Entity\CardRarityEnum;
 use Twig\Attribute\AsTwigFunction;
 
 /**
- * Exposes the rarity scale to templates so the ranking and the French labels
- * live in CardRarityEnum only (no more per-template label maps).
+ * Exposes the CardRarityEnum scale and labels to templates.
  */
 final readonly class CardRarityExtension
 {
@@ -23,8 +22,7 @@ final readonly class CardRarityExtension
     }
 
     /**
-     * Accepts raw strings too (drop-rate keys come from JSON); an unknown
-     * value falls back to itself, like the old per-template |default(rarity).
+     * Accepts raw strings (drop-rate keys come from JSON); an unknown value falls back to itself.
      */
     #[AsTwigFunction(name: 'rarity_label')]
     public function rarityLabel(CardRarityEnum | string $rarity): string

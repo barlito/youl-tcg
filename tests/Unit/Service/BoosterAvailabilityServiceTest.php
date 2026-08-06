@@ -120,8 +120,7 @@ final class BoosterAvailabilityServiceTest extends TestCase
     }
 
     /**
-     * The uuid is normally Doctrine-generated; hand-built entities get one via
-     * reflection so the id-keyed maps have real keys to match on.
+     * The uuid is normally Doctrine-generated; hand-built entities get one via reflection.
      */
     private function withId(Booster | Extension $entity): Booster | Extension
     {

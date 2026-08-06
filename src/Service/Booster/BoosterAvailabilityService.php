@@ -9,9 +9,7 @@ use App\Enum\Entity\ExtensionStatusEnum;
 use App\Repository\CardRepository;
 
 /**
- * Single source of truth for booster availability: which boosters a user can
- * see, claim and open. Controllers, components and services must go through
- * these predicates instead of re-implementing the rules locally.
+ * Single source of truth for booster availability: visibility, claim and open rules.
  */
 final readonly class BoosterAvailabilityService
 {
@@ -21,10 +19,6 @@ final readonly class BoosterAvailabilityService
     }
 
     /**
-     * Hub/universe visibility: a non-claimable booster (event/code
-     * distribution) is hidden from everyone except the users who already own
-     * copies — they still need to see it (and its drop rates) to open theirs.
-     *
      * @param array<string, int> $ownedCounts booster id => owned quantity
      */
     public function isVisible(Booster $booster, array $ownedCounts): bool
@@ -46,29 +40,16 @@ final readonly class BoosterAvailabilityService
         ));
     }
 
-    /**
-     * Claim guard, first half: an event/code-only booster cannot be claimed
-     * on the hub, whoever asks.
-     */
     public function isClaimable(Booster $booster): bool
     {
         return $booster->isClaimable();
     }
 
-    /**
-     * Claim guard, second half: a booster over an unpublished extension is
-     * not available at all (its uuid can leak, it must stay unclaimable).
-     */
     public function hasPublishedExtension(Booster $booster): bool
     {
         return ExtensionStatusEnum::PUBLISHED === $booster->getExtension()->getStatus();
     }
 
-    /**
-     * A booster is drawable when its extension has at least one published,
-     * still drawable card (a claimed 1/1 unique doesn't count): otherwise it
-     * is surfaced as "à venir" instead of letting the user hit a draw error.
-     */
     public function isDrawable(Booster $booster): bool
     {
         return isset($this->drawableExtensionIds()[(string) $booster->getExtension()->getId()]);
@@ -95,10 +76,6 @@ final readonly class BoosterAvailabilityService
         return $drawable;
     }
 
-    /**
-     * A booster can be opened when it is drawable AND the user owns at least
-     * one unopened copy.
-     */
     public function isOpenable(Booster $booster, int $ownedQuantity): bool
     {
         return $ownedQuantity >= 1 && $this->isDrawable($booster);

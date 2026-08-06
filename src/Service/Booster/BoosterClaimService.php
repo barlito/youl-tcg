@@ -47,9 +47,7 @@ final readonly class BoosterClaimService
     {
         // Server-side guards, not just UI: a forged live action must not claim
         // an event/code-only booster, nor one whose extension is unpublished
-        // (its uuid can leak — the booster simply isn't available). The
-        // predicates live in BoosterAvailabilityService; only the business
-        // exceptions belong here.
+        // (its uuid can leak — the booster simply isn't available).
         if (!$this->boosterAvailability->isClaimable($booster)) {
             throw new BoosterNotClaimableException(
                 \sprintf('Booster "%s" is not claimable (event/code distribution only).', $booster->getDisplayName()),
