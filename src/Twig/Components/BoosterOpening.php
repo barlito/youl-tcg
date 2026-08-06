@@ -222,10 +222,6 @@ final class BoosterOpening extends AbstractController
             $result = $this->boosterOpeningService->open($user, $this->getBooster());
         } catch (BoosterException $exception) {
             $this->error = $exception->getUserMessage();
-            // wrapInTransaction closed the EntityManager on the rollback and
-            // doctrine-bundle resets it to a fresh instance: drop every entity
-            // cached from the dead one, or the error re-render would mix stale
-            // and freshly-loaded instances (identity-map safeguard of ORM 3).
             $this->boosterCache = null;
             $this->ownedCardIdsCache = null;
 
