@@ -140,10 +140,10 @@ final class CardVisualResolverTest extends KernelTestCase
 
         // extension opts out, card opts back in
         $extension = $this->extension()->setVisualConfig(new VisualConfig(frame: CardFrameEnum::NONE));
-        $card = $this->card($extension)->setVisualConfigOverride(new VisualConfig(frame: CardFrameEnum::PLATE));
+        $card = $this->card($extension)->setVisualConfigOverride(new VisualConfig(frame: CardFrameEnum::YOUL));
 
         $this->assertNull($this->resolver->resolve($this->card($extension))->frameVariant());
-        $this->assertSame(CardFrameEnum::PLATE, $this->resolver->resolve($card)->frame);
+        $this->assertSame(CardFrameEnum::YOUL, $this->resolver->resolve($card)->frame);
     }
 
     public function testNameFontAndFrameLineCascade(): void

@@ -11,10 +11,9 @@ use Symfony\Component\DependencyInjection\Attribute\When;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Dev-only preview for the CSS card frames (route /dev/card-frames):
- * every frame variant of cards/frame.css rendered over a sample of real
- * artworks, plus a holo combo section to check the effect layering and a
- * typography row for the name font.
+ * Dev-only preview for the CSS card frame (route /dev/card-frames): the youl
+ * frame rendered through the cascade default over a sample of real artworks,
+ * plus a name-typography row and a holo layering check.
  *
  * Same gating pattern as CardEffectsDemoController: the service only exists
  * in the dev container (#[When]) and the route is declared under when@dev.
@@ -46,23 +45,6 @@ class CardFramesDemoController extends AbstractController
 
         return $this->render('dev/card_frames.html.twig', [
             'cards' => array_values($cards),
-            'variants' => [
-                [
-                    'code' => 'youl',
-                    'label' => 'Youl (référence)',
-                    'description' => 'Le rendu cible : nom en haut à gauche, wordmark de l’univers en haut à droite, mat sombre + liseré néon, filigrane YOUL central intégré sous les effets holo.',
-                ],
-                [
-                    'code' => 'plate',
-                    'label' => 'Plate',
-                    'description' => 'Bandeau nom + lettre de rareté en bas, tampon YOUL en coin, liseré teinté par la rareté (ou --card-border de la config visuelle).',
-                ],
-                [
-                    'code' => 'minimal',
-                    'label' => 'Minimal',
-                    'description' => 'Simple anneau teinté + nom centré, gros filigrane fantôme au centre de l’artwork.',
-                ],
-            ],
         ]);
     }
 }

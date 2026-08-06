@@ -88,7 +88,7 @@ class ExtensionCrudController extends AbstractCrudController
             ->setLabel('Visual config')
             ->setLanguage('js')
             ->onlyOnForms()
-            ->setHelp('Default visuals for the extension cards. Keys: glow, borderColor, cssClass, holoEffect (preset: shine|basic|cosmos|trainer), foilTexture, foilSize (10-100, 100 = cover), frame (youl|plate|minimal|none), nameFont (space-grotesk|pirata-one), frameLineStart/frameLineEnd (liseré néon du cadre youl, couleurs CSS). Example: {"glow": "#a435f0", "frame": "youl", "frameLineStart": "#46e6e6", "frameLineEnd": "#ff3ea5"}')
+            ->setHelp('Default visuals for the extension cards. Keys: glow, borderColor, cssClass, holoEffect (preset: shine|basic|cosmos|trainer), foilTexture, foilSize (10-100, 100 = cover), frame (youl|none), nameFont (space-grotesk|pirata-one), frameLineStart/frameLineEnd (liseré néon du cadre, couleurs CSS). Example: {"glow": "#a435f0", "frame": "youl", "frameLineStart": "#46e6e6", "frameLineEnd": "#ff3ea5"}')
         ;
         yield ChoiceField::new('frame')
             ->setLabel('Cadre CSS')

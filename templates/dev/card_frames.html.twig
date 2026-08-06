@@ -1,61 +1,62 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}
-    DEV — Preview cadres CSS
+    DEV — Preview cadre CSS
 {% endblock %}
 
 {% block body %}
     <style>
         /* dev-only comparison: put the watermark back UNDER the shine/glare
-           stack (the pre-review behaviour) to judge the difference with the
-           canonical above-holo rendering of frame.css */
+           stack to judge the difference with the canonical above-holo
+           rendering of frame.css */
         .wm-under .card .card__watermark {
             transform: translateZ(0.6px);
             z-index: 2;
-            mix-blend-mode: overlay;
         }
     </style>
+
     <main class="container mx-auto py-10 px-4">
         <div class="mb-8">
             <p class="eyebrow">dev only · /dev/card-frames</p>
-            <h1 class="mt-1 font-display text-4xl font-bold text-ink-strong">Preview — cadres CSS (nom + cadre + filigrane)</h1>
+            <h1 class="mt-1 font-display text-4xl font-bold text-ink-strong">Preview — cadre CSS (nom + cadre + filigrane)</h1>
             <p class="mt-2 max-w-3xl text-ink-muted">
-                Remplacement du cadre Photoshop par un habillage CSS rendu par
-                <code class="text-primary">CardComponent</code> (paramètre <code class="text-primary">frame</code>,
-                recettes dans <code class="text-primary">assets/styles/cards/frame.css</code>).
-                Le filigrane est <strong>sous</strong> les couches shine/glare (il vit avec l'artwork),
-                le nom et le cadre <strong>au-dessus</strong> (toujours lisibles).
+                Habillage CSS des cartes rendu par <code class="text-primary">CardComponent</code> via la cascade
+                <code class="text-primary">VisualConfig</code> (défaut <code class="text-primary">youl</code>,
+                <code class="text-primary">none</code> pour un set au cadre baké), recettes dans
+                <code class="text-primary">assets/styles/cards/frame.css</code>.
+                Le filigrane et le cadre sont rendus <strong>au-dessus</strong> des couches shine/glare.
                 <strong>Survole</strong> pour vérifier la tenue au tilt 3D.
             </p>
         </div>
 
-        {% for variant in variants %}
-            <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">
-                {{ variant.label }} — <code class="text-primary text-lg">frame: '{{ variant.code }}'</code>
-            </h2>
-            <p class="mb-4 max-w-3xl text-ink-muted">{{ variant.description }}</p>
-            <div class="grid grid-cols-2 gap-6 md:grid-cols-4">
-                {% for card in cards %}
-                    {{ include('components/CardComponent.html.twig', {
-                        card: card,
-                        frame: variant.code,
-                        id: variant.code ~ '-' ~ card.id,
-                    }) }}
-                {% endfor %}
-            </div>
-        {% endfor %}
+        {# ------------------------------------------------ cascade default #}
+        <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">Rendu par défaut (cascade, sans paramètre)</h2>
+        <p class="mb-4 max-w-3xl text-ink-muted">
+            Aucune config : chaque carte reçoit le cadre youl par défaut — nom en haut à gauche,
+            wordmark de l'univers en haut à droite (logo uploadé sur l'extension, sinon nom en texte),
+            mat sombre + liseré néon, filigrane YOUL central.
+        </p>
+        <div class="grid grid-cols-2 gap-6 md:grid-cols-4">
+            {% for card in cards %}
+                {{ include('components/CardComponent.html.twig', {
+                    card: card,
+                    id: 'youl-' ~ card.id,
+                }) }}
+            {% endfor %}
+        </div>
 
         {# ------------------------------------------------ name typography #}
-        <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">Typo du nom — <code class="text-primary text-lg">--frame-name-font</code></h2>
+        <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">Typo du nom — <code class="text-primary text-lg">nameFont</code></h2>
         <p class="mb-4 max-w-3xl text-ink-muted">
-            La police du nom est une variable CSS héritée : un univers pourra imposer la sienne
-            (ici <em>Pirata One</em> en blackletter, façon carte de référence) sans toucher aux recettes.
+            La police du nom passe par la cascade (clé <code class="text-primary">nameFont</code> :
+            <code class="text-primary">space-grotesk</code> | <code class="text-primary">pirata-one</code>) —
+            comparaison des deux, la variable CSS est forcée ici côté page.
         </p>
         <div class="grid grid-cols-2 gap-6 md:grid-cols-4">
             {% for card in cards|slice(0, 2) %}
-                {{ include('components/CardComponent.html.twig', { card: card, frame: 'youl', id: 'font-default-' ~ card.id }) }}
+                {{ include('components/CardComponent.html.twig', { card: card, id: 'font-default-' ~ card.id }) }}
                 <div style="--frame-name-font: 'Pirata One', serif;">
-                    {{ include('components/CardComponent.html.twig', { card: card, frame: 'youl', id: 'font-blackletter-' ~ card.id }) }}
+                    {{ include('components/CardComponent.html.twig', { card: card, id: 'font-blackletter-' ~ card.id }) }}
                 </div>
             {% endfor %}
         </div>
@@ -75,7 +76,6 @@
             {% for card in cards|slice(0, 4) %}
                 {{ include('components/CardComponent.html.twig', {
                     card: card,
-                    frame: 'youl',
                     holo: true,
                     id: 'holo-' ~ card.id,
                 }) }}
@@ -85,17 +85,17 @@
         <div class="mt-14 max-w-3xl border border-hairline bg-surface/60 p-6">
             <h3 class="font-display text-lg font-bold text-ink-strong">Notes d'implémentation</h3>
             <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-ink-muted">
-                <li>Branché sur la cascade <code class="text-primary">VisualConfig</code> (extension → carte),
-                    <strong>activé par défaut</strong> (variante <code class="text-primary">youl</code>) :
-                    clés JSON <code class="text-primary">frame</code>, <code class="text-primary">nameFont</code>,
+                <li>Clés JSON de la cascade : <code class="text-primary">frame</code> (youl|none),
+                    <code class="text-primary">nameFont</code>,
                     <code class="text-primary">frameLineStart/End</code> (liseré néon) —
-                    <code class="text-primary">frame: "none"</code> pour un set au cadre baké.</li>
+                    éditables aussi via les champs dédiés de l'admin Extension.</li>
                 <li>Wordmark d'univers : upload « Logo (cadre des cartes) » sur Extension ;
                     sans logo, fallback sur le nom en texte stylé.</li>
-                <li>Filigrane en <em>Pirata One</em> (comme les montages Photoshop), rendu au-dessus des
-                    couches holo — le shine ne le traverse pas.</li>
-                <li>Tailles en <code class="text-primary">cqi</code> : le cadre suit la taille rendue de la carte
-                    (vignette de grille comme zoom), pas le viewport.</li>
+                <li>Les vignettes de la page d'ouverture (tracker + contenu du set) portent un
+                    mini-cadre (mat + liseré) une fois révélées/possédées.</li>
+                <li>Piège 3D : <code class="text-primary">container-type</code> sur une couche translateZ
+                    l'aplatit sous l'holo — le containment vit sur le wrapper
+                    <code class="text-primary">.card-frame__body</code>.</li>
             </ul>
         </div>
     </main>

@@ -14,8 +14,6 @@ namespace App\Enum\Card;
 enum CardFrameEnum: string
 {
     case YOUL = 'youl';
-    case PLATE = 'plate';
-    case MINIMAL = 'minimal';
     case NONE = 'none';
 
     /**
@@ -24,9 +22,7 @@ enum CardFrameEnum: string
     public function label(): string
     {
         return match ($this) {
-            self::YOUL => 'Youl (cadre de référence)',
-            self::PLATE => 'Plate (bandeau nom en bas)',
-            self::MINIMAL => 'Minimal (anneau + nom centré)',
+            self::YOUL => 'Youl (cadre CSS)',
             self::NONE => 'Aucun (cadre baké dans l\'artwork)',
         };
     }

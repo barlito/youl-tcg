@@ -110,7 +110,7 @@ final class VisualConfigTest extends TestCase
         $this->assertSame(CardFrameEnum::NONE, VisualConfig::fromArray($array)->frame);
         $this->assertNull(VisualConfig::fromArray(['frame' => 'nope'])->frame);
         $this->assertNull(VisualConfig::fromArray([])->frame);
-        $this->assertFalse((new VisualConfig(frame: CardFrameEnum::PLATE))->isEmpty());
+        $this->assertFalse((new VisualConfig(frame: CardFrameEnum::YOUL))->isEmpty());
     }
 
     public function testNameFontRoundTripsAndIgnoresUnknownValues(): void
