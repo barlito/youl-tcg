@@ -8,6 +8,8 @@ use App\Dto\VisualConfig;
 use App\Entity\Card;
 use App\Entity\Extension;
 use App\Enum\Card\CardEffectEnum;
+use App\Enum\Card\CardFrameEnum;
+use App\Enum\Card\CardNameFontEnum;
 use App\Enum\Card\FoilTextureEnum;
 use App\Service\Card\CardVisualResolver;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -127,6 +129,42 @@ final class CardVisualResolverTest extends KernelTestCase
         $this->assertSame('45%', $this->resolver->resolve($this->card($extension)->setVisualConfigOverride(new VisualConfig(foilSize: 45)))->foilSizeCss());
         $this->assertSame('cover', $this->resolver->resolve($this->card($extension)->setVisualConfigOverride(new VisualConfig(foilSize: 100)))->foilSizeCss());
         $this->assertNull($this->resolver->resolve($this->card($extension))->foilSizeCss());
+    }
+
+    public function testFrameDefaultsToYoulAndCascades(): void
+    {
+        // system default: frames are on
+        $bare = $this->resolver->resolve($this->card($this->extension()));
+        $this->assertSame(CardFrameEnum::YOUL, $bare->frame);
+        $this->assertSame('youl', $bare->frameVariant());
+
+        // extension opts out, card opts back in
+        $extension = $this->extension()->setVisualConfig(new VisualConfig(frame: CardFrameEnum::NONE));
+        $card = $this->card($extension)->setVisualConfigOverride(new VisualConfig(frame: CardFrameEnum::PLATE));
+
+        $this->assertNull($this->resolver->resolve($this->card($extension))->frameVariant());
+        $this->assertSame(CardFrameEnum::PLATE, $this->resolver->resolve($card)->frame);
+    }
+
+    public function testNameFontAndFrameLineCascade(): void
+    {
+        $extension = $this->extension()->setVisualConfig(new VisualConfig(
+            nameFont: CardNameFontEnum::PIRATA_ONE,
+            frameLineStart: '#111111',
+            frameLineEnd: '#222222',
+        ));
+        $card = $this->card($extension)->setVisualConfigOverride(new VisualConfig(frameLineEnd: '#333333'));
+
+        $resolved = $this->resolver->resolve($card);
+
+        $this->assertSame(CardNameFontEnum::PIRATA_ONE, $resolved->nameFont);
+        $this->assertSame('#111111', $resolved->frameLineStart);
+        $this->assertSame('#333333', $resolved->frameLineEnd);
+
+        $bare = $this->resolver->resolve($this->card($this->extension()));
+        $this->assertNull($bare->nameFont);
+        $this->assertNull($bare->frameLineStart);
+        $this->assertNull($bare->frameLineEnd);
     }
 
     private function extension(): Extension

@@ -9,6 +9,8 @@ use App\Admin\FoilSizeSliderScript;
 use App\Dto\VisualConfig;
 use App\Entity\Extension;
 use App\Enum\Card\CardEffectEnum;
+use App\Enum\Card\CardFrameEnum;
+use App\Enum\Card\CardNameFontEnum;
 use App\Enum\Card\FoilTextureEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -77,11 +79,28 @@ class ExtensionCrudController extends AbstractCrudController
             ->setHelp('Fond des tuiles de l\'univers (accueil, /univers, collection). Sans image : artwork de la carte publiée la plus rare, sinon gradient seul.')
             ->onlyOnForms()
         ;
+        yield VichImageField::new('logoFile', allowDelete: true)
+            ->setLabel('Logo (cadre des cartes)')
+            ->setHelp('Wordmark de l\'univers (PNG/SVG transparent) affiché en haut à droite du cadre CSS des cartes. Sans logo : nom de l\'extension en texte stylé.')
+            ->onlyOnForms()
+        ;
         yield CodeEditorField::new('visualConfigJson')
             ->setLabel('Visual config')
             ->setLanguage('js')
             ->onlyOnForms()
-            ->setHelp('Default visuals for the extension cards. Keys: glow, borderColor, cssClass, holoEffect (preset: shine|basic|cosmos|trainer), foilTexture, foilSize (10-100, 100 = cover). Example: {"glow": "#a435f0", "borderColor": "#ff3db0", "holoEffect": "basic"}')
+            ->setHelp('Default visuals for the extension cards. Keys: glow, borderColor, cssClass, holoEffect (preset: shine|basic|cosmos|trainer), foilTexture, foilSize (10-100, 100 = cover), frame (youl|plate|minimal|none), nameFont (space-grotesk|pirata-one), frameLineStart/frameLineEnd (liseré néon du cadre youl, couleurs CSS). Example: {"glow": "#a435f0", "frame": "youl", "frameLineStart": "#46e6e6", "frameLineEnd": "#ff3ea5"}')
+        ;
+        yield ChoiceField::new('frame')
+            ->setLabel('Cadre CSS')
+            ->setHelp('Cadre dessiné en CSS sur les cartes du set (défaut : Youl). « Aucun » pour un set dont les artworks embarquent déjà leur cadre — overridable par carte via le JSON (frame)')
+            ->setChoices($this->frameChoices())
+            ->onlyOnForms()
+        ;
+        yield ChoiceField::new('nameFont')
+            ->setLabel('Police du nom')
+            ->setHelp('Police du nom de carte sur le cadre CSS (vide = Space Grotesk) — overridable par carte via le JSON (nameFont)')
+            ->setChoices($this->nameFontChoices())
+            ->onlyOnForms()
         ;
         // Declared AFTER the JSON editor so the chosen preset is merged on top of
         // the freshly decoded JSON instead of being overwritten by it.
@@ -138,6 +157,32 @@ class ExtensionCrudController extends AbstractCrudController
         $choices = [];
         foreach (FoilTextureEnum::cases() as $texture) {
             $choices[$texture->label()] = $texture;
+        }
+
+        return $choices;
+    }
+
+    /**
+     * @return array<string, CardFrameEnum> label => enum case, for the ChoiceField
+     */
+    private function frameChoices(): array
+    {
+        $choices = [];
+        foreach (CardFrameEnum::cases() as $frame) {
+            $choices[$frame->label()] = $frame;
+        }
+
+        return $choices;
+    }
+
+    /**
+     * @return array<string, CardNameFontEnum> label => enum case, for the ChoiceField
+     */
+    private function nameFontChoices(): array
+    {
+        $choices = [];
+        foreach (CardNameFontEnum::cases() as $font) {
+            $choices[$font->label()] = $font;
         }
 
         return $choices;

@@ -4,13 +4,17 @@
     DEV — Preview cadres CSS
 {% endblock %}
 
-{% block stylesheets %}
-    {{ parent() }}
-    {# blackletter option for the name typography row, dev page only #}
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&display=swap">
-{% endblock %}
-
 {% block body %}
+    <style>
+        /* dev-only comparison: put the watermark back UNDER the shine/glare
+           stack (the pre-review behaviour) to judge the difference with the
+           canonical above-holo rendering of frame.css */
+        .wm-under .card .card__watermark {
+            transform: translateZ(0.6px);
+            z-index: 2;
+            mix-blend-mode: overlay;
+        }
+    </style>
     <main class="container mx-auto py-10 px-4">
         <div class="mb-8">
             <p class="eyebrow">dev only · /dev/card-frames</p>
@@ -59,10 +63,15 @@
         {# ------------------------------------------------ holo layering #}
         <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">Combo holo + cadre</h2>
         <p class="mb-4 max-w-3xl text-ink-muted">
-            Vérification du layering avec l'holo de base : le filigrane reçoit le shine comme l'artwork,
-            le nom reste net au-dessus du glare.
+            Le filigrane et le cadre sont <strong>au-dessus</strong> des couches shine/glare : l'holo ne
+            passe jamais dessus (effet « mask » des cartes Photoshop). Coche pour comparer avec le
+            filigrane <em>sous</em> l'holo.
         </p>
-        <div class="grid grid-cols-2 gap-6 md:grid-cols-4">
+        <label class="mb-4 inline-flex items-center gap-2 text-sm text-ink-muted">
+            <input type="checkbox" onchange="document.getElementById('holo-grid').classList.toggle('wm-under', this.checked)">
+            filigrane sous l'holo (ancien rendu)
+        </label>
+        <div id="holo-grid" class="grid grid-cols-2 gap-6 md:grid-cols-4">
             {% for card in cards|slice(0, 4) %}
                 {{ include('components/CardComponent.html.twig', {
                     card: card,
@@ -76,11 +85,15 @@
         <div class="mt-14 max-w-3xl border border-hairline bg-surface/60 p-6">
             <h3 class="font-display text-lg font-bold text-ink-strong">Notes d'implémentation</h3>
             <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-ink-muted">
-                <li>Opt-in par carte : le paramètre <code class="text-primary">frame</code> est nul partout en prod
-                    aujourd'hui — le branchement réel passera par la cascade <code class="text-primary">VisualConfig</code>
-                    (extension → carte), pour ne jamais doubler un cadre déjà baké dans l'artwork.</li>
-                <li>Le wordmark d'univers (haut droite) est le <em>nom</em> de l'extension en texte stylé :
-                    un vrai logo par univers (façon « Cyberpunk ») demandera un upload dédié sur Extension.</li>
+                <li>Branché sur la cascade <code class="text-primary">VisualConfig</code> (extension → carte),
+                    <strong>activé par défaut</strong> (variante <code class="text-primary">youl</code>) :
+                    clés JSON <code class="text-primary">frame</code>, <code class="text-primary">nameFont</code>,
+                    <code class="text-primary">frameLineStart/End</code> (liseré néon) —
+                    <code class="text-primary">frame: "none"</code> pour un set au cadre baké.</li>
+                <li>Wordmark d'univers : upload « Logo (cadre des cartes) » sur Extension ;
+                    sans logo, fallback sur le nom en texte stylé.</li>
+                <li>Filigrane en <em>Pirata One</em> (comme les montages Photoshop), rendu au-dessus des
+                    couches holo — le shine ne le traverse pas.</li>
                 <li>Tailles en <code class="text-primary">cqi</code> : le cadre suit la taille rendue de la carte
                     (vignette de grille comme zoom), pas le viewport.</li>
             </ul>

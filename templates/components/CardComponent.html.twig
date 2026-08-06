@@ -2,16 +2,22 @@
 {#- lazy: opt-in for grid usages (collection / univers) — keep the default
     eager where the card is visible immediately (homepage, opening reveal) -#}
 {%- set lazy = lazy|default(false) -%}
-{#- CSS frame variant (cards/frame.css): 'youl' | 'plate' | 'minimal', null = no frame -#}
-{%- set frame = frame|default(null) -%}
 {%- set id = id|default(card.id) -%}
 {%- set visual = card_visual(card) -%}
+{#- CSS frame variant (cards/frame.css): resolved through the visual-config
+    cascade (default 'youl', 'none' opts out); an explicit `frame` param
+    (dev preview) wins over the cascade -#}
+{%- set frame = frame|default(visual.frameVariant) -%}
+{%- set frame = frame == 'none' ? null : frame -%}
 {%- set styleVars = [] -%}
 {%- if visual.maskUrl %}{% set styleVars = styleVars|merge(["--mask: url('#{visual.maskUrl}')"]) %}{% endif -%}
 {%- if visual.foilUrl %}{% set styleVars = styleVars|merge(["--foil: url('#{visual.foilUrl}')"]) %}{% endif -%}
 {%- if visual.foilSizeCss %}{% set styleVars = styleVars|merge(["--imgsize: #{visual.foilSizeCss}"]) %}{% endif -%}
 {%- if visual.glow %}{% set styleVars = styleVars|merge(["--card-glow: #{visual.glow}"]) %}{% endif -%}
 {%- if visual.borderColor %}{% set styleVars = styleVars|merge(["--card-border: #{visual.borderColor}"]) %}{% endif -%}
+{%- if visual.nameFont %}{% set styleVars = styleVars|merge(["--frame-name-font: #{visual.nameFont.cssFamily}"]) %}{% endif -%}
+{%- if visual.frameLineStart %}{% set styleVars = styleVars|merge(["--frame-line-1: #{visual.frameLineStart}"]) %}{% endif -%}
+{%- if visual.frameLineEnd %}{% set styleVars = styleVars|merge(["--frame-line-2: #{visual.frameLineEnd}"]) %}{% endif -%}
 {# holo rendering only exists through the presets: a card drawn holo whose
    cascade resolves no preset falls back to the basic recipe #}
 {%- set holoClass = visual.holoEffect ? visual.holoEffect.cssClass : (holo ? 'holo--basic' : null) -%}
@@ -36,7 +42,11 @@
                 {%- if frame %}
                 <div class="card__frame card__frame--{{ frame }}" aria-hidden="true">
                     <span class="card-frame__name">{{ card.name }}</span>
+                    {%- if card.extension.logoName %}
+                    <img class="card-frame__ext-logo" src="{{ vich_uploader_asset(card.extension, 'logoFile') }}" alt="{{ card.extension.name }}" draggable="false">
+                    {%- else %}
                     <span class="card-frame__ext">{{ card.extension.name }}</span>
+                    {%- endif %}
                     <span class="card-frame__rarity">{{ card.rarity.value|slice(0, 1)|upper }}</span>
                 </div>
                 {% endif -%}

@@ -12,9 +12,10 @@
     - minimal: thin ring, centered name, ghost watermark
 
   Layering (translateZ inside the card 3D context, cf. base.css):
-    artwork (0) < watermark (.6px) < shine (1px) < glare (1.41px) < frame (1.6px)
-  so the watermark sits under the holo effects (reads as part of the artwork)
-  while the frame chrome and the name stay readable above them.
+    artwork (0) < shine (1px) < glare (1.41px) < watermark (1.5px) < frame (1.6px)
+  the watermark and the frame chrome both sit ABOVE the holo effects: the
+  shine/glare never paint over the wordmark or the name (Photoshop-mask
+  behaviour requested by the reference cards).
 
 */
 
@@ -40,13 +41,13 @@
 }
 
 .card .card__watermark {
-    transform: translateZ(0.6px);
-    z-index: 2;
+    transform: translateZ(1.5px);
+    z-index: 4;
 }
 
 .card .card__frame {
     transform: translateZ(1.6px);
-    z-index: 4;
+    z-index: 5;
 }
 
 .card .card__frame > * {
@@ -78,7 +79,8 @@
         inset 0 -12cqi 9cqi -8cqi rgb(8 5 15 / 0.85);
 }
 
-/* neon gradient inner line (cyan → purple → magenta, bottom-heavy like the ref) */
+/* neon gradient inner line (cyan → purple → magenta by default, start/end
+   overridable through the cascade via --frame-line-1 / --frame-line-2) */
 .card__frame--youl::after {
     content: '';
     position: absolute;
@@ -87,9 +89,9 @@
     padding: 0.45cqi;
     background: linear-gradient(
         200deg,
-        rgb(70 230 230 / 0.85),
-        rgb(120 80 220 / 0.55) 45%,
-        rgb(255 62 165 / 0.9)
+        var(--frame-line-1, rgb(70 230 230 / 0.85)),
+        color-mix(in srgb, var(--frame-line-1, rgb(70 230 230)) 40%, var(--frame-line-2, rgb(120 80 220 / 0.7))) 45%,
+        var(--frame-line-2, rgb(255 62 165 / 0.9))
     );
     -webkit-mask:
         linear-gradient(#000 0 0) content-box,
@@ -133,38 +135,48 @@
         0 0.3cqi 1.5cqi rgb(0 0 0 / 0.9);
 }
 
-/* big central wordmark, integrated into the artwork (under shine/glare) */
+/* uploaded universe wordmark (replaces the styled-text fallback above) */
+.card__frame--youl .card-frame__ext-logo {
+    top: 5cqi;
+    right: 6.5cqi;
+    max-width: 32%;
+    max-height: 10cqi;
+    object-fit: contain;
+    object-position: top right;
+    filter: drop-shadow(0 0.3cqi 1cqi rgb(0 0 0 / 0.85));
+}
+
+/* big central wordmark, Pirata One like the reference cards; sits above the
+   shine/glare stack so the holo never paints over it */
 .card__watermark--youl::before {
     content: 'YOUL';
     position: absolute;
-    bottom: 12cqi;
+    bottom: 11cqi;
     left: 0;
     right: 0;
     text-align: center;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 24cqi;
-    font-weight: 700;
+    font-family: 'Pirata One', serif;
+    font-size: 27cqi;
+    font-weight: 400;
     line-height: 1;
-    letter-spacing: 0.02em;
-    color: rgb(255 255 255 / 0.14);
-    -webkit-text-stroke: 0.28cqi rgb(255 255 255 / 0.28);
-    mix-blend-mode: overlay;
+    letter-spacing: 0.04em;
+    color: rgb(235 235 240 / 0.10);
+    -webkit-text-stroke: 0.3cqi rgb(240 240 245 / 0.35);
 }
 
 .card__watermark--youl::after {
     content: 'TRADING CARDS GAME';
     position: absolute;
-    bottom: 9.5cqi;
+    bottom: 8.5cqi;
     left: 0;
     right: 0;
     text-align: center;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 4.6cqi;
-    font-weight: 700;
-    letter-spacing: 0.3em;
-    color: rgb(255 255 255 / 0.16);
-    -webkit-text-stroke: 0.12cqi rgb(255 255 255 / 0.22);
-    mix-blend-mode: overlay;
+    font-family: 'Pirata One', serif;
+    font-size: 5.4cqi;
+    font-weight: 400;
+    letter-spacing: 0.22em;
+    color: rgb(235 235 240 / 0.12);
+    -webkit-text-stroke: 0.14cqi rgb(240 240 245 / 0.3);
 }
 
 /* =======================================================================
@@ -219,7 +231,8 @@
     text-shadow: 0 0 2.6cqi color-mix(in srgb, var(--card-border, var(--frame-rarity)) 80%, transparent);
 }
 
-.card__frame--plate .card-frame__ext {
+.card__frame--plate .card-frame__ext,
+.card__frame--plate .card-frame__ext-logo {
     display: none;
 }
 
@@ -229,12 +242,10 @@
     position: absolute;
     top: 4.5cqi;
     right: 5.5cqi;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 5cqi;
-    font-weight: 700;
-    color: rgb(255 255 255 / 0.4);
+    font-family: 'Pirata One', serif;
+    font-size: 6cqi;
+    color: rgb(255 255 255 / 0.35);
     -webkit-text-stroke: 0.15cqi rgb(255 255 255 / 0.3);
-    mix-blend-mode: screen;
 }
 
 /* =======================================================================
@@ -275,7 +286,8 @@
     text-shadow: 0 0.3cqi 1cqi rgb(0 0 0 / 0.9);
 }
 
-.card__frame--minimal .card-frame__ext {
+.card__frame--minimal .card-frame__ext,
+.card__frame--minimal .card-frame__ext-logo {
     display: none;
 }
 
@@ -287,10 +299,8 @@
     right: 0;
     transform: translateY(-50%);
     text-align: center;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 30cqi;
-    font-weight: 700;
-    color: rgb(255 255 255 / 0.07);
+    font-family: 'Pirata One', serif;
+    font-size: 34cqi;
+    color: rgb(255 255 255 / 0.06);
     -webkit-text-stroke: 0.2cqi rgb(255 255 255 / 0.12);
-    mix-blend-mode: screen;
 }

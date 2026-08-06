@@ -6,6 +6,8 @@ namespace App\Tests\Unit\Dto;
 
 use App\Dto\VisualConfig;
 use App\Enum\Card\CardEffectEnum;
+use App\Enum\Card\CardFrameEnum;
+use App\Enum\Card\CardNameFontEnum;
 use App\Enum\Card\FoilTextureEnum;
 use PHPUnit\Framework\TestCase;
 
@@ -98,6 +100,38 @@ final class VisualConfigTest extends TestCase
         // le live preview et le JSON éditable envoient des chaînes
         $this->assertSame(45, VisualConfig::fromArray(['foilSize' => '45'])->foilSize);
         $this->assertFalse((new VisualConfig(foilSize: 45))->isEmpty());
+    }
+
+    public function testFrameRoundTripsAndIgnoresUnknownValues(): void
+    {
+        $array = (new VisualConfig(frame: CardFrameEnum::NONE))->toArray();
+
+        $this->assertSame(['frame' => 'none'], $array);
+        $this->assertSame(CardFrameEnum::NONE, VisualConfig::fromArray($array)->frame);
+        $this->assertNull(VisualConfig::fromArray(['frame' => 'nope'])->frame);
+        $this->assertNull(VisualConfig::fromArray([])->frame);
+        $this->assertFalse((new VisualConfig(frame: CardFrameEnum::PLATE))->isEmpty());
+    }
+
+    public function testNameFontRoundTripsAndIgnoresUnknownValues(): void
+    {
+        $array = (new VisualConfig(nameFont: CardNameFontEnum::PIRATA_ONE))->toArray();
+
+        $this->assertSame(['nameFont' => 'pirata-one'], $array);
+        $this->assertSame(CardNameFontEnum::PIRATA_ONE, VisualConfig::fromArray($array)->nameFont);
+        $this->assertNull(VisualConfig::fromArray(['nameFont' => 'comic-sans'])->nameFont);
+        $this->assertFalse((new VisualConfig(nameFont: CardNameFontEnum::PIRATA_ONE))->isEmpty());
+    }
+
+    public function testFrameLineColoursRoundTripAndBlankOnesAreDropped(): void
+    {
+        $array = (new VisualConfig(frameLineStart: '#46e6e6', frameLineEnd: '#ff3ea5'))->toArray();
+
+        $this->assertSame(['frameLineStart' => '#46e6e6', 'frameLineEnd' => '#ff3ea5'], $array);
+        $this->assertSame('#46e6e6', VisualConfig::fromArray($array)->frameLineStart);
+        $this->assertSame('#ff3ea5', VisualConfig::fromArray($array)->frameLineEnd);
+        $this->assertNull(VisualConfig::fromArray(['frameLineStart' => '  '])->frameLineStart);
+        $this->assertFalse((new VisualConfig(frameLineEnd: '#fff'))->isEmpty());
     }
 
     public function testFoilSizeRejectsOutOfRangeValues(): void
