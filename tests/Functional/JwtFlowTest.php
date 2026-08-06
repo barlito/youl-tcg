@@ -11,10 +11,6 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Cookie;
 
-/**
- * Hardening of the JWT cookie flow: expired, corrupted or unknown-user tokens
- * must all end in a redirect — never a raw 401 JSON response nor a 500.
- */
 final class JwtFlowTest extends WebTestCase
 {
     private const string EXISTING_DISCORD_ID = '188967649332428800';
@@ -51,8 +47,6 @@ final class JwtFlowTest extends WebTestCase
 
     public function testBadlySignedTokenRedirectsInsteadOfCrashing(): void
     {
-        // Valid header and payload, but a signature that cannot verify — the
-        // same shape as a token signed by another app sharing the domain.
         $token = $this->tokenManager()->create($this->existingUser());
         $parts = explode('.', $token);
         $parts[2] = str_repeat('A', \strlen($parts[2]));
@@ -92,8 +86,6 @@ final class JwtFlowTest extends WebTestCase
             ->setDiscordId(self::GHOST_DISCORD_ID)
             ->setUsername('Ghost')
         ;
-        // No username claim in the payload: the token decodes fine, the user
-        // lookup fails, but auto-creation must refuse the incomplete payload.
         $token = $this->tokenManager()->createFromPayload($ghost);
         $this->client->getCookieJar()->set(new Cookie('jwt', $token));
 

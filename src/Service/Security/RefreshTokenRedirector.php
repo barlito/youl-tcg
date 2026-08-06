@@ -9,11 +9,6 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
-/**
- * Builds the redirect to the external auth app refresh endpoint, carrying the
- * originally requested URI as _target_path so the user lands back where they
- * started once a fresh token has been issued.
- */
 readonly class RefreshTokenRedirector
 {
     public function __construct(

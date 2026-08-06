@@ -18,14 +18,6 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Exception\UserNotFoundException;
 
-/**
- * Auto-creates the DiscordUser the first time a valid token shows up for an
- * unknown user (we trust the external token provider), then replays the
- * original request. Every other invalid-token case redirects to the refresh
- * endpoint: the cookie lives on the whole parent domain, so a token signed by
- * another app must neither be parsed again (uncaught JWTDecodeFailureException,
- * 500) nor replayed on the same URI (infinite redirect loop).
- */
 #[AsEventListener(event: Events::JWT_INVALID, method: 'onJwtInvalid')]
 readonly class JwtInvalid
 {
@@ -46,8 +38,6 @@ readonly class JwtInvalid
         }
 
         if (!$event->getException()->getPrevious() instanceof UserNotFoundException) {
-            // Malformed token, invalid signature, missing id claim... nothing
-            // recoverable here: ask the auth app for a fresh token.
             $this->logger->warning('Invalid JWT token, redirecting to the refresh endpoint.', [
                 'reason' => $event->getException()->getMessageKey(),
             ]);
@@ -86,9 +76,6 @@ readonly class JwtInvalid
             return null;
         }
 
-        // On this path the token already decoded successfully during
-        // authentication (only the user lookup failed), so parsing it again
-        // cannot fail — the catch is defensive only.
         try {
             $payload = $this->jwtManager->parse($token);
         } catch (JWTDecodeFailureException $exception) {
