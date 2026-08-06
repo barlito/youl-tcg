@@ -222,6 +222,8 @@ final class BoosterOpening extends AbstractController
             $result = $this->boosterOpeningService->open($user, $this->getBooster());
         } catch (BoosterException $exception) {
             $this->error = $exception->getUserMessage();
+            $this->boosterCache = null;
+            $this->ownedCardIdsCache = null;
 
             return;
         }
