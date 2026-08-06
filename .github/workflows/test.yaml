@@ -38,6 +38,17 @@ jobs:
           make doctrine.migrate.ci
           make doctrine.load_fixtures.ci
 
+      # The tailwind bundle downloads its binary from GitHub Releases on first
+      # build — a flaky external dependency (a 504 broke a run on 2026-07-09).
+      # /app is bind-mounted in CI, so the binary lands in var/tailwind on the
+      # runner and can be cached. Keyed on composer.lock: the binary version
+      # follows the bundle version.
+      - name: Cache Tailwind binary
+        uses: actions/cache@v6
+        with:
+          path: var/tailwind
+          key: tailwind-binary-${{ hashFiles('composer.lock') }}
+
       - name: Build Tailwind CSS
         run: make tailwind.build
 
