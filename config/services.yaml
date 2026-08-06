@@ -25,8 +25,6 @@ services:
     # the decorated service id resolves to the decorator chain when present.
     App\Service\Booster\BoosterClaimQuotaInterface: '@App\Service\Booster\DailyBoosterClaimQuota'
 
-    # No-op by default so test/CI never attempt HTTP; the real Umami tracker is
-    # aliased per environment below (no runtime bypass flag in prod code).
     App\Service\Analytics\AnalyticsTrackerInterface: '@App\Service\Analytics\NullAnalyticsTracker'
 
 when@dev:

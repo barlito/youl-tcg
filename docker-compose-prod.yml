@@ -17,8 +17,6 @@ services:
             JWT_PASSPHRASE: "${JWT_PASSPHRASE}"
             # analytics anonymes (stack obs) ; UMAMI_WEBSITE_ID vide = snippet off
             UMAMI_URL: "https://umami.barlito.fr"
-            # events serveur en direct via l'overlay obs_analytics (headers
-            # UA/XFF intacts, pas de détour par Traefik)
             UMAMI_INGEST_URL: "http://obs_umami:3000"
             UMAMI_WEBSITE_ID: "${UMAMI_WEBSITE_ID}"
             TZ: Europe/Paris
@@ -99,7 +97,6 @@ networks:
         external: true
     ytcg_internal:
         driver: overlay
-    # Overlay attachable possédé par la stack obs (nom explicite côté
-    # observability-stack) : seul Umami y est joignable
+    # overlay créé par la stack obs
     obs_analytics:
         external: true
