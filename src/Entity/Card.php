@@ -20,6 +20,7 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
 
 #[Vich\Uploadable]
 #[ORM\Entity(repositoryClass: CardRepository::class)]
+#[ORM\Index(columns: ['extension_id', 'status'])]
 class Card
 {
     use IdUuidTrait;
@@ -47,9 +48,10 @@ class Card
      * Owner of a one-of-one (unique) card. Null while unclaimed; set atomically
      * the first time the card is drawn (CardRepository::claimUnique). A claimed
      * unique is filtered out of the draw pool so it can never be drawn again.
+     * ON DELETE SET NULL frees the card if the owner is removed.
      */
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(name: 'claimed_by', referencedColumnName: 'discord_id', nullable: true)]
+    #[ORM\JoinColumn(name: 'claimed_by', referencedColumnName: 'discord_id', nullable: true, onDelete: 'SET NULL')]
     private ?DiscordUser $claimedBy = null;
 
     /**

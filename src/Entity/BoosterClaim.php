@@ -15,6 +15,7 @@ use Gedmo\Timestampable\Traits\TimestampableEntity;
  * mutable counter to reset.
  */
 #[ORM\Entity(repositoryClass: BoosterClaimRepository::class)]
+#[ORM\Index(columns: ['discord_user_id', 'claimed_at'])]
 class BoosterClaim
 {
     use IdUuidTrait;
