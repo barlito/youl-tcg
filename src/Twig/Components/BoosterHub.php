@@ -10,6 +10,7 @@ use App\Exception\Booster\BoosterException;
 use App\Repository\BoosterRepository;
 use App\Repository\CardRepository;
 use App\Repository\UserBoosterRepository;
+use App\Service\Analytics\AnalyticsTrackerInterface;
 use App\Service\Booster\BoosterClaimService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Uid\Uuid;
@@ -40,6 +41,7 @@ final class BoosterHub extends AbstractController
         private readonly CardRepository $cardRepository,
         private readonly UserBoosterRepository $userBoosterRepository,
         private readonly BoosterClaimService $boosterClaimService,
+        private readonly AnalyticsTrackerInterface $analyticsTracker,
     ) {
     }
 
@@ -145,7 +147,14 @@ final class BoosterHub extends AbstractController
             $this->inventory = null; // the memoized inventory is stale after a claim
         } catch (BoosterException $exception) {
             $this->error = $exception->getUserMessage();
+
+            return;
         }
+
+        $this->analyticsTracker->track('booster_claimed', [
+            'booster' => $booster->getDisplayName(),
+            'extension' => $booster->getExtension()->getName(),
+        ]);
     }
 
     /**

@@ -1,0 +1,7 @@
+framework:
+    http_client:
+        scoped_clients:
+            # autowired as HttpClientInterface $umamiClient
+            umami.client:
+                base_uri: '%env(UMAMI_INGEST_URL)%'
+                timeout: 2

@@ -17,6 +17,7 @@ services:
             JWT_PASSPHRASE: "${JWT_PASSPHRASE}"
             # analytics anonymes (stack obs) ; UMAMI_WEBSITE_ID vide = snippet off
             UMAMI_URL: "https://umami.barlito.fr"
+            UMAMI_INGEST_URL: "http://obs_umami:3000"
             UMAMI_WEBSITE_ID: "${UMAMI_WEBSITE_ID}"
             TZ: Europe/Paris
         tty: true
@@ -46,6 +47,7 @@ services:
         networks:
             - traefik_traefik_proxy
             - ytcg_internal
+            - obs_analytics
 
     db:
         image: postgres:18
@@ -95,3 +97,6 @@ networks:
         external: true
     ytcg_internal:
         driver: overlay
+    # overlay créé par la stack obs
+    obs_analytics:
+        external: true
