@@ -97,7 +97,7 @@
                         {% set userCard = ownedByCardId[card.id ~ ''] ?? null %}
                         <div class="card-tile relative">
                             {% if userCard %}
-                                {{ include('components/CardComponent.html.twig', { card: card, holo: userCard.holoQuantity > 0 }) }}
+                                {{ include('components/CardComponent.html.twig', { card: card, holo: userCard.holoQuantity > 0, lazy: true }) }}
                                 <div class="card-tile__chips pointer-events-none absolute -right-2 -top-2 z-10 flex gap-1.5">
                                     <span class="chip-mono bg-black/90 px-2 py-1 font-bold text-white">×{{ userCard.quantity }}</span>
                                     {% if userCard.holoQuantity > 0 %}
