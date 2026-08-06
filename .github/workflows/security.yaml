@@ -10,7 +10,6 @@ jobs:
   trivy:
     runs-on: ubuntu-latest
 
-    # Requis par l'upload SARIF vers GitHub Security (code scanning)
     permissions:
       contents: read
       security-events: write
