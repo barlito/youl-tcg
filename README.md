@@ -1,63 +1,96 @@
-# barlito/php-starter
+# Youl TCG
 
-[![Starter workflow](https://github.com/barlito/php-starter/actions/workflows/symfony_starter.yaml/badge.svg?branch=master)](https://github.com/barlito/php-starter/actions/workflows/symfony_starter.yaml)
+[![CI](https://github.com/barlito/youl-tcg/actions/workflows/entrypoint.yaml/badge.svg?branch=master)](https://github.com/barlito/youl-tcg/actions/workflows/entrypoint.yaml)
 
-Todo : 
-- Add phpstan 
-- Add rector 
-- Add a disabled GitHub workflow for deployment
+Trading card game web app for the Youl community. Log in with Discord, claim free daily boosters, open them with an animated reveal, and build your collection across card extensions — with interactive 3D cards (holo, foil, rarity glows) rendered in pure CSS/JS.
 
-Requirements
--------
-- [barlito/traefik-base](https://github.com/barlito/traefik-base)
-- [Castor](https://castor.jolicode.com/)
+## At a glance
 
-Description
--------
+| Domain | What it does |
+|--------|--------------|
+| **Cards & extensions** | Cards (artwork + foil mask + holo) grouped into extensions/sets, each with its own visual config cascade (`Card` override → `Extension` defaults → rarity defaults) |
+| **Rarities** | 4 tiers — common / uncommon / rare / legendary — with per-tier glows; unique 1/1 cards and always-holo flags |
+| **Boosters** | Per-slot weighted rarity rates + holo chance (JSON `rarityRates`); drop rates shown to players; claimable or event-only distribution |
+| **Daily claims** | 2 free boosters/day (reset midnight Europe/Paris), quota computed by counting `BoosterClaim` rows — no mutable counters |
+| **Opening engine** | Single-transaction open: pessimistic-locked inventory debit, seeded RNG draw (reproducible from the stored seed), audit trail (`BoosterOpening` + cards) |
+| **Universe pages** | `/univers` pokédex: per-set completion, unowned cards masked behind the card back, banner carousels, 1/1 drop status |
+| **Admin** | EasyAdmin panel: card/extension/booster CRUD, live card preview, batch operations |
 
-This project allow to install a Symfony skeleton app and run a swarm stack
-using [barlito/traefik-base](https://github.com/barlito/traefik-base).
+## Stack
 
-The project use also [barlito/php-make-rules](https://github.com/barlito/php-make-rules)
-as a submodule and use all Make rules available in the repository.
+- **Symfony 7.4 LTS** (PHP 8.4) — Live Components + Stimulus, AssetMapper (no build step), Tailwind
+- **FrankenPHP** — Caddy-based server, multi-stage Docker image (`frankenphp_dev` / `frankenphp_prod`)
+- **PostgreSQL 18** — Doctrine ORM 3, UUID PKs, custom `RANDOM()` DQL function
+- **Auth** — Discord OAuth2 + JWT cookie (lexik/jwt), users auto-created from the JWT payload
+- **Docker Swarm** — stack `ytcg`, behind [traefik-base](https://github.com/barlito/traefik-base)
+- **Make + Castor** — task automation via the [php-make-rules](https://github.com/barlito/php-make-rules) submodule
 
-[Castor](https://castor.jolicode.com/) is used with alongside Makefile ro handle
-specific tasks.
+## Quick start
 
-php-starter project aim to help devs to build and deploy
-a Symfony applications easily.
-It provides a good base with quality & tests tools installed and ready to use.
+```bash
+git clone git@github.com:barlito/youl-tcg.git
+cd youl-tcg && git submodule update --init --recursive
 
-How to use
--------
+# Deploy the dev stack (requires traefik-base running)
+make docker.deploy
 
-### Setup
-- Remove .git folder and init a new one
+# Generate the JWT keypair (required for auth)
+castor generate-jwt-key-pair
+
+# Database
+make doctrine.migrate
+make doctrine.load_fixtures
 ```
-  rm -rf .git \ 
-  git init
+
+App: `ytcg.local.barlito.fr` — Adminer: `ytcg-adminer.local.barlito.fr` (prod: `ytcg.barlito.fr`).
+
+Discord OAuth needs `OAUTH_DISCORD_CLIENT_ID` / `OAUTH_DISCORD_CLIENT_SECRET` in your env (see `.env` for the full list: `DATABASE_URL`, `JWT_*`, `APP_SECRET`, …).
+
+## Requirements
+
+- Docker (Swarm mode)
+- Make + [Castor](https://castor.jolicode.com/)
+- [barlito/traefik-base](https://github.com/barlito/traefik-base) running
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `make docker.deploy` | Deploy the dev stack |
+| `make docker.bash` | Shell into the PHP container |
+| `make deploy.prod` | Prod deploy (deploy → DB backup → migrate → smoke test) |
+| `make doctrine.migrate` | Run migrations |
+| `make doctrine.diff` | Generate a migration from entity changes |
+| `make doctrine.load_fixtures` | Load Alice fixtures |
+| `make db.backup` | `pg_dump` into the backup volume |
+| `make quality` | All checks: composer validate, phpcs, cs-fixer, PHPStan (level 8, zero baseline), Rector |
+| `make phpunit` | Test suite |
+| `make tailwind.build` | Build Tailwind CSS (needed before rendering pages) |
+| `castor generate-jwt-key-pair` | Generate the JWT keypair |
+| `castor holo:masks --slug=<ext>` | Auto-generate holo masks for an extension's cards (`tools/holo`) |
+
+## Tests
+
+PHPUnit 12 — `tests/Unit`, `tests/Integration`, `tests/Functional` (browser-kit + dama/doctrine-test-bundle). The booster opening engine (quota, weighted draw, holo rolls, seeded reproducibility) is fully covered at the service level.
+
+```bash
+make phpunit
 ```
-- Run castor `set-stack-name` command to set up the stack name, image name,
-router labels and project URL in Makefile, Castor main file and docker-compose
-```
-  castor barlito:castor:set-stack-name my_stack_name
-``` 
 
-### Installing Symfony
-- To install symfony you need first to deploy the stack:  
-  `make docker.deploy`
-- Then you need to install Symfony:  
-  `make symfony.install`
+## CI/CD
 
-Now if you go to your project URL, you should get the Symfony welcome page.
+`entrypoint.yaml` runs on every push and fans out to `code-quality.yaml` (cs-fixer / phpcs / PHPStan / Rector) and `test.yaml` (full stack in CI: deploy, migrate, fixtures, Tailwind, PHPUnit). `release.yaml` builds and pushes images on GitHub Release; `deploy.yaml` / `rollback.yaml` are manual; Trivy scans run weekly (`security.yaml`).
 
-### Dev Deploy
-- You can deploy only the stack with:   
-  `make docker.deploy`   
-This rule will only deploy the docker stack from the docker-compose.yml.
+## Docs
 
-- You can deploy with a composer install, db creation,
-doctrine migration and fixtures with:  
-  `make deploy`   
-Before run this rule you will need to set up the doctrine bundle,
-connection to the DB in env and a fixtures bundle.
+- [`docs/card-setup-guide.md`](docs/card-setup-guide.md) — adding cards, masks and foils
+- [`docs/card-effect.md`](docs/card-effect.md) — the 3D/holo card effect internals
+- [`docs/prod-uploads-migration.md`](docs/prod-uploads-migration.md) — uploads volume in prod
+
+## Related
+
+- [barlito/ytcg-game-client](https://github.com/barlito/ytcg-game-client) — game client
+- [barlito/youl-tcg-showcase](https://github.com/barlito/youl-tcg-showcase) — showcase site
+- [barlito/youl-coin-api](https://github.com/barlito/youl-coin-api) — YoulCoin currency API
+- [barlito/php-starter](https://github.com/barlito/php-starter) — the Symfony starter this project is built from
+- [barlito/traefik-base](https://github.com/barlito/traefik-base) — Traefik proxy stack
