@@ -13,6 +13,7 @@ use App\Enum\Card\FoilTextureEnum;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use Doctrine\ORM\EntityManagerInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
@@ -109,6 +110,7 @@ class CardCrudController extends AbstractCrudController
      * @param AdminContext<Card>   $context
      * @param BatchActionDto<Card> $batchActionDto
      */
+    #[AdminRoute]
     public function publishCards(AdminContext $context, BatchActionDto $batchActionDto): Response
     {
         return $this->applyStatusBatch($context, $batchActionDto, CardStatusEnum::PUBLISHED, 'publiée(s)');
@@ -118,6 +120,7 @@ class CardCrudController extends AbstractCrudController
      * @param AdminContext<Card>   $context
      * @param BatchActionDto<Card> $batchActionDto
      */
+    #[AdminRoute]
     public function draftCards(AdminContext $context, BatchActionDto $batchActionDto): Response
     {
         return $this->applyStatusBatch($context, $batchActionDto, CardStatusEnum::DRAFT, 'repassée(s) en brouillon');
@@ -184,10 +187,11 @@ class CardCrudController extends AbstractCrudController
             </div>
             <script>
             (() => {
-                const params = new URLSearchParams(location.search);
-                const entityId = params.get('entityId');
+                // EA5 pretty URL: /admin/card/{entityId}/edit
+                const match = location.pathname.match(/\/admin\/card\/([^\/]+)\/edit$/);
+                const entityId = match ? match[1] : null;
                 const form = document.querySelector('form[name="Card"]');
-                if (!entityId || !form || params.get('crudAction') !== 'edit') { return; }
+                if (!entityId || !form) { return; }
 
                 const panel = document.getElementById('card-live-preview');
                 const frame = document.getElementById('card-live-preview-frame');

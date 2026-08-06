@@ -73,7 +73,7 @@ final class AdminCardBatchTest extends WebTestCase
         $client->followRedirects();
         $this->authenticateClient($client);
 
-        $client->request('GET', '/admin?crudAction=new&crudControllerFqcn=App%5CController%5CAdmin%5CCardCrudController');
+        $client->request('GET', '/admin/card/new');
 
         self::assertResponseIsSuccessful();
     }

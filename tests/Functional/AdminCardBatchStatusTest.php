@@ -22,7 +22,7 @@ final class AdminCardBatchStatusTest extends WebTestCase
 {
     use JwtAuthTrait;
 
-    private const string INDEX_URL = '/admin?crudAction=index&crudControllerFqcn=App%5CController%5CAdmin%5CCardCrudController';
+    private const string INDEX_URL = '/admin/card';
 
     private KernelBrowser $client;
 
@@ -88,7 +88,9 @@ final class AdminCardBatchStatusTest extends WebTestCase
         $crawler = $this->client->request('GET', self::INDEX_URL);
         self::assertResponseIsSuccessful();
 
-        $button = $crawler->filter(\sprintf('[data-action-batch="true"][data-action-url*="%s"]', $actionName));
+        // EA5 pretty URLs are kebab-case: publishCards -> /admin/card/publish-cards
+        $actionPath = strtolower((string) preg_replace('/([a-z])([A-Z])/', '$1-$2', $actionName));
+        $button = $crawler->filter(\sprintf('[data-action-batch="true"][data-action-url*="%s"]', $actionPath));
         $this->assertCount(1, $button, \sprintf('Le bouton batch "%s" doit être présent sur le listing.', $actionName));
 
         // le vrai token du flux : minté par ActionFactory pendant le GET,
