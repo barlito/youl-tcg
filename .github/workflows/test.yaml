@@ -38,7 +38,6 @@ jobs:
           make doctrine.migrate.ci
           make doctrine.load_fixtures.ci
 
-      # Détecte tout drift entre le mapping des entités et la base migrée
       - name: Validate Doctrine schema
         run: make doctrine.schema_validate.ci
 
