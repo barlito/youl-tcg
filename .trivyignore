@@ -1,0 +1,4 @@
+# Go deps du binaire FrankenPHP (modules Caddy openapi/xDS non utilisés) —
+# en attente d'une release upstream buildée avec les versions corrigées
+GHSA-r277-6w6q-xmqw
+GHSA-hrxh-6v49-42gf
