@@ -137,22 +137,22 @@
         0 0.3cqi 1.5cqi rgb(0 0 0 / 0.9);
 }
 
-/* rarity icon, Pokémon-style pure CSS shapes: circle / diamond / star,
-   coloured by the tailwind rarity palette */
-.card {
-    --frame-rarity: #9aa3b2;
-}
-.card[data-rarity='uncommon'] { --frame-rarity: #5be584; }
-.card[data-rarity='rare'] { --frame-rarity: #54a8ff; }
-.card[data-rarity='legendary'] { --frame-rarity: #ff8a2b; }
-
+/* rarity icon, Pokémon-style pure CSS shapes: circle / diamond / star.
+   White with a black outline — clip-path has no border, so the outline is
+   faked with four hard drop-shadows (they wrap the clipped shape). */
 .card__frame--youl .card-frame__rarity {
+    --icon-outline:
+        drop-shadow(0.25cqi 0 0 rgb(0 0 0 / 0.9))
+        drop-shadow(-0.25cqi 0 0 rgb(0 0 0 / 0.9))
+        drop-shadow(0 0.25cqi 0 rgb(0 0 0 / 0.9))
+        drop-shadow(0 -0.25cqi 0 rgb(0 0 0 / 0.9));
+
     bottom: 4.6cqi;
     left: 6.5cqi;
     width: 3.4cqi;
     height: 3.4cqi;
-    background: var(--frame-rarity);
-    filter: drop-shadow(0 0.3cqi 0.8cqi rgb(0 0 0 / 0.85));
+    background: #f6f4fa;
+    filter: var(--icon-outline) drop-shadow(0 0.3cqi 0.8cqi rgb(0 0 0 / 0.6));
 }
 
 .card[data-rarity='common'] .card-frame__rarity {
@@ -167,14 +167,12 @@
     clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
 }
 
-/* legendary: TWO overlapping stars, Pokémon-SSR style */
+/* legendary: TWO overlapping stars, Pokémon-SSR style (the outline filter on
+   the container wraps the union of the two shapes) */
 .card[data-rarity='legendary'] .card-frame__rarity {
     width: 6.4cqi;
     height: 3.8cqi;
     background: none;
-    filter:
-        drop-shadow(0 0 1.4cqi rgb(255 138 43 / 0.9))
-        drop-shadow(0 0.3cqi 0.8cqi rgb(0 0 0 / 0.85));
 }
 
 .card[data-rarity='legendary'] .card-frame__rarity::before,
@@ -184,22 +182,19 @@
     top: 0;
     width: 3.8cqi;
     height: 3.8cqi;
-    background: var(--frame-rarity);
+    background: #f6f4fa;
     clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
 }
 
 .card[data-rarity='legendary'] .card-frame__rarity::before { left: 0; }
 .card[data-rarity='legendary'] .card-frame__rarity::after { right: 0; }
 
-/* unique (1/1): a gold crown, whatever the rarity — replaces the old badge */
+/* unique (1/1): a crown, whatever the rarity — replaces the old badge */
 .card.unique .card-frame__rarity {
     width: 4.8cqi;
     height: 3.9cqi;
-    background: linear-gradient(180deg, #ffe79a, #f4b73a);
+    background: #f6f4fa;
     clip-path: polygon(0 100%, 0 26%, 26% 50%, 50% 10%, 74% 50%, 100% 26%, 100% 100%);
-    filter:
-        drop-shadow(0 0 1.5cqi rgb(255 205 95 / 0.9))
-        drop-shadow(0 0.3cqi 0.8cqi rgb(0 0 0 / 0.85));
 }
 
 .card.unique .card-frame__rarity::before,
