@@ -14,10 +14,6 @@ jobs:
         with:
           submodules: 'true'
 
-      # Fail fast : valide les trois fichiers compose avant de déployer quoi
-      # que ce soit. Le fichier CI est un override, il se valide combiné au
-      # fichier de base (comme docker.deploy.ci le consomme) ; le fichier prod
-      # interpole des secrets, on exporte des valeurs bidons.
       - name: Validate docker compose files
         run: |
           docker compose -f docker-compose.yml config -q
@@ -44,10 +40,6 @@ jobs:
       - name: Deploy stack
         run: USER_ID=$(id -u) GROUP_ID=$(id -g) make deploy.ci github_token=${{ secrets.GITHUB_TOKEN }}
 
-      # Même gate que le `make quality` local : composer.validate + phpcs
-      # + cs_fixer.dry_run + phpstan + rector.dry_run (cible check_style du
-      # submodule make/), tout tourne via docker exec dans le conteneur php
-      # déployé ci-dessus.
       - name: Run quality checks
         run: make quality
 
