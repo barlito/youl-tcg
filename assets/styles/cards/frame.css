@@ -1,0 +1,296 @@
+/*
+
+  CSS CARD FRAME
+  Frame, name and watermark rendered in CSS on top of frameless artworks,
+  replacing the Photoshop-baked frames. Opt-in: CardComponent renders the
+  .card__watermark / .card__frame layers only when a `frame` variant is passed.
+
+  Variants:
+    - youl:    the reference look (name top-left, extension wordmark top-right,
+               dark mat + neon inner line, big central YOUL watermark)
+    - plate:   bottom nameplate + rarity letter, corner stamp watermark
+    - minimal: thin ring, centered name, ghost watermark
+
+  Layering (translateZ inside the card 3D context, cf. base.css):
+    artwork (0) < watermark (.6px) < shine (1px) < glare (1.41px) < frame (1.6px)
+  so the watermark sits under the holo effects (reads as part of the artwork)
+  while the frame chrome and the name stay readable above them.
+
+*/
+
+/* rarity accent, aligned on tailwind.config.js theme.colors.rarity */
+.card {
+    --frame-rarity: #9aa3b2;
+}
+.card[data-rarity='uncommon'] { --frame-rarity: #5be584; }
+.card[data-rarity='rare'] { --frame-rarity: #54a8ff; }
+.card[data-rarity='legendary'] { --frame-rarity: #ff8a2b; }
+
+/* ---- layer containers -------------------------------------------------
+   `.card__rotator *` (base.css) forces width/grid-area/aspect-ratio/overflow
+   on every descendant: the two layers embrace it (they must stack over the
+   artwork), their children opt out right below. container-type lets all
+   inner sizes use cqi units, so the frame scales with the rendered card
+   (grid thumbnail or zoomed) instead of the viewport. */
+.card .card__watermark,
+.card .card__frame {
+    position: relative;
+    pointer-events: none;
+    container-type: inline-size;
+}
+
+.card .card__watermark {
+    transform: translateZ(0.6px);
+    z-index: 2;
+}
+
+.card .card__frame {
+    transform: translateZ(1.6px);
+    z-index: 4;
+}
+
+.card .card__frame > * {
+    position: absolute;
+    display: block;
+    width: auto;
+    aspect-ratio: auto;
+    border-radius: 0;
+    overflow: visible;
+}
+
+/* the rarity letter only exists on the plate variant */
+.card__frame .card-frame__rarity {
+    display: none;
+}
+
+/* =======================================================================
+   Variant youl — the reference frame
+   ======================================================================= */
+
+/* dark mat around the artwork */
+.card__frame--youl::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--card-radius);
+    box-shadow:
+        inset 0 0 0 3.4cqi rgb(8 5 15 / 0.95),
+        inset 0 -12cqi 9cqi -8cqi rgb(8 5 15 / 0.85);
+}
+
+/* neon gradient inner line (cyan → purple → magenta, bottom-heavy like the ref) */
+.card__frame--youl::after {
+    content: '';
+    position: absolute;
+    inset: 2.6cqi;
+    border-radius: 2.6% / 2%;
+    padding: 0.45cqi;
+    background: linear-gradient(
+        200deg,
+        rgb(70 230 230 / 0.85),
+        rgb(120 80 220 / 0.55) 45%,
+        rgb(255 62 165 / 0.9)
+    );
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    mask-composite: exclude;
+}
+
+.card__frame--youl .card-frame__name {
+    top: 5cqi;
+    left: 6.5cqi;
+    max-width: 62%;
+    font-family: var(--frame-name-font, 'Space Grotesk', sans-serif);
+    font-size: 6.2cqi;
+    font-weight: 700;
+    line-height: 1.05;
+    color: #fff;
+    text-shadow:
+        0 0 1.2cqi rgb(0 0 0),
+        0 0.4cqi 1.8cqi rgb(0 0 0 / 0.95),
+        0 0 3.5cqi rgb(0 0 0 / 0.7);
+}
+
+.card__frame--youl .card-frame__ext {
+    top: 5.4cqi;
+    right: 6.5cqi;
+    max-width: 30%;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 3.1cqi;
+    font-weight: 700;
+    font-style: italic;
+    letter-spacing: 0.08em;
+    text-align: right;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow:
+        0 0 1cqi rgb(0 0 0),
+        0 0.3cqi 1.5cqi rgb(0 0 0 / 0.9);
+}
+
+/* big central wordmark, integrated into the artwork (under shine/glare) */
+.card__watermark--youl::before {
+    content: 'YOUL';
+    position: absolute;
+    bottom: 12cqi;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 24cqi;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: rgb(255 255 255 / 0.14);
+    -webkit-text-stroke: 0.28cqi rgb(255 255 255 / 0.28);
+    mix-blend-mode: overlay;
+}
+
+.card__watermark--youl::after {
+    content: 'TRADING CARDS GAME';
+    position: absolute;
+    bottom: 9.5cqi;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 4.6cqi;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    color: rgb(255 255 255 / 0.16);
+    -webkit-text-stroke: 0.12cqi rgb(255 255 255 / 0.22);
+    mix-blend-mode: overlay;
+}
+
+/* =======================================================================
+   Variant plate — bottom nameplate
+   ======================================================================= */
+
+.card__frame--plate::before {
+    content: '';
+    position: absolute;
+    inset: 3.2cqi;
+    border-radius: 2.8% / 2.1%;
+    border: 0.35cqi solid color-mix(in srgb, var(--card-border, var(--frame-rarity)) 75%, transparent);
+    box-shadow:
+        0 0 2cqi 0 color-mix(in srgb, var(--card-border, var(--frame-rarity)) 45%, transparent),
+        inset 0 0 5cqi 0 rgb(0 0 0 / 0.35);
+}
+
+.card__frame--plate::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 26cqi;
+    border-radius: 0 0 var(--card-radius) var(--card-radius);
+    background: linear-gradient(to top, rgb(5 2 12 / 0.93) 0%, rgb(5 2 12 / 0.72) 45%, transparent 100%);
+}
+
+.card__frame--plate .card-frame__name {
+    bottom: 5.8cqi;
+    left: 7cqi;
+    right: 15cqi;
+    z-index: 1;
+    font-family: var(--frame-name-font, 'Space Grotesk', sans-serif);
+    font-size: 4.6cqi;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #f2eefb;
+    text-shadow: 0 0.3cqi 1cqi rgb(0 0 0 / 0.9);
+}
+
+.card__frame--plate .card-frame__rarity {
+    display: block;
+    bottom: 5.8cqi;
+    right: 7cqi;
+    z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 3.8cqi;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: var(--card-border, var(--frame-rarity));
+    text-shadow: 0 0 2.6cqi color-mix(in srgb, var(--card-border, var(--frame-rarity)) 80%, transparent);
+}
+
+.card__frame--plate .card-frame__ext {
+    display: none;
+}
+
+/* corner stamp */
+.card__watermark--plate::before {
+    content: 'YOUL';
+    position: absolute;
+    top: 4.5cqi;
+    right: 5.5cqi;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 5cqi;
+    font-weight: 700;
+    color: rgb(255 255 255 / 0.4);
+    -webkit-text-stroke: 0.15cqi rgb(255 255 255 / 0.3);
+    mix-blend-mode: screen;
+}
+
+/* =======================================================================
+   Variant minimal — thin ring + ghost watermark
+   ======================================================================= */
+
+.card__frame--minimal::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--card-radius);
+    box-shadow:
+        inset 0 0 0 0.35cqi color-mix(in srgb, var(--card-border, var(--frame-rarity)) 55%, transparent),
+        inset 0 0 7cqi 0.7cqi rgb(0 0 0 / 0.45);
+}
+
+.card__frame--minimal::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 20cqi;
+    border-radius: 0 0 var(--card-radius) var(--card-radius);
+    background: linear-gradient(to top, rgb(5 2 12 / 0.88) 0%, transparent 100%);
+}
+
+.card__frame--minimal .card-frame__name {
+    bottom: 5cqi;
+    left: 6cqi;
+    right: 6cqi;
+    z-index: 1;
+    font-family: var(--frame-name-font, 'Space Grotesk', sans-serif);
+    font-size: 4.4cqi;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-transform: uppercase;
+    color: #f2eefb;
+    text-shadow: 0 0.3cqi 1cqi rgb(0 0 0 / 0.9);
+}
+
+.card__frame--minimal .card-frame__ext {
+    display: none;
+}
+
+.card__watermark--minimal::before {
+    content: 'YOUL';
+    position: absolute;
+    top: 42%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    text-align: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 30cqi;
+    font-weight: 700;
+    color: rgb(255 255 255 / 0.07);
+    -webkit-text-stroke: 0.2cqi rgb(255 255 255 / 0.12);
+    mix-blend-mode: screen;
+}

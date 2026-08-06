@@ -2,6 +2,8 @@
 {#- lazy: opt-in for grid usages (collection / univers) — keep the default
     eager where the card is visible immediately (homepage, opening reveal) -#}
 {%- set lazy = lazy|default(false) -%}
+{#- CSS frame variant (cards/frame.css): 'youl' | 'plate' | 'minimal', null = no frame -#}
+{%- set frame = frame|default(null) -%}
 {%- set id = id|default(card.id) -%}
 {%- set visual = card_visual(card) -%}
 {%- set styleVars = [] -%}
@@ -28,8 +30,16 @@
             </div>
             <div class="card__front">
                 <img src="{{ vich_uploader_asset(card) }}" alt="{{ card.name }}"{% if lazy %} loading="lazy"{% endif %} decoding="async" onerror="this.onerror=null;this.src='{{ asset('images/default_card.png') }}';">
+                {%- if frame %}<div class="card__watermark card__watermark--{{ frame }}" aria-hidden="true"></div>{% endif -%}
                 <div class="card__shine"></div>
                 <div class="card__glare"></div>
+                {%- if frame %}
+                <div class="card__frame card__frame--{{ frame }}" aria-hidden="true">
+                    <span class="card-frame__name">{{ card.name }}</span>
+                    <span class="card-frame__ext">{{ card.extension.name }}</span>
+                    <span class="card-frame__rarity">{{ card.rarity.value|slice(0, 1)|upper }}</span>
+                </div>
+                {% endif -%}
                 {%- if card.isUnique %}<div class="card__unique-badge" title="Carte unique — un seul exemplaire">1/1</div>{% endif -%}
             </div>
         </div>

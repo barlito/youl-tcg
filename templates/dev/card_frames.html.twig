@@ -1,0 +1,89 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+    DEV — Preview cadres CSS
+{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    {# blackletter option for the name typography row, dev page only #}
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&display=swap">
+{% endblock %}
+
+{% block body %}
+    <main class="container mx-auto py-10 px-4">
+        <div class="mb-8">
+            <p class="eyebrow">dev only · /dev/card-frames</p>
+            <h1 class="mt-1 font-display text-4xl font-bold text-ink-strong">Preview — cadres CSS (nom + cadre + filigrane)</h1>
+            <p class="mt-2 max-w-3xl text-ink-muted">
+                Remplacement du cadre Photoshop par un habillage CSS rendu par
+                <code class="text-primary">CardComponent</code> (paramètre <code class="text-primary">frame</code>,
+                recettes dans <code class="text-primary">assets/styles/cards/frame.css</code>).
+                Le filigrane est <strong>sous</strong> les couches shine/glare (il vit avec l'artwork),
+                le nom et le cadre <strong>au-dessus</strong> (toujours lisibles).
+                <strong>Survole</strong> pour vérifier la tenue au tilt 3D.
+            </p>
+        </div>
+
+        {% for variant in variants %}
+            <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">
+                {{ variant.label }} — <code class="text-primary text-lg">frame: '{{ variant.code }}'</code>
+            </h2>
+            <p class="mb-4 max-w-3xl text-ink-muted">{{ variant.description }}</p>
+            <div class="grid grid-cols-2 gap-6 md:grid-cols-4">
+                {% for card in cards %}
+                    {{ include('components/CardComponent.html.twig', {
+                        card: card,
+                        frame: variant.code,
+                        id: variant.code ~ '-' ~ card.id,
+                    }) }}
+                {% endfor %}
+            </div>
+        {% endfor %}
+
+        {# ------------------------------------------------ name typography #}
+        <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">Typo du nom — <code class="text-primary text-lg">--frame-name-font</code></h2>
+        <p class="mb-4 max-w-3xl text-ink-muted">
+            La police du nom est une variable CSS héritée : un univers pourra imposer la sienne
+            (ici <em>Pirata One</em> en blackletter, façon carte de référence) sans toucher aux recettes.
+        </p>
+        <div class="grid grid-cols-2 gap-6 md:grid-cols-4">
+            {% for card in cards|slice(0, 2) %}
+                {{ include('components/CardComponent.html.twig', { card: card, frame: 'youl', id: 'font-default-' ~ card.id }) }}
+                <div style="--frame-name-font: 'Pirata One', serif;">
+                    {{ include('components/CardComponent.html.twig', { card: card, frame: 'youl', id: 'font-blackletter-' ~ card.id }) }}
+                </div>
+            {% endfor %}
+        </div>
+
+        {# ------------------------------------------------ holo layering #}
+        <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">Combo holo + cadre</h2>
+        <p class="mb-4 max-w-3xl text-ink-muted">
+            Vérification du layering avec l'holo de base : le filigrane reçoit le shine comme l'artwork,
+            le nom reste net au-dessus du glare.
+        </p>
+        <div class="grid grid-cols-2 gap-6 md:grid-cols-4">
+            {% for card in cards|slice(0, 4) %}
+                {{ include('components/CardComponent.html.twig', {
+                    card: card,
+                    frame: 'youl',
+                    holo: true,
+                    id: 'holo-' ~ card.id,
+                }) }}
+            {% endfor %}
+        </div>
+
+        <div class="mt-14 max-w-3xl border border-hairline bg-surface/60 p-6">
+            <h3 class="font-display text-lg font-bold text-ink-strong">Notes d'implémentation</h3>
+            <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-ink-muted">
+                <li>Opt-in par carte : le paramètre <code class="text-primary">frame</code> est nul partout en prod
+                    aujourd'hui — le branchement réel passera par la cascade <code class="text-primary">VisualConfig</code>
+                    (extension → carte), pour ne jamais doubler un cadre déjà baké dans l'artwork.</li>
+                <li>Le wordmark d'univers (haut droite) est le <em>nom</em> de l'extension en texte stylé :
+                    un vrai logo par univers (façon « Cyberpunk ») demandera un upload dédié sur Extension.</li>
+                <li>Tailles en <code class="text-primary">cqi</code> : le cadre suit la taille rendue de la carte
+                    (vignette de grille comme zoom), pas le viewport.</li>
+            </ul>
+        </div>
+    </main>
+{% endblock %}

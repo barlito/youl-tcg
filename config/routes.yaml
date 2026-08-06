@@ -8,3 +8,6 @@ when@dev:
     dev_card_effects:
         path: /dev/card-effects
         controller: App\Controller\Dev\CardEffectsDemoController
+    dev_card_frames:
+        path: /dev/card-frames
+        controller: App\Controller\Dev\CardFramesDemoController
