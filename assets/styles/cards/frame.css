@@ -163,18 +163,48 @@
     clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
 
-.card[data-rarity='rare'] .card-frame__rarity,
-.card[data-rarity='legendary'] .card-frame__rarity {
+.card[data-rarity='rare'] .card-frame__rarity {
     clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
 }
 
+/* legendary: TWO stars side by side, drawn by the pseudos */
 .card[data-rarity='legendary'] .card-frame__rarity {
-    width: 4.2cqi;
-    height: 4.2cqi;
-    bottom: 4.2cqi;
+    width: 8.2cqi;
+    height: 3.8cqi;
+    background: none;
     filter:
         drop-shadow(0 0 1.4cqi rgb(255 138 43 / 0.9))
         drop-shadow(0 0.3cqi 0.8cqi rgb(0 0 0 / 0.85));
+}
+
+.card[data-rarity='legendary'] .card-frame__rarity::before,
+.card[data-rarity='legendary'] .card-frame__rarity::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 3.8cqi;
+    height: 3.8cqi;
+    background: var(--frame-rarity);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.card[data-rarity='legendary'] .card-frame__rarity::before { left: 0; }
+.card[data-rarity='legendary'] .card-frame__rarity::after { right: 0; }
+
+/* unique (1/1): a gold crown, whatever the rarity — replaces the old badge */
+.card.unique .card-frame__rarity {
+    width: 4.8cqi;
+    height: 3.9cqi;
+    background: linear-gradient(180deg, #ffe79a, #f4b73a);
+    clip-path: polygon(0 100%, 0 26%, 26% 50%, 50% 10%, 74% 50%, 100% 26%, 100% 100%);
+    filter:
+        drop-shadow(0 0 1.5cqi rgb(255 205 95 / 0.9))
+        drop-shadow(0 0.3cqi 0.8cqi rgb(0 0 0 / 0.85));
+}
+
+.card.unique .card-frame__rarity::before,
+.card.unique .card-frame__rarity::after {
+    content: none;
 }
 
 /* uploaded universe wordmark (replaces the styled-text fallback) */
@@ -188,39 +218,37 @@
     filter: drop-shadow(0 0.3cqi 1cqi rgb(0 0 0 / 0.85));
 }
 
-/* big central wordmark, Pirata One like the reference cards. Smoked-glass
-   recipe: the fill and stroke must stay opaque enough to actually mask the
-   holo — a translucent watermark reads as "the shine passes over it" even
-   when correctly layered above. */
-.card__watermark--youl .card-frame__body::before {
-    content: 'YOUL';
-    position: absolute;
-    bottom: 11cqi;
-    left: 0;
-    right: 0;
-    text-align: center;
-    font-family: 'Pirata One', serif;
-    font-size: 27cqi;
-    font-weight: 400;
-    line-height: 1;
-    letter-spacing: 0.04em;
-    color: rgb(16 12 24 / 0.5);
-    -webkit-text-stroke: 0.3cqi rgb(212 208 222 / 0.8);
+/* big central wordmark, Pirata One like the reference cards. Vectorised SVG
+   asset (public/images/frame/, generated from the font): the SAME glyph
+   outlines are punched out of the shine/glare layers below, so the visible
+   watermark can stay translucent without the holo showing through it. */
+.card__watermark--youl .card-frame__body {
+    background: url('/images/frame/youl-wordmark.svg') center / 100% 100% no-repeat;
 }
 
-.card__watermark--youl .card-frame__body::after {
-    content: 'TRADING CARDS GAME';
-    position: absolute;
-    bottom: 8.5cqi;
-    left: 0;
-    right: 0;
-    text-align: center;
-    font-family: 'Pirata One', serif;
-    font-size: 5.4cqi;
-    font-weight: 400;
-    letter-spacing: 0.22em;
-    color: rgb(16 12 24 / 0.55);
-    -webkit-text-stroke: 0.14cqi rgb(212 208 222 / 0.75);
+/* the real Photoshop-mask: holo layers are cut out around the wordmark.
+   On masked cards this COMPOSES with the per-card artwork mask (--mask):
+   holo inside the artwork mask AND outside the letters (mask-composite
+   intersect), the two never conflict. */
+.card.framed .card__shine,
+.card.framed .card__glare {
+    -webkit-mask-image: url('/images/frame/youl-wordmark-cutout.svg');
+    -webkit-mask-size: 100% 100%;
+    mask-image: url('/images/frame/youl-wordmark-cutout.svg');
+    mask-size: 100% 100%;
+}
+
+.card.framed.masked .card__shine,
+.card.framed.masked .card__shine:before,
+.card.framed.masked .card__shine:after {
+    -webkit-mask-image: var(--mask), url('/images/frame/youl-wordmark-cutout.svg');
+    -webkit-mask-size: cover, 100% 100%;
+    -webkit-mask-position: center center, center center;
+    -webkit-mask-composite: source-in;
+    mask-image: var(--mask), url('/images/frame/youl-wordmark-cutout.svg');
+    mask-size: cover, 100% 100%;
+    mask-position: center center, center center;
+    mask-composite: intersect;
 }
 
 /* =======================================================================

@@ -5,16 +5,6 @@
 {% endblock %}
 
 {% block body %}
-    <style>
-        /* dev-only comparison: put the watermark back UNDER the shine/glare
-           stack to judge the difference with the canonical above-holo
-           rendering of frame.css */
-        .wm-under .card .card__watermark {
-            transform: translateZ(0.6px);
-            z-index: 2;
-        }
-    </style>
-
     <main class="container mx-auto py-10 px-4">
         <div class="mb-8">
             <p class="eyebrow">dev only · /dev/card-frames</p>
@@ -49,14 +39,15 @@
         <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">Icônes de rareté</h2>
         <p class="mb-4 max-w-3xl text-ink-muted">
             Formes CSS pures façon Pokémon, en bas à gauche du cadre : rond commun, losange uncommon,
-            étoile rare, étoile légendaire (plus grande + glow). Couleurs de la palette rareté.
+            étoile rare, <strong>deux étoiles</strong> légendaire (+ glow), <strong>couronne dorée</strong>
+            pour une carte unique 1/1 (remplace l'ancien badge). Couleurs de la palette rareté.
             Clones transients : les fixtures dev sont toutes communes.
         </p>
-        <div class="grid grid-cols-2 gap-6 md:grid-cols-4">
+        <div class="grid grid-cols-2 gap-6 md:grid-cols-5">
             {% for demo in rarityDemos %}
                 {{ include('components/CardComponent.html.twig', {
                     card: demo,
-                    id: 'rarity-' ~ demo.rarity.value,
+                    id: 'rarity-' ~ (demo.isUnique ? 'unique' : demo.rarity.value),
                 }) }}
             {% endfor %}
         </div>
@@ -80,14 +71,10 @@
         {# ------------------------------------------------ holo layering #}
         <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">Combo holo + cadre</h2>
         <p class="mb-4 max-w-3xl text-ink-muted">
-            Le filigrane et le cadre sont <strong>au-dessus</strong> des couches shine/glare : l'holo ne
-            passe jamais dessus (effet « mask » des cartes Photoshop). Coche pour comparer avec le
-            filigrane <em>sous</em> l'holo.
+            Le vrai mask Photoshop : les lettres du filigrane sont <strong>découpées</strong> des couches
+            shine/glare (SVG cut-out) — l'holo ne se dessine jamais dedans, le filigrane reste translucide.
+            Sur une carte à mask d'artwork, les deux masks se composent (intersection).
         </p>
-        <label class="mb-4 inline-flex items-center gap-2 text-sm text-ink-muted">
-            <input type="checkbox" onchange="document.getElementById('holo-grid').classList.toggle('wm-under', this.checked)">
-            filigrane sous l'holo (ancien rendu)
-        </label>
         <div id="holo-grid" class="grid grid-cols-2 gap-6 md:grid-cols-4">
             {% for card in cards|slice(0, 4) %}
                 {{ include('components/CardComponent.html.twig', {

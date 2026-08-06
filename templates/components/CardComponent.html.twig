@@ -22,7 +22,7 @@
    cascade resolves no preset falls back to the basic recipe #}
 {%- set holoClass = visual.holoEffect ? visual.holoEffect.cssClass : (holo ? 'holo--basic' : null) -%}
 <div id="{{ id }}"
-     class="card interactive{{ visual.hasMask ? ' masked' }}{{ holo ? ' holo' }}{{ card.isUnique ? ' unique' }}{{ visual.cssClass ? ' ' ~ visual.cssClass }}{{ holoClass ? ' ' ~ holoClass }}"
+     class="card interactive{{ visual.hasMask ? ' masked' }}{{ holo ? ' holo' }}{{ card.isUnique ? ' unique' }}{{ frame ? ' framed' }}{{ visual.cssClass ? ' ' ~ visual.cssClass }}{{ holoClass ? ' ' ~ holoClass }}"
      data-rarity="{{ card.rarity.value }}"
      data-controller="card"
      {%- if styleVars is not empty %} style="{{ styleVars|join('; ') }}"{% endif %}>

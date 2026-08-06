@@ -54,6 +54,10 @@ class CardFramesDemoController extends AbstractController
             $demo->setRarity($rarity);
             $rarityDemos[] = $demo;
         }
+        // the 1/1 crown overrides the rarity icon
+        $unique = clone $cards[0];
+        $unique->setRarity(CardRarityEnum::LEGENDARY)->setUnique(true);
+        $rarityDemos[] = $unique;
 
         return $this->render('dev/card_frames.html.twig', [
             'cards' => $cards,
