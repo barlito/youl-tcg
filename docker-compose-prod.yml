@@ -1,8 +1,5 @@
 services:
     php:
-        # ${VAR:?...} : une variable absente ou vide fait échouer le
-        # `docker stack deploy` au lieu de déployer une valeur vide
-        # (mode de défaillance de l'incident APP_SECRET).
         image: barlito/youl-tcg:${TAG:?TAG is required}
         volumes:
             - ytcg_caddy_data:/data
