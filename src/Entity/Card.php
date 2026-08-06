@@ -20,8 +20,6 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
 
 #[Vich\Uploadable]
 #[ORM\Entity(repositoryClass: CardRepository::class)]
-// Almost every card query filters on extension + status (draw pool, set
-// contents, published-extension lookups): index the pair.
 #[ORM\Index(columns: ['extension_id', 'status'])]
 class Card
 {
@@ -50,8 +48,7 @@ class Card
      * Owner of a one-of-one (unique) card. Null while unclaimed; set atomically
      * the first time the card is drawn (CardRepository::claimUnique). A claimed
      * unique is filtered out of the draw pool so it can never be drawn again.
-     * ON DELETE SET NULL frees the card if the owner is removed (matches the
-     * constraint created by Version20260618130000).
+     * ON DELETE SET NULL frees the card if the owner is removed.
      */
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(name: 'claimed_by', referencedColumnName: 'discord_id', nullable: true, onDelete: 'SET NULL')]

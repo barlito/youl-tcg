@@ -7,15 +7,6 @@ namespace DoctrineMigrations;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 
-/**
- * Version20260618130000 hand-named the card.claimed_by index and foreign key
- * (idx_card_claimed_by / fk_card_claimed_by) while the entity mapping expects
- * the Doctrine-generated identifiers: the index name mismatch keeps
- * doctrine:schema:validate permanently red and would make the next db.diff
- * try to recreate it. Rename both to the names Doctrine derives from
- * (table, columns) — IDX_/FK_161498D3296C217B — so the database matches the
- * mapping exactly. Definitions are untouched (ON DELETE SET NULL stays).
- */
 final class Version20260805120000 extends AbstractMigration
 {
     public function getDescription(): string

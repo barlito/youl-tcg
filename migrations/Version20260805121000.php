@@ -7,17 +7,6 @@ namespace DoctrineMigrations;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 
-/**
- * Composite indexes on the two most filtered column pairs:
- * - card (extension_id, status): almost every CardRepository query filters on
- *   both (findDrawablePool, findPublishedByExtension,
- *   findExtensionIdsWithPublishedCards, findRandomCardId);
- * - booster_claim (discord_user_id, claimed_at): the daily quota is a COUNT
- *   on this pair (BoosterClaimRepository::countSince), executed on every hub
- *   render — only a single-column index on discord_user_id existed.
- * Names are the Doctrine-generated ones so the schema stays in sync with the
- * ORM\Index declarations on the entities.
- */
 final class Version20260805121000 extends AbstractMigration
 {
     public function getDescription(): string
