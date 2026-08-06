@@ -10,6 +10,7 @@ use App\Entity\Booster;
 use App\Entity\BoosterOpening;
 use App\Entity\BoosterOpeningCard;
 use App\Entity\DiscordUser;
+use App\Exception\Booster\EmptyRarityRatesException;
 use App\Exception\Booster\NoBoosterInInventoryException;
 use App\Exception\Booster\NoCardAvailableException;
 use App\Repository\CardRepository;
@@ -36,6 +37,7 @@ final readonly class BoosterOpeningService
 
     /**
      * @throws NoBoosterInInventoryException
+     * @throws EmptyRarityRatesException
      * @throws NoCardAvailableException
      */
     public function open(DiscordUser $discordUser, Booster $booster): BoosterOpeningResult

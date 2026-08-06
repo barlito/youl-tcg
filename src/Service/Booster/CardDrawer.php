@@ -9,6 +9,7 @@ use App\Entity\Booster;
 use App\Entity\Card;
 use App\Entity\Extension;
 use App\Enum\Entity\CardRarityEnum;
+use App\Exception\Booster\EmptyRarityRatesException;
 use App\Exception\Booster\NoCardAvailableException;
 use App\Repository\CardRepository;
 use App\Service\Random\RandomService;
@@ -27,12 +28,23 @@ final readonly class CardDrawer
     }
 
     /**
-     * @throws NoCardAvailableException when the extension has no published card
+     * @throws EmptyRarityRatesException when the booster has no slot configured
+     * @throws NoCardAvailableException  when the extension has no published card
      *
      * @return list<DrawnCard>
      */
     public function draw(Booster $booster): array
     {
+        // Guard BEFORE any debit-side effect matters: with zero slots the loop
+        // below would silently return no card while the caller already debited
+        // the booster in the same transaction (the exception triggers rollback).
+        if ([] === $booster->getRarityRates()) {
+            throw new EmptyRarityRatesException(
+                \sprintf('Booster "%s" has empty rarityRates: no slot to draw.', $booster->getDisplayName()),
+                'Ce booster est mal configuré et ne peut pas être ouvert pour le moment, réessaie plus tard.',
+            );
+        }
+
         $pool = $this->loadPool($booster->getExtension());
 
         if ([] === $pool) {
