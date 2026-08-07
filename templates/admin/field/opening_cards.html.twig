@@ -1,0 +1,66 @@
+{# Cards drawn in a booster opening: a compact summary on the listing, the full
+   detail of every drawn card (duplicates aggregated) on the detail page. #}
+{% set data = field.formattedValue %}
+
+{% if data.total == 0 %}
+    <span class="text-muted">—</span>
+{% elseif data.compact %}
+    <span class="opening-cards-summary text-nowrap">
+        {{ data.total }} carte{{ data.total > 1 ? 's' }}
+        {% if data.bestRarity %}
+            <span class="text-muted">· {{ rarity_label(data.bestRarity) }}</span>
+        {% endif %}
+        {% if data.holo > 0 %}
+            <span class="badge bg-info text-dark" title="Exemplaires holo">✨ {{ data.holo }}</span>
+        {% endif %}
+        {% if data.unique > 0 %}
+            <span class="badge bg-warning text-dark" title="Carte unique (1/1)">1/1</span>
+        {% endif %}
+    </span>
+{% else %}
+    <div class="opening-cards">
+        <p class="text-muted mb-2">
+            {{ data.total }} exemplaire{{ data.total > 1 ? 's' }} tiré{{ data.total > 1 ? 's' }}
+            · {{ data.cards|length }} carte{{ data.cards|length > 1 ? 's' }} distincte{{ data.cards|length > 1 ? 's' }}
+            {% if data.holo > 0 %}· ✨ {{ data.holo }} holo{% endif %}
+        </p>
+        <table class="table table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th scope="col">Carte</th>
+                    <th scope="col">Rareté</th>
+                    <th scope="col">Holo</th>
+                    <th scope="col">Exemplaires</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for card in data.cards %}
+                    <tr>
+                        <td>
+                            <a href="{{ card.url }}" class="d-inline-flex align-items-center gap-2">
+                                <img src="{{ card.thumbnail ?: asset('images/default_card.png') }}"
+                                     alt=""
+                                     loading="lazy"
+                                     style="width: 48px; height: auto; border-radius: 4px;"
+                                     onerror="this.onerror=null;this.src='{{ asset('images/default_card.png') }}';">
+                                <span>{{ card.name }}</span>
+                            </a>
+                            {% if card.unique %}
+                                <span class="badge bg-warning text-dark" title="Carte unique : un seul exemplaire existe">1/1</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ rarity_label(card.rarity) }}</td>
+                        <td>
+                            {% if card.holoQuantity > 0 %}
+                                ✨ {{ card.holoQuantity }}
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ card.quantity }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}

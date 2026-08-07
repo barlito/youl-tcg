@@ -13,7 +13,7 @@ use Gedmo\Timestampable\Traits\TimestampableEntity;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: DiscordUserRepository::class)]
-class DiscordUser implements UserInterface
+class DiscordUser implements UserInterface, \Stringable
 {
     use TimestampableEntity;
 
@@ -46,6 +46,11 @@ class DiscordUser implements UserInterface
     {
         $this->userCards = new ArrayCollection();
         $this->userBoosters = new ArrayCollection();
+    }
+
+    public function __toString(): string
+    {
+        return $this->username;
     }
 
     public function getDiscordId(): string
@@ -88,6 +93,42 @@ class DiscordUser implements UserInterface
         }
 
         return $this;
+    }
+
+    /**
+     * Distinct cards owned, i.e. how many entries of the catalogue the player
+     * has unlocked — not how many copies they hold.
+     */
+    public function getDistinctCardCount(): int
+    {
+        return $this->userCards->count();
+    }
+
+    /**
+     * Every copy owned, holo included: what the player would count if they
+     * laid their collection on the table.
+     */
+    public function getCardCopyCount(): int
+    {
+        $total = 0;
+        foreach ($this->userCards as $userCard) {
+            $total += $userCard->getQuantity() + $userCard->getHoloQuantity();
+        }
+
+        return $total;
+    }
+
+    /**
+     * Unopened boosters still in the inventory, copies included.
+     */
+    public function getBoosterCopyCount(): int
+    {
+        $total = 0;
+        foreach ($this->userBoosters as $userBooster) {
+            $total += $userBooster->getQuantity();
+        }
+
+        return $total;
     }
 
     /**
