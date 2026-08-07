@@ -170,17 +170,49 @@ export class CardTilt {
         this._startLoop();
     }
 
+    /**
+     * Linear part of the transform chain above the card. The springs drive a
+     * transform expressed in the card's own coordinates, so a delta measured on
+     * screen has to be pushed back through this matrix: the homepage hero nests
+     * the cards in a scaled stage AND in rotated wrappers, which both stretch
+     * and turn any translation applied inside them.
+     */
+    _ancestorMatrix() {
+        const chain = [];
+        let node = this.element;
+
+        while (node && node !== document.body) {
+            const transform = getComputedStyle(node).transform;
+
+            if (transform && transform !== 'none') {
+                chain.push(new DOMMatrixReadOnly(transform));
+            }
+            node = node.parentElement;
+        }
+
+        // outermost first: that is the order the browser applies them
+        let matrix = new DOMMatrix();
+        for (let i = chain.length - 1; i >= 0; i -= 1) {
+            matrix = matrix.multiply(chain[i]);
+        }
+
+        return matrix;
+    }
+
     /** Aim the translate springs so the card sits at the viewport centre. */
     _setCenter() {
         const rect = this.translater.getBoundingClientRect();
-        // The translater's rect includes the current translate, so add it back
-        // to get the delta from the card's resting position to the centre.
-        this.springs.translateX.target = round(
-            window.innerWidth / 2 - rect.left - rect.width / 2 + this.springs.translateX.value,
-        );
-        this.springs.translateY.target = round(
-            window.innerHeight / 2 - rect.top - rect.height / 2 + this.springs.translateY.value,
-        );
+        const screenX = window.innerWidth / 2 - rect.left - rect.width / 2;
+        const screenY = window.innerHeight / 2 - rect.top - rect.height / 2;
+
+        const { a, b, c, d } = this._ancestorMatrix();
+        const determinant = a * d - b * c;
+        // no usable matrix (degenerate): fall back to screen pixels
+        const localX = determinant ? (d * screenX - c * screenY) / determinant : screenX;
+        const localY = determinant ? (a * screenY - b * screenX) / determinant : screenY;
+
+        this.springs.translateX.target = round(localX + this.springs.translateX.value);
+        this.springs.translateY.target = round(localY + this.springs.translateY.value);
     }
 
     _bindActiveListeners() {

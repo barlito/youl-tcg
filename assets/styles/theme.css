@@ -78,6 +78,100 @@
     transform: skewX(-6deg);
 }
 
+/* --- Hero de l'accueil ---------------------------------------------------- */
+
+/* La scène garde une hauteur de flux modeste pour laisser le bandeau défilant
+   remonter, et agrandit son contenu par un transform, qui ne compte pas dans
+   le flux. Le bloc est calé sur le BAS de la scène : quand le hero s'étire pour
+   toucher le bas de l'écran, les cartes suivent et gardent leur chevauchement
+   avec le bandeau au lieu de s'en éloigner. */
+.hero-stage {
+    --hero-scale: 1;
+
+    position: relative;
+    align-self: end;
+    height: 30rem;
+}
+
+.hero-float {
+    animation: floatY 5s ease-in-out var(--float-delay, 0s) infinite;
+}
+
+/* pendant un zoom, le flottement décalerait la carte de sa cible */
+.hero-stage:has(.card.active) .hero-float {
+    animation-play-state: paused;
+}
+
+.hero-stage__inner {
+    position: absolute;
+    right: 0;
+    bottom: -2.5rem;
+    left: 0;
+    height: 30rem;
+    transform: scale(var(--hero-scale));
+    /* depuis le bas GAUCHE : l'agrandissement part vers la droite, dans la marge
+       vide des grands écrans, au lieu de mordre sur la colonne de texte */
+    transform-origin: bottom left;
+}
+
+/* Écrans pas trop hauts : le hero s'étire pour que le bandeau touche le bas de
+   la fenêtre. Au-delà, on garde les proportions — un 4K étiré donnerait un
+   hero de 2 000 px pour trois cartes. */
+@media (min-height: 640px) and (max-height: 1200px) {
+    .hero-fill {
+        min-height: calc(100svh - var(--header-h, 5.5rem) - var(--ticker-h, 5.25rem));
+    }
+}
+
+@media (max-height: 820px) {
+    .hero-stage {
+        --hero-scale: .88;
+
+        height: 25rem;
+    }
+}
+
+/* la hauteur suit l'échelle : le contenu grandit vers le haut depuis son bas */
+@media (min-width: 1536px) {
+    .hero-stage {
+        --hero-scale: 1.15;
+
+        height: 34rem;
+    }
+}
+
+@media (min-width: 2560px) {
+    .hero-stage {
+        --hero-scale: 1.45;
+
+        height: 43rem;
+    }
+}
+
+@media (min-width: 3200px) {
+    .hero-stage {
+        --hero-scale: 1.75;
+
+        height: 52rem;
+    }
+}
+
+/* Tout ce qui suit le hero passe au-dessus de lui — bandeau compris. Sans
+   cela, le bas des cartes qui file derrière le bandeau réapparaît par-dessous.
+   Le seuil dépasse 500 : c'est la valeur que card_tilt donne aux ancêtres
+   d'une carte zoomée pour la faire passer devant le reste de la page, ce qu'on
+   ne veut justement pas ici. */
+.hero-fill ~ section {
+    position: relative;
+    z-index: 600;
+}
+
+/* passer au-dessus ne suffit pas : sans fond, la carte zoomée resterait
+   visible au travers. Le bandeau garde le sien. */
+.hero-fill ~ section:not([data-testid="ticker"]) {
+    background: var(--bg);
+}
+
 /* --- Animations ---------------------------------------------------------- */
 
 @keyframes floatY {

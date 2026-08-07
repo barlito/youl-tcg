@@ -7,8 +7,11 @@
 {% block body %}
     <main>
         {# ------------------------------------------------------------ Hero #}
-        <section class="relative overflow-hidden px-6 pb-12 pt-16 lg:px-14 lg:pt-20">
-            <div class="glow-ambient" aria-hidden="true"></div>
+        <section class="hero-fill relative flex flex-col justify-center px-6 pb-12 pt-16 lg:px-14 lg:pb-0 lg:pt-20">
+            {# le halo est flouté et déborderait : il est le seul à être rogné #}
+            <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+                <div class="glow-ambient"></div>
+            </div>
             <div class="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.1fr_1fr] 2xl:max-w-[88rem]">
                 <div>
                     <span class="inline-block bg-primary px-2.5 py-1 font-mono text-[11px] font-bold tracking-[.15em] text-black">★ PRESS START</span>
@@ -28,10 +31,11 @@
                         <a href="#univers" class="btn-ghost">Voir les univers</a>
                     </div>
                 </div>
-                <div class="relative hidden h-[640px] lg:block" aria-hidden="false">
-                    {# Logo net au-dessus des cartes (plus de watermark flou) #}
+                <div class="hero-stage hidden lg:block" aria-hidden="false">
+                    <div class="hero-stage__inner">
+                    {# logo derrière les cartes, qui le recouvrent en partie #}
                     <img src="{{ asset('images/ytcg_logo.png') }}" alt="Logo YOUL"
-                         class="absolute left-1/2 top-0 h-64 w-auto -translate-x-1/2 [filter:drop-shadow(0_0_40px_#a435f0aa)]">
+                         class="absolute left-1/2 top-0 z-0 h-80 w-auto -translate-x-1/2 [filter:drop-shadow(0_0_40px_#a435f0aa)]">
                     {% set heroSpots = [
                         {left: '-2.5rem', top: '17rem', rotation: '-8deg', delay: '0s', z: 1},
                         {left: '6.5rem', top: '14rem', rotation: '6deg', delay: '.4s', z: 2},
@@ -41,13 +45,14 @@
                         {% set spot = heroSpots[loop.index0 % heroSpots|length] %}
                         <div class="absolute w-56"
                              style="left: {{ spot.left }}; top: {{ spot.top }}; z-index: {{ spot.z }};">
-                            <div style="animation: floatY 5s ease-in-out {{ spot.delay }} infinite;">
+                            <div class="hero-float" style="--float-delay: {{ spot.delay }};">
                                 <div style="transform: rotate({{ spot.rotation }});">
                                     {{ include('components/CardComponent.html.twig') }}
                                 </div>
                             </div>
                         </div>
                     {% endfor %}
+                    </div>
                 </div>
             </div>
         </section>
@@ -66,7 +71,7 @@
         {# La boucle marquee = 2 copies de la piste, translateX(-50%). Chaque
            copie répète les items 3× pour rester plus large que le viewport :
            sans ça, du vide apparaît pendant le défilement. #}
-        <section class="overflow-hidden border-y-2 border-black bg-primary py-6 text-black" data-testid="ticker">
+                <section class="overflow-hidden border-y-2 border-black bg-primary py-6 text-black" data-testid="ticker">
             <div class="flex w-max" style="animation: marquee 60s linear infinite;">
                 {% for copy in range(0, 1) %}
                     <div class="flex shrink-0 items-center" {{ copy == 1 ? 'aria-hidden="true"' }}>
@@ -81,7 +86,7 @@
         </section>
 
         {# --------------------------------------------------------- Concept #}
-        <section class="px-6 py-24 lg:px-14">
+                <section class="bg-bg px-6 py-24 lg:px-14">
             <div class="mx-auto max-w-7xl">
                 <p class="eyebrow">01 / Concept</p>
                 <h2 class="mt-4 max-w-4xl font-display text-6xl font-bold uppercase leading-[.9] tracking-[-0.04em] text-ink-strong md:text-7xl">
@@ -188,6 +193,7 @@
                             </p>
                         </div>
                     {% endfor %}
+                    </div>
                 </div>
             </div>
         </section>
@@ -214,6 +220,7 @@
                             <p class="mt-3 font-display text-2xl font-bold uppercase tracking-[-0.02em] text-ink-strong">{{ step.title }}</p>
                         </div>
                     {% endfor %}
+                    </div>
                 </div>
             </div>
         </section>
