@@ -1,0 +1,9 @@
+framework:
+    rate_limiter:
+        # Code redemption is the one player-facing form that can be probed:
+        # without a cap, a script could try codes until one lands. Ten tries an
+        # hour leave room for typos and none for guessing.
+        booster_code_redeem:
+            policy: sliding_window
+            limit: 10
+            interval: '1 hour'

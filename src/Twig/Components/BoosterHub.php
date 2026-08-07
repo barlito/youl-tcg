@@ -11,7 +11,9 @@ use App\Repository\BoosterRepository;
 use App\Repository\UserBoosterRepository;
 use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\BoosterClaimService;
+use App\Service\Booster\BoosterCodeRedeemService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Uid\Uuid;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -27,6 +29,15 @@ final class BoosterHub extends AbstractController
     #[LiveProp]
     public ?string $error = null;
 
+    #[LiveProp(writable: true)]
+    public string $code = '';
+
+    #[LiveProp]
+    public ?string $codeError = null;
+
+    #[LiveProp]
+    public ?string $codeSuccess = null;
+
     /**
      * Inventory is read twice per render (hero total + packs grid): memoize
      * the query for the lifetime of the (per-request) component instance.
@@ -40,6 +51,8 @@ final class BoosterHub extends AbstractController
         private readonly UserBoosterRepository $userBoosterRepository,
         private readonly BoosterAvailabilityService $boosterAvailability,
         private readonly BoosterClaimService $boosterClaimService,
+        private readonly BoosterCodeRedeemService $boosterCodeRedeemService,
+        private readonly RateLimiterFactoryInterface $boosterCodeRedeemLimiter,
     ) {
     }
 
@@ -133,6 +146,48 @@ final class BoosterHub extends AbstractController
         } catch (BoosterException $exception) {
             $this->error = $exception->getUserMessage();
         }
+    }
+
+    /**
+     * Redeems an event/giveaway code. Rate limited per player: this is the one
+     * player-facing form where a wrong answer still leaks information (a code
+     * exists or it does not), so brute force has to stay expensive.
+     */
+    #[LiveAction]
+    public function redeemCode(): void
+    {
+        $this->codeError = null;
+        $this->codeSuccess = null;
+
+        $user = $this->getDiscordUser();
+        $limit = $this->boosterCodeRedeemLimiter->create($user->getDiscordId())->consume();
+
+        if (!$limit->isAccepted()) {
+            $this->codeError = \sprintf(
+                'Trop de tentatives. Réessaie dans %d minute(s).',
+                max(1, (int) ceil(($limit->getRetryAfter()->getTimestamp() - time()) / 60)),
+            );
+
+            return;
+        }
+
+        try {
+            $redemption = $this->boosterCodeRedeemService->redeem($user, $this->code);
+        } catch (BoosterException $exception) {
+            $this->codeError = $exception->getUserMessage();
+
+            return;
+        }
+
+        $this->inventory = null; // the memoized inventory is stale after a redemption
+        $this->code = '';
+        $this->codeSuccess = \sprintf(
+            '%d pack%s « %s » ajouté%s à ton stock !',
+            $redemption->getQuantity(),
+            $redemption->getQuantity() > 1 ? 's' : '',
+            $redemption->getBoosterCode()->getBooster()->getDisplayName(),
+            $redemption->getQuantity() > 1 ? 's' : '',
+        );
     }
 
     /**

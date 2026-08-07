@@ -41,6 +41,50 @@
             </div>
         </section>
 
+        {# ----------------------------------------------------- Code redemption #}
+        <section class="border-b border-hairline px-6 py-5 lg:px-12">
+            <div class="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <p class="font-display text-sm font-bold uppercase tracking-[.15em] text-ink-strong">J'ai un code</p>
+                    <p class="mt-1 max-w-md text-xs text-ink-muted">
+                        Les codes d'event et de giveaway créditent des packs sans entamer tes récupérations du jour.
+                    </p>
+                </div>
+
+                <form data-action="live#action:prevent"
+                      data-live-action-param="redeemCode"
+                      class="flex w-full gap-2 md:w-auto">
+                    <input type="text"
+                           data-model="norender|code"
+                           value="{{ code }}"
+                           placeholder="ABCD-EFGH-JKLM"
+                           autocomplete="off"
+                           spellcheck="false"
+                           aria-label="Code de récupération"
+                           data-testid="code-input"
+                           class="w-full min-w-0 border border-hairline bg-surface px-3 py-2 font-mono text-sm uppercase tracking-[.12em] text-ink-strong placeholder:text-ink-dim focus:border-primary focus:outline-none md:w-64">
+                    {# plain label + opacity while loading: swapping two spans
+                       leaves the hidden one hidden after the re-render #}
+                    <button type="submit"
+                            data-testid="code-submit"
+                            data-loading="addClass(opacity-50)"
+                            class="shrink-0 border border-primary bg-primary px-4 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary">
+                        Valider
+                    </button>
+                </form>
+            </div>
+
+            {% if codeError %}
+                <div class="mx-auto mt-3 max-w-7xl border border-magenta/50 bg-magenta/10 px-4 py-2.5 font-mono text-xs text-magenta" data-testid="code-error">
+                    ⚠ {{ codeError }}
+                </div>
+            {% elseif codeSuccess %}
+                <div class="mx-auto mt-3 max-w-7xl border border-live/50 bg-live/10 px-4 py-2.5 font-mono text-xs text-live" data-testid="code-success">
+                    ✦ {{ codeSuccess }}
+                </div>
+            {% endif %}
+        </section>
+
         {% if error %}
             <div class="mx-auto mt-6 max-w-7xl px-6 lg:px-12">
                 <div class="border border-magenta/50 bg-magenta/10 px-4 py-3 font-mono text-xs text-magenta" data-testid="hub-error">
