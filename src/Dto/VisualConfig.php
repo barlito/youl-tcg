@@ -75,6 +75,34 @@ final readonly class VisualConfig
     }
 
     /**
+     * @throws \JsonException on malformed JSON or on a non-object payload; a
+     *                        typo must fail loudly instead of resolving to an
+     *                        empty configuration and wiping every key
+     */
+    public static function fromJson(string $json): self
+    {
+        $decoded = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
+
+        if (!\is_array($decoded)) {
+            throw new \JsonException('A visual configuration must be a JSON object.');
+        }
+
+        return self::fromArray($decoded);
+    }
+
+    /**
+     * Returns a copy with $changes applied on top of the current fields: a null
+     * value clears its key, an absent key is left untouched. Lets the back
+     * office edit one widget at a time without clobbering the other keys.
+     *
+     * @param array<string, string|int|null> $changes
+     */
+    public function merge(array $changes): self
+    {
+        return self::fromArray(array_merge($this->toArray(), $changes));
+    }
+
+    /**
      * @return array<string, string|int> only the set fields, ready for JSON storage
      */
     public function toArray(): array

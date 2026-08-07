@@ -28,7 +28,7 @@ final readonly class ResolvedCardVisual
         // CSS frame variant, never null: frames are on by default (YOUL) and
         // NONE means the artwork carries its own baked frame.
         public CardFrameEnum $frame = CardFrameEnum::YOUL,
-        // Font of the frame's name; null = frame.css default (Space Grotesk).
+        // Font of the frame's name; null = frame.css default (Pirata One).
         public ?CardNameFontEnum $nameFont = null,
         // Neon inner-line gradient overrides; null = frame.css defaults.
         public ?string $frameLineStart = null,
