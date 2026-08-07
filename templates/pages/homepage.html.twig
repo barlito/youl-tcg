@@ -45,7 +45,7 @@
                         {% set spot = heroSpots[loop.index0 % heroSpots|length] %}
                         <div class="absolute w-56"
                              style="left: {{ spot.left }}; top: {{ spot.top }}; z-index: {{ spot.z }};">
-                            <div style="animation: floatY 5s ease-in-out {{ spot.delay }} infinite;">
+                            <div class="hero-float" style="--float-delay: {{ spot.delay }};">
                                 <div style="transform: rotate({{ spot.rotation }});">
                                     {{ include('components/CardComponent.html.twig') }}
                                 </div>

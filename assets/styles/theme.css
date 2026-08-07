@@ -93,6 +93,15 @@
     height: 30rem;
 }
 
+.hero-float {
+    animation: floatY 5s ease-in-out var(--float-delay, 0s) infinite;
+}
+
+/* pendant un zoom, le flottement décalerait la carte de sa cible */
+.hero-stage:has(.card.active) .hero-float {
+    animation-play-state: paused;
+}
+
 .hero-stage__inner {
     position: absolute;
     right: 0;
