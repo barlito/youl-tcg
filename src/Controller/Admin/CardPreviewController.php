@@ -5,84 +5,159 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Dto\VisualConfig;
-use App\Enum\Card\CardEffectEnum;
-use App\Enum\Card\FoilTextureEnum;
+use App\Entity\Card;
+use App\Entity\Extension;
+use App\Enum\Entity\CardRarityEnum;
+use App\Form\HexColorType;
 use App\Repository\CardRepository;
+use App\Repository\ExtensionRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Profiler\Profiler;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
 
 /**
  * Standalone card render for the back office: embedded as a floating iframe on
- * the Card edit page. The edit form's UNSAVED visual values come in as query
- * parameters and are applied to the in-memory entity (never flushed), so the
- * preview follows the form in real time. Lives under /admin → covered by the
- * ROLE_ADMIN access_control; values are sanitised by VisualConfig::fromArray.
+ * the Card edit page, it renders the very same CardComponent as the player
+ * pages so the preview shows the card exactly as it will drop.
+ *
+ * The edit form forwards its UNSAVED values as query parameters under their
+ * own field names (Card[...]); they are applied to the in-memory entity, which
+ * this request never flushes. Lives under /admin → covered by the ROLE_ADMIN
+ * access_control, and every value goes through the sanitising of the save path
+ * (VisualConfig::fromArray, the HexColorType pattern).
  */
 class CardPreviewController extends AbstractController
 {
+    /**
+     * VisualConfig key => name of the form field carrying it; the two only
+     * differ on the glow, which the back office labels "glowColor".
+     */
+    private const array VISUAL_FIELDS = [
+        'glow' => 'glowColor',
+        'borderColor' => 'borderColor',
+        'cssClass' => 'cssClass',
+        'holoEffect' => 'holoEffect',
+        'foilTexture' => 'foilTexture',
+        'foilSize' => 'foilSize',
+        'frame' => 'frame',
+        'nameFont' => 'nameFont',
+        'frameLineStart' => 'frameLineStart',
+        'frameLineEnd' => 'frameLineEnd',
+    ];
+
+    /**
+     * Keys checked against the HexColorType pattern before reaching the CSS.
+     */
+    private const array COLOUR_KEYS = ['glow', 'borderColor', 'frameLineStart', 'frameLineEnd'];
+
+    /**
+     * The "profiler" service has no autowiring alias, hence the explicit id; it
+     * only exists in dev, and a nullable argument resolves to null elsewhere.
+     */
+    public function __construct(
+        #[Autowire(service: 'profiler')]
+        private readonly ?Profiler $profiler = null,
+    ) {
+    }
+
     #[Route('/admin/card-preview/{id}', name: 'admin_card_preview')]
-    public function __invoke(string $id, Request $request, CardRepository $cardRepository): Response
+    public function __invoke(string $id, Request $request, CardRepository $cardRepository, ExtensionRepository $extensionRepository): Response
     {
+        // the iframe is 276x400: the debug toolbar would eat a fifth of it.
+        // Disabling the profiler stops ProfilerListener from setting the
+        // X-Debug-Token header, which is what WebDebugToolbarListener injects on.
+        $this->profiler?->disable();
+
         $card = Uuid::isValid($id) ? $cardRepository->find($id) : null;
 
-        if (null === $card) {
+        if (!$card instanceof Card) {
             throw $this->createNotFoundException();
         }
 
-        $override = $this->liveOverride($request);
-        if ($override instanceof VisualConfig) {
-            $card->setVisualConfigOverride($override);
-        }
+        $this->applyLiveValues($card, $request->query->all('Card'), $extensionRepository);
 
         return $this->render('admin/card_preview.html.twig', ['card' => $card]);
     }
 
     /**
-     * Rebuilds the visual override from the form's live values: the JSON editor
-     * content first, then the dedicated selects/pickers on top (they win, same
-     * merge order as the form itself). Null when no live value was provided.
+     * Applies the form's live values on the in-memory entity. An absent key
+     * means "field not submitted" and leaves the persisted value alone; an
+     * empty one means "cleared", which the cascade reads as inherit.
+     *
+     * @param array<mixed> $live
      */
-    private function liveOverride(Request $request): ?VisualConfig
+    private function applyLiveValues(Card $card, array $live, ExtensionRepository $extensionRepository): void
     {
-        if (!$request->query->has('live')) {
+        if ([] === $live) {
+            return;
+        }
+
+        // an empty name would be rejected on save: keep the persisted one
+        $name = $this->text($live['name'] ?? null);
+        if (null !== $name) {
+            $card->setName($name);
+        }
+
+        $rarity = CardRarityEnum::tryFrom($this->text($live['rarity'] ?? null) ?? '');
+        if ($rarity instanceof CardRarityEnum) {
+            $card->setRarity($rarity);
+        }
+
+        // an unchecked box submits nothing at all: absence is the false value
+        $card->setUnique(null !== ($live['unique'] ?? null));
+
+        // the universe drives the wordmark AND the inherited half of the
+        // cascade, so a switched select has to move the preview too
+        $extensionId = $this->text($live['extension'] ?? null);
+        $extension = null !== $extensionId && Uuid::isValid($extensionId) ? $extensionRepository->find($extensionId) : null;
+        if ($extension instanceof Extension) {
+            $card->setExtension($extension);
+        }
+
+        $card->setVisualConfigOverride(VisualConfig::fromArray($this->visualData($live)));
+    }
+
+    /**
+     * @param array<mixed> $live
+     *
+     * @return array<string, mixed>
+     */
+    private function visualData(array $live): array
+    {
+        $data = [];
+
+        foreach (self::VISUAL_FIELDS as $key => $field) {
+            $value = $live[$field] ?? null;
+
+            // same rule as the save path: an invalid literal is dropped instead
+            // of leaking into the style attribute
+            if (\in_array($key, self::COLOUR_KEYS, true) && !$this->isHexColour($value)) {
+                continue;
+            }
+
+            $data[$key] = $value;
+        }
+
+        return $data;
+    }
+
+    private function isHexColour(mixed $value): bool
+    {
+        return \is_string($value) && 1 === preg_match('/^' . HexColorType::PATTERN . '$/', trim($value));
+    }
+
+    private function text(mixed $value): ?string
+    {
+        if (!\is_string($value)) {
             return null;
         }
 
-        $data = [];
+        $trimmed = trim($value);
 
-        $json = $request->query->getString('json');
-        if ('' !== $json) {
-            try {
-                $decoded = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
-                if (\is_array($decoded)) {
-                    $data = $decoded;
-                }
-            } catch (\JsonException) {
-                // invalid JSON while typing: ignore, the selects still apply
-            }
-        }
-
-        // foilSize inclus : la position « Auto » du slider (sous FOIL_SIZE_MIN)
-        // est neutralisée par la validation de fromArray, comme à la sauvegarde
-        foreach (['holoEffect', 'foilTexture', 'glow', 'foilSize'] as $key) {
-            $value = $request->query->getString($key);
-            if ('' !== $value) {
-                $data[$key] = $value;
-            }
-        }
-
-        // EasyAdmin's ChoiceField submits the enum INDEX (cases() order), not
-        // its value — translate before the sanitising fromArray().
-        if (isset($data['holoEffect']) && \is_string($data['holoEffect']) && ctype_digit($data['holoEffect'])) {
-            $data['holoEffect'] = (CardEffectEnum::cases()[(int) $data['holoEffect']] ?? null)?->value;
-        }
-        if (isset($data['foilTexture']) && \is_string($data['foilTexture']) && ctype_digit($data['foilTexture'])) {
-            $data['foilTexture'] = (FoilTextureEnum::cases()[(int) $data['foilTexture']] ?? null)?->value;
-        }
-
-        return VisualConfig::fromArray($data);
+        return '' === $trimmed ? null : $trimmed;
     }
 }

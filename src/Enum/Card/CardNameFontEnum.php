@@ -8,8 +8,8 @@ namespace App\Enum\Card;
  * Font of the card name rendered by the CSS frame (--frame-name-font).
  * Curated list: every family here must be loaded by base.html.twig (Google
  * Fonts link) — an arbitrary font string would silently fall back. Resolved
- * through the visual-config cascade: card override -> extension -> Space
- * Grotesk (the frame.css default).
+ * through the visual-config cascade: card override -> extension -> Pirata One
+ * (the frame.css default, same face as the YOUL watermark).
  */
 enum CardNameFontEnum: string
 {
@@ -33,8 +33,8 @@ enum CardNameFontEnum: string
     public function label(): string
     {
         return match ($this) {
-            self::SPACE_GROTESK => 'Space Grotesk (défaut du site)',
-            self::PIRATA_ONE => 'Pirata One (blackletter)',
+            self::SPACE_GROTESK => 'Space Grotesk (police du site)',
+            self::PIRATA_ONE => 'Pirata One (blackletter, défaut des cartes)',
         };
     }
 
