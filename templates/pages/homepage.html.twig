@@ -7,7 +7,7 @@
 {% block body %}
     <main>
         {# ------------------------------------------------------------ Hero #}
-        <section class="relative px-6 pb-12 pt-16 lg:px-14 lg:pt-20">
+        <section class="hero-fill relative flex flex-col justify-center px-6 pb-12 pt-16 lg:px-14 lg:pb-0 lg:pt-20">
             {# le halo est flouté et déborderait : il est le seul à être rogné #}
             <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
                 <div class="glow-ambient"></div>
@@ -71,7 +71,7 @@
         {# La boucle marquee = 2 copies de la piste, translateX(-50%). Chaque
            copie répète les items 3× pour rester plus large que le viewport :
            sans ça, du vide apparaît pendant le défilement. #}
-        <section class="relative z-10 overflow-hidden border-y-2 border-black bg-primary py-6 text-black" data-testid="ticker">
+                <section class="overflow-hidden border-y-2 border-black bg-primary py-6 text-black" data-testid="ticker">
             <div class="flex w-max" style="animation: marquee 60s linear infinite;">
                 {% for copy in range(0, 1) %}
                     <div class="flex shrink-0 items-center" {{ copy == 1 ? 'aria-hidden="true"' }}>
@@ -86,7 +86,7 @@
         </section>
 
         {# --------------------------------------------------------- Concept #}
-        <section class="relative z-10 bg-bg px-6 py-24 lg:px-14">
+                <section class="bg-bg px-6 py-24 lg:px-14">
             <div class="mx-auto max-w-7xl">
                 <p class="eyebrow">01 / Concept</p>
                 <h2 class="mt-4 max-w-4xl font-display text-6xl font-bold uppercase leading-[.9] tracking-[-0.04em] text-ink-strong md:text-7xl">
