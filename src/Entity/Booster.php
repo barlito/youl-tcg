@@ -106,11 +106,15 @@ class Booster implements \Stringable
     }
 
     /**
-     * @param list<array{rarities: array<string, int>, holoChance: int}> $rarityRates
+     * Reindexed on the way in: the admin collection form submits the surviving
+     * slots with their original keys (0, 2, 3…) once a slot is deleted, and a
+     * gapped array would be stored as a JSON object instead of a list.
+     *
+     * @param array<array-key, array{rarities: array<string, int>, holoChance: int}> $rarityRates
      */
     public function setRarityRates(array $rarityRates): static
     {
-        $this->rarityRates = $rarityRates;
+        $this->rarityRates = array_values($rarityRates);
 
         return $this;
     }
@@ -132,37 +136,30 @@ class Booster implements \Stringable
         $slots = [];
 
         foreach ($this->rarityRates as $slot) {
-            $total = array_sum($slot['rarities']);
-            $rates = [];
-
-            foreach ($slot['rarities'] as $rarity => $weight) {
-                $rates[(string) $rarity] = $total > 0 ? round($weight / $total * 100, 1) : 0.0;
-            }
-
-            $slots[] = ['rates' => $rates, 'holoChance' => $slot['holoChance']];
+            $slots[] = ['rates' => self::toPercentages($slot['rarities']), 'holoChance' => $slot['holoChance']];
         }
 
         return $slots;
     }
 
-    public function getRarityRatesJson(): string
-    {
-        return json_encode($this->rarityRates, \JSON_PRETTY_PRINT | \JSON_THROW_ON_ERROR);
-    }
-
     /**
-     * Invalid JSON resolves to an empty slot list so the ValidRarityRates
-     * constraint reports the error through form validation.
+     * Normalises a slot weight map into percentages (1 decimal), keeping the
+     * weight order. Shared by getDropRates() and the admin previews.
+     *
+     * @param array<string, int> $weights
+     *
+     * @return array<string, float>
      */
-    public function setRarityRatesJson(string $json): void
+    public static function toPercentages(array $weights): array
     {
-        try {
-            $decoded = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
-        } catch (\JsonException) {
-            $decoded = null;
+        $total = array_sum($weights);
+        $percentages = [];
+
+        foreach ($weights as $rarity => $weight) {
+            $percentages[(string) $rarity] = $total > 0 ? round($weight / $total * 100, 1) : 0.0;
         }
 
-        $this->rarityRates = \is_array($decoded) ? array_values($decoded) : [];
+        return $percentages;
     }
 
     /**
@@ -194,6 +191,15 @@ class Booster implements \Stringable
     public function getImageName(): ?string
     {
         return $this->imageName;
+    }
+
+    /**
+     * A booster being created in the back-office has no extension yet, and the
+     * typed property would throw on read.
+     */
+    public function hasExtension(): bool
+    {
+        return isset($this->extension);
     }
 
     public function getExtension(): Extension

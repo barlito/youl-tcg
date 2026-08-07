@@ -1,0 +1,27 @@
+{# Player-facing drop rates (Booster::getDropRates) rendered from the slot
+   weights, with a warning marker on rarities the extension cannot deliver. #}
+{% set data = field.formattedValue %}
+
+{% if data.slots is empty %}
+    <span class="text-muted">—</span>
+{% else %}
+    <div class="booster-drop-rates{{ data.compact ? ' small' : '' }}">
+        {% for slot in data.slots %}
+            <div class="{{ data.compact ? 'text-nowrap' : 'mb-1' }}">
+                <span class="text-muted">Carte {{ loop.index }}</span>
+                {% for rarity, rate in slot.rates %}
+                    {% set unavailable = rarity in data.unavailable %}
+                    <span class="{{ unavailable ? 'text-danger fw-bold' : '' }}"
+                          title="{{ unavailable
+                              ? 'Aucune carte tirable de cette rareté dans l’extension : le tirage retombera sur la rareté voisine.'
+                              : 'Poids ' ~ slot.weights[rarity]|default('?') }}">
+                        {{ unavailable ? '⚠ ' }}{{ rarity_label(rarity) }} {{ rate }} %{% if not data.compact %} <span class="text-muted">(poids {{ slot.weights[rarity]|default('?') }})</span>{% endif %}
+                    </span>{{ not loop.last ? ' ·' }}
+                {% endfor %}
+                {% if slot.holoChance > 0 %}
+                    <span class="text-muted">— holo {{ slot.holoChance }} %</span>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
