@@ -67,6 +67,11 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkTo(ExtensionBannerCrudController::class, 'Bannières d\'univers', 'fa fa-image');
         yield MenuItem::linkTo(BoosterCrudController::class, 'Boosters', 'fa fa-box-open');
 
+        yield MenuItem::section('Distribution');
+        yield MenuItem::linkToRoute('Générer des codes', 'fa fa-ticket', 'admin_booster_codes_batch');
+        yield MenuItem::linkTo(BoosterCodeCrudController::class, 'Codes', 'fa fa-key');
+        yield MenuItem::linkTo(BoosterCodeRedemptionCrudController::class, 'Utilisations de codes', 'fa fa-check-double');
+
         yield MenuItem::section('Économie (lecture seule)');
         yield MenuItem::linkTo(DiscordUserCrudController::class, 'Joueurs', 'fa fa-users');
         yield MenuItem::linkTo(BoosterOpeningCrudController::class, 'Ouvertures', 'fa fa-box-open');

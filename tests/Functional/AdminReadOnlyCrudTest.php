@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Functional;
 
 use App\Controller\Admin\BoosterClaimCrudController;
+use App\Controller\Admin\BoosterCodeCrudController;
+use App\Controller\Admin\BoosterCodeRedemptionCrudController;
 use App\Controller\Admin\BoosterOpeningCrudController;
 use App\Controller\Admin\DiscordUserCrudController;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -28,6 +30,8 @@ final class AdminReadOnlyCrudTest extends WebTestCase
         yield 'joueurs' => [DiscordUserCrudController::class];
         yield 'ouvertures' => [BoosterOpeningCrudController::class];
         yield 'recuperations' => [BoosterClaimCrudController::class];
+        yield 'codes' => [BoosterCodeCrudController::class];
+        yield 'utilisations-de-codes' => [BoosterCodeRedemptionCrudController::class];
     }
 
     /**
@@ -99,6 +103,8 @@ final class AdminReadOnlyCrudTest extends WebTestCase
             DiscordUserCrudController::class => '/admin/discord-user',
             BoosterOpeningCrudController::class => '/admin/booster-opening',
             BoosterClaimCrudController::class => '/admin/booster-claim',
+            BoosterCodeCrudController::class => '/admin/booster-code',
+            BoosterCodeRedemptionCrudController::class => '/admin/booster-code-redemption',
             default => throw new \LogicException('Unknown CRUD ' . $controllerFqcn),
         };
 
