@@ -6,8 +6,11 @@ namespace App\Tests\Functional;
 
 use App\Entity\Booster;
 use App\Entity\BoosterOpening;
+use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
+use App\Enum\Entity\CardRarityEnum;
+use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Cache\CacheItemPoolInterface;
@@ -144,6 +147,22 @@ final class HomepageTest extends WebTestCase
     public function testStaleDayCardsCacheIsRedrawn(): void
     {
         $this->authenticateClient($this->client);
+
+        // the showcase skips one-of-ones, and the fixtures hold few regular
+        // published cards: guarantee the three the redraw is expected to find
+        $extension = $this->createPublishedExtension('Redraw showcase ' . uniqid());
+        for ($i = 0; $i < 3; ++$i) {
+            $card = new Card()
+                ->setName('Redraw card ' . $i . ' ' . uniqid())
+                ->setDescription('Test')
+                ->setStatus(CardStatusEnum::PUBLISHED)
+                ->setRarity(CardRarityEnum::COMMON)
+                ->setExtension($extension)
+            ;
+            $card->setImageName('default_card.png');
+            $this->entityManager->persist($card);
+        }
+        $this->entityManager->flush();
 
         // Ids that no longer exist (e.g. fixtures reloaded since the cache
         // was built): the homepage must drop the cache and redraw.
