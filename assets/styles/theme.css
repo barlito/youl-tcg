@@ -78,6 +78,62 @@
     transform: skewX(-6deg);
 }
 
+/* --- Hero de l'accueil ---------------------------------------------------- */
+
+/* La scène garde une hauteur de mise en page modeste pour que le bandeau
+   défilant reste visible sans scroller en 1080p ; les cartes, elles, sont
+   agrandies par un transform (qui ne compte pas dans le flux) et débordent
+   volontairement vers le bas pour passer DERRIÈRE le bandeau. */
+.hero-stage {
+    --hero-scale: 1;
+
+    position: relative;
+    height: 30rem;
+}
+
+.hero-stage__inner {
+    position: absolute;
+    inset: 0;
+    transform: scale(var(--hero-scale));
+    transform-origin: top center;
+}
+
+/* écrans peu hauts (portables 768 px) : on resserre pour que le bandeau
+   reste au-dessus de la ligne de flottaison malgré la barre du navigateur */
+@media (max-height: 820px) {
+    .hero-stage {
+        --hero-scale: .88;
+
+        height: 25rem;
+    }
+}
+
+/* la hauteur suit l'échelle, sinon les cartes agrandies plongent sous le
+   bandeau au lieu de simplement s'y glisser par le bas */
+@media (min-width: 1536px) {
+    .hero-stage {
+        --hero-scale: 1.15;
+
+        height: 33rem;
+    }
+}
+
+@media (min-width: 2560px) {
+    .hero-stage {
+        --hero-scale: 1.45;
+
+        height: 41rem;
+    }
+}
+
+@media (min-width: 3200px) {
+    .hero-stage {
+        --hero-scale: 1.75;
+
+        height: 50rem;
+    }
+}
+
 /* --- Animations ---------------------------------------------------------- */
 
 @keyframes floatY {
