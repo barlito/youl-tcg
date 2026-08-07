@@ -23,7 +23,11 @@ final readonly class BoosterAvailabilityService
      */
     public function isVisible(Booster $booster, array $ownedCounts): bool
     {
-        return $booster->isClaimable() || ($ownedCounts[(string) $booster->getId()] ?? 0) > 0;
+        if ($booster->isClaimable()) {
+            return true;
+        }
+
+        return ($ownedCounts[(string) $booster->getId()] ?? 0) > 0;
     }
 
     /**
