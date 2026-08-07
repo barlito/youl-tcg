@@ -13,7 +13,7 @@ final class AdminExtensionCrudTest extends WebTestCase
 {
     use JwtAuthTrait;
 
-    private const string CRUD_URL = '/admin?crudControllerFqcn=App%5CController%5CAdmin%5CExtensionCrudController';
+    private const string CRUD_URL = '/admin/extension';
 
     public function testNewPageRendersWithTheImageUploadField(): void
     {
@@ -23,7 +23,7 @@ final class AdminExtensionCrudTest extends WebTestCase
         $client->followRedirects();
         $this->authenticateClient($client);
 
-        $crawler = $client->request('GET', self::CRUD_URL . '&crudAction=new');
+        $crawler = $client->request('GET', self::CRUD_URL . '/new');
 
         self::assertResponseIsSuccessful();
         $this->assertCount(1, $crawler->filter('input[type="file"][name*="imageFile"]'));
@@ -44,7 +44,7 @@ final class AdminExtensionCrudTest extends WebTestCase
         $entityManager->persist($extension);
         $entityManager->flush();
 
-        $crawler = $client->request('GET', self::CRUD_URL . '&crudAction=edit&entityId=' . $extension->getId());
+        $crawler = $client->request('GET', \sprintf('%s/%s/edit', self::CRUD_URL, $extension->getId()));
 
         self::assertResponseIsSuccessful();
         $this->assertCount(1, $crawler->filter('input[type="file"][name*="imageFile"]'));
