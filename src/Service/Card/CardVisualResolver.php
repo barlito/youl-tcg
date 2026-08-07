@@ -7,6 +7,7 @@ namespace App\Service\Card;
 use App\Dto\ResolvedCardVisual;
 use App\Entity\Card;
 use App\Entity\Extension;
+use App\Enum\Card\CardFrameEnum;
 use Vich\UploaderBundle\Templating\Helper\UploaderHelper;
 
 /**
@@ -19,7 +20,9 @@ use Vich\UploaderBundle\Templating\Helper\UploaderHelper;
  *  - glow / border / css class / holo preset: the card's override field, else
  *    the extension's configuration, else null (rarity glow only; a card
  *    rendered holo without any preset falls back to holo--basic in
- *    CardComponent.html.twig).
+ *    CardComponent.html.twig);
+ *  - frame: same cascade, but the system default is YOUL (CSS frames are on
+ *    by default) — a set with frames baked in its artworks opts out with NONE.
  */
 final readonly class CardVisualResolver
 {
@@ -46,6 +49,10 @@ final readonly class CardVisualResolver
             cssClass: $override->cssClass ?? $config->cssClass,
             holoEffect: $override->holoEffect ?? $config->holoEffect,
             foilSize: $override->foilSize ?? $config->foilSize,
+            frame: $override->frame ?? $config->frame ?? CardFrameEnum::YOUL,
+            nameFont: $override->nameFont ?? $config->nameFont,
+            frameLineStart: $override->frameLineStart ?? $config->frameLineStart,
+            frameLineEnd: $override->frameLineEnd ?? $config->frameLineEnd,
         );
     }
 

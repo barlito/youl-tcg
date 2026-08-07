@@ -127,7 +127,12 @@
         </section>
 
         {# ===================================== RIGHT: reveal tracker + set contents #}
-        <aside class="opening__panel" data-testid="opening-aside">
+        {#- extension-level liseré override reaches the mini frames of the tiles -#}
+        {%- set extConfig = extension.visualConfig -%}
+        {%- set panelVars = [] -%}
+        {%- if extConfig.frameLineStart %}{% set panelVars = panelVars|merge(["--frame-line-1: #{extConfig.frameLineStart}"]) %}{% endif -%}
+        {%- if extConfig.frameLineEnd %}{% set panelVars = panelVars|merge(["--frame-line-2: #{extConfig.frameLineEnd}"]) %}{% endif -%}
+        <aside class="opening__panel" data-testid="opening-aside"{% if panelVars is not empty %} style="{{ panelVars|join('; ') }}"{% endif %}>
 
             {# ---- Zone 1: reveal tracker (pinned, the pack being opened) ---- #}
             <section class="opening__track" data-testid="opening-track">

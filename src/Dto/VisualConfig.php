@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Dto;
 
 use App\Enum\Card\CardEffectEnum;
+use App\Enum\Card\CardFrameEnum;
+use App\Enum\Card\CardNameFontEnum;
 use App\Enum\Card\FoilTextureEnum;
 
 /**
@@ -39,6 +41,14 @@ final readonly class VisualConfig
         // Foil zoom percent (FOIL_SIZE_MIN..FOIL_SIZE_MAX, 100 = cover);
         // null = the preset's own sizing.
         public ?int $foilSize = null,
+        // CSS frame variant (frame.css); null = inherit, resolver defaults to YOUL.
+        public ?CardFrameEnum $frame = null,
+        // Font of the name drawn by the CSS frame; null = frame.css default.
+        public ?CardNameFontEnum $nameFont = null,
+        // Neon inner-line gradient of the youl frame (start/end colours);
+        // null = the frame.css default gradient.
+        public ?string $frameLineStart = null,
+        public ?string $frameLineEnd = null,
     ) {
     }
 
@@ -57,6 +67,10 @@ final readonly class VisualConfig
             holoEffect: CardEffectEnum::tryFromName(self::stringOrNull($data['holoEffect'] ?? null)),
             foilTexture: FoilTextureEnum::tryFromName(self::stringOrNull($data['foilTexture'] ?? null)),
             foilSize: self::foilSizeOrNull($data['foilSize'] ?? null),
+            frame: CardFrameEnum::tryFromName(self::stringOrNull($data['frame'] ?? null)),
+            nameFont: CardNameFontEnum::tryFromName(self::stringOrNull($data['nameFont'] ?? null)),
+            frameLineStart: self::stringOrNull($data['frameLineStart'] ?? null),
+            frameLineEnd: self::stringOrNull($data['frameLineEnd'] ?? null),
         );
     }
 
@@ -73,6 +87,10 @@ final readonly class VisualConfig
                 'holoEffect' => $this->holoEffect?->value,
                 'foilTexture' => $this->foilTexture?->value,
                 'foilSize' => $this->foilSize,
+                'frame' => $this->frame?->value,
+                'nameFont' => $this->nameFont?->value,
+                'frameLineStart' => $this->frameLineStart,
+                'frameLineEnd' => $this->frameLineEnd,
             ],
             static fn (string | int | null $value): bool => null !== $value,
         );
@@ -85,7 +103,11 @@ final readonly class VisualConfig
             && null === $this->cssClass
             && !$this->holoEffect instanceof CardEffectEnum
             && !$this->foilTexture instanceof FoilTextureEnum
-            && null === $this->foilSize;
+            && null === $this->foilSize
+            && !$this->frame instanceof CardFrameEnum
+            && !$this->nameFont instanceof CardNameFontEnum
+            && null === $this->frameLineStart
+            && null === $this->frameLineEnd;
     }
 
     public static function foilSizeOrNull(mixed $value): ?int

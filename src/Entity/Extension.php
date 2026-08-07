@@ -6,6 +6,8 @@ namespace App\Entity;
 
 use App\Dto\VisualConfig;
 use App\Enum\Card\CardEffectEnum;
+use App\Enum\Card\CardFrameEnum;
+use App\Enum\Card\CardNameFontEnum;
 use App\Enum\Card\FoilTextureEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use App\Repository\ExtensionRepository;
@@ -51,6 +53,17 @@ class Extension implements \Stringable
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $imageName = null;
+
+    /**
+     * Wordmark/logo of the universe (transparent PNG/SVG), shown top-right on
+     * the CSS card frame; without it the frame falls back to the extension
+     * name in styled text.
+     */
+    #[Vich\UploadableField(mapping: 'extension_logos', fileNameProperty: 'logoName')]
+    private ?File $logoFile = null;
+
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $logoName = null;
 
     /**
      * Default visual configuration (glow / border / css class / holo preset)
@@ -167,6 +180,30 @@ class Extension implements \Stringable
     public function getImageName(): ?string
     {
         return $this->imageName;
+    }
+
+    public function setLogoFile(?File $logoFile = null): void
+    {
+        $this->logoFile = $logoFile;
+
+        if ($logoFile instanceof File) {
+            $this->updatedAt = new \DateTime();
+        }
+    }
+
+    public function getLogoFile(): ?File
+    {
+        return $this->logoFile;
+    }
+
+    public function setLogoName(?string $logoName): void
+    {
+        $this->logoName = $logoName;
+    }
+
+    public function getLogoName(): ?string
+    {
+        return $this->logoName;
     }
 
     public function getVisualConfig(): VisualConfig
@@ -287,6 +324,44 @@ class Extension implements \Stringable
     {
         $this->visualConfig = array_filter(
             array_merge($this->visualConfig, ['foilSize' => VisualConfig::foilSizeOrNull($foilSize)]),
+            static fn (mixed $value): bool => null !== $value,
+        );
+
+        return $this;
+    }
+
+    /**
+     * Virtual field for the back office: the CSS frame variant stored inside
+     * the visual config JSON, exposed as a selectable enum.
+     */
+    public function getFrame(): ?CardFrameEnum
+    {
+        return $this->getVisualConfig()->frame;
+    }
+
+    public function setFrame(?CardFrameEnum $frame): static
+    {
+        $this->visualConfig = array_filter(
+            array_merge($this->visualConfig, ['frame' => $frame?->value]),
+            static fn (mixed $value): bool => null !== $value,
+        );
+
+        return $this;
+    }
+
+    /**
+     * Virtual field for the back office: the frame name font stored inside
+     * the visual config JSON, exposed as a selectable enum.
+     */
+    public function getNameFont(): ?CardNameFontEnum
+    {
+        return $this->getVisualConfig()->nameFont;
+    }
+
+    public function setNameFont(?CardNameFontEnum $nameFont): static
+    {
+        $this->visualConfig = array_filter(
+            array_merge($this->visualConfig, ['nameFont' => $nameFont?->value]),
             static fn (mixed $value): bool => null !== $value,
         );
 

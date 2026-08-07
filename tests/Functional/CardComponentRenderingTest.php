@@ -151,6 +151,73 @@ final class CardComponentRenderingTest extends WebTestCase
         $this->assertStringNotContainsString('holo--', $html);
     }
 
+    public function testFrameRendersByDefaultWithNameAndExtensionFallback(): void
+    {
+        $card = $this->createOwnedCard(CardRarityEnum::COMMON);
+        $this->entityManager->flush();
+
+        $html = self::getContainer()->get('twig')
+            ->render('components/CardComponent.html.twig', ['card' => $card])
+        ;
+
+        $this->assertStringContainsString('card__frame--youl', $html);
+        $this->assertStringContainsString('card__watermark--youl', $html);
+        $this->assertStringContainsString($card->getName(), $html);
+        // no uploaded logo: the extension name renders as styled text
+        $this->assertStringContainsString('card-frame__ext', $html);
+        $this->assertStringContainsString((string) $card->getExtension()?->getName(), $html);
+        $this->assertStringNotContainsString('card-frame__ext-logo', $html);
+    }
+
+    public function testFrameNoneRendersNoFrameLayers(): void
+    {
+        $card = $this->createOwnedCard(CardRarityEnum::COMMON);
+        $card->setVisualConfigOverride(new \App\Dto\VisualConfig(frame: \App\Enum\Card\CardFrameEnum::NONE));
+        $this->entityManager->flush();
+
+        $html = self::getContainer()->get('twig')
+            ->render('components/CardComponent.html.twig', ['card' => $card])
+        ;
+
+        $this->assertStringNotContainsString('card__frame', $html);
+        $this->assertStringNotContainsString('card__watermark', $html);
+    }
+
+    public function testUploadedExtensionLogoReplacesTheTextFallback(): void
+    {
+        $card = $this->createOwnedCard(CardRarityEnum::COMMON);
+        $card->getExtension()?->setLogoName('cyberpunk-logo.png');
+        $this->entityManager->flush();
+
+        $html = self::getContainer()->get('twig')
+            ->render('components/CardComponent.html.twig', ['card' => $card])
+        ;
+
+        $this->assertStringContainsString('card-frame__ext-logo', $html);
+        $this->assertStringContainsString('/uploads/extension_logos/cyberpunk-logo.png', $html);
+    }
+
+    public function testNameFontAndFrameLineEmitTheirCssVariables(): void
+    {
+        $card = $this->createOwnedCard(CardRarityEnum::COMMON);
+        $card->setVisualConfigOverride(new \App\Dto\VisualConfig(
+            nameFont: \App\Enum\Card\CardNameFontEnum::PIRATA_ONE,
+            frameLineStart: '#46e6e6',
+            frameLineEnd: '#ff3ea5',
+        ));
+        $this->entityManager->flush();
+
+        $html = self::getContainer()->get('twig')
+            ->render('components/CardComponent.html.twig', ['card' => $card])
+        ;
+
+        // the single quotes of the font stack are HTML-escaped inside the style attribute
+        $this->assertStringContainsString('--frame-name-font:', $html);
+        $this->assertStringContainsString('Pirata One', $html);
+        $this->assertStringContainsString('--frame-line-1: #46e6e6', $html);
+        $this->assertStringContainsString('--frame-line-2: #ff3ea5', $html);
+    }
+
     private function createOwnedCard(CardRarityEnum $rarity): Card
     {
         $extension = new Extension()

@@ -1,0 +1,114 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+    DEV — Preview cadre CSS
+{% endblock %}
+
+{% block body %}
+    <style>
+        /* every demo card renders at the same size: 4 per row, extras wrap */
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 1.5rem;
+        }
+    </style>
+
+    <main class="container mx-auto py-10 px-4">
+        <div class="mb-8">
+            <p class="eyebrow">dev only · /dev/card-frames</p>
+            <h1 class="mt-1 font-display text-4xl font-bold text-ink-strong">Preview — cadre CSS (nom + cadre + filigrane)</h1>
+            <p class="mt-2 max-w-3xl text-ink-muted">
+                Habillage CSS des cartes rendu par <code class="text-primary">CardComponent</code> via la cascade
+                <code class="text-primary">VisualConfig</code> (défaut <code class="text-primary">youl</code>,
+                <code class="text-primary">none</code> pour un set au cadre baké), recettes dans
+                <code class="text-primary">assets/styles/cards/frame.css</code>.
+                Le filigrane et le cadre sont rendus <strong>au-dessus</strong> des couches shine/glare.
+                <strong>Survole</strong> pour vérifier la tenue au tilt 3D.
+            </p>
+        </div>
+
+        {# ------------------------------------------------ cascade default #}
+        <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">Rendu par défaut (cascade, sans paramètre)</h2>
+        <p class="mb-4 max-w-3xl text-ink-muted">
+            Aucune config : chaque carte reçoit le cadre youl par défaut — nom en haut à gauche,
+            wordmark de l'univers en haut à droite (logo uploadé sur l'extension, sinon nom en texte),
+            mat sombre + liseré néon, filigrane YOUL central.
+        </p>
+        <div class="demo-grid">
+            {% for card in cards %}
+                {{ include('components/CardComponent.html.twig', {
+                    card: card,
+                    id: 'youl-' ~ card.id,
+                }) }}
+            {% endfor %}
+        </div>
+
+        {# ------------------------------------------------ rarity icons #}
+        <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">Icônes de rareté</h2>
+        <p class="mb-4 max-w-3xl text-ink-muted">
+            Formes CSS pures façon Pokémon, en bas à gauche du cadre : rond commun, losange uncommon,
+            étoile rare, <strong>deux étoiles chevauchées</strong> légendaire, <strong>couronne</strong>
+            pour une carte unique 1/1 (remplace l'ancien badge). Blanc, contour noir.
+            Clones transients : les fixtures dev sont toutes communes.
+        </p>
+        <div id="rarity-grid" class="demo-grid">
+            {% for demo in rarityDemos %}
+                {{ include('components/CardComponent.html.twig', {
+                    card: demo,
+                    id: 'rarity-' ~ (demo.isUnique ? 'unique' : demo.rarity.value),
+                }) }}
+            {% endfor %}
+        </div>
+
+        {# ------------------------------------------------ name typography #}
+        <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">Typo du nom — <code class="text-primary text-lg">nameFont</code></h2>
+        <p class="mb-4 max-w-3xl text-ink-muted">
+            La police du nom passe par la cascade (clé <code class="text-primary">nameFont</code> :
+            <code class="text-primary">space-grotesk</code> | <code class="text-primary">pirata-one</code>) —
+            comparaison des deux, la variable CSS est forcée ici côté page.
+        </p>
+        <div class="demo-grid">
+            {% for card in cards|slice(0, 2) %}
+                {{ include('components/CardComponent.html.twig', { card: card, id: 'font-default-' ~ card.id }) }}
+                <div style="--frame-name-font: 'Pirata One', serif;">
+                    {{ include('components/CardComponent.html.twig', { card: card, id: 'font-blackletter-' ~ card.id }) }}
+                </div>
+            {% endfor %}
+        </div>
+
+        {# ------------------------------------------------ holo layering #}
+        <h2 class="mb-1 mt-14 font-display text-2xl font-bold text-ink-strong">Combo holo + cadre</h2>
+        <p class="mb-4 max-w-3xl text-ink-muted">
+            Le vrai mask Photoshop : les lettres du filigrane sont <strong>découpées</strong> des couches
+            shine/glare (SVG cut-out) — l'holo ne se dessine jamais dedans, le filigrane reste translucide.
+            Sur une carte à mask d'artwork, les deux masks se composent (intersection).
+        </p>
+        <div id="holo-grid" class="demo-grid">
+            {% for card in cards|slice(0, 4) %}
+                {{ include('components/CardComponent.html.twig', {
+                    card: card,
+                    holo: true,
+                    id: 'holo-' ~ card.id,
+                }) }}
+            {% endfor %}
+        </div>
+
+        <div class="mt-14 max-w-3xl border border-hairline bg-surface/60 p-6">
+            <h3 class="font-display text-lg font-bold text-ink-strong">Notes d'implémentation</h3>
+            <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-ink-muted">
+                <li>Clés JSON de la cascade : <code class="text-primary">frame</code> (youl|none),
+                    <code class="text-primary">nameFont</code>,
+                    <code class="text-primary">frameLineStart/End</code> (liseré néon) —
+                    éditables aussi via les champs dédiés de l'admin Extension.</li>
+                <li>Wordmark d'univers : upload « Logo (cadre des cartes) » sur Extension ;
+                    sans logo, fallback sur le nom en texte stylé.</li>
+                <li>Les vignettes de la page d'ouverture (tracker + contenu du set) portent un
+                    mini-cadre (mat + liseré) une fois révélées/possédées.</li>
+                <li>Piège 3D : <code class="text-primary">container-type</code> sur une couche translateZ
+                    l'aplatit sous l'holo — le containment vit sur le wrapper
+                    <code class="text-primary">.card-frame__body</code>.</li>
+            </ul>
+        </div>
+    </main>
+{% endblock %}
