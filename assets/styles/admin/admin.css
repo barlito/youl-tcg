@@ -1,0 +1,26 @@
+/* Admin-wide stylesheet, loaded on every page by DashboardController. */
+
+/* The live card preview is injected with inline styles by the Card CRUD
+   controller (top: 90px; right: 24px), right on top of the sticky page actions
+   holding "Save changes". Re-anchored bottom right — !important is the only way
+   to beat inline styles — and kept under the sticky header (z-index 999).
+   The bottom offset clears the Symfony debug toolbar in dev. */
+#card-live-preview {
+    top: auto !important;
+    bottom: 48px !important;
+    right: 24px !important;
+    z-index: 900 !important;
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+}
+
+@media (max-width: 1200px) {
+    #card-live-preview {
+        width: 220px !important;
+    }
+
+    #card-live-preview iframe {
+        width: 196px !important;
+        height: 284px !important;
+    }
+}

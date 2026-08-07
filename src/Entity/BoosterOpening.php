@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\Entity\CardRarityEnum;
 use App\Repository\BoosterOpeningRepository;
 use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -74,5 +75,66 @@ class BoosterOpening
         }
 
         return $this;
+    }
+
+    /**
+     * Drawn cards, rarest first then alphabetically — the reading order of the
+     * admin detail screen.
+     *
+     * @return list<BoosterOpeningCard>
+     */
+    public function getDrawnCards(): array
+    {
+        $drawnCards = array_values($this->boosterOpeningCards->toArray());
+
+        usort($drawnCards, static fn (BoosterOpeningCard $left, BoosterOpeningCard $right): int => CardRarityEnum::compareRarestFirst($left->getCard()->getRarity(), $right->getCard()->getRarity())
+            ?: strcmp($left->getCard()->getName(), $right->getCard()->getName()));
+
+        return $drawnCards;
+    }
+
+    /**
+     * Copies drawn, duplicates included: the booster's actual card count.
+     */
+    public function getDrawnCardCount(): int
+    {
+        return $this->sumDrawnCards(static fn (BoosterOpeningCard $drawnCard): int => $drawnCard->getQuantity());
+    }
+
+    public function getHoloCount(): int
+    {
+        return $this->sumDrawnCards(static fn (BoosterOpeningCard $drawnCard): int => $drawnCard->getHoloQuantity());
+    }
+
+    /**
+     * Rarest card of the draw, null when the opening has no card row.
+     */
+    public function getBestRarity(): ?CardRarityEnum
+    {
+        $best = null;
+
+        foreach ($this->boosterOpeningCards as $drawnCard) {
+            $rarity = $drawnCard->getCard()->getRarity();
+
+            if (!$best instanceof CardRarityEnum || $rarity->rank() > $best->rank()) {
+                $best = $rarity;
+            }
+        }
+
+        return $best;
+    }
+
+    /**
+     * @param callable(BoosterOpeningCard): int $counter
+     */
+    private function sumDrawnCards(callable $counter): int
+    {
+        $total = 0;
+
+        foreach ($this->boosterOpeningCards as $drawnCard) {
+            $total += $counter($drawnCard);
+        }
+
+        return $total;
     }
 }

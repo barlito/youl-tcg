@@ -134,6 +134,50 @@ final class VisualConfigTest extends TestCase
         $this->assertFalse((new VisualConfig(frameLineEnd: '#fff'))->isEmpty());
     }
 
+    public function testMergeOnlyTouchesTheGivenKeys(): void
+    {
+        $config = new VisualConfig(glow: '#fff', cssClass: 'promo', holoEffect: CardEffectEnum::COSMOS);
+
+        $merged = $config->merge(['glow' => '#000']);
+
+        $this->assertSame('#000', $merged->glow);
+        $this->assertSame('promo', $merged->cssClass);
+        $this->assertSame(CardEffectEnum::COSMOS, $merged->holoEffect);
+    }
+
+    public function testMergeClearsAKeyWithNullOrAnEmptyString(): void
+    {
+        $config = new VisualConfig(glow: '#fff', cssClass: 'promo');
+
+        $this->assertNull($config->merge(['glow' => null])->glow);
+        // an empty text widget submits '' rather than null
+        $this->assertNull($config->merge(['cssClass' => ''])->cssClass);
+        // clearing one key leaves the others alone
+        $this->assertSame('promo', $config->merge(['glow' => null])->cssClass);
+    }
+
+    public function testFromJsonParsesAnObject(): void
+    {
+        $config = VisualConfig::fromJson('{"glow": "#a435f0", "holoEffect": "basic"}');
+
+        $this->assertSame('#a435f0', $config->glow);
+        $this->assertSame(CardEffectEnum::BASIC, $config->holoEffect);
+    }
+
+    public function testFromJsonRejectsMalformedJsonInsteadOfReturningAnEmptyConfig(): void
+    {
+        $this->expectException(\JsonException::class);
+
+        VisualConfig::fromJson('{"glow": "#a435f0",}');
+    }
+
+    public function testFromJsonRejectsANonObjectPayload(): void
+    {
+        $this->expectException(\JsonException::class);
+
+        VisualConfig::fromJson('"#a435f0"');
+    }
+
     public function testFoilSizeRejectsOutOfRangeValues(): void
     {
         // la position « Auto » du slider (sous FOIL_SIZE_MIN) = pas d'override

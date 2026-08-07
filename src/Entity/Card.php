@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Dto\VisualConfig;
-use App\Enum\Card\CardEffectEnum;
-use App\Enum\Card\FoilTextureEnum;
+use App\Entity\Traits\HasVisualConfigTrait;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\CardRepository;
@@ -23,6 +22,7 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
 #[ORM\Index(columns: ['extension_id', 'status'])]
 class Card
 {
+    use HasVisualConfigTrait;
     use IdUuidTrait;
     use TimestampableEntity;
 
@@ -63,7 +63,11 @@ class Card
 
     #[Assert\Valid]
     #[Assert\NotBlank]
+    // the column is NOT NULL, but the property stays nullable: EasyAdmin reads
+    // every field of the EMPTY entity when rendering its "new" form
     #[ORM\ManyToOne(fetch: 'EAGER', inversedBy: 'cards')]
+    #[ORM\JoinColumn(nullable: false)]
+    /** @phpstan-ignore doctrine.associationType */
     private ?Extension $extension = null;
 
     #[Vich\UploadableField(mapping: 'cards', fileNameProperty: 'imageName')]
@@ -313,115 +317,29 @@ class Card
         return $this;
     }
 
-    /**
-     * Virtual field for the back office: the holo preset stored inside the
-     * override JSON, exposed as a selectable enum.
-     */
-    public function getHoloEffect(): ?CardEffectEnum
-    {
-        return $this->getVisualConfigOverride()->holoEffect;
-    }
-
-    public function setHoloEffect(?CardEffectEnum $holoEffect): static
-    {
-        $this->visualConfigOverride = array_filter(
-            array_merge($this->visualConfigOverride, ['holoEffect' => $holoEffect?->value]),
-            static fn (mixed $value): bool => null !== $value,
-        );
-
-        return $this;
-    }
-
-    /**
-     * Virtual field for the back office: the glow colour stored inside the
-     * override JSON, exposed as a colour picker.
-     */
-    public function getGlowColor(): ?string
-    {
-        return $this->getVisualConfigOverride()->glow;
-    }
-
-    public function setGlowColor(?string $glow): static
-    {
-        $glow = null !== $glow && '' !== trim($glow) ? trim($glow) : null;
-
-        // An untouched <input type="color"> submits #000000 (it has no empty
-        // state): saving any card would silently override the rarity glow
-        // with a black halo. Treat pure black as "no custom glow" — a black
-        // halo on a dark theme is invisible anyway.
-        if ('#000000' === $glow) {
-            $glow = null;
-        }
-
-        $this->visualConfigOverride = array_filter(
-            array_merge($this->visualConfigOverride, ['glow' => $glow]),
-            static fn (mixed $value): bool => null !== $value,
-        );
-
-        return $this;
-    }
-
-    /**
-     * Virtual field for the back office: the bundled foil texture stored
-     * inside the override JSON, exposed as a selectable enum.
-     */
-    public function getFoilTexture(): ?FoilTextureEnum
-    {
-        return $this->getVisualConfigOverride()->foilTexture;
-    }
-
-    /**
-     * Merges the chosen texture into the existing override without clobbering
-     * the other keys (glow, holoEffect, ...).
-     */
-    public function setFoilTexture(?FoilTextureEnum $foilTexture): static
-    {
-        $this->visualConfigOverride = array_filter(
-            array_merge($this->visualConfigOverride, ['foilTexture' => $foilTexture?->value]),
-            static fn (mixed $value): bool => null !== $value,
-        );
-
-        return $this;
-    }
-
-    /**
-     * Virtual field for the back office: the foil zoom stored inside the
-     * override JSON, exposed as a range slider. A range input has no empty
-     * state, so the slider's leftmost position (FOIL_SIZE_AUTO, below the
-     * valid range) stands for "no override" — same trick as the #000000
-     * sentinel of the glow colour picker.
-     */
-    public function getFoilSize(): int
-    {
-        return $this->getVisualConfigOverride()->foilSize ?? VisualConfig::FOIL_SIZE_AUTO;
-    }
-
-    public function setFoilSize(?int $foilSize): static
-    {
-        $this->visualConfigOverride = array_filter(
-            array_merge($this->visualConfigOverride, ['foilSize' => VisualConfig::foilSizeOrNull($foilSize)]),
-            static fn (mixed $value): bool => null !== $value,
-        );
-
-        return $this;
-    }
-
     public function getVisualConfigOverrideJson(): string
     {
         return json_encode($this->visualConfigOverride, \JSON_PRETTY_PRINT | \JSON_THROW_ON_ERROR);
     }
 
     /**
-     * Invalid JSON resolves to no override.
+     * Fixtures / imports only — the back office edits dedicated widgets.
+     *
+     * @throws \JsonException malformed JSON is rejected instead of resolving to
+     *                        an empty override and silently wiping every key
      */
     public function setVisualConfigOverrideJson(string $json): void
     {
-        try {
-            $decoded = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
-        } catch (\JsonException) {
-            $decoded = null;
-        }
+        $this->visualConfigOverride = VisualConfig::fromJson($json)->toArray();
+    }
 
-        $this->visualConfigOverride = VisualConfig::fromArray(\is_array($decoded) ? $decoded : [])->toArray();
+    protected function readVisualConfig(): VisualConfig
+    {
+        return $this->getVisualConfigOverride();
+    }
+
+    protected function writeVisualConfig(VisualConfig $visualConfig): void
+    {
+        $this->setVisualConfigOverride($visualConfig);
     }
 }

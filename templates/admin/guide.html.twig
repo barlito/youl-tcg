@@ -36,6 +36,7 @@
                 <li><a href="#booster">Booster &amp; taux de drop</a></li>
                 <li><a href="#bannieres">Bannières d'univers</a></li>
                 <li><a href="#tailles">Récap : tailles d'images recommandées</a></li>
+                <li><a href="#economie">Économie : les écrans de consultation</a></li>
                 <li><a href="#ne-pas-toucher">Ce qu'on ne touche jamais à la main</a></li>
             </ol>
         </div>
@@ -55,7 +56,7 @@
         <h2 id="flow">2. Créer un univers de A à Z</h2>
         <ol>
             <li>Créer l'<strong>Extension</strong> (statut Draft) : nom, description complète, image de couverture.</li>
-            <li>Créer les <strong>Cartes</strong> : artwork obligatoire, rareté, description. Pour un set entier, <strong>« Ajout en masse »</strong> (menu Cards) crée une carte draft par artwork uploadé, noms dérivés des fichiers. Publier les cartes prêtes.</li>
+            <li>Créer les <strong>Cartes</strong> : artwork obligatoire, rareté, description. Pour un set entier, <strong>« Ajout en masse »</strong> (menu Contenu) crée une carte draft par artwork uploadé, noms dérivés des fichiers. Publier les cartes prêtes.</li>
             <li>Ajouter les <strong>masks</strong> (à la main ou via <code>castor holo:masks &lt;slug&gt;</code>) et éventuels <strong>foils</strong> pour les cartes premium.</li>
             <li>Régler le <strong>visuel</strong> : preset holo + glow au niveau extension, surcharges par carte si besoin (preview live dans le formulaire carte).</li>
             <li>Créer le(s) <strong>Booster(s)</strong> : les slots <code>rarityRates</code> définissent le nombre de cartes et les taux.</li>
@@ -133,8 +134,10 @@
             <tr><td><code>cssClass</code></td><td>Classe CSS libre ajoutée à la carte (usage avancé, en pratique on n'y touche pas).</td></tr>
         </table>
         <div class="tip">
-            Les selects du formulaire gagnent sur la même clé du JSON « Avancé » — utilise les selects,
-            le JSON n'est là que pour les cas exotiques. Dans le formulaire carte, la
+            Il n'y a plus de JSON à écrire : chaque réglage a son propre champ, et un champ laissé
+            vide veut dire « hérite du niveau au-dessus » (carte → univers → rendu par défaut).
+            Le cadre CSS, la police du nom et les deux couleurs du liseré se règlent au même endroit.
+            Dans le formulaire carte, la
             <strong>preview flottante</strong> applique tes réglages en direct (sans rien enregistrer) :
             fie-toi à elle. En environnement de dev, <code>/dev/card-effects</code> expose
             tous les presets côte à côte.
@@ -148,18 +151,15 @@
             <tr><td>Image</td><td>Le <strong>design complet</strong> du pack : si présente, elle est affichée telle quelle (aucun texte par-dessus). Si absente, le pack est composé automatiquement : image de l'extension en fond + logo + nom + nombre de cartes. Format portrait ~840×1300 (c'est la définition du rendu).</td></tr>
             <tr><td>Claimable</td><td><code>true</code> (défaut) = récupérable gratuitement sur le hub. <code>false</code> = distribution event/code uniquement : invisible sur le hub et la page univers <em>sauf</em> pour ceux qui en possèdent, et le claim est refusé côté serveur quoi qu'il arrive.</td></tr>
         </table>
-        <h3>Le JSON <code>rarityRates</code> — le cœur du booster</h3>
-        <p><strong>1 entrée = 1 carte du pack</strong> (3 entrées = booster de 3 cartes). Chaque entrée :</p>
-        <pre>[
-  { "rarities": { "common": 70, "uncommon": 30 },            "holoChance": 0  },
-  { "rarities": { "common": 50, "uncommon": 35, "rare": 15 }, "holoChance": 10 },
-  { "rarities": { "rare": 80, "legendary": 20 },              "holoChance": 100 }
-]</pre>
+        <h3>Les slots — le cœur du booster</h3>
+        <p><strong>1 slot = 1 carte du pack</strong> (3 slots = booster de 3 cartes). Chaque slot s'édite
+        dans son propre bloc du formulaire, avec un poids par rareté et sa chance holo ; ajouter ou
+        supprimer un bloc change le nombre de cartes du pack.</p>
         <ul>
             <li><code>rarities</code> : des <strong>poids relatifs</strong> (pas forcément des %) — <code>{"common": 7, "rare": 3}</code> vaut <code>{"common": 70, "rare": 30}</code>. Ils sont normalisés pour l'affichage du panneau « Taux » côté joueur.</li>
             <li><code>holoChance</code> : probabilité (0–100) que la carte de CE slot sorte en holo.</li>
-            <li>Raretés valides : <code>common</code>, <code>uncommon</code>, <code>rare</code>, <code>legendary</code>. Le formulaire refuse tout JSON invalide avec un message précis.</li>
-            <li>Si une rareté tirée n'a aucune carte publiée dans l'extension, le tirage retombe automatiquement sur le palier le plus proche qui en a.</li>
+            <li>Un slot doit porter au moins une rareté pondérée, sinon le formulaire le refuse avec un message précis.</li>
+            <li>Si une rareté tirée n'a aucune carte publiée dans l'extension, le tirage retombe automatiquement sur le palier le plus proche qui en a — l'admin te le signale par un avertissement, sans t'empêcher d'enregistrer.</li>
         </ul>
         <div class="tip">Quota joueur : <strong>2 packs gratuits par jour</strong>, remise à zéro à minuit (Europe/Paris). C'est un décompte en base, rien à administrer.</div>
 
@@ -182,11 +182,26 @@
             <tr><td>Bannière univers</td><td>Bannières d'univers</td><td>1920×640 min paysage</td><td>Texte de la page superposé en bas à gauche.</td></tr>
         </table>
 
-        <h2 id="ne-pas-toucher">10. Ce qu'on ne touche jamais à la main</h2>
+        <h2 id="economie">10. Économie : les écrans de consultation</h2>
+        <p>
+            La section <strong>« Économie (lecture seule) »</strong> du menu donne la visibilité
+            sur ce que font les joueurs. Ces trois écrans n'ont <strong>ni création, ni édition,
+            ni suppression</strong> : les boutons n'existent pas et les URLs correspondantes
+            répondent 403. On y consulte, point.
+        </p>
+        <table>
+            <tr><th>Écran</th><th>Ce qu'on y lit</th></tr>
+            <tr><td>Joueurs</td><td>Pseudo, Discord ID, nombre de cartes distinctes possédées, boosters non ouverts en stock, date de première connexion (rôles en détail). Recherche par pseudo ou ID.</td></tr>
+            <tr><td>Ouvertures</td><td>Qui a ouvert quel booster, quand, combien de cartes en sont sorties et la <strong>seed</strong> du tirage — c'est elle qui permet de rejouer un tirage à l'identique en cas de litige.</td></tr>
+            <tr><td>Récupérations</td><td>Chaque pack gratuit réclamé. Le quota de 2/jour n'est rien d'autre qu'un décompte de ces lignes depuis minuit (Europe/Paris) : pour vérifier un quota, filtre sur le joueur et regarde les dates.</td></tr>
+        </table>
+        <div class="tip">Les dates de ces écrans sont affichées en heure de Paris, comme la remise à zéro du quota.</div>
+
+        <h2 id="ne-pas-toucher">11. Ce qu'on ne touche jamais à la main</h2>
         <ul>
             <li><strong>Utilisateurs Discord et rôles</strong> : créés et synchronisés automatiquement à la connexion (JWT). Ne jamais créer/modifier en base.</li>
             <li><strong>Inventaires</strong> (cartes et boosters possédés) : alimentés par les claims et les ouvertures. Une retouche manuelle fausse les compteurs et l'historique.</li>
-            <li><strong>Historique d'ouverture</strong> (claims, openings, seed RNG) : c'est l'audit — chaque tirage est rejouable grâce à sa seed. Lecture seule.</li>
+            <li><strong>Historique d'ouverture</strong> (claims, openings, seed RNG) : c'est l'audit — chaque tirage est rejouable grâce à sa seed. Consultable dans la section « Économie » (<a href="#economie">§10</a>), jamais modifiable.</li>
             <li><strong>claimedBy d'une carte unique</strong> : posé atomiquement par le premier tirage. Le vider rendrait l'unique tirable une deuxième fois.</li>
         </ul>
     </div>

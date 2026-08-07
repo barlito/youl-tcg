@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Dto\VisualConfig;
-use App\Enum\Card\CardEffectEnum;
-use App\Enum\Card\CardFrameEnum;
-use App\Enum\Card\CardNameFontEnum;
-use App\Enum\Card\FoilTextureEnum;
+use App\Entity\Traits\HasVisualConfigTrait;
 use App\Enum\Entity\ExtensionStatusEnum;
 use App\Repository\ExtensionRepository;
 use Barlito\Utils\Traits\IdUuidTrait;
@@ -27,6 +24,7 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
 #[ORM\UniqueConstraint(name: 'uniq_extension_slug', columns: ['slug'])]
 class Extension implements \Stringable
 {
+    use HasVisualConfigTrait;
     use IdUuidTrait;
     use TimestampableEntity;
 
@@ -224,148 +222,24 @@ class Extension implements \Stringable
     }
 
     /**
-     * Invalid JSON resolves to an empty configuration (no override).
+     * Fixtures / imports only — the back office edits dedicated widgets.
+     *
+     * @throws \JsonException malformed JSON is rejected instead of resolving to
+     *                        an empty configuration and silently wiping every key
      */
     public function setVisualConfigJson(string $json): void
     {
-        try {
-            $decoded = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
-        } catch (\JsonException) {
-            $decoded = null;
-        }
-
-        $this->visualConfig = VisualConfig::fromArray(\is_array($decoded) ? $decoded : [])->toArray();
+        $this->visualConfig = VisualConfig::fromJson($json)->toArray();
     }
 
-    /**
-     * Virtual field for the back office: the holo preset stored inside the
-     * visual config JSON, exposed as a selectable enum.
-     */
-    public function getHoloEffect(): ?CardEffectEnum
+    protected function readVisualConfig(): VisualConfig
     {
-        return $this->getVisualConfig()->holoEffect;
+        return $this->getVisualConfig();
     }
 
-    /**
-     * Merges the chosen preset into the existing visual config without
-     * clobbering the other keys (glow, borderColor, ...).
-     */
-    public function setHoloEffect(?CardEffectEnum $holoEffect): static
+    protected function writeVisualConfig(VisualConfig $visualConfig): void
     {
-        $this->visualConfig = array_filter(
-            array_merge($this->visualConfig, ['holoEffect' => $holoEffect?->value]),
-            static fn (mixed $value): bool => null !== $value,
-        );
-
-        return $this;
-    }
-
-    /**
-     * Virtual field for the back office: the glow colour stored inside the
-     * visual config JSON, exposed as a colour picker.
-     */
-    public function getGlowColor(): ?string
-    {
-        return $this->getVisualConfig()->glow;
-    }
-
-    public function setGlowColor(?string $glow): static
-    {
-        $glow = null !== $glow && '' !== trim($glow) ? trim($glow) : null;
-
-        // An untouched <input type="color"> submits #000000 (it has no empty
-        // state): saving the extension would silently override the rarity
-        // glow of every card of the set with a black halo. Treat pure black
-        // as "no custom glow" — invisible on a dark theme anyway.
-        if ('#000000' === $glow) {
-            $glow = null;
-        }
-
-        $this->visualConfig = array_filter(
-            array_merge($this->visualConfig, ['glow' => $glow]),
-            static fn (mixed $value): bool => null !== $value,
-        );
-
-        return $this;
-    }
-
-    /**
-     * Virtual field for the back office: the bundled foil texture stored
-     * inside the visual config JSON, exposed as a selectable enum.
-     */
-    public function getFoilTexture(): ?FoilTextureEnum
-    {
-        return $this->getVisualConfig()->foilTexture;
-    }
-
-    public function setFoilTexture(?FoilTextureEnum $foilTexture): static
-    {
-        $this->visualConfig = array_filter(
-            array_merge($this->visualConfig, ['foilTexture' => $foilTexture?->value]),
-            static fn (mixed $value): bool => null !== $value,
-        );
-
-        return $this;
-    }
-
-    /**
-     * Virtual field for the back office: the foil zoom stored inside the
-     * visual config JSON, exposed as a range slider. A range input has no
-     * empty state, so the slider's leftmost position (FOIL_SIZE_AUTO, below
-     * the valid range) stands for "no override" — same trick as the #000000
-     * sentinel of the glow colour picker.
-     */
-    public function getFoilSize(): int
-    {
-        return $this->getVisualConfig()->foilSize ?? VisualConfig::FOIL_SIZE_AUTO;
-    }
-
-    public function setFoilSize(?int $foilSize): static
-    {
-        $this->visualConfig = array_filter(
-            array_merge($this->visualConfig, ['foilSize' => VisualConfig::foilSizeOrNull($foilSize)]),
-            static fn (mixed $value): bool => null !== $value,
-        );
-
-        return $this;
-    }
-
-    /**
-     * Virtual field for the back office: the CSS frame variant stored inside
-     * the visual config JSON, exposed as a selectable enum.
-     */
-    public function getFrame(): ?CardFrameEnum
-    {
-        return $this->getVisualConfig()->frame;
-    }
-
-    public function setFrame(?CardFrameEnum $frame): static
-    {
-        $this->visualConfig = array_filter(
-            array_merge($this->visualConfig, ['frame' => $frame?->value]),
-            static fn (mixed $value): bool => null !== $value,
-        );
-
-        return $this;
-    }
-
-    /**
-     * Virtual field for the back office: the frame name font stored inside
-     * the visual config JSON, exposed as a selectable enum.
-     */
-    public function getNameFont(): ?CardNameFontEnum
-    {
-        return $this->getVisualConfig()->nameFont;
-    }
-
-    public function setNameFont(?CardNameFontEnum $nameFont): static
-    {
-        $this->visualConfig = array_filter(
-            array_merge($this->visualConfig, ['nameFont' => $nameFont?->value]),
-            static fn (mixed $value): bool => null !== $value,
-        );
-
-        return $this;
+        $this->setVisualConfig($visualConfig);
     }
 
     /**

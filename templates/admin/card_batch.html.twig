@@ -1,5 +1,7 @@
 {% extends '@EasyAdmin/page/content.html.twig' %}
 
+{% form_theme form '@EasyAdmin/crud/form_theme.html.twig' %}
+
 {% block content_title %}🖼️ Ajout de cartes en masse{% endblock %}
 
 {% block main %}
@@ -8,7 +10,7 @@
             Une carte est créée <strong>par fichier uploadé</strong> : nom dérivé du nom de
             fichier (<code>ahri_kda.png</code> → « Ahri Kda »), statut <strong>Draft</strong>,
             description à compléter. Tu affines ensuite chaque carte (description, visuel,
-            mask/foil) depuis le CRUD Cards avant de publier — rien n'est visible des joueurs
+            mask/foil) depuis le CRUD Cartes avant de publier — rien n'est visible des joueurs
             tant que la carte n'est pas publiée.
         </p>
 

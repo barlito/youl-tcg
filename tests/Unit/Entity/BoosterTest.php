@@ -44,4 +44,31 @@ final class BoosterTest extends TestCase
             ['rates' => ['common' => 33.3, 'rare' => 66.7], 'holoChance' => 0],
         ], $booster->getDropRates());
     }
+
+    public function testSlotsAreReindexedSoTheJsonStaysAList(): void
+    {
+        // the admin collection form submits the surviving slots with their
+        // original keys once one is deleted in the middle
+        $booster = new Booster()->setRarityRates([
+            0 => ['rarities' => ['common' => 100], 'holoChance' => 0],
+            2 => ['rarities' => ['rare' => 100], 'holoChance' => 50],
+        ]);
+
+        $this->assertSame([0, 1], array_keys($booster->getRarityRates()));
+        $this->assertSame(2, $booster->getCardCount());
+        $this->assertSame('[{"rarities":{"common":100},"holoChance":0},{"rarities":{"rare":100},"holoChance":50}]', json_encode($booster->getRarityRates()));
+    }
+
+    public function testPercentagesAreProjectedFromRelativeWeights(): void
+    {
+        $this->assertSame(['common' => 60.0, 'rare' => 40.0], Booster::toPercentages(['common' => 6, 'rare' => 4]));
+        $this->assertSame(['common' => 100.0], Booster::toPercentages(['common' => 1]));
+        $this->assertSame([], Booster::toPercentages([]));
+    }
+
+    public function testDropRatesAreEmptyWithoutAnySlot(): void
+    {
+        $this->assertSame([], new Booster()->getDropRates());
+        $this->assertSame(0, new Booster()->getCardCount());
+    }
 }
