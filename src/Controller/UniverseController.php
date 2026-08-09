@@ -69,6 +69,7 @@ class UniverseController extends AbstractController
 
         return $this->render('pages/universes.html.twig', [
             'universes' => $universes,
+            'upcoming' => $this->extensionRepository->findUpcoming(),
         ]);
     }
 

@@ -67,6 +67,10 @@
                         </div>
                     </a>
                 {% endfor %}
+
+                {% if upcoming %}
+                    {{ include('parts/_soon_tile.html.twig', { upcoming, class: 'h-72' }) }}
+                {% endif %}
             </div>
         </section>
     </main>

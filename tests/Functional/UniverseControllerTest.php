@@ -59,6 +59,34 @@ final class UniverseControllerTest extends WebTestCase
         );
     }
 
+    public function testSoonTileShowsOnlyWithAnUpcomingExtension(): void
+    {
+        $crawler = $this->client->request('GET', '/univers');
+
+        self::assertResponseIsSuccessful();
+        $this->assertCount(0, $crawler->filter('[data-testid="soon-tile"]'));
+
+        $upcoming = new Extension()
+            ->setName('Univers teasé ' . uniqid())
+            ->setDescription('Encore secret')
+            ->setStatus(ExtensionStatusEnum::DRAFT)
+            ->setUpcoming(true)
+        ;
+        $upcoming->setImageName('teaser.png');
+        $this->entityManager->persist($upcoming);
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/univers');
+
+        self::assertResponseIsSuccessful();
+        $tile = $crawler->filter('[data-testid="soon-tile"]');
+        $this->assertCount(1, $tile);
+        $this->assertStringContainsString($upcoming->getName(), $tile->text());
+        $this->assertStringContainsString('blur-lg', (string) $tile->filter('img')->attr('class'));
+        // a draft universe has no page yet: the teaser must not link anywhere
+        $this->assertCount(0, $tile->filter('a'));
+    }
+
     public function testLiveBadgeOnlyShowsWithAClaimableBooster(): void
     {
         // a published universe whose only booster is event-only (non claimable)

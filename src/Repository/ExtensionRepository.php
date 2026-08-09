@@ -22,6 +22,32 @@ class ExtensionRepository extends ServiceEntityRepository
     }
 
     /**
+     * The "next universe" teaser tile; draft extensions qualify (the whole
+     * point is teasing a universe BEFORE it is published).
+     */
+    public function findUpcoming(): ?Extension
+    {
+        return $this->findOneBy(['upcoming' => true]);
+    }
+
+    /**
+     * At most one upcoming extension: called after saving a flagged one.
+     */
+    public function clearUpcomingExcept(Extension $extension): void
+    {
+        $this->createQueryBuilder('e')
+            ->update()
+            ->set('e.upcoming', ':off')
+            ->andWhere('e.upcoming = true')
+            ->andWhere('e.id != :kept')
+            ->setParameter('off', false)
+            ->setParameter('kept', $extension->getId())
+            ->getQuery()
+            ->execute()
+        ;
+    }
+
+    /**
      * hasClaimableBooster drives the LIVE badge on the universe tiles: an
      * universe is "live" only when at least one of its boosters is claimable.
      *

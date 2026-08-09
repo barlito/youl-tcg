@@ -104,7 +104,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
   - ManyToOne with Extension
 
 - **Extension**: Card sets/expansions
-  - Fields: name, description, status, imageName, visualConfig (JSON, set-level card visual defaults — including the shared foilTexture library pick; NO extension-level foil/mask uploads: masks must match each card's artwork, so they are per-card only)
+  - Fields: name, description, status, imageName, visualConfig (JSON, set-level card visual defaults — including the shared foilTexture library pick; NO extension-level foil/mask uploads: masks must match each card's artwork, so they are per-card only), upcoming (« next universe » teaser: at most ONE extension flagged — saving a flagged one from the admin clears the others; shows as a blurred tile on the homepage and /univers, drafts qualify)
   - OneToMany with Card, Booster and ExtensionBanner (universe page hero banners, position-ordered carousel)
 
 - **Booster**: Booster packs containing cards
