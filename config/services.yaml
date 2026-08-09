@@ -34,3 +34,9 @@ when@test:
         # exposed for integration tests (would otherwise be inlined/removed)
         App\Service\Booster\BoosterOpeningService:
             public: true
+
+        App\Service\Booster\BoosterCodeRedeemService:
+            public: true
+
+        App\Service\Booster\BoosterCodeGenerator:
+            public: true
