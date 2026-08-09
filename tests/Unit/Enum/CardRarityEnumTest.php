@@ -46,6 +46,21 @@ final class CardRarityEnumTest extends TestCase
         $this->assertSame('Légendaire', CardRarityEnum::LEGENDARY->label());
     }
 
+    public function testRecyclePointsFollowTheAgreedScale(): void
+    {
+        $this->assertSame(1, CardRarityEnum::COMMON->recyclePoints());
+        $this->assertSame(2, CardRarityEnum::UNCOMMON->recyclePoints());
+        $this->assertSame(3, CardRarityEnum::RARE->recyclePoints());
+        $this->assertSame(5, CardRarityEnum::LEGENDARY->recyclePoints());
+    }
+
+    public function testAHoloCopyIsWorthItsRarityPlusOne(): void
+    {
+        foreach (CardRarityEnum::cases() as $rarity) {
+            $this->assertSame($rarity->recyclePoints() + 1, $rarity->holoRecyclePoints());
+        }
+    }
+
     public function testCompareRarestFirstSortsFromLegendaryToCommon(): void
     {
         $rarities = [

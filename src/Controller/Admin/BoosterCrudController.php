@@ -9,6 +9,7 @@ use App\Entity\Booster;
 use App\Entity\BoosterClaim;
 use App\Entity\BoosterCode;
 use App\Entity\BoosterOpening;
+use App\Entity\RecycleOperation;
 use App\Entity\StreakReward;
 use App\Enum\Entity\CardRarityEnum;
 use App\Form\BoosterSlotType;
@@ -254,6 +255,7 @@ class BoosterCrudController extends AbstractGuardedCrudController
             '%d récupération(s) quotidienne(s) figurent dans l\'historique' => $this->entityManager->getRepository(BoosterClaim::class)->count(['booster' => $entity]),
             '%d code(s) le distribuent' => $this->entityManager->getRepository(BoosterCode::class)->count(['booster' => $entity]),
             '%d récompense(s) de streak l\'ont attribué' => $this->entityManager->getRepository(StreakReward::class)->count(['chosenBooster' => $entity]),
+            '%d recyclage(s) l\'ont attribué' => $this->entityManager->getRepository(RecycleOperation::class)->count(['booster' => $entity]),
         ]);
     }
 
