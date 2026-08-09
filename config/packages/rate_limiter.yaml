@@ -1,0 +1,10 @@
+framework:
+    rate_limiter:
+        # Budget of WRONG GUESSES, not of attempts: only an unknown code is
+        # charged (see BoosterHub::redeemCode). Successful redemptions and the
+        # other refusals — expired, already redeemed, exhausted — prove the
+        # player was handed a real code, so they cost nothing.
+        booster_code_redeem:
+            policy: sliding_window
+            limit: 10
+            interval: '1 hour'

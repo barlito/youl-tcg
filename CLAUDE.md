@@ -127,6 +127,13 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - **BoosterClaim**: one row per daily free claim; the daily quota (2/day, reset midnight Europe/Paris) is a COUNT since midnight — no mutable counter anywhere
 - **BoosterOpening** + **BoosterOpeningCard**: opening history with the RNG seed (reproducible draws); duplicates aggregated per card (composite PK)
 
+**Redeem Codes (`BoosterCode` + `BoosterCodeRedemption`):**
+- **BoosterCode**: code (canonical, uppercase, dash-free — `BoosterCodeGenerator` builds 12 chars out of an I/O/0/1-free alphabet with `random_int`), booster, quantity, maxUses (null = unlimited), uses, expiresAt (stored UTC), disabled, batchLabel. A "unique" code is just `maxUses = 1`; batches are a shared free-form label, not an entity
+- **BoosterCodeRedemption**: audit row, unique `(code, user)` → one redemption per player whatever maxUses says
+- **BoosterCodeRedeemService::redeem()**: own distribution channel — no `BoosterClaim`, so the daily quota is neither checked nor consumed, and `claimable = false` boosters are reachable. `FOR UPDATE` on the code row, then the `BoosterCodeRedemptionAttempt` DTO is validated **inside the transaction** (the locked row is what the rules read); a violation becomes a `BoosterCodeRefusedException` carrying a `BoosterCodeRefusalEnum`
+- **Refusal rules**: `RedeemableBoosterCode` constraint (+ validator), ordered unknown/revoked → expired → already redeemed → exhausted → booster not available yet (unpublished extension or no published card — refused *before* consuming a use). Only the first violation is raised, so the most specific reason wins
+- Player entry: `redeemCode` LiveAction on the hub, rate limited by the `booster_code_redeem` limiter — 10/hour/player, and **only unknown codes are charged** (a success or any other refusal proves the player holds a real code). Admin: batch generation + CSV export (`/admin/booster-codes/batch`), read-only CRUDs, batch revoke/restore
+
 ### Booster Opening Flow (`src/Service/Booster/`)
 
 1. **BoosterClaimService::claim()** — asks the quota policy (`BoosterClaimQuotaInterface` / `DailyBoosterClaimQuota`) for remaining claims, credits `UserBooster` via UserInventoryService, persists a `BoosterClaim`. In dev only, the `UnlimitedBoosterClaimQuota` decorator (`#[When(env: 'dev')]`) lifts the limit unless `BOOSTER_DAILY_LIMIT_ENABLED=true` is set in `.env.dev` — prod code carries no bypass
