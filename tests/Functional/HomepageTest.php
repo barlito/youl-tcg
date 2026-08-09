@@ -6,8 +6,12 @@ namespace App\Tests\Functional;
 
 use App\Entity\Booster;
 use App\Entity\BoosterOpening;
+use App\Entity\BoosterOpeningCard;
+use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
+use App\Enum\Entity\CardRarityEnum;
+use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Cache\CacheItemPoolInterface;
@@ -63,8 +67,37 @@ final class HomepageTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $ticker = $crawler->filter('[data-testid="ticker"]')->text();
         $this->assertStringContainsString('2 packs ouverts', $ticker);
+        // 2 openings × (2 normal + 1 holo): duplicates and holos all count
+        $this->assertStringContainsString('6 cartes tirées', $ticker);
         $this->assertStringContainsString('univers', $ticker);
         $this->assertStringContainsString('2 packs / jour', $ticker);
+    }
+
+    public function testSoonTileTeasesTheUpcomingExtension(): void
+    {
+        $this->authenticateClient($this->client);
+
+        $upcoming = new Extension()
+            ->setName('Univers teasé ' . uniqid())
+            ->setDescription('Encore secret')
+            ->setStatus(ExtensionStatusEnum::DRAFT)
+            ->setUpcoming(true)
+        ;
+        $upcoming->setImageName('teaser.png');
+        $this->entityManager->persist($upcoming);
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        $tile = $crawler->filter('[data-testid="soon-tile"]');
+        $this->assertCount(1, $tile);
+        $this->assertStringContainsString($upcoming->getName(), $tile->text());
+        $this->assertStringContainsString('Annonce à suivre', $tile->text());
+        $this->assertStringContainsString('blur-lg', (string) $tile->filter('img')->attr('class'));
+        // a draft universe has no page yet: the teaser must not link anywhere
+        $this->assertCount(0, $tile->filter('a'));
+        $this->assertStringContainsString('01 SOON', $crawler->filter('#univers')->text());
     }
 
     public function testUniverseGridOnlyShowsPublishedExtensions(): void
@@ -183,8 +216,20 @@ final class HomepageTest extends WebTestCase
         $booster->setImageName('default_card.png');
         $this->entityManager->persist($booster);
 
+        // draft: the pulled card must not enter the homepage day-cards draw
+        $card = new Card()
+            ->setName('Homepage pulled card ' . uniqid())
+            ->setDescription('Test')
+            ->setExtension($extension)
+            ->setStatus(CardStatusEnum::DRAFT)
+            ->setRarity(CardRarityEnum::COMMON)
+        ;
+        $this->entityManager->persist($card);
+
         for ($i = 0; $i < $count; ++$i) {
-            $this->entityManager->persist(new BoosterOpening($user, $booster, $i + 1, new \DateTimeImmutable()));
+            $opening = new BoosterOpening($user, $booster, $i + 1, new \DateTimeImmutable());
+            $this->entityManager->persist($opening);
+            $this->entityManager->persist(new BoosterOpeningCard($opening, $card, 2, 1));
         }
 
         $this->entityManager->flush();

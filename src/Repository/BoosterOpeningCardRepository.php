@@ -17,4 +17,16 @@ class BoosterOpeningCardRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, BoosterOpeningCard::class);
     }
+
+    /**
+     * Every card ever pulled from a booster, duplicates and holos included.
+     */
+    public function countPulledCards(): int
+    {
+        return (int) $this->createQueryBuilder('oc')
+            ->select('COALESCE(SUM(oc.quantity + oc.holoQuantity), 0)')
+            ->getQuery()
+            ->getSingleScalarResult()
+        ;
+    }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Enum\Entity\CardStatusEnum;
+use App\Repository\BoosterOpeningCardRepository;
 use App\Repository\BoosterOpeningRepository;
 use App\Repository\CardRepository;
 use App\Repository\ExtensionRepository;
@@ -27,6 +28,7 @@ class BaseController extends AbstractController
         CardRepository $cardRepository,
         ExtensionRepository $extensionRepository,
         BoosterOpeningRepository $boosterOpeningRepository,
+        BoosterOpeningCardRepository $boosterOpeningCardRepository,
         CacheInterface $cache,
     ): Response {
         $pickDayCards = function (ItemInterface $item) use ($cardRepository): array {
@@ -62,6 +64,8 @@ class BaseController extends AbstractController
             'universesTotal' => \count($extensions),
             'cardsTotal' => array_sum(array_column($extensions, 'cardCount')),
             'packsOpenedCount' => $boosterOpeningRepository->countAll(),
+            'cardsPulledCount' => $boosterOpeningCardRepository->countPulledCards(),
+            'upcoming' => $extensionRepository->findUpcoming(),
         ]);
     }
 
