@@ -42,9 +42,76 @@
                        data-testid="history-link">
                         ◎ Mes ouvertures ▸
                     </a>
+
+                    {% set streak = this.streak %}
+                    {% if streak.running %}
+                        <p class="chip-mono {{ streak.openedToday ? 'text-live' : 'text-soon' }}"
+                           data-testid="streak-flame"
+                           title="Prochain palier à {{ streak.nextMilestone }} jours de suite">
+                            🔥 {{ streak.length }} jour{{ streak.length > 1 ? 's' }} de suite{% if streak.atRisk %} — ouvre un pack aujourd'hui pour continuer !{% endif %}
+                        </p>
+                    {% else %}
+                        <p class="chip-mono text-ink-dim" data-testid="streak-flame">
+                            🔥 Ouvre un pack aujourd'hui pour lancer ta série
+                        </p>
+                    {% endif %}
                 </div>
             </div>
         </section>
+
+        {# ----------------------------------------------------- Streak reward #}
+        {% set pendingRewards = this.pendingStreakRewards %}
+        {% if pendingRewards is not empty or streakError or streakSuccess %}
+            <section class="border-b border-hairline px-6 py-5 lg:px-12" data-testid="streak-reward-banner">
+                <div class="mx-auto max-w-7xl">
+                    {% if pendingRewards is not empty %}
+                        {% set reward = pendingRewards|first %}
+                        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <p class="font-display text-sm font-bold uppercase tracking-[.15em] text-primary">
+                                    🔥 Récompense de streak — palier {{ reward.milestone }} jours
+                                </p>
+                                <p class="mt-1 max-w-md text-xs text-ink-muted">
+                                    Choisis un pack bonus : il s'ajoute à ton stock sans entamer tes récupérations du jour.
+                                    {% if pendingRewards|length > 1 %}
+                                        Encore {{ pendingRewards|length - 1 }} récompense{{ pendingRewards|length > 2 ? 's' }} ensuite.
+                                    {% endif %}
+                                </p>
+                            </div>
+
+                            <div class="flex flex-wrap gap-2 md:justify-end">
+                                {% for booster in this.streakRewardChoices %}
+                                    {# plain label + opacity while loading: swapping two spans
+                                       leaves the hidden one hidden after the re-render #}
+                                    <button type="button"
+                                            data-action="live#action"
+                                            data-live-action-param="chooseStreakReward"
+                                            data-live-reward-id-param="{{ reward.id }}"
+                                            data-live-booster-id-param="{{ booster.id }}"
+                                            data-loading="addClass(opacity-50)"
+                                            data-testid="streak-reward-choice"
+                                            class="border border-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-primary transition hover:bg-primary hover:text-black">
+                                        {{ booster.displayName }}
+                                    </button>
+                                {% else %}
+                                    <p class="chip-mono text-ink-dim">Aucun pack disponible pour l'instant — ta récompense t'attend.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if streakError %}
+                        <div class="{{ pendingRewards is not empty ? 'mt-3' }} border border-magenta/50 bg-magenta/10 px-4 py-2.5 font-mono text-xs text-magenta" data-testid="streak-error">
+                            ⚠ {{ streakError }}
+                        </div>
+                    {% elseif streakSuccess %}
+                        <div class="{{ pendingRewards is not empty ? 'mt-3' }} border border-live/50 bg-live/10 px-4 py-2.5 font-mono text-xs text-live" data-testid="streak-success">
+                            ✦ {{ streakSuccess }}
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+        {% endif %}
 
         {# ----------------------------------------------------- Code redemption #}
         <section class="border-b border-hairline px-6 py-5 lg:px-12">

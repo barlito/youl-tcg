@@ -138,6 +138,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - Streak = consecutive Europe/Paris days with ≥1 `BoosterOpening` — computed by QUERY (`BoosterOpeningRepository::findDistinctOpeningDays`, native SQL `AT TIME ZONE`, capped at 3650 distinct days: a shorter window would shift the series identity of long streaks and re-grant milestones), consecutive run walked in PHP (`OpeningStreakService` → `OpeningStreak` DTO). A series ending yesterday still counts (today's opening keeps it alive: `isAtRisk()`)
 - **Series identity** = Paris day the run started; milestones every 7 days (7/14/21…). `StreakReward` is unique on `(user, series_started_on, milestone)`; granting is `INSERT … ON CONFLICT DO NOTHING` (raw SQL — a caught unique violation would close the EntityManager), triggered post-commit in `BoosterOpeningService::open()` (the streak only changes on an opening; all reached milestones are (re)inserted, so a missed grant self-heals)
 - **Spending**: `StreakRewardService::chooseBooster()` — `FOR UPDATE` on the reward row, claim-like guards (claimable + published extension), credits `UserBooster` via `UserInventoryService`. Own distribution channel: no `BoosterClaim`, daily quota untouched
+- Hub UI: flame chip in the hero (always visible — running / at-risk / empty states) + "Récompense de streak" banner surfacing the oldest pending reward with one button per claimable booster (`chooseStreakReward` LiveAction)
 
 ### Booster Opening Flow (`src/Service/Booster/`)
 
