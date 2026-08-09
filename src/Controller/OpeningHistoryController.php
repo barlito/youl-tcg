@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Entity\DiscordUser;
 use App\Repository\BoosterOpeningRepository;
+use App\Service\Booster\OpeningLuckStatsProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,6 +26,7 @@ class OpeningHistoryController extends AbstractController
         Request $request,
         #[CurrentUser] DiscordUser $user,
         BoosterOpeningRepository $boosterOpeningRepository,
+        OpeningLuckStatsProvider $openingLuckStatsProvider,
     ): Response {
         $page = $request->query->getInt('page', 1);
         $total = $boosterOpeningRepository->countByUser($user);
@@ -39,6 +41,7 @@ class OpeningHistoryController extends AbstractController
             'total' => $total,
             'page' => $page,
             'lastPage' => $lastPage,
+            'stats' => $openingLuckStatsProvider->getStats($user),
         ]);
     }
 }
