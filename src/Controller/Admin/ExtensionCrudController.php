@@ -11,11 +11,13 @@ use App\Entity\Booster;
 use App\Entity\Card;
 use App\Entity\Extension;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Repository\ExtensionRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
@@ -30,6 +32,7 @@ class ExtensionCrudController extends AbstractGuardedCrudController
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
+        private readonly ExtensionRepository $extensionRepository,
     ) {
     }
 
@@ -77,6 +80,10 @@ class ExtensionCrudController extends AbstractGuardedCrudController
             ->setLabel('Statut')
             ->setChoices(ExtensionStatusEnum::cases())
         ;
+        yield BooleanField::new('upcoming')
+            ->setLabel('Prochain univers (teaser)')
+            ->setHelp('Affiche l\'univers en tuile floutée « À suivre » sur l\'accueil et /univers, tant qu\'il est en brouillon (publié, il a déjà sa tuile). Un seul univers peut porter le flag : l\'activer ici le retire automatiquement des autres.')
+        ;
         yield ImageField::new('imageName')
             ->setLabel('Image')
             ->setBasePath('/uploads/extensions')
@@ -97,6 +104,31 @@ class ExtensionCrudController extends AbstractGuardedCrudController
         ;
         yield from VisualConfigFields::fields(isOverride: false);
         yield Field::new('visualConfigJson')->setLabel('Config visuelle (JSON)')->onlyOnDetail();
+    }
+
+    #[\Override]
+    public function persistEntity(EntityManagerInterface $entityManager, object $entityInstance): void
+    {
+        parent::persistEntity($entityManager, $entityInstance);
+        $this->enforceSingleUpcoming($entityInstance);
+    }
+
+    #[\Override]
+    public function updateEntity(EntityManagerInterface $entityManager, object $entityInstance): void
+    {
+        parent::updateEntity($entityManager, $entityInstance);
+        $this->enforceSingleUpcoming($entityInstance);
+    }
+
+    /**
+     * Runs AFTER the save (the id is generated on persist): the freshly
+     * flagged extension is the only one allowed to keep the flag.
+     */
+    private function enforceSingleUpcoming(object $entityInstance): void
+    {
+        if ($entityInstance instanceof Extension && $entityInstance->isUpcoming()) {
+            $this->extensionRepository->clearUpcomingExcept($entityInstance);
+        }
     }
 
     #[\Override]

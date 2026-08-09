@@ -1,0 +1,28 @@
+{# « Prochain univers » : artwork flouté + nom quand un univers est flaggé
+   upcoming, sinon placeholder en pointillés. `class` porte le sizing de la grille. #}
+<article class="relative overflow-hidden {{ class|default('') }} {{ upcoming ? 'notched-corner bg-surface' : 'border border-dashed border-hairline bg-surface/50 opacity-60' }}"
+         data-testid="soon-tile">
+    {% if upcoming %}
+        <div class="absolute inset-0 bg-gradient-to-br from-[#2a0f44] via-[#7a1f9c] to-magenta opacity-60" aria-hidden="true"></div>
+        {# même cascade que les tuiles univers : image extension → artwork de la
+           carte la plus rare (brouillons compris, upcomingCover) → gradient seul #}
+        {% set coverUrl = upcoming.imageName
+            ? vich_uploader_asset(upcoming)
+            : (upcomingCover|default ? asset('uploads/cards/' ~ upcomingCover)) %}
+        {% if coverUrl %}
+            {# scale-110 : le flou tire les bords vers l'intérieur, on les pousse hors cadre #}
+            <img src="{{ coverUrl }}" alt="" loading="lazy" onerror="this.remove()"
+                 class="absolute inset-0 h-full w-full scale-110 object-cover object-top blur-lg" aria-hidden="true">
+        {% endif %}
+        <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/90" aria-hidden="true"></div>
+    {% endif %}
+    <div class="absolute left-4 right-4 top-4">
+        <span class="chip-mono bg-black/80 px-2 py-0.5 font-bold text-soon">▸ SOON</span>
+    </div>
+    <div class="absolute bottom-4 left-4 right-4">
+        <h3 class="font-display text-[22px] font-bold uppercase leading-[.95] tracking-[-0.03em] text-white">
+            {{ upcoming ? upcoming.name : 'Prochain univers' }}
+        </h3>
+        <p class="mt-1.5 text-[11px] text-white/80">{{ upcoming ? 'Annonce à suivre…' : 'Annonce bientôt. Reste connecté.' }}</p>
+    </div>
+</article>

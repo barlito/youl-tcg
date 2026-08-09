@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Enum\Entity\CardStatusEnum;
+use App\Repository\BoosterOpeningCardRepository;
 use App\Repository\BoosterOpeningRepository;
 use App\Repository\CardRepository;
 use App\Repository\ExtensionRepository;
@@ -27,6 +28,7 @@ class BaseController extends AbstractController
         CardRepository $cardRepository,
         ExtensionRepository $extensionRepository,
         BoosterOpeningRepository $boosterOpeningRepository,
+        BoosterOpeningCardRepository $boosterOpeningCardRepository,
         CacheInterface $cache,
     ): Response {
         $pickDayCards = function (ItemInterface $item) use ($cardRepository): array {
@@ -56,12 +58,17 @@ class BaseController extends AbstractController
             'coverImage' => $coverImages[(string) $item['extension']->getId()] ?? null,
         ], array_reverse(\array_slice($extensions, -self::FEATURED_UNIVERSES)));
 
+        $upcoming = $extensionRepository->findUpcoming();
+
         return $this->render('pages/homepage.html.twig', [
             'cards' => $cards,
             'universes' => $featured,
             'universesTotal' => \count($extensions),
             'cardsTotal' => array_sum(array_column($extensions, 'cardCount')),
             'packsOpenedCount' => $boosterOpeningRepository->countAll(),
+            'cardsPulledCount' => $boosterOpeningCardRepository->countPulledCards(),
+            'upcoming' => $upcoming,
+            'upcomingCover' => $upcoming ? $cardRepository->findTeaserCoverImageName($upcoming) : null,
         ]);
     }
 
