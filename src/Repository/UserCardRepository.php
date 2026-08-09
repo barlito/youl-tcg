@@ -109,6 +109,37 @@ class UserCardRepository extends ServiceEntityRepository
     }
 
     /**
+     * Inventory entries with at least one recyclable duplicate (quantity > 1:
+     * the last copy always stays), card and extension eagerly hydrated for the
+     * recycle page, sorted rarest first then by name.
+     *
+     * @return list<UserCard>
+     */
+    public function findRecyclableWithCards(DiscordUser $discordUser): array
+    {
+        /** @var list<UserCard> $cards */
+        $cards = $this->createQueryBuilder('uc')
+            ->join('uc.card', 'c')
+            ->addSelect('c')
+            ->join('c.extension', 'e')
+            ->addSelect('e')
+            ->andWhere('uc.discordUser = :user')
+            ->andWhere('uc.quantity > 1')
+            ->setParameter('user', $discordUser)
+            ->getQuery()
+            ->getResult()
+        ;
+
+        usort(
+            $cards,
+            static fn (UserCard $a, UserCard $b): int => CardRarityEnum::compareRarestFirst($a->getCard()->getRarity(), $b->getCard()->getRarity())
+                ?: $a->getCard()->getName() <=> $b->getCard()->getName(),
+        );
+
+        return $cards;
+    }
+
+    /**
      * Pessimistic write lock on the user's rows for the given cards, so a
      * recycle debit re-validates quantities against what concurrent operations
      * left. Requires an active transaction. Rows are locked in card id order:
