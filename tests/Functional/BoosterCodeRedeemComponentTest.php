@@ -121,11 +121,9 @@ final class BoosterCodeRedeemComponentTest extends WebTestCase
         $this->assertSame('Tu as déjà utilisé ce code.', $component->component()->codeError);
     }
 
-    public function testAttemptsAreRateLimited(): void
+    public function testUnknownCodesEatTheAttemptBudget(): void
     {
         $client = static::createClient();
-        // one kernel for the whole test: the limiter counters live in memory
-        $client->disableReboot();
         $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
 
         $component = $this->createLiveComponent(BoosterHub::class, client: $client);
@@ -138,6 +136,44 @@ final class BoosterCodeRedeemComponentTest extends WebTestCase
         $component->set('code', 'ZZZZ-ZZZZ-ZZZZ')->call('redeemCode');
 
         $this->assertStringStartsWith('Trop de tentatives.', (string) $component->component()->codeError);
+    }
+
+    public function testSuccessfulRedemptionsNeverEatTheAttemptBudget(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+
+        // a player burning through a whole giveaway must never be throttled
+        foreach (range(1, 12) as $ignored) {
+            [, $code] = $this->createCode();
+            $component->set('code', $code->getCode())->call('redeemCode');
+
+            $this->assertNull($component->component()->codeError);
+        }
+    }
+
+    public function testRefusalsOtherThanUnknownDoNotEatTheAttemptBudget(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        [, $code] = $this->createCode(maxUses: 1);
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        $component->set('code', $code->getCode())->call('redeemCode');
+
+        // "already redeemed" proves the player holds a real code: no probing,
+        // so no cost — however many times they retry
+        foreach (range(1, 12) as $ignored) {
+            $component->set('code', $code->getCode())->call('redeemCode');
+            $this->assertSame('Tu as déjà utilisé ce code.', $component->component()->codeError);
+        }
+
+        // the budget is intact: a wrong guess still gets the unknown answer
+        $component->set('code', 'ZZZZ-ZZZZ-ZZZZ')->call('redeemCode');
+
+        $this->assertSame('Ce code n\'existe pas ou n\'est plus valide.', $component->component()->codeError);
     }
 
     /**

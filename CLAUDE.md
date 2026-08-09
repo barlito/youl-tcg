@@ -132,7 +132,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - **BoosterCodeRedemption**: audit row, unique `(code, user)` → one redemption per player whatever maxUses says
 - **BoosterCodeRedeemService::redeem()**: own distribution channel — no `BoosterClaim`, so the daily quota is neither checked nor consumed, and `claimable = false` boosters are reachable. `FOR UPDATE` on the code row, then the `BoosterCodeRedemptionAttempt` DTO is validated **inside the transaction** (the locked row is what the rules read); a violation becomes a `BoosterCodeRefusedException` carrying a `BoosterCodeRefusalEnum`
 - **Refusal rules**: `RedeemableBoosterCode` constraint (+ validator), ordered unknown/revoked → expired → already redeemed → exhausted → booster not available yet (unpublished extension or no published card — refused *before* consuming a use). Only the first violation is raised, so the most specific reason wins
-- Player entry: `redeemCode` LiveAction on the hub, rate limited (`booster_code_redeem` limiter, 10/hour/player). Admin: batch generation + CSV export (`/admin/booster-codes/batch`), read-only CRUDs, batch revoke/restore
+- Player entry: `redeemCode` LiveAction on the hub, rate limited by the `booster_code_redeem` limiter — 10/hour/player, and **only unknown codes are charged** (a success or any other refusal proves the player holds a real code). Admin: batch generation + CSV export (`/admin/booster-codes/batch`), read-only CRUDs, batch revoke/restore
 
 ### Booster Opening Flow (`src/Service/Booster/`)
 

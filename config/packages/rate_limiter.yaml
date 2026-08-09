@@ -1,8 +1,9 @@
 framework:
     rate_limiter:
-        # Code redemption is the one player-facing form that can be probed:
-        # without a cap, a script could try codes until one lands. Ten tries an
-        # hour leave room for typos and none for guessing.
+        # Budget of WRONG GUESSES, not of attempts: only an unknown code is
+        # charged (see BoosterHub::redeemCode). Successful redemptions and the
+        # other refusals — expired, already redeemed, exhausted — prove the
+        # player was handed a real code, so they cost nothing.
         booster_code_redeem:
             policy: sliding_window
             limit: 10

@@ -6,6 +6,8 @@ namespace App\Twig\Components;
 
 use App\Entity\Booster;
 use App\Entity\DiscordUser;
+use App\Enum\Booster\BoosterCodeRefusalEnum;
+use App\Exception\Booster\BoosterCodeRefusedException;
 use App\Exception\Booster\BoosterException;
 use App\Repository\BoosterRepository;
 use App\Repository\UserBoosterRepository;
@@ -149,9 +151,14 @@ final class BoosterHub extends AbstractController
     }
 
     /**
-     * Redeems an event/giveaway code. Rate limited per player: this is the one
-     * player-facing form where a wrong answer still leaks information (a code
-     * exists or it does not), so brute force has to stay expensive.
+     * Redeems an event/giveaway code.
+     *
+     * Only unknown codes are charged to the player's attempt budget: they are
+     * the sole answer that tells a stranger anything (this code exists, that
+     * one does not). Every other refusal — expired, already redeemed,
+     * exhausted, pack not out yet — proves the player was given a real code,
+     * and a successful redemption costs nothing at all. Someone redeeming
+     * thirty event codes in a row is never throttled.
      */
     #[LiveAction]
     public function redeemCode(): void
@@ -160,9 +167,15 @@ final class BoosterHub extends AbstractController
         $this->codeSuccess = null;
 
         $user = $this->getDiscordUser();
-        $limit = $this->boosterCodeRedeemLimiter->create($user->getDiscordId())->consume();
+        $limiter = $this->boosterCodeRedeemLimiter->create($user->getDiscordId());
 
-        if (!$limit->isAccepted()) {
+        // Peek without spending: charging happens below, but a player who
+        // already burnt the budget must not keep probing for free.
+        // NB: consume(0) reports accepted whatever the state — the remaining
+        // token count is the only reliable read.
+        $limit = $limiter->consume(0);
+
+        if ($limit->getRemainingTokens() < 1) {
             $this->codeError = \sprintf(
                 'Trop de tentatives. Réessaie dans %d minute(s).',
                 max(1, (int) ceil(($limit->getRetryAfter()->getTimestamp() - time()) / 60)),
@@ -173,7 +186,11 @@ final class BoosterHub extends AbstractController
 
         try {
             $redemption = $this->boosterCodeRedeemService->redeem($user, $this->code);
-        } catch (BoosterException $exception) {
+        } catch (BoosterCodeRefusedException $exception) {
+            if (BoosterCodeRefusalEnum::UNKNOWN === $exception->getReason()) {
+                $limiter->consume();
+            }
+
             $this->codeError = $exception->getUserMessage();
 
             return;
