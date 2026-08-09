@@ -58,8 +58,9 @@ final class CollectionControllerTest extends WebTestCase
         $this->assertStringContainsString('2', $quota);
         $this->assertStringContainsString('/ 2', $quota);
 
+        // 3 (1 holo copy included) + 1 + 0: quantity is the total per card
         $this->assertStringContainsString(
-            'Cartes possédées · 5',
+            'Cartes possédées · 4',
             $crawler->filter('main')->text(),
         );
     }
