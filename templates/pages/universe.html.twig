@@ -104,12 +104,7 @@
                                     {% endif %}
                                 </div>
                             {% else %}
-                                {# carte non possédée : dos de carte, aucun indice (nom / rareté) #}
-                                <div class="flex aspect-[0.718] items-center justify-center overflow-hidden rounded-[4.55%/3.5%] border border-hairline bg-surface"
-                                     data-testid="masked-card">
-                                    <span class="h-full w-full bg-cover bg-center opacity-50" aria-hidden="true"
-                                          style="background-image: url('{{ asset('images/card-back.svg') }}');"></span>
-                                </div>
+                                {{ include('parts/_masked_card.html.twig') }}
                             {% endif %}
                         </div>
                     {% endfor %}

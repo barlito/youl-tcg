@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+    YOUL TCG — Classement
+{% endblock %}
+
+{% block body %}
+    <main>
+        <section class="relative px-6 pb-24 pt-10 lg:px-12">
+            <div class="glow-ambient" aria-hidden="true"></div>
+            <div class="relative mx-auto max-w-7xl">
+                <p class="eyebrow">Classement</p>
+                <h1 class="mt-1 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
+                    Les collectionneurs
+                </h1>
+                <p class="mt-2 max-w-2xl text-sm leading-relaxed text-ink-muted">
+                    Tous les joueurs, classés par complétion globale de la collection. Les 1/1 restent secrètes : on affiche combien, jamais lesquelles.
+                </p>
+
+                <div class="mt-10 border border-hairline bg-surface" data-testid="leaderboard">
+                    {# en-tête de colonnes (desktop) #}
+                    <div class="hidden items-center gap-4 border-b border-hairline px-5 py-3 font-mono text-[10px] uppercase tracking-[.2em] text-ink-dim md:grid md:grid-cols-[3rem_minmax(0,1fr)_minmax(0,14rem)_4.5rem_4.5rem_4.5rem_4.5rem_4.5rem]">
+                        <span>#</span>
+                        <span>Joueur</span>
+                        <span>Complétion</span>
+                        <span class="text-right">Cartes</span>
+                        <span class="text-right">Total</span>
+                        <span class="text-right">Holos</span>
+                        <span class="text-right">1/1</span>
+                        <span class="text-right">Packs</span>
+                    </div>
+
+                    {% for entry in entries %}
+                        {% set isMe = entry.user.discordId == currentUser.discordId %}
+                        <a href="{{ path('leaderboard_player', { discordId: entry.user.discordId }) }}"
+                           data-testid="leaderboard-row"
+                           {{ isMe ? 'data-current="true"' }}
+                           class="group grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-4 border-b border-hairline px-5 py-4 transition-colors last:border-b-0 hover:bg-white/[.03] md:grid-cols-[3rem_minmax(0,1fr)_minmax(0,14rem)_4.5rem_4.5rem_4.5rem_4.5rem_4.5rem] {{ isMe ? 'border-l-2 border-l-primary bg-primary/5' : 'border-l-2 border-l-transparent' }}">
+                            <span class="font-display text-xl font-bold tracking-[-0.04em] {{ entry.rank <= 3 ? 'text-primary [text-shadow:0_0_12px_#a435f077]' : 'text-ink-dim' }}">
+                                {{ '%02d'|format(entry.rank) }}
+                            </span>
+
+                            <span class="flex min-w-0 items-center gap-3">
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center bg-gradient-to-br from-primary to-magenta font-display text-base font-bold text-black">
+                                    {{ entry.user.username|first|upper }}
+                                </span>
+                                <span class="min-w-0">
+                                    <span class="block truncate font-display text-sm font-bold uppercase tracking-[.05em] text-ink-strong transition-colors group-hover:text-primary">
+                                        {{ entry.user.username }}
+                                        {% if isMe %}<span class="font-mono text-[9px] tracking-[.2em] text-primary">· TOI</span>{% endif %}
+                                    </span>
+                                    <span class="chip-mono block text-ink-dim md:hidden">{{ entry.distinctCards }} cartes · ✦{{ entry.holoCards }} · ▣{{ entry.openedBoosters }}</span>
+                                </span>
+                            </span>
+
+                            <span class="block">
+                                <span class="chip-mono flex justify-between text-ink-muted">
+                                    <span class="hidden md:inline">{{ entry.distinctCards }} distinctes</span>
+                                    <span class="font-bold text-primary">{{ entry.completionPct }}%</span>
+                                </span>
+                                <span class="mt-1.5 block h-1 bg-white/10">
+                                    <span class="block h-full bg-gradient-to-r from-primary to-magenta shadow-[0_0_8px_#a435f077]" style="width: {{ entry.completionPct }}%;"></span>
+                                </span>
+                            </span>
+
+                            <span class="hidden text-right font-mono text-sm text-ink md:block">{{ entry.distinctCards }}</span>
+                            <span class="hidden text-right font-mono text-sm text-ink-muted md:block">{{ entry.totalCards }}</span>
+                            <span class="hidden text-right font-mono text-sm md:block {{ entry.holoCards > 0 ? 'text-primary' : 'text-ink-dim' }}">✦{{ entry.holoCards }}</span>
+                            <span class="hidden text-right font-mono text-sm md:block {{ entry.uniqueCards > 0 ? 'text-magenta' : 'text-ink-dim' }}">◆{{ entry.uniqueCards }}</span>
+                            <span class="hidden text-right font-mono text-sm text-ink-muted md:block">{{ entry.openedBoosters }}</span>
+                        </a>
+                    {% else %}
+                        <p class="px-8 py-16 text-center text-ink-dim">Aucun joueur pour le moment.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    </main>
+{% endblock %}
