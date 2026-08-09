@@ -58,6 +58,8 @@ class BaseController extends AbstractController
             'coverImage' => $coverImages[(string) $item['extension']->getId()] ?? null,
         ], array_reverse(\array_slice($extensions, -self::FEATURED_UNIVERSES)));
 
+        $upcoming = $extensionRepository->findUpcoming();
+
         return $this->render('pages/homepage.html.twig', [
             'cards' => $cards,
             'universes' => $featured,
@@ -65,7 +67,8 @@ class BaseController extends AbstractController
             'cardsTotal' => array_sum(array_column($extensions, 'cardCount')),
             'packsOpenedCount' => $boosterOpeningRepository->countAll(),
             'cardsPulledCount' => $boosterOpeningCardRepository->countPulledCards(),
-            'upcoming' => $extensionRepository->findUpcoming(),
+            'upcoming' => $upcoming,
+            'upcomingCover' => $upcoming ? $cardRepository->findTeaserCoverImageName($upcoming) : null,
         ]);
     }
 

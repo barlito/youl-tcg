@@ -100,6 +100,40 @@ final class HomepageTest extends WebTestCase
         $this->assertStringContainsString('01 SOON', $crawler->filter('#univers')->text());
     }
 
+    public function testSoonTileFallsBackToTheRarestCardArtwork(): void
+    {
+        $this->authenticateClient($this->client);
+
+        // no extension image: the tile must pick the rarest card's artwork,
+        // draft cards included (a teased universe is unpublished)
+        $upcoming = new Extension()
+            ->setName('Univers teasé sans image ' . uniqid())
+            ->setDescription('Encore secret')
+            ->setStatus(ExtensionStatusEnum::DRAFT)
+            ->setUpcoming(true)
+        ;
+        $this->entityManager->persist($upcoming);
+        foreach ([[CardRarityEnum::COMMON, 'teaser-common.png'], [CardRarityEnum::RARE, 'teaser-rare.png']] as [$rarity, $image]) {
+            $card = new Card()
+                ->setName('Teaser ' . $rarity->value . ' ' . uniqid())
+                ->setDescription('Test')
+                ->setExtension($upcoming)
+                ->setStatus(CardStatusEnum::DRAFT)
+                ->setRarity($rarity)
+            ;
+            $card->setImageName($image);
+            $this->entityManager->persist($card);
+        }
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        $img = $crawler->filter('[data-testid="soon-tile"] img');
+        $this->assertCount(1, $img);
+        $this->assertStringContainsString('/uploads/cards/teaser-rare.png', (string) $img->attr('src'));
+    }
+
     public function testUniverseGridOnlyShowsPublishedExtensions(): void
     {
         $this->authenticateClient($this->client);
