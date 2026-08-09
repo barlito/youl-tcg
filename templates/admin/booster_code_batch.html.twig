@@ -32,10 +32,16 @@
             {% if batchCodes is empty %}
                 <p>Aucun code sous ce libellé.</p>
             {% else %}
-                <p>
+                <p class="d-flex gap-2">
                     <a class="btn btn-secondary" href="{{ path('admin_booster_codes_batch_export', {batch: batchLabel}) }}">
                         <i class="fa fa-download"></i> Télécharger le CSV
                     </a>
+                    {# one code per line: ready to paste into a message or a sheet #}
+                    <button type="button" class="btn btn-secondary"
+                            data-copy-value="{{ batchCodes|map(code => code.formattedCode)|join("\n") }}"
+                            title="Copier les codes, un par ligne">
+                        <i class="fa fa-copy"></i> Copier les {{ batchCodes|length }} codes
+                    </button>
                 </p>
                 <div style="max-height: 320px; overflow-y: auto;">
                     <table class="table table-striped">
@@ -45,7 +51,15 @@
                         <tbody>
                             {% for code in batchCodes %}
                                 <tr>
-                                    <td><code>{{ code.formattedCode }}</code></td>
+                                    <td class="text-nowrap">
+                                        <code>{{ code.formattedCode }}</code>
+                                        <button type="button" class="btn btn-link btn-sm p-0 ms-2 align-baseline"
+                                                data-copy-value="{{ code.formattedCode }}"
+                                                title="Copier le code"
+                                                aria-label="Copier le code {{ code.formattedCode }}">
+                                            <i class="fa fa-copy"></i>
+                                        </button>
+                                    </td>
                                     <td>{{ code.booster.displayName }}</td>
                                     <td>{{ code.uses }} / {{ code.maxUses ?? '∞' }}</td>
                                 </tr>

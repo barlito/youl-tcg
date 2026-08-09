@@ -95,7 +95,9 @@ class BoosterCodeCrudController extends AbstractReadOnlyCrudController
     public function configureFields(string $pageName): iterable
     {
         // computed getters: no column to ORDER BY behind them
-        yield TextField::new('formattedCode')->setLabel('Code')->setSortable(false);
+        yield TextField::new('formattedCode')->setLabel('Code')->setSortable(false)
+            ->setTemplatePath('admin/field/booster_code.html.twig')
+        ;
         yield AssociationField::new('booster')->setLabel('Booster');
         yield IntegerField::new('quantity')->setLabel('Packs');
         yield TextField::new('usageLabel')->setLabel('Utilisations')->setSortable(false);

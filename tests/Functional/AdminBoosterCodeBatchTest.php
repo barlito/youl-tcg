@@ -57,6 +57,33 @@ final class AdminBoosterCodeBatchTest extends WebTestCase
 
         // the batch is listed back, formatted, right under the form
         $this->assertStringContainsString($codes[0]->getFormattedCode(), $crawler->filter('body')->text());
+
+        // one copy button per code, plus one for the whole batch
+        $this->assertCount(
+            6,
+            $crawler->filter('[data-copy-value]'),
+            'Each code carries a copy button, and the batch has its own.',
+        );
+    }
+
+    public function testTheCodeListingOffersACopyButton(): void
+    {
+        $client = self::createClient();
+        $this->authenticateClient($client);
+
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $code = new BoosterCode()
+            ->setCode('ABCDEFGHJKLM')
+            ->setBooster($this->createBooster())
+            ->setBatchLabel('Copie ' . uniqid())
+        ;
+        $entityManager->persist($code);
+        $entityManager->flush();
+
+        $crawler = $client->request('GET', '/admin/booster-code?query=' . urlencode((string) $code->getBatchLabel()));
+
+        self::assertResponseIsSuccessful();
+        $this->assertCount(1, $crawler->filter('[data-copy-value="ABCD-EFGH-JKLM"]'));
     }
 
     public function testAnEmptyMaxUsesMeansUnlimited(): void

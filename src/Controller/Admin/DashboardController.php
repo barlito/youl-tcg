@@ -54,7 +54,13 @@ class DashboardController extends AbstractDashboardController
         $adminCss = $this->assetMapper->getAsset('styles/admin/admin.css')
             ?? throw new \LogicException('Asset "styles/admin/admin.css" not found in the asset map.');
 
-        return parent::configureAssets()->addCssFile($adminCss->publicPath);
+        $copyJs = $this->assetMapper->getAsset('scripts/admin/copy-to-clipboard.js')
+            ?? throw new \LogicException('Asset "scripts/admin/copy-to-clipboard.js" not found in the asset map.');
+
+        return parent::configureAssets()
+            ->addCssFile($adminCss->publicPath)
+            ->addJsFile($copyJs->publicPath)
+        ;
     }
 
     #[\Override]
