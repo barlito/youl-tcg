@@ -41,6 +41,9 @@ when@test:
         App\Service\Booster\BoosterCodeGenerator:
             public: true
 
+        App\Service\Recycle\RecycleService:
+            public: true
+
         # Functional tests reset a player's code-attempt budget before running:
         # the limiter state is cached on disk and would otherwise carry over
         # from one test (and one run) to the next.

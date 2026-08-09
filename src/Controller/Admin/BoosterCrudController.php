@@ -8,6 +8,7 @@ use App\Admin\Field\ImageField as VichImageField;
 use App\Entity\Booster;
 use App\Entity\BoosterClaim;
 use App\Entity\BoosterOpening;
+use App\Entity\RecycleOperation;
 use App\Entity\UserBooster;
 use App\Enum\Entity\CardRarityEnum;
 use App\Form\BoosterSlotType;
@@ -223,6 +224,7 @@ class BoosterCrudController extends AbstractGuardedCrudController
             '%d joueur(s) le possèdent encore' => $this->entityManager->getRepository(UserBooster::class)->count(['booster' => $entity]),
             '%d ouverture(s) le référencent' => $this->entityManager->getRepository(BoosterOpening::class)->count(['booster' => $entity]),
             '%d récupération(s) le référencent' => $this->entityManager->getRepository(BoosterClaim::class)->count(['booster' => $entity]),
+            '%d recyclage(s) le référencent' => $this->entityManager->getRepository(RecycleOperation::class)->count(['booster' => $entity]),
         ]);
     }
 }
