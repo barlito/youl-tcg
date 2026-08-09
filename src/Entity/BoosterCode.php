@@ -95,6 +95,14 @@ class BoosterCode implements \Stringable
         return implode('-', str_split($this->code, 4));
     }
 
+    /**
+     * Consumption at a glance for the back-office: "3 / 10", "3 / ∞".
+     */
+    public function getUsageLabel(): string
+    {
+        return \sprintf('%d / %s', $this->uses, $this->maxUses ?? '∞');
+    }
+
     public function getBooster(): Booster
     {
         return $this->booster;

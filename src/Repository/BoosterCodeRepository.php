@@ -36,6 +36,20 @@ class BoosterCodeRepository extends ServiceEntityRepository
     }
 
     /**
+     * @return list<BoosterCode>
+     */
+    public function findByBatch(string $batchLabel): array
+    {
+        return $this->createQueryBuilder('boosterCode')
+            ->andWhere('boosterCode.batchLabel = :batchLabel')
+            ->setParameter('batchLabel', $batchLabel)
+            ->orderBy('boosterCode.code', 'ASC')
+            ->getQuery()
+            ->getResult()
+        ;
+    }
+
+    /**
      * Codes of the given list that already exist, so a generated batch can be
      * rerolled before hitting the unique index.
      *

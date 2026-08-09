@@ -54,7 +54,13 @@ class DashboardController extends AbstractDashboardController
         $adminCss = $this->assetMapper->getAsset('styles/admin/admin.css')
             ?? throw new \LogicException('Asset "styles/admin/admin.css" not found in the asset map.');
 
-        return parent::configureAssets()->addCssFile($adminCss->publicPath);
+        $copyJs = $this->assetMapper->getAsset('scripts/admin/copy-to-clipboard.js')
+            ?? throw new \LogicException('Asset "scripts/admin/copy-to-clipboard.js" not found in the asset map.');
+
+        return parent::configureAssets()
+            ->addCssFile($adminCss->publicPath)
+            ->addJsFile($copyJs->publicPath)
+        ;
     }
 
     #[\Override]
@@ -66,6 +72,11 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkTo(ExtensionCrudController::class, 'Extensions', 'fa fa-chart-bar');
         yield MenuItem::linkTo(ExtensionBannerCrudController::class, 'Bannières d\'univers', 'fa fa-image');
         yield MenuItem::linkTo(BoosterCrudController::class, 'Boosters', 'fa fa-box-open');
+
+        yield MenuItem::section('Distribution');
+        yield MenuItem::linkToRoute('Générer des codes', 'fa fa-ticket', 'admin_booster_codes_batch');
+        yield MenuItem::linkTo(BoosterCodeCrudController::class, 'Codes', 'fa fa-key');
+        yield MenuItem::linkTo(BoosterCodeRedemptionCrudController::class, 'Utilisations de codes', 'fa fa-check-double');
 
         yield MenuItem::section('Économie (lecture seule)');
         yield MenuItem::linkTo(DiscordUserCrudController::class, 'Joueurs', 'fa fa-users');

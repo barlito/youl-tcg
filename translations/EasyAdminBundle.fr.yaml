@@ -1,0 +1,4 @@
+# EasyAdmin annonce « Cette action est irréversible » sur TOUTES les actions de
+# lot, alors que les nôtres se défont toutes (publier/brouillon, révoquer/
+# réactiver). Formulation neutre : elle reste vraie quelle que soit l'action.
+batch_action_modal.content: Confirme pour appliquer l'action aux éléments sélectionnés.

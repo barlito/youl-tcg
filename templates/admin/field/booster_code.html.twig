@@ -1,0 +1,12 @@
+{# Code + copy button (listing and detail). The JS lives in
+   assets/scripts/admin/copy-to-clipboard.js, loaded by the dashboard. #}
+<span class="text-nowrap">
+    <code>{{ field.formattedValue }}</code>
+    <button type="button"
+            class="btn btn-link btn-sm p-0 ms-2 align-baseline"
+            data-copy-value="{{ field.formattedValue }}"
+            title="Copier le code"
+            aria-label="Copier le code {{ field.formattedValue }}">
+        <i class="fa fa-copy"></i>
+    </button>
+</span>
