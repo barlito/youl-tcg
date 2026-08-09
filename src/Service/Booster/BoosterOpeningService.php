@@ -32,6 +32,7 @@ final readonly class BoosterOpeningService
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
         private CardRepository $cardRepository,
+        private StreakRewardService $streakRewardService,
     ) {
     }
 
@@ -42,7 +43,7 @@ final readonly class BoosterOpeningService
      */
     public function open(DiscordUser $discordUser, Booster $booster): BoosterOpeningResult
     {
-        return $this->entityManager->wrapInTransaction(function () use ($discordUser, $booster): BoosterOpeningResult {
+        $result = $this->entityManager->wrapInTransaction(function () use ($discordUser, $booster): BoosterOpeningResult {
             $this->userInventoryService->debitBooster($discordUser, $booster);
 
             $openedAt = $this->clock->now();
@@ -74,6 +75,13 @@ final readonly class BoosterOpeningService
             // hand it to the caller so the reveal can mirror the actual draw
             return new BoosterOpeningResult($opening, $drawnCards);
         });
+
+        // Post-commit on purpose: the streak query must see the opening just
+        // committed, and a grant hiccup must not roll the opening back. A
+        // missed grant self-heals at the next opening of the same series.
+        $this->streakRewardService->grantMilestones($discordUser);
+
+        return $result;
     }
 
     /**
