@@ -107,6 +107,43 @@ class UserCardRepository extends ServiceEntityRepository
     }
 
     /**
+     * Collection aggregates for every collector at once (leaderboard): distinct
+     * cards, total copies (holos included) and holo copies — a single grouped
+     * query instead of one per player.
+     *
+     * @return array<string, array{distinct: int, total: int, holo: int}> discord id => stats
+     */
+    public function aggregateOwnedByUser(): array
+    {
+        /** @var list<array{userId: string, distinctCount: string|int, totalCount: string|int, holoCount: string|int}> $rows */
+        $rows = $this->createQueryBuilder('uc')
+            ->select(
+                'IDENTITY(uc.discordUser) AS userId',
+                'COUNT(DISTINCT c.id) AS distinctCount',
+                // quantity already includes the holo copies (holoQuantity is a subset)
+                'COALESCE(SUM(uc.quantity), 0) AS totalCount',
+                'COALESCE(SUM(uc.holoQuantity), 0) AS holoCount',
+            )
+            ->join('uc.card', 'c')
+            ->andWhere('uc.quantity > 0 OR uc.holoQuantity > 0')
+            ->groupBy('uc.discordUser')
+            ->getQuery()
+            ->getResult()
+        ;
+
+        $stats = [];
+        foreach ($rows as $row) {
+            $stats[$row['userId']] = [
+                'distinct' => (int) $row['distinctCount'],
+                'total' => (int) $row['totalCount'],
+                'holo' => (int) $row['holoCount'],
+            ];
+        }
+
+        return $stats;
+    }
+
+    /**
      * Total number of cards owned, holo included (collection banner stat).
      */
     public function sumOwnedQuantities(DiscordUser $discordUser): int

@@ -108,6 +108,31 @@ class CardRepository extends ServiceEntityRepository
     }
 
     /**
+     * How many one-of-one uniques each player holds (leaderboard stat): the
+     * count only — WHICH uniques someone holds stays a mystery on purpose.
+     *
+     * @return array<string, int> discord id => claimed uniques
+     */
+    public function countClaimedUniquesByUser(): array
+    {
+        /** @var list<array{userId: string, uniqueCount: string|int}> $rows */
+        $rows = $this->createQueryBuilder('c')
+            ->select('IDENTITY(c.claimedBy) AS userId', 'COUNT(c.id) AS uniqueCount')
+            ->andWhere('c.claimedBy IS NOT NULL')
+            ->groupBy('c.claimedBy')
+            ->getQuery()
+            ->getResult()
+        ;
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[$row['userId']] = (int) $row['uniqueCount'];
+        }
+
+        return $counts;
+    }
+
+    /**
      * Cover artwork of the "next universe" teaser: the extension's rarest
      * card, DRAFTS INCLUDED — a teased universe is unpublished, so its cards
      * usually are too (the tile blurs the artwork anyway).

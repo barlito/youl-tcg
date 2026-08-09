@@ -22,4 +22,27 @@ class BoosterOpeningRepository extends ServiceEntityRepository
     {
         return $this->count([]);
     }
+
+    /**
+     * Boosters opened per player, one grouped query (leaderboard stat).
+     *
+     * @return array<string, int> discord id => openings
+     */
+    public function countGroupedByUser(): array
+    {
+        /** @var list<array{userId: string, openingCount: string|int}> $rows */
+        $rows = $this->createQueryBuilder('o')
+            ->select('IDENTITY(o.discordUser) AS userId', 'COUNT(o.id) AS openingCount')
+            ->groupBy('o.discordUser')
+            ->getQuery()
+            ->getResult()
+        ;
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[$row['userId']] = (int) $row['openingCount'];
+        }
+
+        return $counts;
+    }
 }
