@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\LockMode;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -104,6 +106,30 @@ class UserCardRepository extends ServiceEntityRepository
         ;
 
         return array_map(static fn (array $row): string => (string) $row['cardId'], $rows);
+    }
+
+    /**
+     * Pessimistic write lock on the user's rows for the given cards, so a
+     * recycle debit re-validates quantities against what concurrent operations
+     * left. Requires an active transaction. Rows are locked in card id order:
+     * two concurrent selections lock in the same sequence, never a deadlock.
+     *
+     * @param list<Card> $cards
+     *
+     * @return list<UserCard>
+     */
+    public function findOwnedForUpdate(DiscordUser $discordUser, array $cards): array
+    {
+        return $this->createQueryBuilder('uc')
+            ->andWhere('uc.discordUser = :user')
+            ->andWhere('uc.card IN (:cards)')
+            ->setParameter('user', $discordUser)
+            ->setParameter('cards', $cards)
+            ->orderBy('IDENTITY(uc.card)', 'ASC')
+            ->getQuery()
+            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+            ->getResult()
+        ;
     }
 
     /**
