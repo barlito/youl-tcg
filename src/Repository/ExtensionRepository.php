@@ -22,12 +22,12 @@ class ExtensionRepository extends ServiceEntityRepository
     }
 
     /**
-     * The "next universe" teaser tile; draft extensions qualify (the whole
-     * point is teasing a universe BEFORE it is published).
+     * The "next universe" teaser tile. Drafts only: a published extension
+     * already has its own tile, teasing it too would duplicate it.
      */
     public function findUpcoming(): ?Extension
     {
-        return $this->findOneBy(['upcoming' => true]);
+        return $this->findOneBy(['upcoming' => true, 'status' => ExtensionStatusEnum::DRAFT]);
     }
 
     /**

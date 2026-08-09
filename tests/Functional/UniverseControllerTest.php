@@ -87,6 +87,18 @@ final class UniverseControllerTest extends WebTestCase
         $this->assertCount(0, $tile->filter('a'));
     }
 
+    public function testAPublishedExtensionIsNeverTeased(): void
+    {
+        // published = it already has its own tile; a teaser would duplicate it
+        $this->extension->setUpcoming(true);
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/univers');
+
+        self::assertResponseIsSuccessful();
+        $this->assertCount(0, $crawler->filter('[data-testid="soon-tile"]'));
+    }
+
     public function testLiveBadgeOnlyShowsWithAClaimableBooster(): void
     {
         // a published universe whose only booster is event-only (non claimable)

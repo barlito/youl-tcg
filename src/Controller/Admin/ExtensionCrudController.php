@@ -82,7 +82,7 @@ class ExtensionCrudController extends AbstractGuardedCrudController
         ;
         yield BooleanField::new('upcoming')
             ->setLabel('Prochain univers (teaser)')
-            ->setHelp('Affiche l\'univers en tuile floutée « À suivre » sur l\'accueil et /univers. Un seul univers peut porter le flag : l\'activer ici le retire automatiquement des autres.')
+            ->setHelp('Affiche l\'univers en tuile floutée « À suivre » sur l\'accueil et /univers, tant qu\'il est en brouillon (publié, il a déjà sa tuile). Un seul univers peut porter le flag : l\'activer ici le retire automatiquement des autres.')
         ;
         yield ImageField::new('imageName')
             ->setLabel('Image')
