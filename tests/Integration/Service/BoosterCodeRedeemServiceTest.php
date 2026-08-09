@@ -11,12 +11,11 @@ use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\UserBooster;
+use App\Enum\Booster\BoosterCodeRefusalEnum;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
-use App\Exception\Booster\BoosterCodeAlreadyRedeemedException;
-use App\Exception\Booster\BoosterCodeExhaustedException;
-use App\Exception\Booster\BoosterCodeNotAvailableYetException;
+use App\Exception\Booster\BoosterCodeRefusedException;
 use App\Repository\BoosterClaimRepository;
 use App\Service\Booster\BoosterCodeGenerator;
 use App\Service\Booster\BoosterCodeRedeemService;
@@ -95,8 +94,9 @@ final class BoosterCodeRedeemServiceTest extends KernelTestCase
 
         try {
             $this->redeemService->redeem($scenario['user'], $scenario['code']->getCode());
-            $this->fail('Expected BoosterCodeAlreadyRedeemedException.');
-        } catch (BoosterCodeAlreadyRedeemedException) {
+            $this->fail('Expected BoosterCodeRefusedException.');
+        } catch (BoosterCodeRefusedException $exception) {
+            $this->assertSame(BoosterCodeRefusalEnum::ALREADY_REDEEMED, $exception->getReason());
         }
 
         $this->entityManager->clear();
@@ -119,9 +119,12 @@ final class BoosterCodeRedeemServiceTest extends KernelTestCase
         $this->redeemService->redeem($players[0], $scenario['code']->getCode());
         $this->redeemService->redeem($players[1], $scenario['code']->getCode());
 
-        $this->expectException(BoosterCodeExhaustedException::class);
-
-        $this->redeemService->redeem($players[2], $scenario['code']->getCode());
+        try {
+            $this->redeemService->redeem($players[2], $scenario['code']->getCode());
+            $this->fail('Expected BoosterCodeRefusedException.');
+        } catch (BoosterCodeRefusedException $exception) {
+            $this->assertSame(BoosterCodeRefusalEnum::EXHAUSTED, $exception->getReason());
+        }
     }
 
     public function testACodeOfAnUnpublishedExtensionKeepsItsUses(): void
@@ -130,8 +133,9 @@ final class BoosterCodeRedeemServiceTest extends KernelTestCase
 
         try {
             $this->redeemService->redeem($scenario['user'], $scenario['code']->getCode());
-            $this->fail('Expected BoosterCodeNotAvailableYetException.');
-        } catch (BoosterCodeNotAvailableYetException) {
+            $this->fail('Expected BoosterCodeRefusedException.');
+        } catch (BoosterCodeRefusedException $exception) {
+            $this->assertSame(BoosterCodeRefusalEnum::NOT_AVAILABLE_YET, $exception->getReason());
         }
 
         $this->entityManager->clear();

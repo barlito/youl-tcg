@@ -8,27 +8,27 @@ use App\Entity\Booster;
 use App\Entity\BoosterCode;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
+use App\Enum\Booster\BoosterCodeRefusalEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
-use App\Exception\Booster\BoosterCodeAlreadyRedeemedException;
-use App\Exception\Booster\BoosterCodeExhaustedException;
-use App\Exception\Booster\BoosterCodeExpiredException;
-use App\Exception\Booster\BoosterCodeNotAvailableYetException;
-use App\Exception\Booster\InvalidBoosterCodeException;
-use App\Repository\BoosterCodeRedemptionRepository;
+use App\Exception\Booster\BoosterCodeRefusedException;
 use App\Repository\BoosterCodeRepository;
-use App\Repository\CardRepository;
-use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\BoosterCodeRedeemService;
 use App\Service\Booster\UserInventoryService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
+use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\ConstraintViolationList;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
+/**
+ * The refusal rules themselves live in RedeemableBoosterCodeValidator and are
+ * covered there; what matters here is the orchestration: resolve under lock,
+ * refuse on violations, otherwise credit and audit.
+ */
 final class BoosterCodeRedeemServiceTest extends TestCase
 {
-    private const string EXTENSION_ID = '0197c0de-0000-7000-8000-000000000001';
-
     private const string CODE = 'ABCDEFGHJKLM';
 
     public function testRedeemCreditsTheInventoryAndAuditsTheRedemption(): void
@@ -53,18 +53,15 @@ final class BoosterCodeRedeemServiceTest extends TestCase
         $this->assertSame(1, $boosterCode->getUses());
     }
 
-    public function testRedeemNormalisesCaseAndSeparatorsBeforeLookup(): void
+    public function testTheLookupUsesTheCanonicalCodeWhateverThePlayerTyped(): void
     {
-        $boosterCode = $this->code();
-
         $codeRepository = $this->createMock(BoosterCodeRepository::class);
-        $codeRepository->expects($this->once())->method('findOneForUpdate')->with(self::CODE)->willReturn($boosterCode);
+        $codeRepository->expects($this->once())->method('findOneForUpdate')->with(self::CODE)->willReturn($this->code());
 
         $service = new BoosterCodeRedeemService(
             $codeRepository,
-            $this->redemptionRepository(false),
             $this->createStub(UserInventoryService::class),
-            $this->availability(drawable: true),
+            $this->validatorReturning(new ConstraintViolationList()),
             $this->entityManager(),
             new MockClock('2026-08-08 12:00:00', 'UTC'),
         );
@@ -72,137 +69,63 @@ final class BoosterCodeRedeemServiceTest extends TestCase
         $service->redeem($this->user(), ' abcd-efgh jklm ');
     }
 
-    public function testBlankInputIsRejectedWithoutHittingTheDatabase(): void
+    public function testBlankInputIsValidatedWithoutHittingTheDatabase(): void
     {
         $codeRepository = $this->createMock(BoosterCodeRepository::class);
         $codeRepository->expects($this->never())->method('findOneForUpdate');
 
         $service = new BoosterCodeRedeemService(
             $codeRepository,
-            $this->createStub(BoosterCodeRedemptionRepository::class),
             $this->createStub(UserInventoryService::class),
-            $this->availability(drawable: true),
+            $this->validatorReturning($this->violation('Saisis un code pour continuer.', null)),
             $this->entityManager(),
             new MockClock('2026-08-08 12:00:00', 'UTC'),
         );
 
-        $this->expectException(InvalidBoosterCodeException::class);
-
-        $service->redeem($this->user(), '  --  ');
-    }
-
-    public function testUnknownCodeIsRefused(): void
-    {
-        $inventory = $this->createMock(UserInventoryService::class);
-        $inventory->expects($this->never())->method('creditBooster');
-
-        $this->expectException(InvalidBoosterCodeException::class);
-
-        $this->service(null, $inventory)->redeem($this->user(), self::CODE);
-    }
-
-    public function testRevokedCodeIsRefusedLikeAnUnknownOne(): void
-    {
-        $inventory = $this->createMock(UserInventoryService::class);
-        $inventory->expects($this->never())->method('creditBooster');
-
         try {
-            $this->service($this->code()->setDisabled(true), $inventory)->redeem($this->user(), self::CODE);
-            $this->fail('Expected InvalidBoosterCodeException.');
-        } catch (InvalidBoosterCodeException $exception) {
-            $this->assertSame('Ce code n\'existe pas ou n\'est plus valide.', $exception->getUserMessage());
+            $service->redeem($this->user(), '  --  ');
+            $this->fail('Expected BoosterCodeRefusedException.');
+        } catch (BoosterCodeRefusedException $exception) {
+            // a violation with no code of ours falls back to the input reason
+            $this->assertSame(BoosterCodeRefusalEnum::INVALID_INPUT, $exception->getReason());
+            $this->assertSame('Saisis un code pour continuer.', $exception->getUserMessage());
         }
     }
 
-    public function testExpiredCodeIsRefused(): void
+    public function testAViolationRefusesTheRedemptionWithoutCreditingAnything(): void
     {
-        $inventory = $this->createMock(UserInventoryService::class);
-        $inventory->expects($this->never())->method('creditBooster');
-
-        $boosterCode = $this->code()->setExpiresAt(new \DateTimeImmutable('2026-08-08 11:59:59', new \DateTimeZone('UTC')));
-
-        $this->expectException(BoosterCodeExpiredException::class);
-
-        $this->service($boosterCode, $inventory)->redeem($this->user(), self::CODE);
-    }
-
-    public function testCodeAlreadyRedeemedByThisPlayerIsRefused(): void
-    {
-        $inventory = $this->createMock(UserInventoryService::class);
-        $inventory->expects($this->never())->method('creditBooster');
-
-        $boosterCode = $this->code()->setMaxUses(100);
-
-        $this->expectException(BoosterCodeAlreadyRedeemedException::class);
-
-        $this->service($boosterCode, $inventory, alreadyRedeemed: true)->redeem($this->user(), self::CODE);
-    }
-
-    public function testExhaustedCodeIsRefused(): void
-    {
-        $inventory = $this->createMock(UserInventoryService::class);
-        $inventory->expects($this->never())->method('creditBooster');
-
-        $boosterCode = $this->code()->setMaxUses(1);
-        $boosterCode->incrementUses();
-
-        $this->expectException(BoosterCodeExhaustedException::class);
-
-        $this->service($boosterCode, $inventory)->redeem($this->user(), self::CODE);
-    }
-
-    public function testUnlimitedCodeIsNeverExhausted(): void
-    {
-        $boosterCode = $this->code()->setMaxUses(null);
-        foreach (range(1, 50) as $ignored) {
-            $boosterCode->incrementUses();
-        }
-
-        $this->service($boosterCode)->redeem($this->user(), self::CODE);
-
-        $this->assertSame(51, $boosterCode->getUses());
-    }
-
-    public function testUnpublishedExtensionBouncesWithoutBurningAUse(): void
-    {
-        $inventory = $this->createMock(UserInventoryService::class);
-        $inventory->expects($this->never())->method('creditBooster');
-
-        $boosterCode = $this->code();
-        $boosterCode->getBooster()->getExtension()->setStatus(ExtensionStatusEnum::DRAFT);
-
-        try {
-            $this->service($boosterCode, $inventory)->redeem($this->user(), self::CODE);
-            $this->fail('Expected BoosterCodeNotAvailableYetException.');
-        } catch (BoosterCodeNotAvailableYetException $exception) {
-            $this->assertStringContainsString('pas encore disponible', $exception->getUserMessage());
-        }
-
-        $this->assertSame(0, $boosterCode->getUses());
-    }
-
-    public function testBoosterWithoutPublishedCardBouncesWithoutBurningAUse(): void
-    {
-        $inventory = $this->createMock(UserInventoryService::class);
-        $inventory->expects($this->never())->method('creditBooster');
-
         $boosterCode = $this->code();
 
-        $this->expectException(BoosterCodeNotAvailableYetException::class);
+        $inventory = $this->createMock(UserInventoryService::class);
+        $inventory->expects($this->never())->method('creditBooster');
+
+        $entityManager = $this->entityManagerMock();
+        $entityManager->expects($this->never())->method('persist');
+        $entityManager->expects($this->never())->method('flush');
+
+        $service = $this->service(
+            $boosterCode,
+            $inventory,
+            $entityManager,
+            violations: $this->violation('Tu as déjà utilisé ce code.', BoosterCodeRefusalEnum::ALREADY_REDEEMED),
+        );
 
         try {
-            $this->service($boosterCode, $inventory, drawable: false)->redeem($this->user(), self::CODE);
-        } finally {
-            $this->assertSame(0, $boosterCode->getUses());
+            $service->redeem($this->user(), self::CODE);
+            $this->fail('Expected BoosterCodeRefusedException.');
+        } catch (BoosterCodeRefusedException $exception) {
+            $this->assertSame(BoosterCodeRefusalEnum::ALREADY_REDEEMED, $exception->getReason());
+            $this->assertSame('Tu as déjà utilisé ce code.', $exception->getUserMessage());
         }
+
+        $this->assertSame(0, $boosterCode->getUses(), 'A refused attempt must not burn a use.');
     }
 
     private function service(
         ?BoosterCode $boosterCode = null,
         ?UserInventoryService $inventory = null,
         ?EntityManagerInterface $entityManager = null,
-        bool $alreadyRedeemed = false,
-        bool $drawable = true,
+        ?ConstraintViolationList $violations = null,
         ?MockClock $clock = null,
     ): BoosterCodeRedeemService {
         $codeRepository = $this->createStub(BoosterCodeRepository::class);
@@ -210,20 +133,26 @@ final class BoosterCodeRedeemServiceTest extends TestCase
 
         return new BoosterCodeRedeemService(
             $codeRepository,
-            $this->redemptionRepository($alreadyRedeemed),
             $inventory ?? $this->createStub(UserInventoryService::class),
-            $this->availability($drawable),
+            $this->validatorReturning($violations ?? new ConstraintViolationList()),
             $entityManager ?? $this->entityManager(),
             $clock ?? new MockClock('2026-08-08 12:00:00', 'UTC'),
         );
     }
 
-    private function redemptionRepository(bool $alreadyRedeemed): BoosterCodeRedemptionRepository
+    private function violation(string $message, ?BoosterCodeRefusalEnum $reason): ConstraintViolationList
     {
-        $repository = $this->createStub(BoosterCodeRedemptionRepository::class);
-        $repository->method('existsFor')->willReturn($alreadyRedeemed);
+        return new ConstraintViolationList([
+            new ConstraintViolation($message, null, [], null, null, null, null, $reason?->value),
+        ]);
+    }
 
-        return $repository;
+    private function validatorReturning(ConstraintViolationList $violations): ValidatorInterface
+    {
+        $validator = $this->createStub(ValidatorInterface::class);
+        $validator->method('validate')->willReturn($violations);
+
+        return $validator;
     }
 
     /**
@@ -245,14 +174,6 @@ final class BoosterCodeRedeemServiceTest extends TestCase
         return $entityManager;
     }
 
-    private function availability(bool $drawable): BoosterAvailabilityService
-    {
-        $cardRepository = $this->createStub(CardRepository::class);
-        $cardRepository->method('findExtensionIdsWithPublishedCards')->willReturn($drawable ? [self::EXTENSION_ID] : []);
-
-        return new BoosterAvailabilityService($cardRepository);
-    }
-
     private function user(): DiscordUser
     {
         return new DiscordUser()->setDiscordId('188967649332428800');
@@ -260,15 +181,11 @@ final class BoosterCodeRedeemServiceTest extends TestCase
 
     private function code(): BoosterCode
     {
-        $extension = new Extension()
-            ->setName('Published ext')
-            ->setStatus(ExtensionStatusEnum::PUBLISHED)
-        ;
-        $extension->setId(self::EXTENSION_ID);
-
         return new BoosterCode()
             ->setCode(self::CODE)
-            ->setBooster(new Booster()->setExtension($extension))
+            ->setBooster(new Booster()->setExtension(
+                new Extension()->setName('Published ext')->setStatus(ExtensionStatusEnum::PUBLISHED),
+            ))
         ;
     }
 }
