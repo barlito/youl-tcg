@@ -9,8 +9,7 @@ use App\Entity\BoosterCode;
 use App\Repository\BoosterCodeRepository;
 use App\Service\Booster\BoosterCodeGenerator;
 use Doctrine\ORM\EntityManagerInterface;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Option\EA;
-use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
@@ -19,43 +18,32 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Batch generation of redeemable codes. A batch is not an entity: the codes
  * share a free-form label, which is enough to list, export and revoke them
  * together — reusing a label simply grows the batch.
+ *
+ * Registered as a real admin route (#[AdminRoute], path appended to the
+ * dashboard's): the pages get plain URLs — /admin/booster-codes/batch — and
+ * the admin context, without the legacy ?routeName= redirect.
  */
+#[AdminRoute(path: '/booster-codes', name: 'booster_codes')]
 class AdminBoosterCodeBatchController extends AbstractController
 {
     private const int MAX_BATCH_SIZE = 1000;
 
     public function __construct(
-        private readonly AdminUrlGenerator $adminUrlGenerator,
         private readonly EntityManagerInterface $entityManager,
         private readonly BoosterCodeGenerator $boosterCodeGenerator,
         private readonly BoosterCodeRepository $boosterCodeRepository,
     ) {
     }
 
-    /**
-     * $batch comes from the request attributes, not the query string: a custom
-     * admin route is reached through the dashboard, which re-injects its
-     * parameters as route attributes (see EA's AdminRouterSubscriber).
-     */
-    #[Route('/admin/booster-codes/batch', name: 'admin_booster_codes_batch')]
-    public function __invoke(Request $request, ?string $batch = null): Response
+    #[AdminRoute(path: '/batch', name: 'batch')]
+    public function __invoke(Request $request): Response
     {
-        // The template extends the EasyAdmin layout, which needs the admin
-        // context: a direct hit bounces through the dashboard (same trick as
-        // the card batch page).
-        if (!$request->attributes->has(EA::CONTEXT_REQUEST_ATTRIBUTE)) {
-            return $this->redirect(
-                $this->adminUrlGenerator->setRoute('admin_booster_codes_batch', $request->query->all())->generateUrl(),
-            );
-        }
-
         $form = $this->buildForm();
         $form->handleRequest($request);
 
@@ -83,15 +71,15 @@ class AdminBoosterCodeBatchController extends AbstractController
                 $data['batchLabel'],
             ));
 
-            return $this->redirect(
-                $this->adminUrlGenerator->setRoute('admin_booster_codes_batch', ['batch' => $data['batchLabel']])->generateUrl(),
-            );
+            return $this->redirectToRoute('admin_booster_codes_batch', ['batch' => $data['batchLabel']]);
         }
+
+        $batchLabel = $request->query->getString('batch');
 
         return $this->render('admin/booster_code_batch.html.twig', [
             'form' => $form->createView(),
-            'batchLabel' => $batch,
-            'batchCodes' => null !== $batch ? $this->boosterCodeRepository->findByBatch($batch) : [],
+            'batchLabel' => '' !== $batchLabel ? $batchLabel : null,
+            'batchCodes' => '' !== $batchLabel ? $this->boosterCodeRepository->findByBatch($batchLabel) : [],
         ]);
     }
 
@@ -99,7 +87,7 @@ class AdminBoosterCodeBatchController extends AbstractController
      * CSV of a whole batch — what actually gets pasted into a Discord DM or a
      * giveaway sheet.
      */
-    #[Route('/admin/booster-codes/batch/export', name: 'admin_booster_codes_batch_export')]
+    #[AdminRoute(path: '/batch/export', name: 'batch_export')]
     public function export(Request $request): Response
     {
         $batchLabel = $request->query->getString('batch');

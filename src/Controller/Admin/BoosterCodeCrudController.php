@@ -54,7 +54,7 @@ class BoosterCodeCrudController extends AbstractReadOnlyCrudController
             ->setSearchFields(['code', 'batchLabel', 'booster.name'])
             ->setTimezone('Europe/Paris')
             ->setPaginatorPageSize(50)
-            ->setHelp(Crud::PAGE_INDEX, 'Les codes se créent depuis « Générer des codes ». Ici tu consultes leur consommation et tu peux les révoquer.')
+            ->setHelp(Crud::PAGE_INDEX, 'Les codes se créent depuis « Générer des codes ». Pour en révoquer (ou réactiver), coche les lignes concernées : les boutons apparaissent en bas de la liste. Un code révoqué garde son historique — on ne les supprime pas.')
         ;
     }
 
