@@ -1,0 +1,18 @@
+{# Cartes d'un côté d'une offre. `lines` = TradeOfferLine[], `label` = intitulé. #}
+<div>
+    <p class="chip-mono text-ink-dim">{{ label }}</p>
+    {% if lines is empty %}
+        <p class="mt-2 text-sm text-ink-dim">—</p>
+    {% else %}
+        <div class="mt-2 flex flex-wrap gap-3">
+            {% for line in lines %}
+                <div class="relative w-24 shrink-0">
+                    {{ include('components/CardComponent.html.twig', { card: line.card, holo: line.holoQuantity > 0, lazy: true }) }}
+                    <span class="chip-mono absolute -right-1.5 -top-1.5 bg-black/90 px-1.5 py-0.5 font-bold text-white">
+                        ×{{ line.totalQuantity }}{% if line.holoQuantity > 0 %} <span class="text-primary">✦{{ line.holoQuantity }}</span>{% endif %}
+                    </span>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
