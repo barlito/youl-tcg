@@ -30,6 +30,25 @@ class UserCardRepository extends ServiceEntityRepository
     }
 
     /**
+     * Pessimistic write lock on one inventory row, guarding its quantities
+     * against concurrent trades/openings. Requires an active transaction.
+     * NB: the locked SELECT does NOT re-hydrate an entity already in the
+     * identity map — callers must refresh() the returned row.
+     */
+    public function findOneForUpdate(DiscordUser $discordUser, Card $card): ?UserCard
+    {
+        return $this->createQueryBuilder('userCard')
+            ->andWhere('userCard.discordUser = :discordUser')
+            ->andWhere('userCard.card = :card')
+            ->setParameter('discordUser', $discordUser)
+            ->setParameter('card', $card)
+            ->getQuery()
+            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+            ->getOneOrNullResult()
+        ;
+    }
+
+    /**
      * Owned inventory entries with the card and its extension eagerly hydrated for
      * the collection grid, sorted by rarity (rarest first) then name.
      *
