@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup castor
-        uses: castor-php/setup-castor@v1.0.0
+        uses: castor-php/setup-castor@v1.1.0
 
       - name: Set up SSH
         run: |
