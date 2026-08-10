@@ -1,0 +1,144 @@
+<div {{ attributes }}>
+    {% set received = this.received %}
+    {% set sent = this.sent %}
+    {% set history = this.history %}
+    <main>
+        {# --------------------------------------------------------- En-tête #}
+        <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
+            <div class="glow-ambient" aria-hidden="true"></div>
+            <div class="relative mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <p class="eyebrow">04 / Échanges</p>
+                    <h1 class="mt-2 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
+                        Échanges
+                    </h1>
+                    <p class="mt-2 max-w-lg text-sm text-ink-muted">
+                        Propose tes doublons à un autre joueur contre ce qui te manque.
+                        Les cartes engagées dans une offre en attente restent réservées jusqu'à sa résolution.
+                    </p>
+                </div>
+                <a href="{{ path('trades_new') }}" class="btn-arcade shrink-0">Nouvelle offre ▸</a>
+            </div>
+        </section>
+
+        {% if error %}
+            <p class="border-b border-magenta/40 bg-magenta/10 px-6 py-3 text-center text-sm text-magenta lg:px-12" data-testid="trade-error">{{ error }}</p>
+        {% endif %}
+        {% if success %}
+            <p class="border-b border-live/40 bg-live/10 px-6 py-3 text-center text-sm text-live" data-testid="trade-success">{{ success }}</p>
+        {% endif %}
+
+        {# --------------------------------------------------------- Reçues #}
+        <section class="px-6 py-10 lg:px-12">
+            <div class="mx-auto max-w-7xl">
+                <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
+                    Offres reçues <span class="text-primary">{{ '%02d'|format(received|length) }}</span>
+                </h2>
+
+                {% if received is empty %}
+                    <div class="mt-4 border border-dashed border-hairline px-8 py-12 text-center text-ink-dim" data-testid="no-received">
+                        <p class="text-sm">Aucune offre en attente. Tranquille.</p>
+                    </div>
+                {% else %}
+                    <div class="mt-4 grid gap-4" data-testid="received-offers">
+                        {% for offer in received %}
+                            <article class="border border-hairline bg-surface p-5">
+                                <p class="chip-mono text-ink-muted">
+                                    <span class="font-bold text-ink-strong">{{ offer.proposer.username }}</span> te propose un échange
+                                </p>
+                                <div class="mt-4 grid gap-6 md:grid-cols-2">
+                                    {{ include('parts/_trade_lines.html.twig', { lines: offer.offeredLines, label: 'Tu reçois' }) }}
+                                    {{ include('parts/_trade_lines.html.twig', { lines: offer.requestedLines, label: 'Tu donnes' }) }}
+                                </div>
+                                <div class="mt-5 flex flex-wrap gap-3 border-t border-hairline pt-4">
+                                    <button type="button"
+                                            data-action="live#action"
+                                            data-live-action-param="accept"
+                                            data-live-offer-id-param="{{ offer.id }}"
+                                            data-loading="addClass(opacity-50)"
+                                            data-testid="accept-offer"
+                                            class="notched-lg bg-primary px-5 py-2 font-display text-xs font-bold uppercase tracking-[.15em] text-black">
+                                        Accepter
+                                    </button>
+                                    <button type="button"
+                                            data-action="live#action"
+                                            data-live-action-param="refuse"
+                                            data-live-offer-id-param="{{ offer.id }}"
+                                            data-loading="addClass(opacity-50)"
+                                            data-testid="refuse-offer"
+                                            class="border border-hairline px-5 py-2 font-display text-xs font-bold uppercase tracking-[.15em] text-ink-muted transition-colors hover:border-magenta hover:text-magenta">
+                                        Refuser
+                                    </button>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        {# -------------------------------------------------------- Envoyées #}
+        <section class="border-t border-hairline px-6 py-10 lg:px-12">
+            <div class="mx-auto max-w-7xl">
+                <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
+                    Offres envoyées <span class="text-primary">{{ '%02d'|format(sent|length) }}</span>
+                </h2>
+
+                {% if sent is empty %}
+                    <div class="mt-4 border border-dashed border-hairline px-8 py-12 text-center text-ink-dim">
+                        <p class="text-sm">Tu n'as aucune offre en attente.</p>
+                        <a href="{{ path('trades_new') }}" class="btn-ghost mt-6 inline-block">Proposer un échange ▸</a>
+                    </div>
+                {% else %}
+                    <div class="mt-4 grid gap-4" data-testid="sent-offers">
+                        {% for offer in sent %}
+                            <article class="border border-hairline bg-surface p-5">
+                                <p class="chip-mono text-ink-muted">
+                                    En attente de <span class="font-bold text-ink-strong">{{ offer.receiver.username }}</span>
+                                </p>
+                                <div class="mt-4 grid gap-6 md:grid-cols-2">
+                                    {{ include('parts/_trade_lines.html.twig', { lines: offer.offeredLines, label: 'Tu donnes' }) }}
+                                    {{ include('parts/_trade_lines.html.twig', { lines: offer.requestedLines, label: 'Tu reçois' }) }}
+                                </div>
+                                <div class="mt-5 border-t border-hairline pt-4">
+                                    <button type="button"
+                                            data-action="live#action"
+                                            data-live-action-param="cancel"
+                                            data-live-offer-id-param="{{ offer.id }}"
+                                            data-loading="addClass(opacity-50)"
+                                            data-testid="cancel-offer"
+                                            class="border border-hairline px-5 py-2 font-display text-xs font-bold uppercase tracking-[.15em] text-ink-muted transition-colors hover:border-magenta hover:text-magenta">
+                                        Annuler l'offre
+                                    </button>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        {# ------------------------------------------------------ Historique #}
+        {% if history is not empty %}
+            <section class="border-t border-hairline px-6 py-10 lg:px-12">
+                <div class="mx-auto max-w-7xl">
+                    <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">Historique</h2>
+                    <div class="mt-4 divide-y divide-hairline border border-hairline" data-testid="trade-history">
+                        {% for offer in history %}
+                            {% set isMine = offer.proposer.discordId == app.user.discordId %}
+                            <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                                <span class="chip-mono text-ink-muted">
+                                    {{ offer.resolvedAt ? offer.resolvedAt|date('d/m/Y') : '' }}
+                                    · {{ isMine ? 'avec ' ~ offer.receiver.username : 'de ' ~ offer.proposer.username }}
+                                </span>
+                                <span class="chip-mono font-bold {{ offer.status.value == 'accepted' ? 'text-live' : 'text-ink-dim' }}">
+                                    {{ offer.status.label }}
+                                </span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+    </main>
+</div>
