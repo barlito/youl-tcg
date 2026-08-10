@@ -106,13 +106,14 @@ class DiscordUser implements UserInterface, \Stringable
 
     /**
      * Every copy owned, holo included: what the player would count if they
-     * laid their collection on the table.
+     * laid their collection on the table. quantity is already that total —
+     * holoQuantity is a sub-count of it, never an extra.
      */
     public function getCardCopyCount(): int
     {
         $total = 0;
         foreach ($this->userCards as $userCard) {
-            $total += $userCard->getQuantity() + $userCard->getHoloQuantity();
+            $total += $userCard->getQuantity();
         }
 
         return $total;
