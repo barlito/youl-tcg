@@ -30,6 +30,30 @@ class BoosterOpeningRepository extends ServiceEntityRepository
     }
 
     /**
+     * @return array<string, int> booster id => openings by this user
+     */
+    public function countPerBoosterForUser(DiscordUser $user): array
+    {
+        /** @var list<array{boosterId: string, openings: int|string}> $rows */
+        $rows = $this->createQueryBuilder('o')
+            ->select('IDENTITY(o.booster) AS boosterId', 'COUNT(o.id) AS openings')
+            ->where('o.discordUser = :user')
+            ->setParameter('user', $user)
+            ->groupBy('o.booster')
+            ->getQuery()
+            ->getArrayResult()
+        ;
+
+        $counts = [];
+
+        foreach ($rows as $row) {
+            $counts[$row['boosterId']] = (int) $row['openings'];
+        }
+
+        return $counts;
+    }
+
+    /**
      * One page of the player's opening history, newest first, with everything
      * the page renders (cards, their extension, the booster) fetch-joined.
      *
