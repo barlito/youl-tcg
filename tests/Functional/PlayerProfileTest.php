@@ -63,7 +63,11 @@ final class PlayerProfileTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $this->assertStringContainsString($this->rival->getUsername(), $crawler->filter('h1')->text());
         $this->assertStringContainsString('joueur depuis', $crawler->filter('main')->text());
-        $this->assertStringContainsString('3 cartes distinctes', $crawler->filter('[data-testid="profile-completion"]')->text());
+        // completion reads as a fraction of the published catalogue, like « Ma collection »
+        $this->assertMatchesRegularExpression(
+            '#\b3 / \d+ cartes · \d+%#',
+            $crawler->filter('[data-testid="profile-completion"]')->text(),
+        );
 
         $stats = $crawler->filter('[data-testid="profile-stats"]')->text();
         $this->assertStringContainsString('4 cartes au total', $stats);
@@ -205,6 +209,57 @@ final class PlayerProfileTest extends WebTestCase
         self::assertResponseRedirects('/collection');
     }
 
+    public function testCompletionStripShowsWhatTheProfileOwnsPerUniverse(): void
+    {
+        $crawler = $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId());
+
+        self::assertResponseIsSuccessful();
+        $tile = $crawler->filter('[data-testid="completion-strip"] > a')->reduce(
+            fn (Crawler $node): bool => str_contains($node->text(), $this->extension->getName()),
+        );
+
+        $this->assertCount(1, $tile);
+        // the rival holds 3 of the 5 published cards — their completion, not what we share
+        $this->assertStringContainsString('3/5 cartes', $tile->text());
+        $this->assertStringContainsString('60%', $tile->text());
+    }
+
+    public function testStripTileNarrowsTheProfileToOneUniverse(): void
+    {
+        $crawler = $this->client->request('GET', \sprintf('/joueur/%s/%s', $this->rival->getDiscordId(), $this->extension->getSlug()));
+
+        self::assertResponseIsSuccessful();
+        $blocks = $crawler->filter('[data-testid="profile-universe"]');
+        $this->assertCount(1, $blocks);
+        $this->assertStringContainsString($this->extension->getName(), $blocks->filter('h2')->text());
+
+        // the active strip tile is the filtered universe
+        $this->assertStringContainsString(
+            $this->extension->getName(),
+            $crawler->filter('[data-testid="completion-strip"] a[data-carousel-active]')->text(),
+        );
+
+        // the filter counters follow the universe rendered, not the whole catalogue
+        $counts = $crawler->filter('[data-testid="profile-filters"] button')->each(
+            static fn (Crawler $node): string => (string) $node->filter('.filter-chip__count')->text(),
+        );
+        $this->assertSame(['5', '1', '2', '1', '1'], $counts);
+    }
+
+    public function testUnknownUniverseOnAProfileIsNotFound(): void
+    {
+        $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId() . '/this-universe-does-not-exist');
+
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testOwnProfileRedirectKeepsTheUniverseFilter(): void
+    {
+        $this->client->request('GET', \sprintf('/joueur/%s/%s', $this->user->getDiscordId(), $this->extension->getSlug()));
+
+        self::assertResponseRedirects('/collection/' . $this->extension->getSlug());
+    }
+
     public function testProfileLinksBackToTheVisitorsOwnCollection(): void
     {
         $crawler = $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId());
@@ -271,6 +326,9 @@ final class PlayerProfileTest extends WebTestCase
         ;
         $hiddenCard->setImageName('default_card.png');
         $this->entityManager->persist($hiddenCard);
+        // owned copies of unpublished cards must not inflate any public count
+        $this->giveCard($this->rival, $draftCard, quantity: 5, holoQuantity: 2);
+        $this->giveCard($this->rival, $hiddenCard);
         $this->entityManager->flush();
 
         $crawler = $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId());
@@ -278,6 +336,15 @@ final class PlayerProfileTest extends WebTestCase
         self::assertResponseIsSuccessful();
         // the draft card is not part of the published set of its (published) universe
         $this->assertStringContainsString('5 cartes', $this->universeBlock($crawler)->filter('[data-testid="universe-count"]')->text());
+
+        // completion and stats stay on the published catalogue: still 3 distinct cards
+        $this->assertMatchesRegularExpression(
+            '#\b3 / \d+ cartes#',
+            $crawler->filter('[data-testid="profile-completion"]')->text(),
+        );
+        $stats = $crawler->filter('[data-testid="profile-stats"]')->text();
+        $this->assertStringContainsString('4 cartes au total', $stats);
+        $this->assertStringContainsString('1 holo', $stats);
 
         $html = (string) $this->client->getResponse()->getContent();
         $this->assertStringNotContainsString($draftCard->getName(), $html);
