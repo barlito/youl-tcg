@@ -1,0 +1,26 @@
+# Collections de démo. Le recouvrement est volontaire : sur le profil du
+# Collectionneur, Barlito voit en clair la carte qu'il possède aussi et face
+# cachée celles qu'il n'a pas — les deux cas du masquage sur un seul écran.
+App\Entity\UserCard:
+  user_card_barlito_cp_barlito:
+    discordUser: '@discord_user_barlito'
+    card: '@card_cp_barlito'
+    quantity: 3
+    holoQuantity: 1
+
+  user_card_collectionneur_cp_barlito:
+    discordUser: '@discord_user_collectionneur'
+    card: '@card_cp_barlito'
+    quantity: 2
+    holoQuantity: 1
+
+  user_card_collectionneur_rogue:
+    discordUser: '@discord_user_collectionneur'
+    card: '@card_rogue'
+    quantity: 1
+
+  user_card_collectionneur_ichigo:
+    discordUser: '@discord_user_collectionneur'
+    card: '@card_ichigo'
+    quantity: 4
+    holoQuantity: 2

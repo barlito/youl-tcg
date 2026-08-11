@@ -50,9 +50,12 @@ final class LeaderboardControllerTest extends WebTestCase
         $rival = $this->createPlayer('Rival');
         $cards = [$this->createCard(), $this->createCard(), $this->createCard()];
 
-        // rival: 2 distinct cards (3 copies, 1 holo) + 1 opened pack; me: 1 distinct card
+        // rival: 3 distinct cards (4 copies, 1 holo) + 1 opened pack; me: 1 distinct
+        // card. The gap stays wide enough that the demo fixture collections
+        // cannot flip the order.
         $this->giveCard($rival, $cards[0], quantity: 2, holoQuantity: 1);
         $this->giveCard($rival, $cards[1]);
+        $this->giveCard($rival, $cards[2]);
         $this->giveCard($this->user, $cards[0]);
 
         $booster = new Booster()
@@ -72,7 +75,7 @@ final class LeaderboardControllerTest extends WebTestCase
         $this->assertLessThan($this->positionOf($rows, $this->user->getUsername()), $rivalPosition);
 
         $rivalRow = $rows->eq($rivalPosition);
-        $this->assertStringContainsString('2 distinctes', $rivalRow->text());
+        $this->assertStringContainsString('3 distinctes', $rivalRow->text());
         $this->assertStringContainsString('✦1', $rivalRow->text());
         // ▣N is the mobile summary of the opened packs count
         $this->assertStringContainsString('▣1', $rivalRow->text());
