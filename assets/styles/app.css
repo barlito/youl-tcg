@@ -45,6 +45,31 @@
         display: none;
     }
 
+    /* Filtre de la collection comparée (profil joueur) */
+    .filter-chip {
+        @apply border border-hairline bg-surface px-3 py-3 font-mono text-[10px] uppercase tracking-[.15em] text-ink-muted md:py-2;
+    }
+
+    .filter-chip:hover:not(:disabled) {
+        @apply border-primary text-primary;
+    }
+
+    .filter-chip:disabled {
+        @apply cursor-not-allowed opacity-40;
+    }
+
+    .filter-chip.is-active {
+        @apply border-primary bg-primary text-black;
+    }
+
+    .filter-chip__count {
+        @apply text-ink-muted;
+    }
+
+    .filter-chip.is-active .filter-chip__count {
+        @apply text-black/80;
+    }
+
     /* Piste sans le fondu latéral (héros pleine largeur : bannières d'univers) */
     .scrollbar-hidden {
         scrollbar-width: none;
@@ -69,6 +94,11 @@
 }
 .card-tile:has(.card.interacting) .card-tile__chips {
     opacity: 0;
+}
+/* Sur le profil comparé, le chip n'est pas décoratif : il dit qui possède la
+ * carte. Il s'estompe pendant l'inspection mais ne disparaît jamais. */
+.card-tile:has(.card.interacting) .card-tile__chips--sticky {
+    opacity: .45;
 }
 
 /* Panneau « Taux » des cartes booster du hub (details/summary natif) */

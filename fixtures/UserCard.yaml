@@ -1,12 +1,18 @@
 # Collections de démo. Le recouvrement est volontaire : sur le profil du
-# Collectionneur, Barlito voit en clair la carte qu'il possède aussi et face
-# cachée celles qu'il n'a pas — les deux cas du masquage sur un seul écran.
+# Collectionneur, Barlito retrouve les cinq états de la grille comparée sur un
+# seul écran — en commun (cp_barlito), seulement lui (rogue, ichigo), seulement
+# Barlito (cp_v), manquante aux deux (rukia) et la 1/1 mystère (cp_farf).
 App\Entity\UserCard:
   user_card_barlito_cp_barlito:
     discordUser: '@discord_user_barlito'
     card: '@card_cp_barlito'
     quantity: 3
     holoQuantity: 1
+
+  user_card_barlito_cp_v:
+    discordUser: '@discord_user_barlito'
+    card: '@card_cp_v'
+    quantity: 2
 
   user_card_collectionneur_cp_barlito:
     discordUser: '@discord_user_collectionneur'
@@ -24,3 +30,9 @@ App\Entity\UserCard:
     card: '@card_ichigo'
     quantity: 4
     holoQuantity: 2
+
+  # la 1/1 qu'il détient (cf. claimedBy dans Card.yaml)
+  user_card_collectionneur_farf:
+    discordUser: '@discord_user_collectionneur'
+    card: '@card_cp_farf'
+    quantity: 1
