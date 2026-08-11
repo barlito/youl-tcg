@@ -1,5 +1,11 @@
-when@dev: &dev
+# fixtures/shared : les joueurs, communs aux deux jeux.
+# fixtures/dev    : le catalogue complet généré depuis public/uploads (reset local).
+# fixtures/test   : un jeu minimal et stable — la CI charge celui-ci, les tests
+#                   s'appuient dessus, donc il ne grossit pas au gré des images.
+when@dev:
     hautelook_alice:
-        fixtures_path: fixtures
+        fixtures_path: [fixtures/shared, fixtures/dev]
 
-when@test: *dev
+when@test:
+    hautelook_alice:
+        fixtures_path: [fixtures/shared, fixtures/test]

@@ -1,0 +1,9 @@
+App\Entity\ExtensionBanner:
+    extension_banner_1:
+        extension: '@extension_cyberpunk'
+        imageName: 'test_banner_1.png'
+        position: 0
+    extension_banner_2:
+        extension: '@extension_cyberpunk'
+        imageName: 'test_banner_2.png'
+        position: 1

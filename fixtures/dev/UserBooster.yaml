@@ -1,0 +1,13 @@
+App\Entity\UserBooster:
+    user_booster_barlito_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        booster: '@booster_cyberpunk'
+        quantity: 3
+    user_booster_barlito_kda:
+        discordUser: '@discord_user_barlito'
+        booster: '@booster_kda'
+        quantity: 2
+    user_booster_barlito_w40k:
+        discordUser: '@discord_user_barlito'
+        booster: '@booster_w40k'
+        quantity: 1

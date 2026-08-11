@@ -1,0 +1,68 @@
+# Généré depuis public/uploads/cards (voir docs/dev-fixtures.md).
+App\Entity\Extension:
+    extension_cyberpunk:
+        name: 'Cyberpunk 2077'
+        description: 'Night City, ses corpos, ses cyberpsychos et ses implants hors de prix. Un univers de néons et de mauvaises décisions.'
+        status: 2
+        visualConfigJson: '{"glow": "#a435f0"}'
+    extension_kda:
+        name: 'K/DA'
+        description: 'Le girls band virtuel le plus bruyant de la faille. Scène, chorégraphies et skins alternatifs.'
+        status: 2
+        visualConfigJson: '{"glow": "#ff3db0"}'
+    extension_w40k:
+        name: 'Warhammer 40K'
+        description: 'Dans un futur très lointain, il n''y a que la guerre. Légions, xenos et tempêtes warp.'
+        status: 2
+        visualConfigJson: '{"glow": "#c0392b"}'
+    extension_bleach:
+        name: 'Bleach'
+        description: 'Shinigamis, divisions du Gotei et Hollows : la Soul Society au grand complet.'
+        status: 2
+        visualConfigJson: '{"glow": "#38bdf8"}'
+    extension_magic:
+        name: 'Magic'
+        description: 'Épées divines, dragons célestes et enchantements : la haute fantasy du multivers.'
+        status: 2
+        visualConfigJson: '{"glow": "#f59e0b"}'
+    extension_cosmos:
+        name: 'Cosmos'
+        description: 'Colonies martiennes, spatio-gares et contrebandiers : la frontière la plus froide.'
+        status: 2
+        visualConfigJson: '{"glow": "#22d3ee"}'
+    extension_dystopie:
+        name: 'Dystopie'
+        description: 'L''Ordre Nouveau, ses officiers et ses héros de la nation. Obéir, produire, sourire.'
+        status: 2
+        visualConfigJson: '{"glow": "#94a3b8"}'
+    extension_eldritch:
+        name: 'Cultes Anciens'
+        description: 'Ahlototh, Zocnoth et les grimoires qu''il vaudrait mieux ne pas ouvrir.'
+        status: 2
+        visualConfigJson: '{"glow": "#84cc16"}'
+    extension_sot:
+        name: 'Storm of Time'
+        description: 'Les orages temporels et leurs voyageurs, entre deux époques qui n''existent plus.'
+        status: 2
+        visualConfigJson: '{"glow": "#8b5cf6"}'
+    extension_lotr:
+        name: 'Terre du Milieu'
+        description: 'Une compagnie, un anneau et beaucoup trop de marche à pied.'
+        status: 1
+        upcoming: true
+        visualConfigJson: '{"glow": "#65a30d"}'
+    extension_velirp:
+        name: 'VeliRP'
+        description: 'Les personnages du RP maison, évolutions et variantes comprises.'
+        status: 2
+        visualConfigJson: '{"glow": "#f97316"}'
+    extension_psyche:
+        name: 'Psyché'
+        description: 'Rêves, sommeils et charmes : ce que l''esprit fabrique quand on le laisse seul.'
+        status: 2
+        visualConfigJson: '{"glow": "#e879f9"}'
+    extension_origines:
+        name: 'Origines'
+        description: 'Les portraits fondateurs : la bande au complet, avant les univers.'
+        status: 2
+        visualConfigJson: '{"glow": "#a435f0"}'
