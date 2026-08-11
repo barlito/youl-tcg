@@ -37,6 +37,11 @@
                     <p class="chip-mono {{ totalOwned > 0 ? 'text-primary' : 'text-ink-dim' }}" data-testid="total-owned">
                         ◈ {{ totalOwned }} pack{{ totalOwned > 1 ? 's' }} en stock
                     </p>
+                    <a href="{{ path('opening_history') }}"
+                       class="chip-mono text-ink-dim transition-colors hover:text-primary"
+                       data-testid="history-link">
+                        ◎ Mes ouvertures ▸
+                    </a>
                 </div>
             </div>
         </section>
