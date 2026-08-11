@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Leaderboard;
 
+use App\Dto\LeaderboardEntry;
 use App\Entity\DiscordUser;
 use App\Repository\BoosterOpeningRepository;
 use App\Repository\CardRepository;

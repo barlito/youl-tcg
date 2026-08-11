@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Service\Leaderboard;
+namespace App\Dto;
 
 use App\Entity\DiscordUser;
 
