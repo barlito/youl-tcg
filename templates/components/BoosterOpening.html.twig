@@ -13,6 +13,9 @@
     <div class="opening opening--page"
          data-controller="booster-opening"
          {% if opening %}data-booster-opening-count-value="{{ revealCards|length }}"{% endif %}
+         {#- l'id du tirage, pas son nombre de cartes : deux packs d'affilée ont
+             le même compte, seul l'id dit qu'un nouveau tirage est sur la table -#}
+         data-booster-opening-opening-id-value="{{ opening ? opening.id : '' }}"
          data-action="pack3d:opened->booster-opening#startReveal pack3d:ready->booster-opening#syncPack">
 
         {# ====================================================== LEFT: the pack #}
@@ -88,8 +91,11 @@
                     {% if opening %}
                         <footer class="opening__foot" data-booster-opening-target="foot" hidden>
                             {% if ownedCount > 0 %}
-                                <button type="button" data-action="live#action" data-live-action-param="reset" class="btn-arcade">
-                                    Ouvrir un autre ▸
+                                {# open, pas reset : le tirage suivant part du même clic #}
+                                <button type="button" data-action="live#action" data-live-action-param="open"
+                                        class="btn-arcade" data-testid="open-another">
+                                    <span data-loading="hide">Ouvrir un autre ▸</span>
+                                    <span data-loading="show" class="hidden">···</span>
                                 </button>
                                 <a href="{{ path('boosters') }}" class="opening__skip">← Tous les packs</a>
                             {% else %}
