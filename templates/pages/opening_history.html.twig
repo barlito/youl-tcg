@@ -88,33 +88,46 @@
                         </div>
 
                         {# ------------------------------- Observé vs annoncé #}
-                        <div data-testid="luck-boosters">
-                            <p class="chip-mono font-bold text-ink-strong">Observé vs annoncé, pack par pack</p>
-                            <div class="mt-4 flex flex-col gap-3">
-                                {% for boosterLuck in stats.boosters %}
-                                    <div class="border border-hairline bg-surface p-4" data-testid="luck-booster">
-                                        <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                                            <p class="font-display text-sm font-bold uppercase tracking-[-0.02em] text-ink-strong">{{ boosterLuck.booster.displayName }}</p>
-                                            <p class="chip-mono text-ink-dim">{{ boosterLuck.openingCount }} pack{{ boosterLuck.openingCount > 1 ? 's' }} · {{ boosterLuck.cardCount }} carte{{ boosterLuck.cardCount > 1 ? 's' }}</p>
-                                        </div>
-                                        <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 font-mono text-[11px] tracking-[.08em]">
-                                            {% for rarity, row in boosterLuck.rarityRows %}
-                                                <span>
-                                                    <span style="color: var(--rarity-{{ rarity }});">{{ rarity_label(rarity) }}</span>
-                                                    <span class="text-ink-strong">{{ _self.pct(row.observed) }}</span>
-                                                    <span class="text-ink-dim">/ {{ _self.pct(row.expected) }} annoncé</span>
-                                                </span>
-                                            {% endfor %}
-                                            <span>
-                                                <span class="text-magenta">✦ Holo</span>
-                                                <span class="text-ink-strong">{{ _self.pct(boosterLuck.observedHoloRate) }}</span>
-                                                <span class="text-ink-dim">/ {{ _self.pct(boosterLuck.expectedHoloRate) }} annoncé</span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                {% endfor %}
+                        {# un seul pack affiché à la fois : la liste complète
+                           grandissait avec le catalogue et noyait la page #}
+                        <div data-testid="luck-boosters" data-controller="stat-switcher">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <p class="chip-mono font-bold text-ink-strong">Observé vs annoncé</p>
+                                <select data-stat-switcher-target="select"
+                                        data-action="stat-switcher#show"
+                                        aria-label="Choisir un pack"
+                                        data-testid="luck-booster-select"
+                                        class="max-w-full border border-hairline bg-surface px-3 py-1.5 font-mono text-[11px] tracking-[.08em] text-ink-strong focus:border-primary focus:outline-none">
+                                    {% for boosterLuck in stats.boosters %}
+                                        <option value="{{ boosterLuck.booster.id }}">
+                                            {{ boosterLuck.booster.displayName }} · {{ boosterLuck.openingCount }} pack{{ boosterLuck.openingCount > 1 ? 's' }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
                             </div>
-                            <p class="chip-mono mt-3 text-ink-dim">« Annoncé » = les taux actuels du pack (panneau Taux du hub), moyennés sur ses cartes.</p>
+
+                            {% for boosterLuck in stats.boosters %}
+                                <div class="mt-4 border border-hairline bg-surface p-5 {{ not loop.first ? 'hidden' }}"
+                                     data-stat-switcher-target="panel"
+                                     data-panel-id="{{ boosterLuck.booster.id }}"
+                                     data-testid="luck-booster">
+                                    <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                                        <p class="font-display text-sm font-bold uppercase tracking-[-0.02em] text-ink-strong">{{ boosterLuck.booster.displayName }}</p>
+                                        <p class="chip-mono text-ink-dim">{{ boosterLuck.openingCount }} pack{{ boosterLuck.openingCount > 1 ? 's' }} · {{ boosterLuck.cardCount }} carte{{ boosterLuck.cardCount > 1 ? 's' }}</p>
+                                    </div>
+
+                                    <div class="mt-4 flex flex-col gap-3">
+                                        {% for rarity, row in boosterLuck.rarityRows %}
+                                            {{ _self.rate_bar(rarity_label(rarity), 'var(--rarity-' ~ rarity ~ ')', row.observed, row.expected) }}
+                                        {% endfor %}
+                                        {{ _self.rate_bar('✦ Holo', 'var(--magenta)', boosterLuck.observedHoloRate, boosterLuck.expectedHoloRate) }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+
+                            <p class="chip-mono mt-3 text-ink-dim">
+                                Le trait clair marque le taux annoncé du pack (panneau Taux du hub), moyenné sur ses cartes.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -232,3 +245,23 @@
 
 {# entier affiché sans décimale, sinon 1 décimale (même règle que le panneau Taux du hub) #}
 {% macro pct(value) %}{{ value == value|round ? value|round : value }}%{% endmacro %}
+
+{# Taux observé en barre pleine, taux annoncé en repère : la barre qui dépasse
+   le trait = tu es au-dessus de ce que le pack promet. #}
+{% macro rate_bar(label, color, observed, expected) %}
+    <div>
+        <div class="flex items-baseline justify-between font-mono text-[11px] tracking-[.08em]">
+            <span style="color: {{ color }};">{{ label }}</span>
+            <span>
+                <span class="text-ink-strong">{{ _self.pct(observed) }}</span>
+                <span class="text-ink-dim">/ {{ _self.pct(expected) }} annoncé</span>
+            </span>
+        </div>
+        <div class="relative mt-1.5 h-2 bg-white/10">
+            <div class="absolute inset-y-0 left-0" style="width: {{ min(observed, 100) }}%; background: {{ color }};"></div>
+            <div class="absolute inset-y-[-2px] w-0.5 bg-white/70"
+                 style="left: {{ min(expected, 100) }}%;"
+                 title="Annoncé : {{ _self.pct(expected) }}"></div>
+        </div>
+    </div>
+{% endmacro %}

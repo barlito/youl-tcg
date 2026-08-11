@@ -175,6 +175,17 @@ final class OpeningLuckStatsTest extends WebTestCase
             static fn (Crawler $node): string => $node->filter('p')->first()->text(normalizeWhitespace: true),
         );
         $this->assertSame([$this->booster->getDisplayName(), $secondBooster->getDisplayName()], $names);
+
+        // one option per pack, and a single panel shown: the section keeps a
+        // constant height however many packs the player has opened
+        $options = $crawler->filter('[data-testid="luck-booster-select"] option');
+        $this->assertCount(2, $options);
+        $this->assertStringContainsString($this->booster->getDisplayName(), $options->first()->text(normalizeWhitespace: true));
+
+        $hidden = $crawler->filter('[data-testid="luck-booster"]')->each(
+            static fn (Crawler $node): bool => str_contains((string) $node->attr('class'), 'hidden'),
+        );
+        $this->assertSame([false, true], $hidden);
     }
 
     /**
