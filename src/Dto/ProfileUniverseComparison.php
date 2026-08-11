@@ -25,4 +25,19 @@ final readonly class ProfileUniverseComparison
         public int $missingBoth,
     ) {
     }
+
+    /**
+     * What the visited profile owns in this universe: the cards shared with the
+     * visitor plus the ones only they hold. On your own page profileOnly is
+     * always 0, so the formula holds there too.
+     */
+    public function owned(): int
+    {
+        return $this->common + $this->profileOnly;
+    }
+
+    public function completionPct(): int
+    {
+        return $this->total > 0 ? (int) round($this->owned() / $this->total * 100) : 0;
+    }
 }
