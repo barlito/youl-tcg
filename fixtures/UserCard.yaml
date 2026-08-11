@@ -1,38 +1,1494 @@
-# Collections de démo. Le recouvrement est volontaire : sur le profil du
-# Collectionneur, Barlito retrouve les cinq états de la grille comparée sur un
-# seul écran — en commun (cp_barlito), seulement lui (rogue, ichigo), seulement
-# Barlito (cp_v), manquante aux deux (rukia) et la 1/1 mystère (cp_farf).
+# Collections de démo, réparties par index de carte (aucun aléatoire) :
+# sur le profil du Collectionneur, Barlito retrouve les cinq états de la
+# grille comparée — en commun, seulement lui, seulement toi, manquante aux
+# deux, et la 1/1 mystère.
 App\Entity\UserCard:
-  user_card_barlito_cp_barlito:
-    discordUser: '@discord_user_barlito'
-    card: '@card_cp_barlito'
-    quantity: 3
-    holoQuantity: 1
-
-  user_card_barlito_cp_v:
-    discordUser: '@discord_user_barlito'
-    card: '@card_cp_v'
-    quantity: 2
-
-  user_card_collectionneur_cp_barlito:
-    discordUser: '@discord_user_collectionneur'
-    card: '@card_cp_barlito'
-    quantity: 2
-    holoQuantity: 1
-
-  user_card_collectionneur_rogue:
-    discordUser: '@discord_user_collectionneur'
-    card: '@card_rogue'
-    quantity: 1
-
-  user_card_collectionneur_ichigo:
-    discordUser: '@discord_user_collectionneur'
-    card: '@card_ichigo'
-    quantity: 4
-    holoQuantity: 2
-
-  # la 1/1 qu'il détient (cf. claimedBy dans Card.yaml)
-  user_card_collectionneur_farf:
-    discordUser: '@discord_user_collectionneur'
-    card: '@card_cp_farf'
-    quantity: 1
+    user_card_collectionneur_1_cyberpunk:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_1_cyberpunk'
+        quantity: 1
+        holoQuantity: 1
+    user_card_juju_1_cyberpunk:
+        discordUser: '@discord_user_juju'
+        card: '@card_1_cyberpunk'
+        quantity: 1
+        holoQuantity: 1
+    user_card_farph_1_cyberpunk:
+        discordUser: '@discord_user_farph'
+        card: '@card_1_cyberpunk'
+        quantity: 1
+        holoQuantity: 1
+    user_card_benj_1_cyberpunk:
+        discordUser: '@discord_user_benj'
+        card: '@card_1_cyberpunk'
+        quantity: 1
+        holoQuantity: 1
+    user_card_weeby_1_cyberpunk:
+        discordUser: '@discord_user_weeby'
+        card: '@card_1_cyberpunk'
+        quantity: 1
+        holoQuantity: 1
+    user_card_veli_1_cyberpunk:
+        discordUser: '@discord_user_veli'
+        card: '@card_1_cyberpunk'
+        quantity: 1
+        holoQuantity: 1
+    user_card_barlito_acp_2038_22_lr:
+        discordUser: '@discord_user_barlito'
+        card: '@card_acp_2038_22_lr'
+        quantity: 2
+    user_card_barlito_ahlototh_the_sightless:
+        discordUser: '@discord_user_barlito'
+        card: '@card_ahlototh_the_sightless'
+        quantity: 3
+    user_card_barlito_ahri_alt_kda:
+        discordUser: '@discord_user_barlito'
+        card: '@card_ahri_alt_kda'
+        quantity: 4
+    user_card_collectionneur_ahri_alt_kda:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_ahri_alt_kda'
+        quantity: 4
+    user_card_barlito_akali_alt_kda:
+        discordUser: '@discord_user_barlito'
+        card: '@card_akali_alt_kda'
+        quantity: 2
+    user_card_collectionneur_akali_alt_kda:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_akali_alt_kda'
+        quantity: 2
+    user_card_barlito_akali_kda:
+        discordUser: '@discord_user_barlito'
+        card: '@card_akali_kda'
+        quantity: 3
+    user_card_collectionneur_akali_kda:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_akali_kda'
+        quantity: 3
+    user_card_barlito_appartement_de_bebou_linette:
+        discordUser: '@discord_user_barlito'
+        card: '@card_appartement_de_bebou_linette'
+        quantity: 4
+    user_card_juju_appartement_de_bebou_linette:
+        discordUser: '@discord_user_juju'
+        card: '@card_appartement_de_bebou_linette'
+        quantity: 4
+    user_card_farph_babou_linette:
+        discordUser: '@discord_user_farph'
+        card: '@card_babou_linette'
+        quantity: 1
+    user_card_barlito_babou_linette_1_alt_sot:
+        discordUser: '@discord_user_barlito'
+        card: '@card_babou_linette_1_alt_sot'
+        quantity: 2
+        holoQuantity: 1
+    user_card_collectionneur_babou_linette_1_alt_sot:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_babou_linette_1_alt_sot'
+        quantity: 2
+        holoQuantity: 1
+    user_card_benj_babou_linette_1_alt_sot:
+        discordUser: '@discord_user_benj'
+        card: '@card_babou_linette_1_alt_sot'
+        quantity: 2
+        holoQuantity: 1
+    user_card_barlito_babou_linette_1_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        card: '@card_babou_linette_1_cyberpunk'
+        quantity: 3
+    user_card_collectionneur_babou_linette_1_cyberpunk:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_babou_linette_1_cyberpunk'
+        quantity: 3
+    user_card_barlito_babou_linette_1_sot:
+        discordUser: '@discord_user_barlito'
+        card: '@card_babou_linette_1_sot'
+        quantity: 4
+    user_card_weeby_babou_linette_1_sot:
+        discordUser: '@discord_user_weeby'
+        card: '@card_babou_linette_1_sot'
+        quantity: 4
+    user_card_collectionneur_babou_linette_2_cyberpunk:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_babou_linette_2_cyberpunk'
+        quantity: 1
+    user_card_barlito_babou_linette_3_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        card: '@card_babou_linette_3_cyberpunk'
+        quantity: 2
+    user_card_veli_babou_linette_3_cyberpunk:
+        discordUser: '@discord_user_veli'
+        card: '@card_babou_linette_3_cyberpunk'
+        quantity: 2
+    user_card_barlito_babou_linette_la_chrome:
+        discordUser: '@discord_user_barlito'
+        card: '@card_babou_linette_la_chrome'
+        quantity: 3
+    user_card_juju_babou_linette_la_chrome:
+        discordUser: '@discord_user_juju'
+        card: '@card_babou_linette_la_chrome'
+        quantity: 3
+    user_card_barlito_babou_linette_la_joueuse_de_mort:
+        discordUser: '@discord_user_barlito'
+        card: '@card_babou_linette_la_joueuse_de_mort'
+        quantity: 4
+    user_card_collectionneur_babou_linette_la_joueuse_de_mort:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_babou_linette_la_joueuse_de_mort'
+        quantity: 4
+    user_card_farph_babou_linette_psyche:
+        discordUser: '@discord_user_farph'
+        card: '@card_babou_linette_psyche'
+        quantity: 1
+    user_card_barlito_bande_de_hobgobelins:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bande_de_hobgobelins'
+        quantity: 2
+    user_card_barlito_barlito:
+        discordUser: '@discord_user_barlito'
+        card: '@card_barlito'
+        quantity: 3
+        holoQuantity: 1
+    user_card_collectionneur_barlito:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_barlito'
+        quantity: 3
+        holoQuantity: 1
+    user_card_benj_barlito:
+        discordUser: '@discord_user_benj'
+        card: '@card_barlito'
+        quantity: 3
+        holoQuantity: 1
+    user_card_barlito_barlito_1_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        card: '@card_barlito_1_cyberpunk'
+        quantity: 4
+    user_card_collectionneur_barlito_1_evo_velirp:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_barlito_1_evo_velirp'
+        quantity: 1
+    user_card_barlito_barlito_2_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        card: '@card_barlito_2_cyberpunk'
+        quantity: 2
+    user_card_collectionneur_barlito_2_cyberpunk:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_barlito_2_cyberpunk'
+        quantity: 2
+    user_card_juju_barlito_2_cyberpunk:
+        discordUser: '@discord_user_juju'
+        card: '@card_barlito_2_cyberpunk'
+        quantity: 2
+    user_card_barlito_barlito_bullet_ballet:
+        discordUser: '@discord_user_barlito'
+        card: '@card_barlito_bullet_ballet'
+        quantity: 3
+    user_card_weeby_barlito_bullet_ballet:
+        discordUser: '@discord_user_weeby'
+        card: '@card_barlito_bullet_ballet'
+        quantity: 3
+    user_card_barlito_barlito_de_la_4e_legion:
+        discordUser: '@discord_user_barlito'
+        card: '@card_barlito_de_la_4e_legion'
+        quantity: 4
+    user_card_collectionneur_barlito_kda:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_barlito_kda'
+        quantity: 1
+    user_card_farph_barlito_kda:
+        discordUser: '@discord_user_farph'
+        card: '@card_barlito_kda'
+        quantity: 1
+    user_card_barlito_barlito_le_prince_de_glace:
+        discordUser: '@discord_user_barlito'
+        card: '@card_barlito_le_prince_de_glace'
+        quantity: 2
+    user_card_collectionneur_barlito_le_prince_de_glace:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_barlito_le_prince_de_glace'
+        quantity: 2
+    user_card_barlito_barlito_maire_de_new_la:
+        discordUser: '@discord_user_barlito'
+        card: '@card_barlito_maire_de_new_la'
+        quantity: 3
+    user_card_veli_barlito_maire_de_new_la:
+        discordUser: '@discord_user_veli'
+        card: '@card_barlito_maire_de_new_la'
+        quantity: 3
+    user_card_barlito_barlito_space_nomad:
+        discordUser: '@discord_user_barlito'
+        card: '@card_barlito_space_nomad'
+        quantity: 4
+        holoQuantity: 1
+    user_card_collectionneur_barlito_space_nomad:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_barlito_space_nomad'
+        quantity: 4
+        holoQuantity: 1
+    user_card_benj_barlito_space_nomad:
+        discordUser: '@discord_user_benj'
+        card: '@card_barlito_space_nomad'
+        quantity: 4
+        holoQuantity: 1
+    user_card_juju_barlito_the_arcane_master:
+        discordUser: '@discord_user_juju'
+        card: '@card_barlito_the_arcane_master'
+        quantity: 1
+    user_card_barlito_barlitox:
+        discordUser: '@discord_user_barlito'
+        card: '@card_barlitox'
+        quantity: 2
+    user_card_barlito_bebou_linette:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bebou_linette'
+        quantity: 3
+    user_card_collectionneur_bebou_linette:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_bebou_linette'
+        quantity: 3
+    user_card_barlito_bebou_linette_1_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bebou_linette_1_cyberpunk'
+        quantity: 4
+    user_card_farph_bebou_linette_3_cyberpunk:
+        discordUser: '@discord_user_farph'
+        card: '@card_bebou_linette_3_cyberpunk'
+        quantity: 1
+    user_card_barlito_bebou_linette_evo_alt_sot:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bebou_linette_evo_alt_sot'
+        quantity: 2
+    user_card_collectionneur_bebou_linette_evo_alt_sot:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_bebou_linette_evo_alt_sot'
+        quantity: 2
+    user_card_weeby_bebou_linette_evo_alt_sot:
+        discordUser: '@discord_user_weeby'
+        card: '@card_bebou_linette_evo_alt_sot'
+        quantity: 2
+    user_card_barlito_bebou_linette_la_disparue:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bebou_linette_la_disparue'
+        quantity: 3
+    user_card_barlito_bebou_linette_psyche:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bebou_linette_psyche'
+        quantity: 4
+    user_card_collectionneur_bebou_linette_psyche:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_bebou_linette_psyche'
+        quantity: 4
+    user_card_juju_bebou_linette_psyche:
+        discordUser: '@discord_user_juju'
+        card: '@card_bebou_linette_psyche'
+        quantity: 4
+    user_card_collectionneur_benj:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_benj'
+        quantity: 1
+        holoQuantity: 1
+    user_card_benj_benj:
+        discordUser: '@discord_user_benj'
+        card: '@card_benj'
+        quantity: 1
+        holoQuantity: 1
+    user_card_barlito_benj_1_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        card: '@card_benj_1_cyberpunk'
+        quantity: 2
+    user_card_barlito_benj_2_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        card: '@card_benj_2_cyberpunk'
+        quantity: 3
+    user_card_barlito_benj_bullet_ballet:
+        discordUser: '@discord_user_barlito'
+        card: '@card_benj_bullet_ballet'
+        quantity: 4
+    user_card_collectionneur_benj_bullet_ballet:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_benj_bullet_ballet'
+        quantity: 4
+    user_card_veli_benj_bullet_ballet:
+        discordUser: '@discord_user_veli'
+        card: '@card_benj_bullet_ballet'
+        quantity: 4
+    user_card_collectionneur_benj_champion_du_chaos:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_benj_champion_du_chaos'
+        quantity: 1
+    user_card_farph_benj_champion_du_chaos:
+        discordUser: '@discord_user_farph'
+        card: '@card_benj_champion_du_chaos'
+        quantity: 1
+    user_card_barlito_benj_cyberpsycho_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        card: '@card_benj_cyberpsycho_cyberpunk'
+        quantity: 2
+    user_card_barlito_benj_evo_magic:
+        discordUser: '@discord_user_barlito'
+        card: '@card_benj_evo_magic'
+        quantity: 3
+    user_card_collectionneur_benj_evo_magic:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_benj_evo_magic'
+        quantity: 3
+    user_card_juju_benj_evo_magic:
+        discordUser: '@discord_user_juju'
+        card: '@card_benj_evo_magic'
+        quantity: 3
+    user_card_barlito_benj_gardien_de_larbre:
+        discordUser: '@discord_user_barlito'
+        card: '@card_benj_gardien_de_larbre'
+        quantity: 4
+    user_card_weeby_benj_kda:
+        discordUser: '@discord_user_weeby'
+        card: '@card_benj_kda'
+        quantity: 1
+    user_card_barlito_benj_laristocrate:
+        discordUser: '@discord_user_barlito'
+        card: '@card_benj_laristocrate'
+        quantity: 2
+        holoQuantity: 1
+    user_card_collectionneur_benj_laristocrate:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_benj_laristocrate'
+        quantity: 2
+        holoQuantity: 1
+    user_card_benj_benj_laristocrate:
+        discordUser: '@discord_user_benj'
+        card: '@card_benj_laristocrate'
+        quantity: 2
+        holoQuantity: 1
+    user_card_barlito_benj_ledjo_evo_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        card: '@card_benj_ledjo_evo_cyberpunk'
+        quantity: 3
+    user_card_barlito_benj_soldat_de_lunion:
+        discordUser: '@discord_user_barlito'
+        card: '@card_benj_soldat_de_lunion'
+        quantity: 4
+    user_card_collectionneur_benj_the_eternal:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_benj_the_eternal'
+        quantity: 1
+    user_card_farph_benj_the_eternal:
+        discordUser: '@discord_user_farph'
+        card: '@card_benj_the_eternal'
+        quantity: 1
+    user_card_barlito_bernard_1_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bernard_1_cyberpunk'
+        quantity: 2
+    user_card_juju_bernard_1_cyberpunk:
+        discordUser: '@discord_user_juju'
+        card: '@card_bernard_1_cyberpunk'
+        quantity: 2
+    user_card_barlito_bernard_le_robot:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bernard_le_robot'
+        quantity: 3
+    user_card_collectionneur_bernard_le_robot:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_bernard_le_robot'
+        quantity: 3
+    user_card_barlito_bernard_magic:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bernard_magic'
+        quantity: 4
+    user_card_collectionneur_bernard_magic:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_bernard_magic'
+        quantity: 4
+    user_card_veli_bernard_membre_du_parti:
+        discordUser: '@discord_user_veli'
+        card: '@card_bernard_membre_du_parti'
+        quantity: 1
+    user_card_barlito_bernard_the_father:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bernard_the_father'
+        quantity: 2
+    user_card_barlito_bibou_lineth:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bibou_lineth'
+        quantity: 3
+        holoQuantity: 1
+    user_card_collectionneur_bibou_lineth:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_bibou_lineth'
+        quantity: 3
+        holoQuantity: 1
+    user_card_benj_bibou_lineth:
+        discordUser: '@discord_user_benj'
+        card: '@card_bibou_lineth'
+        quantity: 3
+        holoQuantity: 1
+    user_card_barlito_bibou_lineth_alt:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bibou_lineth_alt'
+        quantity: 4
+    user_card_collectionneur_bibou_lineth_alt:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_bibou_lineth_alt'
+        quantity: 4
+    user_card_weeby_bibou_lineth_alt:
+        discordUser: '@discord_user_weeby'
+        card: '@card_bibou_lineth_alt'
+        quantity: 4
+    user_card_juju_bibou_lineth_alt_2:
+        discordUser: '@discord_user_juju'
+        card: '@card_bibou_lineth_alt_2'
+        quantity: 1
+    user_card_farph_bibou_lineth_alt_2:
+        discordUser: '@discord_user_farph'
+        card: '@card_bibou_lineth_alt_2'
+        quantity: 1
+    user_card_barlito_bibou_lineth_alt_baldur_s_gate_3:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bibou_lineth_alt_baldur_s_gate_3'
+        quantity: 2
+    user_card_collectionneur_bibou_lineth_alt_baldur_s_gate_3:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_bibou_lineth_alt_baldur_s_gate_3'
+        quantity: 2
+    user_card_barlito_bibou_linette:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bibou_linette'
+        quantity: 3
+    user_card_barlito_bibou_linette_1_sot:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bibou_linette_1_sot'
+        quantity: 4
+    user_card_collectionneur_bibou_linette_cyberpunk:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_bibou_linette_cyberpunk'
+        quantity: 1
+    user_card_barlito_bibou_linette_cyberpunk_alt:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bibou_linette_cyberpunk_alt'
+        quantity: 2
+    user_card_barlito_bibou_linette_psyche:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bibou_linette_psyche'
+        quantity: 3
+    user_card_barlito_bibou_linette_replicant:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bibou_linette_replicant'
+        quantity: 4
+        holoQuantity: 1
+    user_card_collectionneur_bibou_linette_replicant:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_bibou_linette_replicant'
+        quantity: 4
+        holoQuantity: 1
+    user_card_juju_bibou_linette_replicant:
+        discordUser: '@discord_user_juju'
+        card: '@card_bibou_linette_replicant'
+        quantity: 4
+        holoQuantity: 1
+    user_card_benj_bibou_linette_replicant:
+        discordUser: '@discord_user_benj'
+        card: '@card_bibou_linette_replicant'
+        quantity: 4
+        holoQuantity: 1
+    user_card_farph_billy_le_frenetique:
+        discordUser: '@discord_user_farph'
+        card: '@card_billy_le_frenetique'
+        quantity: 1
+    user_card_barlito_book_of_xizta_the_demented:
+        discordUser: '@discord_user_barlito'
+        card: '@card_book_of_xizta_the_demented'
+        quantity: 2
+    user_card_collectionneur_book_of_xizta_the_demented:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_book_of_xizta_the_demented'
+        quantity: 2
+    user_card_veli_book_of_xizta_the_demented:
+        discordUser: '@discord_user_veli'
+        card: '@card_book_of_xizta_the_demented'
+        quantity: 2
+    user_card_barlito_brex_maitre_contrebandier:
+        discordUser: '@discord_user_barlito'
+        card: '@card_brex_maitre_contrebandier'
+        quantity: 3
+    user_card_collectionneur_brex_maitre_contrebandier:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_brex_maitre_contrebandier'
+        quantity: 3
+    user_card_weeby_brex_maitre_contrebandier:
+        discordUser: '@discord_user_weeby'
+        card: '@card_brex_maitre_contrebandier'
+        quantity: 3
+    user_card_barlito_bureau_de_linspecteur:
+        discordUser: '@discord_user_barlito'
+        card: '@card_bureau_de_linspecteur'
+        quantity: 4
+    user_card_barlito_capitaine_de_la_12e_division_masuo_zuki:
+        discordUser: '@discord_user_barlito'
+        card: '@card_capitaine_de_la_12e_division_masuo_zuki'
+        quantity: 2
+    user_card_collectionneur_capitaine_de_la_12e_division_masuo_zuki:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_capitaine_de_la_12e_division_masuo_zuki'
+        quantity: 2
+    user_card_barlito_capitaine_de_la_13e_division_barlito:
+        discordUser: '@discord_user_barlito'
+        card: '@card_capitaine_de_la_13e_division_barlito'
+        quantity: 3
+    user_card_collectionneur_capitaine_de_la_13e_division_barlito:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_capitaine_de_la_13e_division_barlito'
+        quantity: 3
+    user_card_juju_capitaine_de_la_13e_division_barlito:
+        discordUser: '@discord_user_juju'
+        card: '@card_capitaine_de_la_13e_division_barlito'
+        quantity: 3
+    user_card_barlito_capitaine_de_la_1ere_division_babou_linette:
+        discordUser: '@discord_user_barlito'
+        card: '@card_capitaine_de_la_1ere_division_babou_linette'
+        quantity: 4
+    user_card_collectionneur_capitaine_de_la_3e_division_farf:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_capitaine_de_la_3e_division_farf'
+        quantity: 1
+        holoQuantity: 1
+    user_card_farph_capitaine_de_la_3e_division_farf:
+        discordUser: '@discord_user_farph'
+        card: '@card_capitaine_de_la_3e_division_farf'
+        quantity: 1
+        holoQuantity: 1
+    user_card_benj_capitaine_de_la_3e_division_farf:
+        discordUser: '@discord_user_benj'
+        card: '@card_capitaine_de_la_3e_division_farf'
+        quantity: 1
+        holoQuantity: 1
+    user_card_barlito_capitaine_de_la_4e_division_bebou_linette:
+        discordUser: '@discord_user_barlito'
+        card: '@card_capitaine_de_la_4e_division_bebou_linette'
+        quantity: 2
+    user_card_barlito_centre_des_operations:
+        discordUser: '@discord_user_barlito'
+        card: '@card_centre_des_operations'
+        quantity: 3
+    user_card_barlito_chevalier_de_la_lumiere:
+        discordUser: '@discord_user_barlito'
+        card: '@card_chevalier_de_la_lumiere'
+        quantity: 4
+    user_card_collectionneur_chevalier_de_la_lumiere:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_chevalier_de_la_lumiere'
+        quantity: 4
+    user_card_barlito_colonie_martienne:
+        discordUser: '@discord_user_barlito'
+        card: '@card_colonie_martienne'
+        quantity: 2
+    user_card_juju_colonie_martienne:
+        discordUser: '@discord_user_juju'
+        card: '@card_colonie_martienne'
+        quantity: 2
+    user_card_weeby_colonie_martienne:
+        discordUser: '@discord_user_weeby'
+        card: '@card_colonie_martienne'
+        quantity: 2
+    user_card_barlito_combattant_eldar:
+        discordUser: '@discord_user_barlito'
+        card: '@card_combattant_eldar'
+        quantity: 3
+    user_card_collectionneur_combattant_eldar:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_combattant_eldar'
+        quantity: 3
+    user_card_veli_combattant_eldar:
+        discordUser: '@discord_user_veli'
+        card: '@card_combattant_eldar'
+        quantity: 3
+    user_card_barlito_commandant_capitaine_benj:
+        discordUser: '@discord_user_barlito'
+        card: '@card_commandant_capitaine_benj'
+        quantity: 4
+    user_card_collectionneur_cult_of_ahlototh:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_cult_of_ahlototh'
+        quantity: 1
+    user_card_farph_cult_of_ahlototh:
+        discordUser: '@discord_user_farph'
+        card: '@card_cult_of_ahlototh'
+        quantity: 1
+    user_card_barlito_demon_du_chaos:
+        discordUser: '@discord_user_barlito'
+        card: '@card_demon_du_chaos'
+        quantity: 2
+        holoQuantity: 1
+    user_card_collectionneur_demon_du_chaos:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_demon_du_chaos'
+        quantity: 2
+        holoQuantity: 1
+    user_card_benj_demon_du_chaos:
+        discordUser: '@discord_user_benj'
+        card: '@card_demon_du_chaos'
+        quantity: 2
+        holoQuantity: 1
+    user_card_barlito_drogh_dhurr:
+        discordUser: '@discord_user_barlito'
+        card: '@card_drogh_dhurr'
+        quantity: 3
+    user_card_barlito_drogh_dhurr_alt:
+        discordUser: '@discord_user_barlito'
+        card: '@card_drogh_dhurr_alt'
+        quantity: 4
+    user_card_collectionneur_empereur_de_lhumanite:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_empereur_de_lhumanite'
+        quantity: 1
+        holoQuantity: 1
+    user_card_barlito_evelynn_alt_kda:
+        discordUser: '@discord_user_barlito'
+        card: '@card_evelynn_alt_kda'
+        quantity: 2
+    user_card_collectionneur_evelynn_alt_kda:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_evelynn_alt_kda'
+        quantity: 2
+    user_card_barlito_evelynn_kda:
+        discordUser: '@discord_user_barlito'
+        card: '@card_evelynn_kda'
+        quantity: 3
+    user_card_barlito_excavateur_dhelium:
+        discordUser: '@discord_user_barlito'
+        card: '@card_excavateur_dhelium'
+        quantity: 4
+    user_card_collectionneur_excavateur_dhelium:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_excavateur_dhelium'
+        quantity: 4
+    user_card_farph_farf:
+        discordUser: '@discord_user_farph'
+        card: '@card_farf'
+        quantity: 1
+    user_card_weeby_farf:
+        discordUser: '@discord_user_weeby'
+        card: '@card_farf'
+        quantity: 1
+    user_card_barlito_farf_1_lotr:
+        discordUser: '@discord_user_barlito'
+        card: '@card_farf_1_lotr'
+        quantity: 2
+    user_card_barlito_farf_bullet_ballet:
+        discordUser: '@discord_user_barlito'
+        card: '@card_farf_bullet_ballet'
+        quantity: 3
+        holoQuantity: 1
+    user_card_collectionneur_farf_bullet_ballet:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_farf_bullet_ballet'
+        quantity: 3
+        holoQuantity: 1
+    user_card_benj_farf_bullet_ballet:
+        discordUser: '@discord_user_benj'
+        card: '@card_farf_bullet_ballet'
+        quantity: 3
+        holoQuantity: 1
+    user_card_barlito_farf_chef_descadron:
+        discordUser: '@discord_user_barlito'
+        card: '@card_farf_chef_descadron'
+        quantity: 4
+    user_card_juju_farf_chef_descadron:
+        discordUser: '@discord_user_juju'
+        card: '@card_farf_chef_descadron'
+        quantity: 4
+    user_card_veli_farf_chef_descadron:
+        discordUser: '@discord_user_veli'
+        card: '@card_farf_chef_descadron'
+        quantity: 4
+    user_card_barlito_farf_kda:
+        discordUser: '@discord_user_barlito'
+        card: '@card_farf_kda'
+        quantity: 2
+    user_card_collectionneur_farf_kda:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_farf_kda'
+        quantity: 2
+    user_card_barlito_farf_le_farfade:
+        discordUser: '@discord_user_barlito'
+        card: '@card_farf_le_farfade'
+        quantity: 3
+    user_card_barlito_farf_the_beyonder:
+        discordUser: '@discord_user_barlito'
+        card: '@card_farf_the_beyonder'
+        quantity: 4
+    user_card_collectionneur_farf_the_beyonder:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_farf_the_beyonder'
+        quantity: 4
+    user_card_collectionneur_farph_cyberpunk:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_farph_cyberpunk'
+        quantity: 1
+    user_card_farph_farph_cyberpunk:
+        discordUser: '@discord_user_farph'
+        card: '@card_farph_cyberpunk'
+        quantity: 1
+    user_card_barlito_farph_cyberpunk_x_reddead:
+        discordUser: '@discord_user_barlito'
+        card: '@card_farph_cyberpunk_x_reddead'
+        quantity: 2
+    user_card_barlito_farph_evo_alt_red_dead:
+        discordUser: '@discord_user_barlito'
+        card: '@card_farph_evo_alt_red_dead'
+        quantity: 3
+    user_card_juju_farph_evo_alt_red_dead:
+        discordUser: '@discord_user_juju'
+        card: '@card_farph_evo_alt_red_dead'
+        quantity: 3
+    user_card_barlito_farph_magic:
+        discordUser: '@discord_user_barlito'
+        card: '@card_farph_magic'
+        quantity: 4
+        holoQuantity: 1
+    user_card_collectionneur_farph_magic:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_farph_magic'
+        quantity: 4
+        holoQuantity: 1
+    user_card_benj_farph_magic:
+        discordUser: '@discord_user_benj'
+        card: '@card_farph_magic'
+        quantity: 4
+        holoQuantity: 1
+    user_card_weeby_farph_magic:
+        discordUser: '@discord_user_weeby'
+        card: '@card_farph_magic'
+        quantity: 4
+        holoQuantity: 1
+    user_card_collectionneur_faurph_velirp:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_faurph_velirp'
+        quantity: 1
+    user_card_barlito_gala_de_charite:
+        discordUser: '@discord_user_barlito'
+        card: '@card_gala_de_charite'
+        quantity: 2
+    user_card_barlito_gemelo_n1_nairy_delavega:
+        discordUser: '@discord_user_barlito'
+        card: '@card_gemelo_n1_nairy_delavega'
+        quantity: 3
+    user_card_collectionneur_gemelo_n1_nairy_delavega:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_gemelo_n1_nairy_delavega'
+        quantity: 3
+    user_card_barlito_gemelo_n2_julian_delavega:
+        discordUser: '@discord_user_barlito'
+        card: '@card_gemelo_n2_julian_delavega'
+        quantity: 4
+    user_card_barlito_god_almighty:
+        discordUser: '@discord_user_barlito'
+        card: '@card_god_almighty'
+        quantity: 1
+        holoQuantity: 1
+    user_card_barlito_guerrier_necron:
+        discordUser: '@discord_user_barlito'
+        card: '@card_guerrier_necron'
+        quantity: 2
+    user_card_collectionneur_guerrier_necron:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_guerrier_necron'
+        quantity: 2
+    user_card_juju_guerrier_necron:
+        discordUser: '@discord_user_juju'
+        card: '@card_guerrier_necron'
+        quantity: 2
+    user_card_barlito_hero_de_la_nation_julian:
+        discordUser: '@discord_user_barlito'
+        card: '@card_hero_de_la_nation_julian'
+        quantity: 3
+    user_card_barlito_hipo_le_vice_capitaine:
+        discordUser: '@discord_user_barlito'
+        card: '@card_hipo_le_vice_capitaine'
+        quantity: 4
+    user_card_collectionneur_hollow:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_hollow'
+        quantity: 1
+        holoQuantity: 1
+    user_card_benj_hollow:
+        discordUser: '@discord_user_benj'
+        card: '@card_hollow'
+        quantity: 1
+        holoQuantity: 1
+    user_card_barlito_hollow_zaraki_le_sans_nom:
+        discordUser: '@discord_user_barlito'
+        card: '@card_hollow_zaraki_le_sans_nom'
+        quantity: 2
+    user_card_barlito_ingenieur_barlito:
+        discordUser: '@discord_user_barlito'
+        card: '@card_ingenieur_barlito'
+        quantity: 3
+    user_card_collectionneur_ingenieur_barlito:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_ingenieur_barlito'
+        quantity: 3
+    user_card_weeby_ingenieur_barlito:
+        discordUser: '@discord_user_weeby'
+        card: '@card_ingenieur_barlito'
+        quantity: 3
+    user_card_barlito_inspecteur_farf:
+        discordUser: '@discord_user_barlito'
+        card: '@card_inspecteur_farf'
+        quantity: 4
+    user_card_collectionneur_inspecteur_farf:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_inspecteur_farf'
+        quantity: 4
+    user_card_juju_jewben:
+        discordUser: '@discord_user_juju'
+        card: '@card_jewben'
+        quantity: 1
+    user_card_farph_jewben:
+        discordUser: '@discord_user_farph'
+        card: '@card_jewben'
+        quantity: 1
+    user_card_barlito_jinx_kda:
+        discordUser: '@discord_user_barlito'
+        card: '@card_jinx_kda'
+        quantity: 2
+    user_card_barlito_jr_alt_kda:
+        discordUser: '@discord_user_barlito'
+        card: '@card_jr_alt_kda'
+        quantity: 3
+    user_card_collectionneur_jr_alt_kda:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_jr_alt_kda'
+        quantity: 3
+    user_card_barlito_jr_kda:
+        discordUser: '@discord_user_barlito'
+        card: '@card_jr_kda'
+        quantity: 4
+    user_card_collectionneur_jr_kda:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_jr_kda'
+        quantity: 4
+    user_card_barlito_julian_1_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        card: '@card_julian_1_cyberpunk'
+        quantity: 2
+        holoQuantity: 1
+    user_card_collectionneur_julian_1_cyberpunk:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_julian_1_cyberpunk'
+        quantity: 2
+        holoQuantity: 1
+    user_card_benj_julian_1_cyberpunk:
+        discordUser: '@discord_user_benj'
+        card: '@card_julian_1_cyberpunk'
+        quantity: 2
+        holoQuantity: 1
+    user_card_veli_julian_1_cyberpunk:
+        discordUser: '@discord_user_veli'
+        card: '@card_julian_1_cyberpunk'
+        quantity: 2
+        holoQuantity: 1
+    user_card_barlito_julian_2_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        card: '@card_julian_2_cyberpunk'
+        quantity: 3
+    user_card_barlito_julian_alt_kda:
+        discordUser: '@discord_user_barlito'
+        card: '@card_julian_alt_kda'
+        quantity: 4
+    user_card_juju_julian_alt_kda:
+        discordUser: '@discord_user_juju'
+        card: '@card_julian_alt_kda'
+        quantity: 4
+    user_card_collectionneur_julian_chef_du_marche_noir:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_julian_chef_du_marche_noir'
+        quantity: 1
+    user_card_farph_julian_chef_du_marche_noir:
+        discordUser: '@discord_user_farph'
+        card: '@card_julian_chef_du_marche_noir'
+        quantity: 1
+    user_card_barlito_julian_de_la_7e_legion:
+        discordUser: '@discord_user_barlito'
+        card: '@card_julian_de_la_7e_legion'
+        quantity: 2
+    user_card_weeby_julian_de_la_7e_legion:
+        discordUser: '@discord_user_weeby'
+        card: '@card_julian_de_la_7e_legion'
+        quantity: 2
+    user_card_barlito_julian_kda:
+        discordUser: '@discord_user_barlito'
+        card: '@card_julian_kda'
+        quantity: 3
+    user_card_barlito_julian_le_baroudeur:
+        discordUser: '@discord_user_barlito'
+        card: '@card_julian_le_baroudeur'
+        quantity: 4
+    user_card_collectionneur_julian_le_baroudeur:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_julian_le_baroudeur'
+        quantity: 4
+    user_card_barlito_julian_the_normal_guy:
+        discordUser: '@discord_user_barlito'
+        card: '@card_julian_the_normal_guy'
+        quantity: 2
+    user_card_collectionneur_julian_the_normal_guy:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_julian_the_normal_guy'
+        quantity: 2
+    user_card_barlito_julien_evo_magic:
+        discordUser: '@discord_user_barlito'
+        card: '@card_julien_evo_magic'
+        quantity: 3
+        holoQuantity: 1
+    user_card_collectionneur_julien_evo_magic:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_julien_evo_magic'
+        quantity: 3
+        holoQuantity: 1
+    user_card_juju_julien_evo_magic:
+        discordUser: '@discord_user_juju'
+        card: '@card_julien_evo_magic'
+        quantity: 3
+        holoQuantity: 1
+    user_card_benj_julien_evo_magic:
+        discordUser: '@discord_user_benj'
+        card: '@card_julien_evo_magic'
+        quantity: 3
+        holoQuantity: 1
+    user_card_barlito_julien_roi_d_eldia:
+        discordUser: '@discord_user_barlito'
+        card: '@card_julien_roi_d_eldia'
+        quantity: 4
+    user_card_farph_kaisa_alt_kda:
+        discordUser: '@discord_user_farph'
+        card: '@card_kaisa_alt_kda'
+        quantity: 1
+    user_card_barlito_kaisa_kda:
+        discordUser: '@discord_user_barlito'
+        card: '@card_kaisa_kda'
+        quantity: 2
+    user_card_collectionneur_kaisa_kda:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_kaisa_kda'
+        quantity: 2
+    user_card_barlito_kaiser_der_neuen_ordnung_samaz:
+        discordUser: '@discord_user_barlito'
+        card: '@card_kaiser_der_neuen_ordnung_samaz'
+        quantity: 3
+    user_card_collectionneur_kaiser_der_neuen_ordnung_samaz:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_kaiser_der_neuen_ordnung_samaz'
+        quantity: 3
+    user_card_veli_kaiser_der_neuen_ordnung_samaz:
+        discordUser: '@discord_user_veli'
+        card: '@card_kaiser_der_neuen_ordnung_samaz'
+        quantity: 3
+    user_card_barlito_komrade_farf:
+        discordUser: '@discord_user_barlito'
+        card: '@card_komrade_farf'
+        quantity: 4
+    user_card_collectionneur_kosmonaut_warny:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_kosmonaut_warny'
+        quantity: 1
+    user_card_weeby_kosmonaut_warny:
+        discordUser: '@discord_user_weeby'
+        card: '@card_kosmonaut_warny'
+        quantity: 1
+    user_card_barlito_l_enchantement_de_bibou_linette:
+        discordUser: '@discord_user_barlito'
+        card: '@card_l_enchantement_de_bibou_linette'
+        quantity: 2
+    user_card_juju_l_enchantement_de_bibou_linette:
+        discordUser: '@discord_user_juju'
+        card: '@card_l_enchantement_de_bibou_linette'
+        quantity: 2
+    user_card_barlito_l_epee_demoniaque_ule:
+        discordUser: '@discord_user_barlito'
+        card: '@card_l_epee_demoniaque_ule'
+        quantity: 3
+    user_card_barlito_l_epee_divine_enc:
+        discordUser: '@discord_user_barlito'
+        card: '@card_l_epee_divine_enc'
+        quantity: 4
+        holoQuantity: 1
+    user_card_collectionneur_l_epee_divine_enc:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_l_epee_divine_enc'
+        quantity: 4
+        holoQuantity: 1
+    user_card_benj_l_epee_divine_enc:
+        discordUser: '@discord_user_benj'
+        card: '@card_l_epee_divine_enc'
+        quantity: 4
+        holoQuantity: 1
+    user_card_farph_la_pegre_de_new_la:
+        discordUser: '@discord_user_farph'
+        card: '@card_la_pegre_de_new_la'
+        quantity: 1
+    user_card_barlito_le_charme_du_marchand_de_sable:
+        discordUser: '@discord_user_barlito'
+        card: '@card_le_charme_du_marchand_de_sable'
+        quantity: 2
+    user_card_barlito_le_miroir_du_confins:
+        discordUser: '@discord_user_barlito'
+        card: '@card_le_miroir_du_confins'
+        quantity: 3
+    user_card_collectionneur_le_miroir_du_confins:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_le_miroir_du_confins'
+        quantity: 3
+    user_card_barlito_le_sommeil_de_bebou_linette:
+        discordUser: '@discord_user_barlito'
+        card: '@card_le_sommeil_de_bebou_linette'
+        quantity: 4
+    user_card_collectionneur_marchand_warny:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_marchand_warny'
+        quantity: 1
+    user_card_juju_marchand_warny:
+        discordUser: '@discord_user_juju'
+        card: '@card_marchand_warny'
+        quantity: 1
+    user_card_barlito_marche_noir_du_niveau_24:
+        discordUser: '@discord_user_barlito'
+        card: '@card_marche_noir_du_niveau_24'
+        quantity: 2
+    user_card_collectionneur_marche_noir_du_niveau_24:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_marche_noir_du_niveau_24'
+        quantity: 2
+    user_card_barlito_mercenaire_bone:
+        discordUser: '@discord_user_barlito'
+        card: '@card_mercenaire_bone'
+        quantity: 3
+    user_card_barlito_monde_ruche:
+        discordUser: '@discord_user_barlito'
+        card: '@card_monde_ruche'
+        quantity: 4
+    user_card_weeby_monde_ruche:
+        discordUser: '@discord_user_weeby'
+        card: '@card_monde_ruche'
+        quantity: 4
+    user_card_veli_monde_ruche:
+        discordUser: '@discord_user_veli'
+        card: '@card_monde_ruche'
+        quantity: 4
+    user_card_collectionneur_new_los_angeles:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_new_los_angeles'
+        quantity: 1
+        holoQuantity: 1
+    user_card_farph_new_los_angeles:
+        discordUser: '@discord_user_farph'
+        card: '@card_new_los_angeles'
+        quantity: 1
+        holoQuantity: 1
+    user_card_benj_new_los_angeles:
+        discordUser: '@discord_user_benj'
+        card: '@card_new_los_angeles'
+        quantity: 1
+        holoQuantity: 1
+    user_card_barlito_niveau_24:
+        discordUser: '@discord_user_barlito'
+        card: '@card_niveau_24'
+        quantity: 2
+    user_card_collectionneur_niveau_24:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_niveau_24'
+        quantity: 2
+    user_card_barlito_niveau_330:
+        discordUser: '@discord_user_barlito'
+        card: '@card_niveau_330'
+        quantity: 3
+    user_card_barlito_nuee_de_tyranides:
+        discordUser: '@discord_user_barlito'
+        card: '@card_nuee_de_tyranides'
+        quantity: 4
+    user_card_collectionneur_nuee_de_tyranides:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_nuee_de_tyranides'
+        quantity: 4
+    user_card_juju_nuee_de_tyranides:
+        discordUser: '@discord_user_juju'
+        card: '@card_nuee_de_tyranides'
+        quantity: 4
+    user_card_barlito_offizier_der_neuen_ordnung_frieda:
+        discordUser: '@discord_user_barlito'
+        card: '@card_offizier_der_neuen_ordnung_frieda'
+        quantity: 2
+    user_card_barlito_offizier_der_neuen_ordnung_ludwig:
+        discordUser: '@discord_user_barlito'
+        card: '@card_offizier_der_neuen_ordnung_ludwig'
+        quantity: 3
+    user_card_collectionneur_offizier_der_neuen_ordnung_ludwig:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_offizier_der_neuen_ordnung_ludwig'
+        quantity: 3
+    user_card_barlito_ork_de_la_waaagh:
+        discordUser: '@discord_user_barlito'
+        card: '@card_ork_de_la_waaagh'
+        quantity: 4
+    user_card_farph_pilote_de_lunion:
+        discordUser: '@discord_user_farph'
+        card: '@card_pilote_de_lunion'
+        quantity: 1
+    user_card_barlito_planete_treon_ch77:
+        discordUser: '@discord_user_barlito'
+        card: '@card_planete_treon_ch77'
+        quantity: 2
+        holoQuantity: 1
+    user_card_collectionneur_planete_treon_ch77:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_planete_treon_ch77'
+        quantity: 2
+        holoQuantity: 1
+    user_card_benj_planete_treon_ch77:
+        discordUser: '@discord_user_benj'
+        card: '@card_planete_treon_ch77'
+        quantity: 2
+        holoQuantity: 1
+    user_card_barlito_prince_demon_du_chaos:
+        discordUser: '@discord_user_barlito'
+        card: '@card_prince_demon_du_chaos'
+        quantity: 3
+    user_card_juju_prince_demon_du_chaos:
+        discordUser: '@discord_user_juju'
+        card: '@card_prince_demon_du_chaos'
+        quantity: 3
+    user_card_weeby_prince_demon_du_chaos:
+        discordUser: '@discord_user_weeby'
+        card: '@card_prince_demon_du_chaos'
+        quantity: 3
+    user_card_barlito_princeps_du_mechanicus:
+        discordUser: '@discord_user_barlito'
+        card: '@card_princeps_du_mechanicus'
+        quantity: 4
+    user_card_collectionneur_princeps_du_mechanicus:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_princeps_du_mechanicus'
+        quantity: 4
+    user_card_collectionneur_recrue_judith:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_recrue_judith'
+        quantity: 1
+    user_card_veli_recrue_judith:
+        discordUser: '@discord_user_veli'
+        card: '@card_recrue_judith'
+        quantity: 1
+    user_card_barlito_rog_le_dragon_celeste:
+        discordUser: '@discord_user_barlito'
+        card: '@card_rog_le_dragon_celeste'
+        quantity: 2
+    user_card_barlito_rue_de_new_la:
+        discordUser: '@discord_user_barlito'
+        card: '@card_rue_de_new_la'
+        quantity: 3
+    user_card_barlito_ruins_cult:
+        discordUser: '@discord_user_barlito'
+        card: '@card_ruins_cult'
+        quantity: 4
+    user_card_collectionneur_ruins_cult:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_ruins_cult'
+        quantity: 4
+    user_card_collectionneur_soldat_du_peuple_tau:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_soldat_du_peuple_tau'
+        quantity: 1
+    user_card_farph_soldat_du_peuple_tau:
+        discordUser: '@discord_user_farph'
+        card: '@card_soldat_du_peuple_tau'
+        quantity: 1
+    user_card_barlito_space_marine_du_chaos:
+        discordUser: '@discord_user_barlito'
+        card: '@card_space_marine_du_chaos'
+        quantity: 2
+    user_card_juju_space_marine_du_chaos:
+        discordUser: '@discord_user_juju'
+        card: '@card_space_marine_du_chaos'
+        quantity: 2
+    user_card_barlito_spatio_gare:
+        discordUser: '@discord_user_barlito'
+        card: '@card_spatio_gare'
+        quantity: 3
+        holoQuantity: 1
+    user_card_collectionneur_spatio_gare:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_spatio_gare'
+        quantity: 3
+        holoQuantity: 1
+    user_card_benj_spatio_gare:
+        discordUser: '@discord_user_benj'
+        card: '@card_spatio_gare'
+        quantity: 3
+        holoQuantity: 1
+    user_card_barlito_storm_of_time:
+        discordUser: '@discord_user_barlito'
+        card: '@card_storm_of_time'
+        quantity: 4
+    user_card_barlito_tedi_dibi:
+        discordUser: '@discord_user_barlito'
+        card: '@card_tedi_dibi'
+        quantity: 2
+    user_card_collectionneur_tedi_dibi:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_tedi_dibi'
+        quantity: 2
+    user_card_weeby_tedi_dibi:
+        discordUser: '@discord_user_weeby'
+        card: '@card_tedi_dibi'
+        quantity: 2
+    user_card_barlito_tempete_du_warp:
+        discordUser: '@discord_user_barlito'
+        card: '@card_tempete_du_warp'
+        quantity: 3
+    user_card_barlito_transport_luxueux:
+        discordUser: '@discord_user_barlito'
+        card: '@card_transport_luxueux'
+        quantity: 4
+    user_card_collectionneur_vaisseau_de_corsair:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_vaisseau_de_corsair'
+        quantity: 1
+    user_card_juju_vaisseau_de_corsair:
+        discordUser: '@discord_user_juju'
+        card: '@card_vaisseau_de_corsair'
+        quantity: 1
+    user_card_farph_vaisseau_de_corsair:
+        discordUser: '@discord_user_farph'
+        card: '@card_vaisseau_de_corsair'
+        quantity: 1
+    user_card_barlito_vaisseau_de_fret:
+        discordUser: '@discord_user_barlito'
+        card: '@card_vaisseau_de_fret'
+        quantity: 2
+    user_card_veli_vaisseau_de_fret:
+        discordUser: '@discord_user_veli'
+        card: '@card_vaisseau_de_fret'
+        quantity: 2
+    user_card_barlito_vaisseau_monde:
+        discordUser: '@discord_user_barlito'
+        card: '@card_vaisseau_monde'
+        quantity: 3
+    user_card_collectionneur_vaisseau_monde:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_vaisseau_monde'
+        quantity: 3
+    user_card_barlito_vel_1_lotr:
+        discordUser: '@discord_user_barlito'
+        card: '@card_vel_1_lotr'
+        quantity: 4
+        holoQuantity: 1
+    user_card_collectionneur_vel_1_lotr:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_vel_1_lotr'
+        quantity: 4
+        holoQuantity: 1
+    user_card_benj_vel_1_lotr:
+        discordUser: '@discord_user_benj'
+        card: '@card_vel_1_lotr'
+        quantity: 4
+        holoQuantity: 1
+    user_card_barlito_veli_alt_magic:
+        discordUser: '@discord_user_barlito'
+        card: '@card_veli_alt_magic'
+        quantity: 2
+    user_card_barlito_veli_bullet_ballet:
+        discordUser: '@discord_user_barlito'
+        card: '@card_veli_bullet_ballet'
+        quantity: 3
+    user_card_collectionneur_veli_bullet_ballet:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_veli_bullet_ballet'
+        quantity: 3
+    user_card_barlito_veli_capitaine_corsair:
+        discordUser: '@discord_user_barlito'
+        card: '@card_veli_capitaine_corsair'
+        quantity: 4
+    user_card_collectionneur_veli_capitaine_corsair:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_veli_capitaine_corsair'
+        quantity: 4
+    user_card_juju_veli_capitaine_corsair:
+        discordUser: '@discord_user_juju'
+        card: '@card_veli_capitaine_corsair'
+        quantity: 4
+    user_card_farph_veli_chef_du_parti:
+        discordUser: '@discord_user_farph'
+        card: '@card_veli_chef_du_parti'
+        quantity: 1
+    user_card_weeby_veli_chef_du_parti:
+        discordUser: '@discord_user_weeby'
+        card: '@card_veli_chef_du_parti'
+        quantity: 1
+    user_card_barlito_veli_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        card: '@card_veli_cyberpunk'
+        quantity: 2
+    user_card_collectionneur_veli_cyberpunk:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_veli_cyberpunk'
+        quantity: 2
+    user_card_barlito_veli_de_la_3e_legion:
+        discordUser: '@discord_user_barlito'
+        card: '@card_veli_de_la_3e_legion'
+        quantity: 3
+    user_card_barlito_veli_kda:
+        discordUser: '@discord_user_barlito'
+        card: '@card_veli_kda'
+        quantity: 4
+    user_card_collectionneur_veli_l_ogre_des_sables:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_veli_l_ogre_des_sables'
+        quantity: 1
+        holoQuantity: 1
+    user_card_benj_veli_l_ogre_des_sables:
+        discordUser: '@discord_user_benj'
+        card: '@card_veli_l_ogre_des_sables'
+        quantity: 1
+        holoQuantity: 1
+    user_card_barlito_veli_le_corpo:
+        discordUser: '@discord_user_barlito'
+        card: '@card_veli_le_corpo'
+        quantity: 2
+    user_card_barlito_veli_sot:
+        discordUser: '@discord_user_barlito'
+        card: '@card_veli_sot'
+        quantity: 3
+    user_card_juju_veli_sot:
+        discordUser: '@discord_user_juju'
+        card: '@card_veli_sot'
+        quantity: 3
+    user_card_veli_veli_sot:
+        discordUser: '@discord_user_veli'
+        card: '@card_veli_sot'
+        quantity: 3
+    user_card_barlito_veli_the_fiery_2_alternate:
+        discordUser: '@discord_user_barlito'
+        card: '@card_veli_the_fiery_2_alternate'
+        quantity: 4
+    user_card_collectionneur_veli_the_fiery_2_alternate:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_veli_the_fiery_2_alternate'
+        quantity: 4
+    user_card_farph_veli_the_fiery_alternate:
+        discordUser: '@discord_user_farph'
+        card: '@card_veli_the_fiery_alternate'
+        quantity: 1
+    user_card_barlito_vice_capitaine_de_la_13e_division_bibou_linette:
+        discordUser: '@discord_user_barlito'
+        card: '@card_vice_capitaine_de_la_13e_division_bibou_linette'
+        quantity: 2
+    user_card_collectionneur_vice_capitaine_de_la_13e_division_bibou_linette:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_vice_capitaine_de_la_13e_division_bibou_linette'
+        quantity: 2
+    user_card_barlito_warny_1_magic:
+        discordUser: '@discord_user_barlito'
+        card: '@card_warny_1_magic'
+        quantity: 3
+    user_card_collectionneur_warny_1_magic:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_warny_1_magic'
+        quantity: 3
+    user_card_barlito_warny_alt_magic:
+        discordUser: '@discord_user_barlito'
+        card: '@card_warny_alt_magic'
+        quantity: 4
+    user_card_weeby_warny_alt_magic:
+        discordUser: '@discord_user_weeby'
+        card: '@card_warny_alt_magic'
+        quantity: 4
+    user_card_barlito_warny_dystopia:
+        discordUser: '@discord_user_barlito'
+        card: '@card_warny_dystopia'
+        quantity: 2
+        holoQuantity: 1
+    user_card_collectionneur_warny_dystopia:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_warny_dystopia'
+        quantity: 2
+        holoQuantity: 1
+    user_card_juju_warny_dystopia:
+        discordUser: '@discord_user_juju'
+        card: '@card_warny_dystopia'
+        quantity: 2
+        holoQuantity: 1
+    user_card_benj_warny_dystopia:
+        discordUser: '@discord_user_benj'
+        card: '@card_warny_dystopia'
+        quantity: 2
+        holoQuantity: 1
+    user_card_barlito_warny_kda:
+        discordUser: '@discord_user_barlito'
+        card: '@card_warny_kda'
+        quantity: 3
+    user_card_collectionneur_warny_kda:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_warny_kda'
+        quantity: 3
+    user_card_barlito_warny_le_paysan:
+        discordUser: '@discord_user_barlito'
+        card: '@card_warny_le_paysan'
+        quantity: 4
+    user_card_collectionneur_warny_le_street_kid:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_warny_le_street_kid'
+        quantity: 1
+    user_card_farph_warny_le_street_kid:
+        discordUser: '@discord_user_farph'
+        card: '@card_warny_le_street_kid'
+        quantity: 1
+    user_card_barlito_warny_maximator_velirp:
+        discordUser: '@discord_user_barlito'
+        card: '@card_warny_maximator_velirp'
+        quantity: 2
+    user_card_barlito_warny_sot:
+        discordUser: '@discord_user_barlito'
+        card: '@card_warny_sot'
+        quantity: 3
+    user_card_barlito_warny_the_watcher:
+        discordUser: '@discord_user_barlito'
+        card: '@card_warny_the_watcher'
+        quantity: 4
+    user_card_collectionneur_warny_the_watcher:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_warny_the_watcher'
+        quantity: 4
+    user_card_veli_warny_the_watcher:
+        discordUser: '@discord_user_veli'
+        card: '@card_warny_the_watcher'
+        quantity: 4
+    user_card_juju_warnyx:
+        discordUser: '@discord_user_juju'
+        card: '@card_warnyx'
+        quantity: 1
+    user_card_barlito_weebou_cyberpunk:
+        discordUser: '@discord_user_barlito'
+        card: '@card_weebou_cyberpunk'
+        quantity: 2
+    user_card_barlito_zocnoth_the_worlds_eater:
+        discordUser: '@discord_user_barlito'
+        card: '@card_zocnoth_the_worlds_eater'
+        quantity: 3
+        holoQuantity: 1
+    user_card_collectionneur_zocnoth_the_worlds_eater:
+        discordUser: '@discord_user_collectionneur'
+        card: '@card_zocnoth_the_worlds_eater'
+        quantity: 3
+        holoQuantity: 1
+    user_card_benj_zocnoth_the_worlds_eater:
+        discordUser: '@discord_user_benj'
+        card: '@card_zocnoth_the_worlds_eater'
+        quantity: 3
+        holoQuantity: 1
+    user_card_weeby_zocnoth_the_worlds_eater:
+        discordUser: '@discord_user_weeby'
+        card: '@card_zocnoth_the_worlds_eater'
+        quantity: 3
+        holoQuantity: 1
+    user_card_barlito_zweiter_der_neun_ordnung_warny:
+        discordUser: '@discord_user_barlito'
+        card: '@card_zweiter_der_neun_ordnung_warny'
+        quantity: 4

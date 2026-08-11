@@ -1,72 +1,1411 @@
+# Généré depuis public/uploads/cards (voir docs/dev-fixtures.md).
 App\Entity\Card:
-    card_silverhand:
-        name: 'Cyberpunk Johnny Silverhand'
+    card_1_cyberpunk:
+        name: 'Cyberpunk 2077 1'
         extension: '@extension_cyberpunk'
-        description: 'Silverhand is a former member of the rock band Samurai. He is a central character in the Cyberpunk series and is known for his anti-corporate views and his fight against the Arasaka Corporation. He is a key figure in the game Cyberpunk 2077.'
-        unique: true
-        imageName: 'default_card.png'
-        status: 2
-        rarity: 'legendary'
-        alwaysHolo: true
-        visualConfigOverrideJson: '{"glow": "#ff3db0"}'
-    card_rogue:
-        name: 'Cyberpunk Rogue'
-        extension: '@extension_cyberpunk'
-        description: 'Rogue is the queen of the Afterlife. She is a key figure in the game Cyberpunk 2077.'
-        unique: false
-        imageName: 'default_card.png'
-        status: 2
-        rarity: 'rare'
-    card_ichigo:
-        name: 'Bleach Ichigo Kurosaki'
-        extension: '@extension_bleach'
-        description: 'Ichigo Kurosaki is the main character of the Bleach series. He is a teenager with the ability to see ghosts who gains the powers of a Soul Reaper after a fateful encounter with another Soul Reaper, Rukia Kuchiki.'
-        unique: false
-        imageName: 'default_card.png'
-        status: 2
-        rarity: 'rare'
-    # possédée par Barlito seulement : l'état « seulement toi » de la grille comparée
-    card_cp_v:
-        name: 'Cyberpunk V'
-        extension: '@extension_cyberpunk'
-        description: 'V is the mercenary outlaw you play in Cyberpunk 2077, chasing a one-of-a-kind implant that is the key to immortality.'
-        unique: false
-        imageName: 'default_card.png'
-        status: 2
-        rarity: 'uncommon'
-    # possédée par personne : l'état « manquante aux deux »
-    card_bleach_rukia:
-        name: 'Bleach Rukia Kuchiki'
-        extension: '@extension_bleach'
-        description: 'Rukia Kuchiki is the Soul Reaper who gives Ichigo her powers, and one of the central characters of the Bleach series.'
-        unique: false
-        imageName: 'default_card.png'
-        status: 2
-        rarity: 'uncommon'
-    card_cp_barlito:
-        name: 'Cyberpunk Barlito'
-        extension: '@extension_cyberpunk'
-        description: 'Barlito is a former member of the rock band Samurai. He is a central character in the Cyberpunk series and is known for his anti-corporate views and his fight against the Arasaka Corporation. He is a key figure in the game Cyberpunk 2077.'
-        unique: false
-        imageName: 'default_card.png'
+        description: 'Cyberpunk 2077 1, univers Cyberpunk 2077.'
         status: 2
         rarity: 'common'
-    # 1/1 déjà attribuée : reste face cachée et hors décompte sur tous les profils
-    card_cp_farf:
-        name: 'Cyberpunk Farf'
-        extension: '@extension_cyberpunk'
-        description: 'Farf is a former member of the rock band Samurai. He is a central character in the Cyberpunk series and is known for his anti-corporate views and his fight against the Arasaka Corporation. He is a key figure in the game Cyberpunk 2077.'
-        unique: true
-        imageName: 'default_card.png'
+        imageName: '1_cyberpunk.png'
+    card_acp_2038_22_lr:
+        name: 'Acp 2038 22 lr'
+        extension: '@extension_lotr'
+        description: 'Acp 2038 22 lr, univers Terre du Milieu.'
+        status: 2
+        rarity: 'common'
+        imageName: 'acp_2038_22_lr.png'
+    card_ahlototh_the_sightless:
+        name: 'Ahlototh the sightless'
+        extension: '@extension_eldritch'
+        description: 'Ahlototh the sightless, univers Cultes Anciens.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'ahlototh_the_sightless.png'
+    card_ahri_alt_kda:
+        name: 'Ahri (Alt)'
+        extension: '@extension_kda'
+        description: 'Ahri (Alt), univers K/DA.'
         status: 2
         rarity: 'rare'
-        claimedBy: '@discord_user_collectionneur'
-    card_magic_king_julian:
-        name: 'Magic King Julian'
+        imageName: 'ahri_alt_kda.png'
+    card_ahri_kda:
+        name: 'Ahri'
+        extension: '@extension_kda'
+        description: 'Ahri, univers K/DA.'
+        status: 2
+        rarity: 'common'
+        imageName: 'ahri_kda.png'
+    card_akali_alt_kda:
+        name: 'Akali (Alt)'
+        extension: '@extension_kda'
+        description: 'Akali (Alt), univers K/DA.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'akali_alt_kda.png'
+    card_akali_kda:
+        name: 'Akali'
+        extension: '@extension_kda'
+        description: 'Akali, univers K/DA.'
+        status: 2
+        rarity: 'common'
+        imageName: 'akali_kda.png'
+    card_appartement_de_bebou_linette:
+        name: 'Appartement de Bebou Linette'
+        extension: '@extension_cyberpunk'
+        description: 'Appartement de Bebou Linette, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'appartement_de_bebou_linette.png'
+    card_babou_linette:
+        name: 'Babou Linette'
+        extension: '@extension_origines'
+        description: 'Babou Linette, univers Origines.'
+        status: 2
+        rarity: 'common'
+        imageName: 'babou_linette.png'
+    card_babou_linette_1_alt_sot:
+        name: 'Babou Linette 1 (Alt)'
+        extension: '@extension_sot'
+        description: 'Babou Linette 1 (Alt), univers Storm of Time.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'babou_linette_1_alt_sot.png'
+    card_babou_linette_1_cyberpunk:
+        name: 'Babou Linette 1'
+        extension: '@extension_cyberpunk'
+        description: 'Babou Linette 1, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'babou_linette_1_cyberpunk.png'
+    card_babou_linette_1_sot:
+        name: 'Babou Linette 1'
+        extension: '@extension_sot'
+        description: 'Babou Linette 1, univers Storm of Time.'
+        status: 2
+        rarity: 'common'
+        imageName: 'babou_linette_1_sot.png'
+    card_babou_linette_2_cyberpunk:
+        name: 'Babou Linette 2'
+        extension: '@extension_cyberpunk'
+        description: 'Babou Linette 2, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'babou_linette_2_cyberpunk.png'
+    card_babou_linette_3_cyberpunk:
+        name: 'Babou Linette 3'
+        extension: '@extension_cyberpunk'
+        description: 'Babou Linette 3, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'babou_linette_3_cyberpunk.png'
+    card_babou_linette_la_chrome:
+        name: 'Babou Linette la chrome'
+        extension: '@extension_cyberpunk'
+        description: 'Babou Linette la chrome, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'babou_linette_la_chrome.png'
+    card_babou_linette_la_joueuse_de_mort:
+        name: 'Babou Linette la joueuse de mort'
+        extension: '@extension_cyberpunk'
+        description: 'Babou Linette la joueuse de mort, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'babou_linette_la_joueuse_de_mort.png'
+    card_babou_linette_psyche:
+        name: 'Babou Linette'
+        extension: '@extension_psyche'
+        description: 'Babou Linette, univers Psyché.'
+        status: 2
+        rarity: 'common'
+        imageName: 'babou_linette_psyche.png'
+    card_bande_de_hobgobelins:
+        name: 'Bande de hobgobelins'
+        extension: '@extension_w40k'
+        description: 'Bande de hobgobelins, univers Warhammer 40K.'
+        status: 2
+        rarity: 'common'
+        imageName: 'bande_de_hobgobelins.png'
+    card_barlito:
+        name: 'Barlito'
+        extension: '@extension_origines'
+        description: 'Barlito, univers Origines.'
+        status: 2
+        rarity: 'common'
+        imageName: 'barlito.png'
+    card_barlito_1_cyberpunk:
+        name: 'Barlito 1'
+        extension: '@extension_cyberpunk'
+        description: 'Barlito 1, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'barlito_1_cyberpunk.png'
+    card_barlito_1_evo_velirp:
+        name: 'Barlito 1 (Évolution)'
+        extension: '@extension_velirp'
+        description: 'Barlito 1 (Évolution), univers VeliRP.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'barlito_1_evo_velirp.png'
+    card_barlito_2_cyberpunk:
+        name: 'Barlito 2'
+        extension: '@extension_cyberpunk'
+        description: 'Barlito 2, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'barlito_2_cyberpunk.png'
+    card_barlito_bullet_ballet:
+        name: 'Barlito bullet ballet'
+        extension: '@extension_cyberpunk'
+        description: 'Barlito bullet ballet, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'barlito_bullet_ballet.png'
+    card_barlito_de_la_4e_legion:
+        name: 'Barlito de la 4e legion'
+        extension: '@extension_w40k'
+        description: 'Barlito de la 4e legion, univers Warhammer 40K.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'barlito_de_la_4e_legion.png'
+    card_barlito_kda:
+        name: 'Barlito'
+        extension: '@extension_kda'
+        description: 'Barlito, univers K/DA.'
+        status: 2
+        rarity: 'common'
+        imageName: 'barlito_kda.png'
+    card_barlito_le_prince_de_glace:
+        name: 'Barlito le prince de glace'
         extension: '@extension_magic'
-        description: 'Julian is the king of the Magic Kingdom. He is a key figure in the game Magic.'
-        unique: true
-        imageName: 'default_card.png'
+        description: 'Barlito le prince de glace, univers Magic.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'barlito_le_prince_de_glace.png'
+    card_barlito_maire_de_new_la:
+        name: 'Barlito maire de new la'
+        extension: '@extension_cyberpunk'
+        description: 'Barlito maire de new la, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'barlito_maire_de_new_la.png'
+    card_barlito_space_nomad:
+        name: 'Barlito space nomad'
+        extension: '@extension_cosmos'
+        description: 'Barlito space nomad, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'barlito_space_nomad.png'
+    card_barlito_the_arcane_master:
+        name: 'Barlito the arcane master'
+        extension: '@extension_magic'
+        description: 'Barlito the arcane master, univers Magic.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'barlito_the_arcane_master.png'
+    card_barlitox:
+        name: 'Barlitox'
+        extension: '@extension_velirp'
+        description: 'Barlitox, univers VeliRP.'
+        status: 2
+        rarity: 'common'
+        imageName: 'barlitox.png'
+    card_bebou_linette:
+        name: 'Bebou Linette'
+        extension: '@extension_origines'
+        description: 'Bebou Linette, univers Origines.'
+        status: 2
+        rarity: 'common'
+        imageName: 'bebou_linette.png'
+    card_bebou_linette_1_cyberpunk:
+        name: 'Bebou Linette 1'
+        extension: '@extension_cyberpunk'
+        description: 'Bebou Linette 1, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'bebou_linette_1_cyberpunk.png'
+    card_bebou_linette_3_cyberpunk:
+        name: 'Bebou Linette 3'
+        extension: '@extension_cyberpunk'
+        description: 'Bebou Linette 3, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'bebou_linette_3_cyberpunk.png'
+    card_bebou_linette_evo_alt_sot:
+        name: 'Bebou Linette (Évolution) (Alt)'
+        extension: '@extension_sot'
+        description: 'Bebou Linette (Évolution) (Alt), univers Storm of Time.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'bebou_linette_evo_alt_sot.png'
+    card_bebou_linette_la_disparue:
+        name: 'Bebou Linette la disparue'
+        extension: '@extension_origines'
+        description: 'Bebou Linette la disparue, univers Origines.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'bebou_linette_la_disparue.png'
+    card_bebou_linette_psyche:
+        name: 'Bebou Linette'
+        extension: '@extension_psyche'
+        description: 'Bebou Linette, univers Psyché.'
+        status: 2
+        rarity: 'common'
+        imageName: 'bebou_linette_psyche.png'
+    card_benj:
+        name: 'Benj'
+        extension: '@extension_origines'
+        description: 'Benj, univers Origines.'
+        status: 2
+        rarity: 'common'
+        imageName: 'benj.png'
+    card_benj_1_cyberpunk:
+        name: 'Benj 1'
+        extension: '@extension_cyberpunk'
+        description: 'Benj 1, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'benj_1_cyberpunk.png'
+    card_benj_2_cyberpunk:
+        name: 'Benj 2'
+        extension: '@extension_cyberpunk'
+        description: 'Benj 2, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'benj_2_cyberpunk.png'
+    card_benj_bullet_ballet:
+        name: 'Benj bullet ballet'
+        extension: '@extension_cyberpunk'
+        description: 'Benj bullet ballet, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'benj_bullet_ballet.png'
+    card_benj_champion_du_chaos:
+        name: 'Benj champion du chaos'
+        extension: '@extension_w40k'
+        description: 'Benj champion du chaos, univers Warhammer 40K.'
+        status: 2
+        rarity: 'common'
+        imageName: 'benj_champion_du_chaos.png'
+    card_benj_cyberpsycho_cyberpunk:
+        name: 'Benj cyberpsycho'
+        extension: '@extension_cyberpunk'
+        description: 'Benj cyberpsycho, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'benj_cyberpsycho_cyberpunk.png'
+    card_benj_evo_magic:
+        name: 'Benj (Évolution)'
+        extension: '@extension_magic'
+        description: 'Benj (Évolution), univers Magic.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'benj_evo_magic.png'
+    card_benj_gardien_de_larbre:
+        name: 'Benj gardien de larbre'
+        extension: '@extension_origines'
+        description: 'Benj gardien de larbre, univers Origines.'
+        status: 2
+        rarity: 'common'
+        imageName: 'benj_gardien_de_larbre.png'
+    card_benj_kda:
+        name: 'Benj'
+        extension: '@extension_kda'
+        description: 'Benj, univers K/DA.'
+        status: 2
+        rarity: 'common'
+        imageName: 'benj_kda.png'
+    card_benj_laristocrate:
+        name: 'Benj laristocrate'
+        extension: '@extension_origines'
+        description: 'Benj laristocrate, univers Origines.'
+        status: 2
+        rarity: 'common'
+        imageName: 'benj_laristocrate.png'
+    card_benj_ledjo_evo_cyberpunk:
+        name: 'Benj Ledjo (Évolution)'
+        extension: '@extension_cyberpunk'
+        description: 'Benj Ledjo (Évolution), univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'benj_ledjo_evo_cyberpunk.png'
+    card_benj_soldat_de_lunion:
+        name: 'Benj soldat de lunion'
+        extension: '@extension_dystopie'
+        description: 'Benj soldat de lunion, univers Dystopie.'
+        status: 2
+        rarity: 'common'
+        imageName: 'benj_soldat_de_lunion.png'
+    card_benj_the_eternal:
+        name: 'Benj the eternal'
+        extension: '@extension_eldritch'
+        description: 'Benj the eternal, univers Cultes Anciens.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'benj_the_eternal.png'
+    card_bernard_1_cyberpunk:
+        name: 'Bernard 1'
+        extension: '@extension_cyberpunk'
+        description: 'Bernard 1, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'bernard_1_cyberpunk.png'
+    card_bernard_le_robot:
+        name: 'Bernard le robot'
+        extension: '@extension_dystopie'
+        description: 'Bernard le robot, univers Dystopie.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'bernard_le_robot.png'
+    card_bernard_magic:
+        name: 'Bernard'
+        extension: '@extension_magic'
+        description: 'Bernard, univers Magic.'
+        status: 2
+        rarity: 'common'
+        imageName: 'bernard_magic.png'
+    card_bernard_membre_du_parti:
+        name: 'Bernard membre du parti'
+        extension: '@extension_dystopie'
+        description: 'Bernard membre du parti, univers Dystopie.'
+        status: 2
+        rarity: 'common'
+        imageName: 'bernard_membre_du_parti.png'
+    card_bernard_the_father:
+        name: 'Bernard the father'
+        extension: '@extension_origines'
+        description: 'Bernard the father, univers Origines.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'bernard_the_father.png'
+    card_bibou_lineth:
+        name: 'Bibou Lineth'
+        extension: '@extension_origines'
+        description: 'Bibou Lineth, univers Origines.'
+        status: 2
+        rarity: 'common'
+        imageName: 'bibou_lineth.png'
+    card_bibou_lineth_alt:
+        name: 'Bibou Lineth (Alt)'
+        extension: '@extension_origines'
+        description: 'Bibou Lineth (Alt), univers Origines.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'bibou_lineth_alt.png'
+    card_bibou_lineth_alt_2:
+        name: 'Bibou Lineth 2 (Alt)'
+        extension: '@extension_origines'
+        description: 'Bibou Lineth 2 (Alt), univers Origines.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'bibou_lineth_alt_2.png'
+    card_bibou_lineth_alt_baldur_s_gate_3:
+        name: 'Bibou Lineth baldur s gate 3 (Alt)'
+        extension: '@extension_origines'
+        description: 'Bibou Lineth baldur s gate 3 (Alt), univers Origines.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'bibou_lineth_alt_baldur_s_gate_3.png'
+    card_bibou_linette:
+        name: 'Bibou Linette'
+        extension: '@extension_origines'
+        description: 'Bibou Linette, univers Origines.'
+        status: 2
+        rarity: 'common'
+        imageName: 'bibou_linette.png'
+    card_bibou_linette_1_sot:
+        name: 'Bibou Linette 1'
+        extension: '@extension_sot'
+        description: 'Bibou Linette 1, univers Storm of Time.'
+        status: 2
+        rarity: 'common'
+        imageName: 'bibou_linette_1_sot.png'
+    card_bibou_linette_cyberpunk:
+        name: 'Bibou Linette'
+        extension: '@extension_cyberpunk'
+        description: 'Bibou Linette, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'bibou_linette_cyberpunk.png'
+    card_bibou_linette_cyberpunk_alt:
+        name: 'Bibou Linette (Alt)'
+        extension: '@extension_cyberpunk'
+        description: 'Bibou Linette (Alt), univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'bibou_linette_cyberpunk_alt.png'
+    card_bibou_linette_psyche:
+        name: 'Bibou Linette'
+        extension: '@extension_psyche'
+        description: 'Bibou Linette, univers Psyché.'
+        status: 2
+        rarity: 'common'
+        imageName: 'bibou_linette_psyche.png'
+    card_bibou_linette_replicant:
+        name: 'Bibou Linette replicant'
+        extension: '@extension_cyberpunk'
+        description: 'Bibou Linette replicant, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'bibou_linette_replicant.png'
+    card_billy_le_frenetique:
+        name: 'Billy le frenetique'
+        extension: '@extension_origines'
+        description: 'Billy le frenetique, univers Origines.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'billy_le_frenetique.png'
+    card_book_of_xizta_the_demented:
+        name: 'Book of Xizta the demented'
+        extension: '@extension_eldritch'
+        description: 'Book of Xizta the demented, univers Cultes Anciens.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'book_of_xizta_the_demented.png'
+    card_brex_maitre_contrebandier:
+        name: 'Brex maitre contrebandier'
+        extension: '@extension_cosmos'
+        description: 'Brex maitre contrebandier, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'brex_maitre_contrebandier.png'
+    card_bureau_de_linspecteur:
+        name: 'Bureau de linspecteur'
+        extension: '@extension_cyberpunk'
+        description: 'Bureau de linspecteur, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'bureau_de_linspecteur.png'
+    card_capitaine_de_11e_division_veli_kenpachi:
+        name: 'Capitaine de 11e division Veli Kenpachi'
+        extension: '@extension_bleach'
+        description: 'Capitaine de 11e division Veli Kenpachi, univers Bleach.'
+        status: 2
+        rarity: 'common'
+        imageName: 'capitaine_de_11e_division_veli_kenpachi.png'
+    card_capitaine_de_la_12e_division_masuo_zuki:
+        name: 'Capitaine de la 12e division Masuo Zuki'
+        extension: '@extension_bleach'
+        description: 'Capitaine de la 12e division Masuo Zuki, univers Bleach.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'capitaine_de_la_12e_division_masuo_zuki.png'
+    card_capitaine_de_la_13e_division_barlito:
+        name: 'Capitaine de la 13e division Barlito'
+        extension: '@extension_bleach'
+        description: 'Capitaine de la 13e division Barlito, univers Bleach.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'capitaine_de_la_13e_division_barlito.png'
+    card_capitaine_de_la_1ere_division_babou_linette:
+        name: 'Capitaine de la 1ere division Babou Linette'
+        extension: '@extension_bleach'
+        description: 'Capitaine de la 1ere division Babou Linette, univers Bleach.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'capitaine_de_la_1ere_division_babou_linette.png'
+    card_capitaine_de_la_3e_division_farf:
+        name: 'Capitaine de la 3e division Farf'
+        extension: '@extension_bleach'
+        description: 'Capitaine de la 3e division Farf, univers Bleach.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'capitaine_de_la_3e_division_farf.png'
+    card_capitaine_de_la_4e_division_bebou_linette:
+        name: 'Capitaine de la 4e division Bebou Linette'
+        extension: '@extension_bleach'
+        description: 'Capitaine de la 4e division Bebou Linette, univers Bleach.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'capitaine_de_la_4e_division_bebou_linette.png'
+    card_centre_des_operations:
+        name: 'Centre des operations'
+        extension: '@extension_cyberpunk'
+        description: 'Centre des operations, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'centre_des_operations.png'
+    card_chevalier_de_la_lumiere:
+        name: 'Chevalier de la lumiere'
+        extension: '@extension_magic'
+        description: 'Chevalier de la lumiere, univers Magic.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'chevalier_de_la_lumiere.png'
+    card_cite_dor_du_niveau_776:
+        name: 'Cite dor du niveau 776'
+        extension: '@extension_cyberpunk'
+        description: 'Cite dor du niveau 776, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'cite_dor_du_niveau_776.png'
+    card_colonie_martienne:
+        name: 'Colonie martienne'
+        extension: '@extension_cosmos'
+        description: 'Colonie martienne, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'colonie_martienne.png'
+    card_combattant_eldar:
+        name: 'Combattant eldar'
+        extension: '@extension_w40k'
+        description: 'Combattant eldar, univers Warhammer 40K.'
+        status: 2
+        rarity: 'common'
+        imageName: 'combattant_eldar.png'
+    card_commandant_capitaine_benj:
+        name: 'Commandant capitaine Benj'
+        extension: '@extension_dystopie'
+        description: 'Commandant capitaine Benj, univers Dystopie.'
+        status: 2
+        rarity: 'common'
+        imageName: 'commandant_capitaine_benj.png'
+    card_cult_of_ahlototh:
+        name: 'Cult of Ahlototh'
+        extension: '@extension_eldritch'
+        description: 'Cult of Ahlototh, univers Cultes Anciens.'
+        status: 2
+        rarity: 'common'
+        imageName: 'cult_of_ahlototh.png'
+    card_demon_du_chaos:
+        name: 'Demon du chaos'
+        extension: '@extension_w40k'
+        description: 'Demon du chaos, univers Warhammer 40K.'
+        status: 2
+        rarity: 'common'
+        imageName: 'demon_du_chaos.png'
+    card_drogh_dhurr:
+        name: 'Drogh Dhurr'
+        extension: '@extension_magic'
+        description: 'Drogh Dhurr, univers Magic.'
+        status: 2
+        rarity: 'common'
+        imageName: 'drogh_dhurr.png'
+    card_drogh_dhurr_alt:
+        name: 'Drogh Dhurr (Alt)'
+        extension: '@extension_magic'
+        description: 'Drogh Dhurr (Alt), univers Magic.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'drogh_dhurr_alt.png'
+    card_empereur_de_lhumanite:
+        name: 'Empereur de lhumanite'
+        extension: '@extension_w40k'
+        description: 'Empereur de lhumanite, univers Warhammer 40K.'
         status: 2
         rarity: 'legendary'
+        imageName: 'empereur_de_lhumanite.png'
+        unique: true
         alwaysHolo: true
+        claimedBy: '@discord_user_collectionneur'
+    card_evelynn_alt_kda:
+        name: 'Evelynn (Alt)'
+        extension: '@extension_kda'
+        description: 'Evelynn (Alt), univers K/DA.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'evelynn_alt_kda.png'
+    card_evelynn_kda:
+        name: 'Evelynn'
+        extension: '@extension_kda'
+        description: 'Evelynn, univers K/DA.'
+        status: 2
+        rarity: 'common'
+        imageName: 'evelynn_kda.png'
+    card_excavateur_dhelium:
+        name: 'Excavateur dhelium'
+        extension: '@extension_cosmos'
+        description: 'Excavateur dhelium, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'excavateur_dhelium.png'
+    card_farf:
+        name: 'Farf'
+        extension: '@extension_origines'
+        description: 'Farf, univers Origines.'
+        status: 2
+        rarity: 'common'
+        imageName: 'farf.png'
+    card_farf_1_lotr:
+        name: 'Farf 1'
+        extension: '@extension_lotr'
+        description: 'Farf 1, univers Terre du Milieu.'
+        status: 2
+        rarity: 'common'
+        imageName: 'farf_1_lotr.png'
+    card_farf_bullet_ballet:
+        name: 'Farf bullet ballet'
+        extension: '@extension_cyberpunk'
+        description: 'Farf bullet ballet, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'farf_bullet_ballet.png'
+    card_farf_chef_descadron:
+        name: 'Farf chef descadron'
+        extension: '@extension_dystopie'
+        description: 'Farf chef descadron, univers Dystopie.'
+        status: 2
+        rarity: 'common'
+        imageName: 'farf_chef_descadron.png'
+    card_farf_de_la_8e_legion:
+        name: 'Farf de la 8e legion'
+        extension: '@extension_w40k'
+        description: 'Farf de la 8e legion, univers Warhammer 40K.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'farf_de_la_8e_legion.png'
+    card_farf_kda:
+        name: 'Farf'
+        extension: '@extension_kda'
+        description: 'Farf, univers K/DA.'
+        status: 2
+        rarity: 'common'
+        imageName: 'farf_kda.png'
+    card_farf_le_farfade:
+        name: 'Farf le farfade'
+        extension: '@extension_origines'
+        description: 'Farf le farfade, univers Origines.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'farf_le_farfade.png'
+    card_farf_the_beyonder:
+        name: 'Farf the beyonder'
+        extension: '@extension_eldritch'
+        description: 'Farf the beyonder, univers Cultes Anciens.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'farf_the_beyonder.png'
+    card_farph_cyberpunk:
+        name: 'Farph'
+        extension: '@extension_cyberpunk'
+        description: 'Farph, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'farph_cyberpunk.png'
+    card_farph_cyberpunk_x_reddead:
+        name: 'Farph'
+        extension: '@extension_cyberpunk'
+        description: 'Farph, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'farph_cyberpunk_x_reddead.png'
+    card_farph_evo_alt_red_dead:
+        name: 'Farph red dead (Évolution) (Alt)'
+        extension: '@extension_origines'
+        description: 'Farph red dead (Évolution) (Alt), univers Origines.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'farph_evo_alt_red_dead.png'
+        imageMaskName: 'farph_evo_alt_red_dead-mask-background.png'
+    card_farph_magic:
+        name: 'Farph'
+        extension: '@extension_magic'
+        description: 'Farph, univers Magic.'
+        status: 2
+        rarity: 'common'
+        imageName: 'farph_magic.png'
+    card_faurph_velirp:
+        name: 'Faurph'
+        extension: '@extension_velirp'
+        description: 'Faurph, univers VeliRP.'
+        status: 2
+        rarity: 'common'
+        imageName: 'faurph_velirp.png'
+    card_gala_de_charite:
+        name: 'Gala de charite'
+        extension: '@extension_cyberpunk'
+        description: 'Gala de charite, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'gala_de_charite.png'
+    card_gemelo_n1_nairy_delavega:
+        name: 'Gemelo n1 Nairy Delavega'
+        extension: '@extension_cosmos'
+        description: 'Gemelo n1 Nairy Delavega, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'gemelo_n1_nairy_delavega.png'
+    card_gemelo_n2_julian_delavega:
+        name: 'Gemelo n2 Julian Delavega'
+        extension: '@extension_cosmos'
+        description: 'Gemelo n2 Julian Delavega, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'gemelo_n2_julian_delavega.png'
+    card_god_almighty:
+        name: 'God almighty'
+        extension: '@extension_eldritch'
+        description: 'God almighty, univers Cultes Anciens.'
+        status: 2
+        rarity: 'legendary'
+        imageName: 'god_almighty.png'
+        unique: true
+        alwaysHolo: true
+        claimedBy: '@discord_user_barlito'
+    card_guerrier_necron:
+        name: 'Guerrier necron'
+        extension: '@extension_w40k'
+        description: 'Guerrier necron, univers Warhammer 40K.'
+        status: 2
+        rarity: 'common'
+        imageName: 'guerrier_necron.png'
+    card_hero_de_la_nation_julian:
+        name: 'Hero de la nation Julian'
+        extension: '@extension_dystopie'
+        description: 'Hero de la nation Julian, univers Dystopie.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'hero_de_la_nation_julian.png'
+    card_hipo_le_vice_capitaine:
+        name: 'Hipo le vice capitaine'
+        extension: '@extension_bleach'
+        description: 'Hipo le vice capitaine, univers Bleach.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'hipo_le_vice_capitaine.png'
+    card_hollow:
+        name: 'Hollow'
+        extension: '@extension_bleach'
+        description: 'Hollow, univers Bleach.'
+        status: 2
+        rarity: 'common'
+        imageName: 'hollow.png'
+    card_hollow_zaraki_le_sans_nom:
+        name: 'Hollow Zaraki le sans nom'
+        extension: '@extension_bleach'
+        description: 'Hollow Zaraki le sans nom, univers Bleach.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'hollow_zaraki_le_sans_nom.png'
+    card_ingenieur_barlito:
+        name: 'Ingenieur Barlito'
+        extension: '@extension_cyberpunk'
+        description: 'Ingenieur Barlito, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'ingenieur_barlito.png'
+    card_inspecteur_farf:
+        name: 'Inspecteur Farf'
+        extension: '@extension_cyberpunk'
+        description: 'Inspecteur Farf, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'inspecteur_farf.png'
+    card_jewben:
+        name: 'Jewben'
+        extension: '@extension_origines'
+        description: 'Jewben, univers Origines.'
+        status: 2
+        rarity: 'common'
+        imageName: 'jewben.png'
+    card_jinx_kda:
+        name: 'Jinx'
+        extension: '@extension_kda'
+        description: 'Jinx, univers K/DA.'
+        status: 2
+        rarity: 'common'
+        imageName: 'jinx_kda.png'
+    card_jr_alt_kda:
+        name: 'Jr (Alt)'
+        extension: '@extension_kda'
+        description: 'Jr (Alt), univers K/DA.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'jr_alt_kda.png'
+    card_jr_kda:
+        name: 'Jr'
+        extension: '@extension_kda'
+        description: 'Jr, univers K/DA.'
+        status: 2
+        rarity: 'common'
+        imageName: 'jr_kda.png'
+    card_juju_magic:
+        name: 'Juju'
+        extension: '@extension_magic'
+        description: 'Juju, univers Magic.'
+        status: 2
+        rarity: 'common'
+        imageName: 'juju_magic.png'
+    card_julian_1_cyberpunk:
+        name: 'Julian 1'
+        extension: '@extension_cyberpunk'
+        description: 'Julian 1, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'julian_1_cyberpunk.png'
+    card_julian_2_cyberpunk:
+        name: 'Julian 2'
+        extension: '@extension_cyberpunk'
+        description: 'Julian 2, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'julian_2_cyberpunk.png'
+    card_julian_alt_kda:
+        name: 'Julian (Alt)'
+        extension: '@extension_kda'
+        description: 'Julian (Alt), univers K/DA.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'julian_alt_kda.png'
+    card_julian_chef_du_marche_noir:
+        name: 'Julian chef du marche noir'
+        extension: '@extension_cyberpunk'
+        description: 'Julian chef du marche noir, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'julian_chef_du_marche_noir.png'
+    card_julian_de_la_7e_legion:
+        name: 'Julian de la 7e legion'
+        extension: '@extension_w40k'
+        description: 'Julian de la 7e legion, univers Warhammer 40K.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'julian_de_la_7e_legion.png'
+    card_julian_kda:
+        name: 'Julian'
+        extension: '@extension_kda'
+        description: 'Julian, univers K/DA.'
+        status: 2
+        rarity: 'common'
+        imageName: 'julian_kda.png'
+    card_julian_le_baroudeur:
+        name: 'Julian le baroudeur'
+        extension: '@extension_origines'
+        description: 'Julian le baroudeur, univers Origines.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'julian_le_baroudeur.png'
+    card_julian_the_god_killer:
+        name: 'Julian the god killer'
+        extension: '@extension_origines'
+        description: 'Julian the god killer, univers Origines.'
+        status: 2
+        rarity: 'legendary'
+        imageName: 'julian_the_god_killer.png'
+        unique: true
+        alwaysHolo: true
+    card_julian_the_normal_guy:
+        name: 'Julian the normal guy'
+        extension: '@extension_origines'
+        description: 'Julian the normal guy, univers Origines.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'julian_the_normal_guy.png'
+    card_julien_evo_magic:
+        name: 'Julien (Évolution)'
+        extension: '@extension_magic'
+        description: 'Julien (Évolution), univers Magic.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'julien_evo_magic.png'
+    card_julien_roi_d_eldia:
+        name: 'Julien roi d Eldia'
+        extension: '@extension_origines'
+        description: 'Julien roi d Eldia, univers Origines.'
+        status: 2
+        rarity: 'common'
+        imageName: 'julien_roi_d_eldia.png'
+    card_kaisa_alt_kda:
+        name: 'Kaisa (Alt)'
+        extension: '@extension_kda'
+        description: 'Kaisa (Alt), univers K/DA.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'kaisa_alt_kda.png'
+    card_kaisa_kda:
+        name: 'Kaisa'
+        extension: '@extension_kda'
+        description: 'Kaisa, univers K/DA.'
+        status: 2
+        rarity: 'common'
+        imageName: 'kaisa_kda.png'
+    card_kaiser_der_neuen_ordnung_samaz:
+        name: 'Kaiser der neuen ordnung Samaz'
+        extension: '@extension_dystopie'
+        description: 'Kaiser der neuen ordnung Samaz, univers Dystopie.'
+        status: 2
+        rarity: 'common'
+        imageName: 'kaiser_der_neuen_ordnung_samaz.png'
+    card_komrade_farf:
+        name: 'Komrade Farf'
+        extension: '@extension_origines'
+        description: 'Komrade Farf, univers Origines.'
+        status: 2
+        rarity: 'common'
+        imageName: 'komrade_farf.png'
+    card_kosmonaut_warny:
+        name: 'Kosmonaut Warny'
+        extension: '@extension_cosmos'
+        description: 'Kosmonaut Warny, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'kosmonaut_warny.png'
+    card_l_enchantement_de_bibou_linette:
+        name: 'L enchantement de Bibou Linette'
+        extension: '@extension_magic'
+        description: 'L enchantement de Bibou Linette, univers Magic.'
+        status: 2
+        rarity: 'common'
+        imageName: 'l_enchantement_de_bibou_linette.png'
+    card_l_epee_demoniaque_ule:
+        name: 'L epee demoniaque ule'
+        extension: '@extension_magic'
+        description: 'L epee demoniaque ule, univers Magic.'
+        status: 2
+        rarity: 'common'
+        imageName: 'l_epee_demoniaque_ule.png'
+    card_l_epee_divine_enc:
+        name: 'L epee divine enc'
+        extension: '@extension_magic'
+        description: 'L epee divine enc, univers Magic.'
+        status: 2
+        rarity: 'common'
+        imageName: 'l_epee_divine_enc.png'
+    card_la_pegre_de_new_la:
+        name: 'La pegre de new la'
+        extension: '@extension_cyberpunk'
+        description: 'La pegre de new la, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'la_pegre_de_new_la.png'
+    card_le_charme_du_marchand_de_sable:
+        name: 'Le charme du marchand de sable'
+        extension: '@extension_magic'
+        description: 'Le charme du marchand de sable, univers Magic.'
+        status: 2
+        rarity: 'common'
+        imageName: 'le_charme_du_marchand_de_sable.png'
+    card_le_miroir_du_confins:
+        name: 'Le miroir du confins'
+        extension: '@extension_eldritch'
+        description: 'Le miroir du confins, univers Cultes Anciens.'
+        status: 2
+        rarity: 'common'
+        imageName: 'le_miroir_du_confins.png'
+    card_le_sommeil_de_bebou_linette:
+        name: 'Le sommeil de Bebou Linette'
+        extension: '@extension_psyche'
+        description: 'Le sommeil de Bebou Linette, univers Psyché.'
+        status: 2
+        rarity: 'common'
+        imageName: 'le_sommeil_de_bebou_linette.png'
+    card_marchand_warny:
+        name: 'Marchand Warny'
+        extension: '@extension_cosmos'
+        description: 'Marchand Warny, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'marchand_warny.png'
+    card_marche_noir_du_niveau_24:
+        name: 'Marche noir du niveau 24'
+        extension: '@extension_cyberpunk'
+        description: 'Marche noir du niveau 24, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'marche_noir_du_niveau_24.png'
+    card_mercenaire_bone:
+        name: 'Mercenaire Bone'
+        extension: '@extension_cosmos'
+        description: 'Mercenaire Bone, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'mercenaire_bone.png'
+    card_monde_ruche:
+        name: 'Monde ruche'
+        extension: '@extension_w40k'
+        description: 'Monde ruche, univers Warhammer 40K.'
+        status: 2
+        rarity: 'common'
+        imageName: 'monde_ruche.png'
+    card_new_los_angeles:
+        name: 'New los angeles'
+        extension: '@extension_origines'
+        description: 'New los angeles, univers Origines.'
+        status: 2
+        rarity: 'common'
+        imageName: 'new_los_angeles.png'
+    card_niveau_24:
+        name: 'Niveau 24'
+        extension: '@extension_cyberpunk'
+        description: 'Niveau 24, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'niveau_24.png'
+    card_niveau_330:
+        name: 'Niveau 330'
+        extension: '@extension_cyberpunk'
+        description: 'Niveau 330, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'niveau_330.png'
+    card_nuee_de_tyranides:
+        name: 'Nuee de tyranides'
+        extension: '@extension_w40k'
+        description: 'Nuee de tyranides, univers Warhammer 40K.'
+        status: 2
+        rarity: 'common'
+        imageName: 'nuee_de_tyranides.png'
+    card_officier_benj:
+        name: 'Officier Benj'
+        extension: '@extension_dystopie'
+        description: 'Officier Benj, univers Dystopie.'
+        status: 2
+        rarity: 'common'
+        imageName: 'officier_benj.png'
+    card_offizier_der_neuen_ordnung_frieda:
+        name: 'Offizier der neuen ordnung Frieda'
+        extension: '@extension_dystopie'
+        description: 'Offizier der neuen ordnung Frieda, univers Dystopie.'
+        status: 2
+        rarity: 'common'
+        imageName: 'offizier_der_neuen_ordnung_frieda.png'
+    card_offizier_der_neuen_ordnung_ludwig:
+        name: 'Offizier der neuen ordnung Ludwig'
+        extension: '@extension_dystopie'
+        description: 'Offizier der neuen ordnung Ludwig, univers Dystopie.'
+        status: 2
+        rarity: 'common'
+        imageName: 'offizier_der_neuen_ordnung_ludwig.png'
+    card_ork_de_la_waaagh:
+        name: 'Ork de la waaagh'
+        extension: '@extension_w40k'
+        description: 'Ork de la waaagh, univers Warhammer 40K.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'ork_de_la_waaagh.png'
+    card_pilote_de_lunion:
+        name: 'Pilote de lunion'
+        extension: '@extension_dystopie'
+        description: 'Pilote de lunion, univers Dystopie.'
+        status: 2
+        rarity: 'common'
+        imageName: 'pilote_de_lunion.png'
+    card_planete_treon_ch77:
+        name: 'Planete Treon ch77'
+        extension: '@extension_cosmos'
+        description: 'Planete Treon ch77, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'planete_treon_ch77.png'
+    card_prince_demon_du_chaos:
+        name: 'Prince demon du chaos'
+        extension: '@extension_w40k'
+        description: 'Prince demon du chaos, univers Warhammer 40K.'
+        status: 2
+        rarity: 'common'
+        imageName: 'prince_demon_du_chaos.png'
+    card_princeps_du_mechanicus:
+        name: 'Princeps du mechanicus'
+        extension: '@extension_w40k'
+        description: 'Princeps du mechanicus, univers Warhammer 40K.'
+        status: 2
+        rarity: 'common'
+        imageName: 'princeps_du_mechanicus.png'
+    card_recrue_judith:
+        name: 'Recrue Judith'
+        extension: '@extension_dystopie'
+        description: 'Recrue Judith, univers Dystopie.'
+        status: 2
+        rarity: 'common'
+        imageName: 'recrue_judith.png'
+    card_rog_le_dragon_celeste:
+        name: 'Rog le dragon celeste'
+        extension: '@extension_magic'
+        description: 'Rog le dragon celeste, univers Magic.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'rog_le_dragon_celeste.png'
+    card_rue_de_new_la:
+        name: 'Rue de new la'
+        extension: '@extension_cyberpunk'
+        description: 'Rue de new la, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'rue_de_new_la.png'
+    card_ruins_cult:
+        name: 'Ruins cult'
+        extension: '@extension_eldritch'
+        description: 'Ruins cult, univers Cultes Anciens.'
+        status: 2
+        rarity: 'common'
+        imageName: 'ruins_cult.png'
+    card_soldat_du_peuple_tau:
+        name: 'Soldat du peuple tau'
+        extension: '@extension_w40k'
+        description: 'Soldat du peuple tau, univers Warhammer 40K.'
+        status: 2
+        rarity: 'common'
+        imageName: 'soldat_du_peuple_tau.png'
+    card_space_marine_du_chaos:
+        name: 'Space marine du chaos'
+        extension: '@extension_w40k'
+        description: 'Space marine du chaos, univers Warhammer 40K.'
+        status: 2
+        rarity: 'common'
+        imageName: 'space_marine_du_chaos.png'
+    card_spatio_gare:
+        name: 'Spatio gare'
+        extension: '@extension_cosmos'
+        description: 'Spatio gare, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'spatio_gare.png'
+    card_storm_of_time:
+        name: 'Storm of time'
+        extension: '@extension_sot'
+        description: 'Storm of time, univers Storm of Time.'
+        status: 2
+        rarity: 'common'
+        imageName: 'storm_of_time.png'
+    card_surface_de_treon_ch77:
+        name: 'Surface de Treon ch77'
+        extension: '@extension_cosmos'
+        description: 'Surface de Treon ch77, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'surface_de_treon_ch77.png'
+    card_tedi_dibi:
+        name: 'Tedi Dibi'
+        extension: '@extension_origines'
+        description: 'Tedi Dibi, univers Origines.'
+        status: 2
+        rarity: 'common'
+        imageName: 'tedi_dibi.png'
+    card_tempete_du_warp:
+        name: 'Tempete du warp'
+        extension: '@extension_w40k'
+        description: 'Tempete du warp, univers Warhammer 40K.'
+        status: 2
+        rarity: 'common'
+        imageName: 'tempete_du_warp.png'
+    card_transport_luxueux:
+        name: 'Transport luxueux'
+        extension: '@extension_cosmos'
+        description: 'Transport luxueux, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'transport_luxueux.png'
+    card_vaisseau_de_corsair:
+        name: 'Vaisseau de corsair'
+        extension: '@extension_cosmos'
+        description: 'Vaisseau de corsair, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'vaisseau_de_corsair.png'
+    card_vaisseau_de_fret:
+        name: 'Vaisseau de fret'
+        extension: '@extension_cosmos'
+        description: 'Vaisseau de fret, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'vaisseau_de_fret.png'
+    card_vaisseau_monde:
+        name: 'Vaisseau monde'
+        extension: '@extension_w40k'
+        description: 'Vaisseau monde, univers Warhammer 40K.'
+        status: 2
+        rarity: 'common'
+        imageName: 'vaisseau_monde.png'
+    card_vel_1_lotr:
+        name: 'Vel 1'
+        extension: '@extension_lotr'
+        description: 'Vel 1, univers Terre du Milieu.'
+        status: 2
+        rarity: 'common'
+        imageName: 'vel_1_lotr.png'
+    card_veli:
+        name: 'Veli'
+        extension: '@extension_origines'
+        description: 'Veli, univers Origines.'
+        status: 2
+        rarity: 'common'
+        imageName: 'veli.png'
+    card_veli_alt_magic:
+        name: 'Veli (Alt)'
+        extension: '@extension_magic'
+        description: 'Veli (Alt), univers Magic.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'veli_alt_magic.png'
+    card_veli_bullet_ballet:
+        name: 'Veli bullet ballet'
+        extension: '@extension_cyberpunk'
+        description: 'Veli bullet ballet, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'veli_bullet_ballet.png'
+    card_veli_capitaine_corsair:
+        name: 'Veli capitaine corsair'
+        extension: '@extension_cosmos'
+        description: 'Veli capitaine corsair, univers Cosmos.'
+        status: 2
+        rarity: 'common'
+        imageName: 'veli_capitaine_corsair.png'
+    card_veli_chef_du_parti:
+        name: 'Veli chef du parti'
+        extension: '@extension_dystopie'
+        description: 'Veli chef du parti, univers Dystopie.'
+        status: 2
+        rarity: 'common'
+        imageName: 'veli_chef_du_parti.png'
+    card_veli_cyberpunk:
+        name: 'Veli'
+        extension: '@extension_cyberpunk'
+        description: 'Veli, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'veli_cyberpunk.png'
+    card_veli_de_la_3e_legion:
+        name: 'Veli de la 3e legion'
+        extension: '@extension_w40k'
+        description: 'Veli de la 3e legion, univers Warhammer 40K.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'veli_de_la_3e_legion.png'
+    card_veli_kda:
+        name: 'Veli'
+        extension: '@extension_kda'
+        description: 'Veli, univers K/DA.'
+        status: 2
+        rarity: 'common'
+        imageName: 'veli_kda.png'
+    card_veli_l_ogre_des_sables:
+        name: 'Veli l ogre des sables'
+        extension: '@extension_magic'
+        description: 'Veli l ogre des sables, univers Magic.'
+        status: 2
+        rarity: 'common'
+        imageName: 'veli_l_ogre_des_sables.png'
+    card_veli_le_corpo:
+        name: 'Veli le corpo'
+        extension: '@extension_cyberpunk'
+        description: 'Veli le corpo, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'veli_le_corpo.png'
+    card_veli_sot:
+        name: 'Veli'
+        extension: '@extension_sot'
+        description: 'Veli, univers Storm of Time.'
+        status: 2
+        rarity: 'common'
+        imageName: 'veli_sot.png'
+    card_veli_the_fiery_2_alternate:
+        name: 'Veli the fiery 2 alternate'
+        extension: '@extension_origines'
+        description: 'Veli the fiery 2 alternate, univers Origines.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'veli_the_fiery_2_alternate.png'
+    card_veli_the_fiery_alternate:
+        name: 'Veli the fiery alternate'
+        extension: '@extension_origines'
+        description: 'Veli the fiery alternate, univers Origines.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'veli_the_fiery_alternate.png'
+    card_vice_capitaine_de_la_13e_division_bibou_linette:
+        name: 'Vice capitaine de la 13e division Bibou Linette'
+        extension: '@extension_bleach'
+        description: 'Vice capitaine de la 13e division Bibou Linette, univers Bleach.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'vice_capitaine_de_la_13e_division_bibou_linette.png'
+    card_warny_1_magic:
+        name: 'Warny 1'
+        extension: '@extension_magic'
+        description: 'Warny 1, univers Magic.'
+        status: 2
+        rarity: 'common'
+        imageName: 'warny_1_magic.png'
+    card_warny_alt_magic:
+        name: 'Warny (Alt)'
+        extension: '@extension_magic'
+        description: 'Warny (Alt), univers Magic.'
+        status: 2
+        rarity: 'rare'
+        imageName: 'warny_alt_magic.png'
+    card_warny_de_la_13e_legion:
+        name: 'Warny de la 13e legion'
+        extension: '@extension_w40k'
+        description: 'Warny de la 13e legion, univers Warhammer 40K.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'warny_de_la_13e_legion.png'
+    card_warny_dystopia:
+        name: 'Warny dystopia'
+        extension: '@extension_dystopie'
+        description: 'Warny dystopia, univers Dystopie.'
+        status: 2
+        rarity: 'common'
+        imageName: 'warny_dystopia.png'
+    card_warny_kda:
+        name: 'Warny'
+        extension: '@extension_kda'
+        description: 'Warny, univers K/DA.'
+        status: 2
+        rarity: 'common'
+        imageName: 'warny_kda.png'
+    card_warny_le_paysan:
+        name: 'Warny le paysan'
+        extension: '@extension_dystopie'
+        description: 'Warny le paysan, univers Dystopie.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'warny_le_paysan.png'
+    card_warny_le_street_kid:
+        name: 'Warny le street kid'
+        extension: '@extension_cyberpunk'
+        description: 'Warny le street kid, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'warny_le_street_kid.png'
+    card_warny_maximator_velirp:
+        name: 'Warny maximator'
+        extension: '@extension_velirp'
+        description: 'Warny maximator, univers VeliRP.'
+        status: 2
+        rarity: 'common'
+        imageName: 'warny_maximator_velirp.png'
+    card_warny_sot:
+        name: 'Warny'
+        extension: '@extension_sot'
+        description: 'Warny, univers Storm of Time.'
+        status: 2
+        rarity: 'common'
+        imageName: 'warny_sot.png'
+    card_warny_the_watcher:
+        name: 'Warny the watcher'
+        extension: '@extension_eldritch'
+        description: 'Warny the watcher, univers Cultes Anciens.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'warny_the_watcher.png'
+    card_warnyx:
+        name: 'Warnyx'
+        extension: '@extension_velirp'
+        description: 'Warnyx, univers VeliRP.'
+        status: 2
+        rarity: 'common'
+        imageName: 'warnyx.png'
+    card_weebou_cyberpunk:
+        name: 'Weebou'
+        extension: '@extension_cyberpunk'
+        description: 'Weebou, univers Cyberpunk 2077.'
+        status: 2
+        rarity: 'common'
+        imageName: 'weebou_cyberpunk.png'
+    card_zocnoth_the_worlds_eater:
+        name: 'Zocnoth the worlds eater'
+        extension: '@extension_eldritch'
+        description: 'Zocnoth the worlds eater, univers Cultes Anciens.'
+        status: 2
+        rarity: 'uncommon'
+        imageName: 'zocnoth_the_worlds_eater.png'
+    card_zweiter_der_neun_ordnung_warny:
+        name: 'Zweiter der neun ordnung Warny'
+        extension: '@extension_dystopie'
+        description: 'Zweiter der neun ordnung Warny, univers Dystopie.'
+        status: 2
+        rarity: 'common'
+        imageName: 'zweiter_der_neun_ordnung_warny.png'
