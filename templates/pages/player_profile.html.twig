@@ -5,7 +5,6 @@
 {% endblock %}
 
 {% block body %}
-    {% set isSelf = comparison.isSelf %}
     <main>
         {# --------------------------------------------------- Bandeau joueur #}
         <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
@@ -21,7 +20,6 @@
                     <p class="eyebrow">Profil joueur</p>
                     <h1 class="mt-1 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
                         {{ profile.username }}
-                        {% if isSelf %}<span class="align-middle font-mono text-xs tracking-[.2em] text-primary">· TOI</span>{% endif %}
                     </h1>
                     <p class="mt-1.5 font-mono text-xs text-ink-dim">joueur depuis {{ profile.createdAt|date('m/Y') }}</p>
 
@@ -53,6 +51,11 @@
                        class="border border-primary bg-black px-5 py-3.5 font-display text-[13px] font-bold uppercase tracking-[.15em] text-primary">
                         ◂ Le classement
                     </a>
+                    <a href="{{ path('collection') }}"
+                       class="chip-mono text-ink-dim transition-colors hover:text-primary"
+                       data-testid="collection-link">
+                        ◈ Ma collection ▸
+                    </a>
                 </div>
             </div>
         </section>
@@ -63,29 +66,22 @@
                 {% if entry.distinctCards == 0 %}
                     <div class="mb-10 border border-dashed border-hairline px-8 py-16 text-center text-ink-dim" data-testid="empty-state">
                         <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Collection vide.</p>
-                        <p class="mt-3 text-sm">{{ isSelf ? 'Aucune carte pour le moment. Ouvre un pack, gros youl.' : 'Ce joueur n\'a encore aucune carte.' }}</p>
+                        <p class="mt-3 text-sm">Ce joueur n'a encore aucune carte.</p>
                     </div>
                 {% endif %}
 
                 {% if comparison.total > 0 %}
                     {# pseudo tronqué : un pseudo Discord long ferait déborder la barre en mobile #}
                     {% set shortName = profile.username|slice(0, 12) ~ (profile.username|length > 12 ? '…' : '') %}
-                    {% set filters = isSelf
-                        ? [
-                            { state: 'all', label: 'Tout', count: comparison.total },
-                            { state: 'common', label: 'Possédées', count: comparison.common },
-                            { state: 'missing-both', label: 'Manquantes', count: comparison.missingBoth },
-                        ]
-                        : [
+
+                    <div class="mb-8 flex flex-wrap items-center gap-2" role="group" aria-label="Filtrer la collection" data-testid="profile-filters">
+                        {% for filter in [
                             { state: 'all', label: 'Tout', count: comparison.total },
                             { state: 'common', label: 'En commun', count: comparison.common },
                             { state: 'profile-only', label: 'Seulement ' ~ shortName, count: comparison.profileOnly },
                             { state: 'visitor-only', label: 'Seulement toi', count: comparison.visitorOnly },
                             { state: 'missing-both', label: 'Manquantes aux deux', count: comparison.missingBoth },
                         ] %}
-
-                    <div class="mb-8 flex flex-wrap items-center gap-2" role="group" aria-label="Filtrer la collection" data-testid="profile-filters">
-                        {% for filter in filters %}
                             {# un filtre à 0 n'a rien à montrer : il reste lisible mais inactif #}
                             <button type="button"
                                     class="filter-chip{{ loop.first ? ' is-active' }}"
@@ -100,11 +96,7 @@
                     </div>
 
                     <p class="chip-mono mb-8 border border-hairline bg-surface px-3 py-2 text-ink-muted" data-testid="masking-hint">
-                        {% if isSelf %}
-                            Face cachée = carte pas encore trouvée.
-                        {% else %}
-                            Face cachée = tu ne l'as pas encore. <span class="text-primary">◈ Sa collection</span> = {{ profile.username }} l'a, toi non. Éteinte = personne ne l'a.
-                        {% endif %}
+                        Face cachée = tu ne l'as pas encore. <span class="text-primary">◈ Sa collection</span> = {{ profile.username }} l'a, toi non. Éteinte = personne ne l'a.
                         <span class="text-magenta">◆ 1/1</span> = carte unique.
                     </p>
                 {% endif %}
@@ -130,12 +122,10 @@
                         <div class="chip-mono mt-2 flex flex-wrap gap-x-5 gap-y-1.5 text-ink-muted transition-opacity"
                              data-profile-filter-target="counters"
                              data-testid="universe-compare">
-                            <span>◈ {{ universe.common }} {{ isSelf ? 'possédée' ~ (universe.common > 1 ? 's') : 'en commun' }}</span>
-                            {% if not isSelf %}
-                                <span>▲ {{ universe.profileOnly }} seulement {{ profile.username }}</span>
-                                <span>▼ {{ universe.visitorOnly }} seulement toi</span>
-                            {% endif %}
-                            <span>✕ {{ universe.missingBoth }} manquante{{ universe.missingBoth > 1 ? 's' }}{{ isSelf ? '' : ' aux deux' }}</span>
+                            <span>◈ {{ universe.common }} en commun</span>
+                            <span>▲ {{ universe.profileOnly }} seulement {{ profile.username }}</span>
+                            <span>▼ {{ universe.visitorOnly }} seulement toi</span>
+                            <span>✕ {{ universe.missingBoth }} manquante{{ universe.missingBoth > 1 ? 's' }} aux deux</span>
                         </div>
 
                         <div class="mt-6 grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5" data-testid="profile-grid">

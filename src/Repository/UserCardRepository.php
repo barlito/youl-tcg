@@ -142,19 +142,4 @@ class UserCardRepository extends ServiceEntityRepository
 
         return $stats;
     }
-
-    /**
-     * Total number of cards owned (collection banner stat). quantity already
-     * counts holo copies (holoQuantity is a sub-count, not an extra).
-     */
-    public function sumOwnedQuantities(DiscordUser $discordUser): int
-    {
-        return (int) $this->createQueryBuilder('uc')
-            ->select('COALESCE(SUM(uc.quantity), 0)')
-            ->andWhere('uc.discordUser = :user')
-            ->setParameter('user', $discordUser)
-            ->getQuery()
-            ->getSingleScalarResult()
-        ;
-    }
 }

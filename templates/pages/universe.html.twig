@@ -88,7 +88,14 @@
                     <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
                         Le set · {{ totalCount }} cartes
                     </h2>
-                    <span class="font-mono text-[11px] tracking-[.15em] text-ink-dim">TRI: RARETÉ ↓</span>
+                    <div class="flex items-center gap-5">
+                        <a href="{{ path('collection', { slug: extension.slug }) }}"
+                           class="chip-mono text-ink-dim transition-colors hover:text-primary"
+                           data-testid="collection-link">
+                            ◈ Voir dans ma collection ▸
+                        </a>
+                        <span class="font-mono text-[11px] tracking-[.15em] text-ink-dim">TRI: RARETÉ ↓</span>
+                    </div>
                 </div>
 
                 <div class="mt-8 grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5" data-testid="set-grid">

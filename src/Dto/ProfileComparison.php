@@ -20,7 +20,6 @@ final readonly class ProfileComparison
         public int $profileOnly,
         public int $visitorOnly,
         public int $missingBoth,
-        public bool $isSelf,
     ) {
     }
 }

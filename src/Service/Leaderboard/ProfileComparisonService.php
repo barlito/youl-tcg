@@ -16,7 +16,8 @@ use App\Repository\UserCardRepository;
 /**
  * Crosses the published catalogue with two collections — the visited profile's
  * and the visitor's — so a profile also shows what its owner is MISSING, and
- * what both are still hunting.
+ * what both are still hunting. Comparing a player with themselves is how the
+ * « Ma collection » page builds its own pokédex.
  *
  * Disclosure rules, in one place:
  *  - a card of the profile is revealed only when the visitor owns it too (the
@@ -95,7 +96,6 @@ final readonly class ProfileComparisonService
             profileOnly: $totals['profileOnly'],
             visitorOnly: $totals['visitorOnly'],
             missingBoth: $totals['missingBoth'],
-            isSelf: $isSelf,
         );
     }
 

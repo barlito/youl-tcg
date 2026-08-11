@@ -16,6 +16,10 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
+/**
+ * « Ma collection »: the merged page — profile stats, completion strip and the
+ * whole published catalogue split by universe, the cards not owned yet masked.
+ */
 final class CollectionControllerTest extends WebTestCase
 {
     use JwtAuthTrait;
@@ -47,7 +51,7 @@ final class CollectionControllerTest extends WebTestCase
         $this->createScenario();
     }
 
-    public function testBannerShowsUserAndRealQuota(): void
+    public function testBannerShowsUserQuotaAndProfileStats(): void
     {
         $crawler = $this->client->request('GET', '/collection');
 
@@ -58,11 +62,24 @@ final class CollectionControllerTest extends WebTestCase
         $this->assertStringContainsString('2', $quota);
         $this->assertStringContainsString('/ 2', $quota);
 
-        // 3 (1 holo copy included) + 1 + 0: quantity is the total per card
-        $this->assertStringContainsString(
-            'Cartes possédées · 4',
-            $crawler->filter('main')->text(),
-        );
+        // the profile stats moved in with the merge: 3 (1 holo copy included) + 1 + 0
+        $stats = $crawler->filter('[data-testid="profile-stats"]')->text();
+        $this->assertStringContainsString('4 cartes au total', $stats);
+        $this->assertStringContainsString('1 holo', $stats);
+        $this->assertStringContainsString('0 unique 1/1', $stats);
+        $this->assertStringContainsString('0 pack ouvert', $stats);
+    }
+
+    public function testBannerLinksToTheHistoryAndTheLeaderboard(): void
+    {
+        $crawler = $this->client->request('GET', '/collection');
+
+        self::assertResponseIsSuccessful();
+        $this->assertSame('/mes-ouvertures', $crawler->filter('[data-testid="history-link"]')->attr('href'));
+
+        $rank = $crawler->filter('[data-testid="leaderboard-link"]');
+        $this->assertSame('/classement', $rank->attr('href'));
+        $this->assertMatchesRegularExpression('/#\d+ au classement/', $rank->text());
     }
 
     public function testCompletionStripShowsPerUniverseNumbers(): void
@@ -97,16 +114,51 @@ final class CollectionControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/collection');
 
         self::assertResponseIsSuccessful();
-        $grid = $crawler->filter('[data-testid="collection-grid"]');
+        $grid = $this->universeBlock($crawler, $this->extensionA)->filter('[data-testid="collection-grid"]');
         $this->assertStringContainsString('×3', $grid->text());
         $this->assertStringContainsString('✦1', $grid->text());
-        // The zero-quantity inventory row must not produce a card.
-        $this->assertCount(0, $grid->filter(\sprintf('img[alt="%s"]', $this->cardsA[2]->getName())));
+    }
+
+    public function testCardsNotOwnedAreMaskedWithoutLeakingTheirNames(): void
+    {
+        $crawler = $this->client->request('GET', '/collection');
+
+        self::assertResponseIsSuccessful();
+        $block = $this->universeBlock($crawler, $this->extensionA);
+
+        // 4 published cards, 2 owned: the zero-quantity row counts as missing
+        $this->assertCount(2, $block->filter('[data-testid="collection-tile"][data-state="common"]'));
+        $this->assertCount(2, $block->filter('[data-testid="collection-tile"][data-state="missing-both"]'));
+        $this->assertCount(2, $block->filter('[data-testid="masked-card"]'));
+
+        $html = (string) $this->client->getResponse()->getContent();
+        $this->assertStringNotContainsString($this->cardsA[2]->getName(), $html);
+        $this->assertStringNotContainsString($this->cardsA[3]->getName(), $html);
+    }
+
+    public function testFilterBarCountsOwnedAndMissingCards(): void
+    {
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug());
+
+        self::assertResponseIsSuccessful();
+        $filters = $crawler->filter('[data-testid="collection-filters"] button');
+        $states = $filters->each(static fn (Crawler $node): string => (string) $node->attr('data-state'));
+        $this->assertSame(['all', 'common', 'missing-both'], $states);
+
+        // scoped to the filtered universe, not to the whole catalogue
+        $this->assertStringContainsString('4', $filters->eq(0)->text());
+        $this->assertStringContainsString('2', $filters->eq(1)->text());
+        $this->assertStringContainsString('2', $filters->eq(2)->text());
+
+        // the client-side fallback exists (hidden until a filter empties the grid)
+        $fallback = $crawler->filter('[data-testid="filter-empty"]');
+        $this->assertCount(1, $fallback);
+        $this->assertNotNull($fallback->attr('hidden'));
     }
 
     public function testHoloOwnedTileRendersToggleAndHoloCard(): void
     {
-        $crawler = $this->client->request('GET', '/collection');
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug());
 
         self::assertResponseIsSuccessful();
         $grid = $crawler->filter('[data-testid="collection-grid"]');
@@ -137,41 +189,37 @@ final class CollectionControllerTest extends WebTestCase
         $this->createUserCard($card, quantity: 2, holoQuantity: 2);
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/collection');
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug());
 
         self::assertResponseIsSuccessful();
-        $tile = $crawler->filter('[data-testid="collection-grid"] > div')->reduce(
-            fn (Crawler $node): bool => $node->filter(\sprintf('img[alt="%s"]', $card->getName()))->count() > 0,
-        );
-        $this->assertCount(1, $tile);
+        $tile = $this->tileOf($crawler, $card);
         $this->assertCount(0, $tile->filter('button[data-testid="holo-toggle"]'));
         $this->assertStringContainsString('holo--', (string) $tile->filter('.card')->attr('class'));
     }
 
     public function testCardWithoutHoloCopyHasNoToggleAndRendersNormal(): void
     {
-        $crawler = $this->client->request('GET', '/collection');
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug());
 
         self::assertResponseIsSuccessful();
 
         // cardsA[1] is owned without any holo copy: normal rendering, no toggle on its tile.
-        $tile = $crawler->filter('[data-testid="collection-grid"] > div')->reduce(
-            fn (Crawler $node): bool => $node->filter(\sprintf('img[alt="%s"]', $this->cardsA[1]->getName()))->count() > 0,
-        );
-        $this->assertCount(1, $tile);
+        $tile = $this->tileOf($crawler, $this->cardsA[1]);
         $this->assertCount(0, $tile->filter('button[data-testid="holo-toggle"]'));
         $this->assertNull($tile->attr('data-controller'));
         $this->assertStringNotContainsString('holo', (string) $tile->filter('.card')->attr('class'));
     }
 
-    public function testExtensionFilterOnlyShowsItsCards(): void
+    public function testExtensionFilterOnlyShowsItsUniverse(): void
     {
         $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug());
 
         self::assertResponseIsSuccessful();
-        $grid = $crawler->filter('[data-testid="collection-grid"]');
-        $this->assertCount(1, $grid->filter(\sprintf('img[alt="%s"]', $this->cardsA[0]->getName())));
-        $this->assertCount(1, $grid->filter(\sprintf('img[alt="%s"]', $this->cardsA[1]->getName())));
+        // a single universe block, the filtered one — the rest of the catalogue is gone
+        $blocks = $crawler->filter('[data-testid="collection-universe"]');
+        $this->assertCount(1, $blocks);
+        $this->assertStringContainsString($this->extensionA->getName(), $blocks->filter('h2')->text());
+        $this->assertCount(1, $blocks->filter(\sprintf('img[alt="%s"]', $this->cardsA[0]->getName())));
 
         // The filtered universe's tile is the active one in the completion strip.
         $this->assertStringContainsString(
@@ -180,13 +228,30 @@ final class CollectionControllerTest extends WebTestCase
         );
     }
 
-    public function testEmptyStateWhenNoCardOwnedInExtension(): void
+    public function testExtensionWithNothingOwnedStillShowsItsMaskedSet(): void
     {
         $crawler = $this->client->request('GET', '/collection/' . $this->extensionB->getSlug());
 
         self::assertResponseIsSuccessful();
-        $this->assertCount(0, $crawler->filter('[data-testid="collection-grid"]'));
+        // the empty state nudges to open a pack, the catalogue stays behind it
         $this->assertStringContainsString('Vide.', $crawler->filter('[data-testid="empty-state"]')->text());
+        $this->assertCount(2, $crawler->filter('[data-testid="collection-tile"][data-state="missing-both"]'));
+        $this->assertCount(0, $crawler->filter('[data-testid="collection-tile"][data-state="common"]'));
+
+        // « Possédées » has nothing to show: readable but not clickable
+        $owned = $crawler->filter('[data-testid="collection-filters"] button[data-state="common"]');
+        $this->assertNotNull($owned->attr('disabled'));
+    }
+
+    public function testUniverseHeadingLinksToTheUniversePage(): void
+    {
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug());
+
+        self::assertResponseIsSuccessful();
+        $this->assertSame(
+            '/univers/' . $this->extensionA->getSlug(),
+            $crawler->filter('[data-testid="collection-universe"] h2 a')->attr('href'),
+        );
     }
 
     public function testUnknownExtensionIsNotFound(): void
@@ -220,7 +285,24 @@ final class CollectionControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testGridOrdersOwnedCardsRarestFirst(): void
+    public function testUnpublishedContentNeverReachesTheGrid(): void
+    {
+        $draftExtension = $this->createExtension('Univers brouillon ' . uniqid(), ExtensionStatusEnum::DRAFT);
+        $hidden = $this->createCard($draftExtension, 'Carte cachée ' . uniqid());
+        $this->createUserCard($hidden, quantity: 1);
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/collection');
+
+        self::assertResponseIsSuccessful();
+        $html = (string) $this->client->getResponse()->getContent();
+        // the draft card of the scenario is not part of extension A's published set
+        $this->assertStringContainsString('4 cartes', $this->universeBlock($crawler, $this->extensionA)->filter('[data-testid="universe-count"]')->text());
+        $this->assertStringNotContainsString($draftExtension->getName(), $html);
+        $this->assertStringNotContainsString($hidden->getName(), $html);
+    }
+
+    public function testGridOrdersCardsRarestFirst(): void
     {
         // a legendary and a rare on top of the owned commons — the grid must lead with them
         $legendary = $this->createCard($this->extensionA, 'Rarity test legendary ' . uniqid(), rarity: CardRarityEnum::LEGENDARY);
@@ -229,14 +311,41 @@ final class CollectionControllerTest extends WebTestCase
         $this->createUserCard($rare, quantity: 1);
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/collection');
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug());
 
         self::assertResponseIsSuccessful();
+        // masked tiles carry no artwork: only the revealed cards are named here
         $names = $crawler->filter('[data-testid="collection-grid"] img[alt]')->extract(['alt']);
         $names = array_values(array_filter($names, static fn (string $name): bool => '' !== $name));
 
         $this->assertSame($legendary->getName(), $names[0] ?? null, 'Rarest card must come first.');
         $this->assertSame($rare->getName(), $names[1] ?? null, 'Then the rare, before the commons.');
+    }
+
+    /**
+     * The universe block of an extension: /collection renders the whole
+     * catalogue, so every grid assertion is scoped to the scenario.
+     */
+    private function universeBlock(Crawler $crawler, Extension $extension): Crawler
+    {
+        $block = $crawler->filter('[data-testid="collection-universe"]')->reduce(
+            static fn (Crawler $node): bool => str_contains($node->filter('h2')->text(), $extension->getName()),
+        );
+
+        $this->assertCount(1, $block, 'The scenario universe must appear exactly once in the grid.');
+
+        return $block;
+    }
+
+    private function tileOf(Crawler $crawler, Card $card): Crawler
+    {
+        $tile = $crawler->filter('[data-testid="collection-tile"]')->reduce(
+            static fn (Crawler $node): bool => $node->filter(\sprintf('img[alt="%s"]', $card->getName()))->count() > 0,
+        );
+
+        $this->assertCount(1, $tile, \sprintf('Card "%s" must appear exactly once in the grid.', $card->getName()));
+
+        return $tile;
     }
 
     /**
@@ -265,12 +374,12 @@ final class CollectionControllerTest extends WebTestCase
         $this->entityManager->flush();
     }
 
-    private function createExtension(string $name): Extension
+    private function createExtension(string $name, ExtensionStatusEnum $status = ExtensionStatusEnum::PUBLISHED): Extension
     {
         $extension = new Extension()
             ->setName($name)
             ->setDescription('Test extension')
-            ->setStatus(ExtensionStatusEnum::PUBLISHED)
+            ->setStatus($status)
         ;
         $this->entityManager->persist($extension);
 

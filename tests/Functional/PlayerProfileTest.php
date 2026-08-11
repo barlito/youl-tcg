@@ -197,31 +197,20 @@ final class PlayerProfileTest extends WebTestCase
         $this->assertNotNull($fallback->attr('hidden'));
     }
 
-    public function testOwnProfileShowsEverythingOwnedInClear(): void
+    public function testOwnProfileRedirectsToTheCollectionPage(): void
     {
-        // the rival visits their own profile: their cards are all in clear, the
-        // 1/1 included, and only what they miss stays face down
-        $this->authenticateClient($this->client, $this->rival->getDiscordId());
+        // your own profile IS « Ma collection »: same stats, same catalogue, one page
+        $this->client->request('GET', '/joueur/' . $this->user->getDiscordId());
+
+        self::assertResponseRedirects('/collection');
+    }
+
+    public function testProfileLinksBackToTheVisitorsOwnCollection(): void
+    {
         $crawler = $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId());
 
         self::assertResponseIsSuccessful();
-        $this->assertCount(1, $crawler->filter(\sprintf('img[alt="%s"]', $this->secretCard->getName())));
-        $this->assertCount(1, $crawler->filter(\sprintf('img[alt="%s"]', $this->uniqueCard->getName())));
-
-        // the two cards they don't own (the visitor's one and the orphan one)
-        $block = $this->universeBlock($crawler);
-        $this->assertCount(2, $block->filter('[data-testid="masked-card"]'));
-        $this->assertCount(2, $block->filter('[data-testid="profile-tile"][data-state="missing-both"]'));
-        // the legend still explains the card backs, without the comparison wording
-        $hint = $crawler->filter('[data-testid="masking-hint"]');
-        $this->assertCount(1, $hint);
-        $this->assertStringContainsString('pas encore trouvée', $hint->text());
-        $this->assertStringNotContainsString('Sa collection', $hint->text());
-
-        $counters = $block->filter('[data-testid="universe-compare"]')->text();
-        $this->assertStringContainsString('3 possédées', $counters);
-        $this->assertStringContainsString('2 manquantes', $counters);
-        $this->assertStringNotContainsString('seulement', $counters);
+        $this->assertSame('/collection', $crawler->filter('[data-testid="collection-link"]')->attr('href'));
     }
 
     public function testAnotherPlayersUniqueShowsAsOwnedButIsNeverNamed(): void
