@@ -81,6 +81,9 @@
                             <div>
                                 <p class="font-display text-sm font-bold uppercase tracking-[.15em] text-primary">
                                     🔥 Récompense de streak — palier {{ reward.milestone }} jours
+                                    {% if pendingRewards|length > 1 %}
+                                        <span class="text-ink-dim" data-testid="streak-reward-counter">· 1 / {{ pendingRewards|length }}</span>
+                                    {% endif %}
                                 </p>
                                 <p class="mt-1 max-w-md text-xs text-ink-muted">
                                     Choisis un pack bonus : il s'ajoute à ton stock sans entamer tes récupérations du jour.

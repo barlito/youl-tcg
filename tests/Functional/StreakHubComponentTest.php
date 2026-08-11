@@ -115,6 +115,10 @@ final class StreakHubComponentTest extends WebTestCase
         $component = $this->createLiveComponent(BoosterHub::class, client: $client);
         $component->set('streakRewardBoosterId', (string) $booster->getId());
         $component->call('chooseStreakReward', ['rewardId' => (string) $reward->getId()]);
+
+        // the selector is cleared after a success: pick again to prove the
+        // refusal comes from the reward being spent, not from an empty choice
+        $component->set('streakRewardBoosterId', (string) $booster->getId());
         $component->call('chooseStreakReward', ['rewardId' => (string) $reward->getId()]);
 
         $this->assertSame('Cette récompense n\'est plus disponible.', $component->component()->streakError);
@@ -162,6 +166,61 @@ final class StreakHubComponentTest extends WebTestCase
         $this->assertSame('Choisis un pack avant de valider.', $component->component()->streakError);
     }
 
+    public function testQueuedRewardsAreSpentOneAtATimeOnDistinctPacks(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $first = $this->createPendingReward($user, milestone: 7);
+        $this->createPendingReward($user, milestone: 14);
+        [$packA, $packB] = $this->twoClaimableBoosters();
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        // only the oldest milestone is offered at a time, and the title counts the queue
+        $rendered = (string) $component->render();
+        $this->assertStringContainsString('palier 7 jours', $rendered);
+        $this->assertStringContainsString('· 1 / 2', $rendered);
+
+        $component->set('streakRewardBoosterId', (string) $packA->getId());
+        $component->call('chooseStreakReward', ['rewardId' => (string) $first->getId()]);
+        $this->assertNull($component->component()->streakError);
+        $this->assertStringContainsString('reste 1 récompense', (string) $component->component()->streakSuccess);
+
+        // the next one takes its place, and may go to a DIFFERENT pack
+        $rendered = (string) $component->render();
+        $this->assertStringContainsString('palier 14 jours', $rendered);
+        $this->assertStringNotContainsString('palier 7 jours', $rendered);
+
+        $second = static::getContainer()->get(EntityManagerInterface::class)
+            ->getRepository(StreakReward::class)
+            ->findOneBy(['discordUser' => $user, 'milestone' => 14])
+        ;
+        $component->set('streakRewardBoosterId', (string) $packB->getId());
+        $component->call('chooseStreakReward', ['rewardId' => (string) $second?->getId()]);
+        $this->assertNull($component->component()->streakError);
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        foreach ([$packA, $packB] as $pack) {
+            $userBooster = $entityManager->getRepository(UserBooster::class)
+                ->findOneBy(['discordUser' => $user, 'booster' => $pack])
+            ;
+            $this->assertSame(1, $userBooster?->getQuantity(), 'Chaque récompense crédite son propre pack.');
+        }
+
+        $this->assertStringNotContainsString('data-testid="streak-reward-choice"', (string) $component->render());
+    }
+
+    /**
+     * @return array{Booster, Booster}
+     */
+    private function twoClaimableBoosters(): array
+    {
+        $boosters = static::getContainer()->get(BoosterRepository::class)->findPublished();
+        $claimable = array_values(array_filter($boosters, static fn (Booster $booster): bool => $booster->isClaimable()));
+        $this->assertGreaterThanOrEqual(2, \count($claimable), 'Two claimable packs are needed.');
+
+        return [$claimable[0], $claimable[1]];
+    }
+
     /**
      * Text of the streak tile, whitespace normalized: the assertions target
      * what the player reads, not the markup around it.
@@ -189,14 +248,14 @@ final class StreakHubComponentTest extends WebTestCase
         $entityManager->flush();
     }
 
-    private function createPendingReward(DiscordUser $user): StreakReward
+    private function createPendingReward(DiscordUser $user, int $milestone = 7): StreakReward
     {
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
 
         $reward = new StreakReward(
             $user,
-            new \DateTimeImmutable('7 days ago'),
-            7,
+            new \DateTimeImmutable($milestone . ' days ago'),
+            $milestone,
             new \DateTimeImmutable(),
         );
         $entityManager->persist($reward);

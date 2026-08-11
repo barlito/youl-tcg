@@ -288,11 +288,24 @@ final class BoosterHub extends AbstractController
         }
 
         $this->inventory = null; // the memoized inventory is stale after the credit
+        $this->streakRewardBoosterId = '';
         $this->streakSuccess = \sprintf(
             'Palier %d jours : un pack « %s » ajouté à ton stock !',
             $reward->getMilestone(),
             $booster->getDisplayName(),
         );
+
+        // the banner immediately shows the next milestone: say so, or spending
+        // a reward looks like the click did nothing
+        $remaining = \count($this->getPendingStreakRewards());
+
+        if ($remaining > 0) {
+            $this->streakSuccess .= \sprintf(
+                ' Il te reste %d récompense%s à récupérer.',
+                $remaining,
+                $remaining > 1 ? 's' : '',
+            );
+        }
     }
 
     /**
