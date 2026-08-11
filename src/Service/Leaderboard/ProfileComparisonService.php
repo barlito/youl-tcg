@@ -7,7 +7,6 @@ namespace App\Service\Leaderboard;
 use App\Dto\ProfileCardComparison;
 use App\Dto\ProfileComparison;
 use App\Dto\ProfileUniverseComparison;
-use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\UserCard;
 use App\Enum\ProfileCardStateEnum;
@@ -24,9 +23,8 @@ use App\Repository\UserCardRepository;
  *    historical masking rule, untouched);
  *  - a card the profile does NOT own has nothing to hide, so it may be revealed
  *    as soon as the visitor owns it;
- *  - a 1/1 the visitor doesn't hold stays a MYSTERY tile: neither the artwork
- *    nor the ownership bit, and it is excluded from the counters so that a
- *    universe with a single unique cannot be solved by subtraction.
+ *  - 1/1 uniques are compared like the rest: the page feeds the trades, so who
+ *    holds one is shown, while the artwork and the name stay masked.
  *
  * Three queries whatever the catalogue size — never one per card or per player.
  */
@@ -54,16 +52,16 @@ final readonly class ProfileComparisonService
             : array_flip($this->userCardRepository->findOwnedCardIds($visitor));
 
         $universes = [];
-        $totals = ['total' => 0, 'common' => 0, 'profileOnly' => 0, 'visitorOnly' => 0, 'missingBoth' => 0, 'mystery' => 0];
+        $totals = ['total' => 0, 'common' => 0, 'profileOnly' => 0, 'visitorOnly' => 0, 'missingBoth' => 0];
 
         foreach ($this->cardRepository->findPublishedGroupedByExtension() as $group) {
             $cards = [];
-            $counts = ['common' => 0, 'profileOnly' => 0, 'visitorOnly' => 0, 'missingBoth' => 0, 'mystery' => 0];
+            $counts = ['common' => 0, 'profileOnly' => 0, 'visitorOnly' => 0, 'missingBoth' => 0];
 
             foreach ($group['cards'] as $card) {
                 $cardId = (string) $card->getId();
                 $profileCard = $profileCards[$cardId] ?? null;
-                $state = $this->resolveState($card, null !== $profileCard, isset($visitorCards[$cardId]), $isSelf);
+                $state = $this->resolveState(null !== $profileCard, isset($visitorCards[$cardId]));
 
                 $cards[] = new ProfileCardComparison(
                     card: $card,
@@ -82,7 +80,6 @@ final readonly class ProfileComparisonService
                 profileOnly: $counts['profileOnly'],
                 visitorOnly: $counts['visitorOnly'],
                 missingBoth: $counts['missingBoth'],
-                mysteryCount: $counts['mystery'],
             );
 
             $totals['total'] += \count($cards);
@@ -98,17 +95,12 @@ final readonly class ProfileComparisonService
             profileOnly: $totals['profileOnly'],
             visitorOnly: $totals['visitorOnly'],
             missingBoth: $totals['missingBoth'],
-            mysteryCount: $totals['mystery'],
             isSelf: $isSelf,
         );
     }
 
-    private function resolveState(Card $card, bool $profileOwns, bool $visitorOwns, bool $isSelf): ProfileCardStateEnum
+    private function resolveState(bool $profileOwns, bool $visitorOwns): ProfileCardStateEnum
     {
-        if (!$isSelf && $card->isUnique() && !$visitorOwns) {
-            return ProfileCardStateEnum::MYSTERY;
-        }
-
         return match (true) {
             $profileOwns && $visitorOwns => ProfileCardStateEnum::COMMON,
             $profileOwns => ProfileCardStateEnum::PROFILE_ONLY,
@@ -118,7 +110,7 @@ final readonly class ProfileComparisonService
     }
 
     /**
-     * @return 'common'|'profileOnly'|'visitorOnly'|'missingBoth'|'mystery'
+     * @return 'common'|'profileOnly'|'visitorOnly'|'missingBoth'
      */
     private function counterKey(ProfileCardStateEnum $state): string
     {
@@ -127,7 +119,6 @@ final readonly class ProfileComparisonService
             ProfileCardStateEnum::PROFILE_ONLY => 'profileOnly',
             ProfileCardStateEnum::VISITOR_ONLY => 'visitorOnly',
             ProfileCardStateEnum::MISSING_BOTH => 'missingBoth',
-            ProfileCardStateEnum::MYSTERY => 'mystery',
         };
     }
 }

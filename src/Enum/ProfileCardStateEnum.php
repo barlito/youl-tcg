@@ -8,6 +8,10 @@ namespace App\Enum;
  * How one catalogue card compares between the visited profile and the visitor.
  * Drives both the tile rendering and the client-side filter (the value is the
  * data-state attribute).
+ *
+ * 1/1 uniques follow the same states as any other card: the page is the base of
+ * the future trades, so knowing WHO holds one matters — the artwork and the name
+ * stay masked all the same.
  */
 enum ProfileCardStateEnum: string
 {
@@ -23,23 +27,11 @@ enum ProfileCardStateEnum: string
     /** nobody owns it — the shared hunt */
     case MISSING_BOTH = 'missing-both';
 
-    /** a 1/1 the visitor doesn't hold: never says whether the profile has it */
-    case MYSTERY = 'mystery';
-
     /**
      * Whether the artwork (and therefore the card name) may be rendered.
      */
     public function revealsCard(): bool
     {
         return self::COMMON === $this || self::VISITOR_ONLY === $this;
-    }
-
-    /**
-     * States kept out of the comparison counters: a 1/1 must stay a count, so
-     * a universe holding a single unique cannot be solved by subtraction.
-     */
-    public function isCountable(): bool
-    {
-        return self::MYSTERY !== $this;
     }
 }

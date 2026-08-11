@@ -108,7 +108,7 @@ final class PlayerProfileTest extends WebTestCase
 
         $tile = $this->universeBlock($crawler)->filter('[data-testid="profile-tile"][data-state="visitor-only"]');
         $this->assertCount(1, $tile);
-        $this->assertStringContainsString('Manque', $tile->text());
+        $this->assertStringContainsString('Lui manque', $tile->text());
     }
 
     public function testEveryComparisonStateIsExposedOnTheTiles(): void
@@ -117,11 +117,12 @@ final class PlayerProfileTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $block = $this->universeBlock($crawler);
-        foreach (['common', 'profile-only', 'visitor-only', 'missing-both', 'mystery'] as $state) {
+        // the 1/1 is compared like any other card, hence two "profile only" tiles
+        foreach (['common' => 1, 'profile-only' => 2, 'visitor-only' => 1, 'missing-both' => 1] as $state => $expected) {
             $this->assertCount(
-                1,
+                $expected,
                 $block->filter(\sprintf('[data-testid="profile-tile"][data-state="%s"]', $state)),
-                \sprintf('Exactly one tile is expected in state "%s".', $state),
+                \sprintf('%d tile(s) expected in state "%s".', $expected, $state),
             );
         }
     }
@@ -136,19 +137,14 @@ final class PlayerProfileTest extends WebTestCase
         // "they own it" is not a new disclosure: before the comparison grid, the
         // profile listed their cards only, so every card back already meant that
         $owned = $block->filter('[data-testid="profile-tile"][data-state="profile-only"]');
-        $this->assertCount(1, $owned->filter('[data-testid="chip-owned"]'));
-        $this->assertCount(1, $owned->filter('[data-testid="masked-card"]'));
+        $this->assertCount(2, $owned->filter('[data-testid="chip-owned"]'));
+        $this->assertCount(2, $owned->filter('[data-testid="masked-card"]'));
         $this->assertStringNotContainsString($this->secretCard->getName(), (string) $owned->html());
-
-        // the 1/1 wears the same badge whether it is held or not: no holder leak
-        $mystery = $block->filter('[data-testid="profile-tile"][data-state="mystery"]');
-        $this->assertCount(1, $mystery->filter('[data-testid="chip-mystery"]'));
-        $this->assertCount(0, $mystery->filter('[data-testid="chip-owned"]'));
 
         // nobody owns it: no ownership chip at all
         $orphan = $block->filter('[data-testid="profile-tile"][data-state="missing-both"]');
         $this->assertCount(0, $orphan->filter('[data-testid="chip-owned"]'));
-        $this->assertCount(0, $orphan->filter('[data-testid="chip-mystery"]'));
+        $this->assertCount(0, $orphan->filter('[data-testid="chip-wanted"]'));
     }
 
     public function testUniverseCountersCompareBothCollections(): void
@@ -161,11 +157,9 @@ final class PlayerProfileTest extends WebTestCase
 
         $counters = $block->filter('[data-testid="universe-compare"]')->text();
         $this->assertStringContainsString('1 en commun', $counters);
-        $this->assertStringContainsString('1 seulement ' . $this->rival->getUsername(), $counters);
+        $this->assertStringContainsString('2 seulement ' . $this->rival->getUsername(), $counters);
         $this->assertStringContainsString('1 seulement toi', $counters);
         $this->assertStringContainsString('1 manquante aux deux', $counters);
-        // the 1/1 is counted apart, so a single unique can't be solved by subtraction
-        $this->assertStringContainsString('1 × 1/1 hors décompte', $counters);
     }
 
     public function testFilterBarOffersEveryBucket(): void
@@ -203,12 +197,20 @@ final class PlayerProfileTest extends WebTestCase
         $this->assertStringNotContainsString('seulement', $counters);
     }
 
-    public function testAnotherPlayersUniqueIsAlwaysMaskedForVisitors(): void
+    public function testAnotherPlayersUniqueShowsAsOwnedButIsNeverNamed(): void
     {
-        // nobody but the claimer can own a 1/1, so it can never be shown to a visitor
-        $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId());
+        // the trades need to know WHO holds a 1/1; the card itself stays masked
+        $crawler = $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId());
 
         self::assertResponseIsSuccessful();
+        $unique = $this->universeBlock($crawler)->filter('[data-testid="profile-tile"]')->reduce(
+            static fn (Crawler $node): bool => 1 === $node->filter('[data-testid="chip-unique"]')->count(),
+        );
+
+        $this->assertCount(1, $unique);
+        $this->assertSame('profile-only', $unique->attr('data-state'));
+        $this->assertCount(1, $unique->filter('[data-testid="chip-owned"]'));
+        $this->assertCount(1, $unique->filter('[data-testid="masked-card"]'));
         $this->assertStringNotContainsString(
             $this->uniqueCard->getName(),
             (string) $this->client->getResponse()->getContent(),
