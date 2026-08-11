@@ -17,13 +17,14 @@ App\Entity\Card:
         imageName: 'default_card.png'
         status: 2
         rarity: 'rare'
+    # brouillon volontaire : Bleach doit rester un univers SANS carte publiée
+    # (le hub le rend « à venir », cf. BoosterHubComponentTest)
     card_ichigo:
         name: 'Bleach Ichigo Kurosaki'
         extension: '@extension_bleach'
         description: 'Ichigo Kurosaki is the main character of the Bleach series. He is a teenager with the ability to see ghosts who gains the powers of a Soul Reaper after a fateful encounter with another Soul Reaper, Rukia Kuchiki.'
         unique: false
         imageName: 'default_card.png'
-        status: 2
         rarity: 'rare'
     # possédée par Barlito seulement : l'état « seulement toi » de la grille comparée
     card_cp_v:
@@ -35,10 +36,10 @@ App\Entity\Card:
         status: 2
         rarity: 'uncommon'
     # possédée par personne : l'état « manquante aux deux »
-    card_bleach_rukia:
-        name: 'Bleach Rukia Kuchiki'
-        extension: '@extension_bleach'
-        description: 'Rukia Kuchiki is the Soul Reaper who gives Ichigo her powers, and one of the central characters of the Bleach series.'
+    card_cp_orphan:
+        name: 'Cyberpunk Nomade Anonyme'
+        extension: '@extension_cyberpunk'
+        description: 'Un nomade des Badlands que personne ne semble avoir croisé. Sa carte circule pourtant.'
         unique: false
         imageName: 'default_card.png'
         status: 2
