@@ -12,7 +12,8 @@
             'offered',
             'searchMine',
             searchMine,
-            'Aucun exemplaire disponible : tes cartes sont peut-être déjà engagées dans d\'autres offres.'
+            'Aucun exemplaire disponible : tes cartes sont peut-être déjà engagées dans d\'autres offres.',
+            null
         ) }}
 
         {# ---------------------------------------------------- Leur côté #}
@@ -23,7 +24,8 @@
             'requested',
             'searchTheirs',
             searchTheirs,
-            'Ce joueur n\'a aucune carte pour l\'instant.'
+            'Ce joueur n\'a aucune carte pour l\'instant.',
+            'Les cartes que tu ne possèdes pas restent masquées : le filtre ne porte que sur les autres.'
         ) }}
     </div>
 
@@ -44,7 +46,7 @@
     </div>
 </div>
 
-{% macro side(title, copies, selection, sideKey, searchModel, searchValue, emptyMessage) %}
+{% macro side(title, copies, selection, sideKey, searchModel, searchValue, emptyMessage, searchHint) %}
     <section>
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">{{ title }}</h2>
@@ -56,6 +58,9 @@
                    data-testid="search-{{ sideKey }}"
                    class="w-40 border border-hairline bg-surface px-3 py-1.5 font-mono text-xs text-ink placeholder:text-ink-dim focus:border-primary focus:outline-none">
         </div>
+        {% if searchHint %}
+            <p class="mt-2 text-xs text-ink-dim" data-testid="search-hint-{{ sideKey }}">{{ searchHint }}</p>
+        {% endif %}
 
         {% if copies is empty %}
             <div class="mt-4 border border-dashed border-hairline px-6 py-10 text-center text-sm text-ink-dim">
@@ -68,10 +73,17 @@
                     {% set picked = selection[cardId]|default({ normal: 0, holo: 0 }) %}
                     <div class="flex items-center gap-4 border border-hairline bg-surface p-3">
                         <div class="w-16 shrink-0">
-                            {{ include('components/CardComponent.html.twig', { card: entry.card, holo: entry.normal == 0, lazy: true }) }}
+                            {% if entry.card %}
+                                {{ include('components/CardComponent.html.twig', { card: entry.card, holo: entry.normal == 0, lazy: true }) }}
+                            {% else %}
+                                {# sans contexte : le rendu masqué n'a accès à aucune carte #}
+                                {{ include('parts/_card_back.html.twig', {}, with_context = false) }}
+                            {% endif %}
                         </div>
                         <div class="min-w-0 flex-1">
-                            <p class="truncate font-display text-sm font-bold uppercase tracking-[-0.02em] text-ink-strong">{{ entry.card.name }}</p>
+                            <p class="truncate font-display text-sm font-bold uppercase tracking-[-0.02em] {{ entry.card ? 'text-ink-strong' : 'text-ink-dim' }}">
+                                {{ entry.card ? entry.card.name : 'Carte inconnue' }}
+                            </p>
                             <p class="chip-mono mt-0.5 text-ink-dim">
                                 {{ entry.normal }} dispo{% if entry.holo > 0 %} · <span class="text-primary">✦ {{ entry.holo }}</span>{% endif %}
                             </p>
