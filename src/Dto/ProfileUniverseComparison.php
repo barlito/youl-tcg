@@ -8,8 +8,7 @@ use App\Entity\Extension;
 
 /**
  * The compared set of one universe: every published card of the extension plus
- * the counters of the comparison. mysteryCount is the number of 1/1 tiles left
- * out of those counters.
+ * the counters of the comparison.
  */
 final readonly class ProfileUniverseComparison
 {
@@ -24,7 +23,6 @@ final readonly class ProfileUniverseComparison
         public int $profileOnly,
         public int $visitorOnly,
         public int $missingBoth,
-        public int $mysteryCount,
     ) {
     }
 }

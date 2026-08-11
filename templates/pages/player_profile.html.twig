@@ -97,8 +97,7 @@
 
                     {% if not isSelf %}
                         <p class="chip-mono mb-8 border border-hairline bg-surface px-3 py-2 text-ink-muted" data-testid="masking-hint">
-                            Face cachée = tu ne l'as pas encore. <span class="text-primary">◈ Sa collection</span> = {{ profile.username }} l'a, toi non. Éteinte = personne ne l'a.
-                            {%- if comparison.mysteryCount > 0 %} <span class="text-magenta">◆ 1/1</span> : détenteur jamais révélé, donc hors décompte.{% endif %}
+                            Face cachée = tu ne l'as pas encore. <span class="text-primary">◈ Sa collection</span> = {{ profile.username }} l'a, toi non. Éteinte = personne ne l'a. <span class="text-magenta">◆ 1/1</span> = carte unique.
                         </p>
                     {% endif %}
                 {% endif %}
@@ -121,9 +120,6 @@
                                 <span>▼ {{ universe.visitorOnly }} seulement toi</span>
                             {% endif %}
                             <span>✕ {{ universe.missingBoth }} manquante{{ universe.missingBoth > 1 ? 's' }}{{ isSelf ? '' : ' aux deux' }}</span>
-                            {% if universe.mysteryCount > 0 %}
-                                <span class="text-magenta">◆ {{ universe.mysteryCount }} × 1/1 hors décompte</span>
-                            {% endif %}
                         </div>
 
                         <div class="mt-6 grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5" data-testid="profile-grid">
@@ -135,30 +131,28 @@
                                      data-testid="profile-tile">
                                     {% if item.state.revealsCard %}
                                         {{ include('components/CardComponent.html.twig', { card: item.card, holo: item.profileCard and item.profileCard.holoQuantity > 0, lazy: true }) }}
-                                        <div class="card-tile__chips pointer-events-none absolute -right-2 -top-2 z-10 flex gap-1.5">
-                                            {% if item.profileCard %}
-                                                <span class="chip-mono bg-black/90 px-2 py-1 font-bold text-white">×{{ item.profileCard.quantity }}</span>
-                                                {% if item.profileCard.holoQuantity > 0 %}
-                                                    <span class="chip-mono bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black">✦{{ item.profileCard.holoQuantity }}</span>
-                                                {% endif %}
-                                            {% else %}
-                                                <span class="chip-mono border border-hairline bg-black/90 px-2 py-1 font-bold text-ink-muted">Manque</span>
-                                            {% endif %}
-                                        </div>
                                     {% else %}
-                                        {# dos de carte : l'état est signalé par l'habillage, jamais par la carte —
-                                           une 1/1 garde le même badge qu'elle soit détenue ou non #}
-                                        <div class="{{ item.state.value == 'profile-only' ? 'ring-1 ring-primary/60' : (item.state.value == 'mystery' ? 'ring-1 ring-magenta/50' : 'opacity-45') }}">
+                                        {# dos de carte : seule la possession est signalée, jamais la carte #}
+                                        <div class="{{ item.state.value == 'profile-only' ? 'ring-1 ring-primary/60' : 'opacity-45' }}">
                                             {{ include('parts/_masked_card.html.twig') }}
                                         </div>
-                                        <div class="card-tile__chips pointer-events-none absolute -right-2 -top-2 z-10 flex gap-1.5">
-                                            {% if item.state.value == 'profile-only' %}
-                                                <span class="chip-mono border border-primary bg-black/90 px-2 py-1 font-bold text-primary" data-testid="chip-owned">◈ Sa collection</span>
-                                            {% elseif item.state.value == 'mystery' %}
-                                                <span class="chip-mono border border-magenta bg-black/90 px-2 py-1 font-bold text-magenta" data-testid="chip-mystery">◆ 1/1</span>
-                                            {% endif %}
-                                        </div>
                                     {% endif %}
+
+                                    <div class="card-tile__chips pointer-events-none absolute -right-2 -top-2 z-10 flex flex-wrap justify-end gap-1.5">
+                                        {% if item.card.isUnique %}
+                                            <span class="chip-mono border border-magenta bg-black/90 px-2 py-1 font-bold text-magenta" data-testid="chip-unique">◆ 1/1</span>
+                                        {% endif %}
+                                        {% if item.state.value == 'common' %}
+                                            <span class="chip-mono bg-black/90 px-2 py-1 font-bold text-white">×{{ item.profileCard.quantity }}</span>
+                                            {% if item.profileCard.holoQuantity > 0 %}
+                                                <span class="chip-mono bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black">✦{{ item.profileCard.holoQuantity }}</span>
+                                            {% endif %}
+                                        {% elseif item.state.value == 'profile-only' %}
+                                            <span class="chip-mono border border-primary bg-black/90 px-2 py-1 font-bold text-primary" data-testid="chip-owned">◈ Sa collection</span>
+                                        {% elseif item.state.value == 'visitor-only' %}
+                                            <span class="chip-mono border border-hairline bg-black/90 px-2 py-1 font-bold text-ink-muted" data-testid="chip-wanted">Lui manque</span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             {% endfor %}
                         </div>
