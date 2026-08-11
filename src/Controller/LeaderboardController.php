@@ -39,6 +39,11 @@ class LeaderboardController extends AbstractController
     #[Route('/joueur/{discordId}', name: 'leaderboard_player', requirements: ['discordId' => '\d+'])]
     public function player(#[CurrentUser] DiscordUser $visitor, string $discordId): Response
     {
+        // your own profile IS your collection page: one page, not two
+        if ($visitor->getDiscordId() === $discordId) {
+            return $this->redirectToRoute('collection');
+        }
+
         $profile = $this->discordUserRepository->find($discordId);
 
         if (!$profile instanceof DiscordUser) {

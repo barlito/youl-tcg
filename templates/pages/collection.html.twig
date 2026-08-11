@@ -32,7 +32,13 @@
                                  style="width: {{ completionPct }}%;"></div>
                         </div>
                     </div>
-                    <p class="chip-mono mt-2 text-ink-dim">Cartes possédées · {{ ownedTotalQuantity }}</p>
+
+                    <div class="chip-mono mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-ink-muted" data-testid="profile-stats">
+                        <span>◈ {{ entry.totalCards }} carte{{ entry.totalCards > 1 ? 's' }} au total</span>
+                        <span class="{{ entry.holoCards > 0 ? 'text-primary' : '' }}">✦ {{ entry.holoCards }} holo{{ entry.holoCards > 1 ? 's' }}</span>
+                        <span class="{{ entry.uniqueCards > 0 ? 'text-magenta' : '' }}">◆ {{ entry.uniqueCards }} unique{{ entry.uniqueCards > 1 ? 's' }} 1/1</span>
+                        <span>▣ {{ entry.openedBoosters }} pack{{ entry.openedBoosters > 1 ? 's' }} ouvert{{ entry.openedBoosters > 1 ? 's' }}</span>
+                    </div>
                 </div>
 
                 <div class="flex flex-col items-start gap-2.5 md:items-end">
@@ -50,6 +56,11 @@
                        class="chip-mono text-ink-dim transition-colors hover:text-primary"
                        data-testid="history-link">
                         ◎ Mes ouvertures ▸
+                    </a>
+                    <a href="{{ path('leaderboard') }}"
+                       class="chip-mono text-ink-dim transition-colors hover:text-primary"
+                       data-testid="leaderboard-link">
+                        ▲ #{{ entry.rank }} au classement ▸
                     </a>
                 </div>
             </div>
@@ -125,56 +136,135 @@
         </section>
 
         {# ---------------------------------------------------------- Grille #}
-        <section class="px-6 pb-24 pt-8 lg:px-12">
+        <section class="px-6 pb-24 pt-8 lg:px-12" data-controller="profile-filter">
             <div class="mx-auto max-w-7xl">
-                <div class="mb-6 flex items-center justify-between">
-                    <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
-                        {{ currentExtension is not null ? currentExtension.name : 'Toutes les cartes' }}
-                    </h2>
-                    <span class="font-mono text-[11px] tracking-[.15em] text-ink-dim">TRI: RARETÉ ↓</span>
-                </div>
-                {% if userCards is not empty %}
-                    <div class="grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5" data-testid="collection-grid">
-                        {% for userCard in userCards %}
-                            {% set ownsHolo = userCard.holoQuantity > 0 %}
-                            {# quantity is the TOTAL (holo copies included): a normal
-                               copy exists only when quantity > holoQuantity. The
-                               toggle only makes sense when BOTH versions are owned. #}
-                            {% set ownsNormal = userCard.quantity > userCard.holoQuantity %}
-                            <div class="card-tile relative"
-                                 {%- if ownsHolo and ownsNormal %} data-controller="holo-toggle"
-                                 data-holo-toggle-holo-class-value="{{ card_visual(userCard.card).holoEffect.cssClass ?? 'holo--basic' }}"
-                                 {%- endif %}>
-                                {{ include('components/CardComponent.html.twig', { card: userCard.card, holo: ownsHolo, lazy: true }) }}
-                                <div class="card-tile__chips pointer-events-none absolute -right-2 -top-2 z-10 flex gap-1.5">
-                                    <span class="chip-mono bg-black/90 px-2 py-1 font-bold text-white">×{{ userCard.quantity }}</span>
-                                    {% if ownsHolo %}
-                                        <span class="chip-mono bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black">✦{{ userCard.holoQuantity }}</span>
-                                    {% endif %}
-                                </div>
-                                {% if ownsHolo and ownsNormal %}
-                                    {# toggle OUTSIDE the .card element: a click on the card itself triggers the 3D zoom.
-                                       card-tile__toggle (et pas card-tile__chips) : c'est une commande, elle ne
-                                       s'efface pas et reste au-dessus de la carte inclinée #}
-                                    <button type="button"
-                                            class="card-tile__toggle chip-mono absolute -left-2 -top-2 border border-hairline bg-black/90 px-2 py-1 font-bold text-ink-dim transition-colors hover:text-ink-strong aria-pressed:border-transparent aria-pressed:bg-gradient-to-r aria-pressed:from-primary aria-pressed:to-magenta aria-pressed:text-black"
-                                            aria-pressed="true"
-                                            data-action="holo-toggle#toggle"
-                                            data-holo-toggle-target="button"
-                                            data-testid="holo-toggle">
-                                        ✦ HOLO
-                                    </button>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="border border-dashed border-hairline px-8 py-20 text-center text-ink-dim" data-testid="empty-state">
+                {% if visibleOwned == 0 %}
+                    <div class="mb-10 border border-dashed border-hairline px-8 py-16 text-center text-ink-dim" data-testid="empty-state">
                         <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Vide.</p>
-                        <p class="mt-3 text-sm">Aucune carte de cet univers. Ouvre un pack, gros youl.</p>
+                        <p class="mt-3 text-sm">
+                            {{ currentExtension is not null ? 'Aucune carte de cet univers. Ouvre un pack, gros youl.' : 'Aucune carte pour le moment. Ouvre un pack, gros youl.' }}
+                        </p>
                         <a href="{{ path('boosters') }}" class="btn-arcade mt-8">Ouvrir un pack ▸</a>
                     </div>
                 {% endif %}
+
+                {% if visibleTotal > 0 %}
+                    <div class="mb-8 flex flex-wrap items-center gap-2" role="group" aria-label="Filtrer la collection" data-testid="collection-filters">
+                        {% for filter in [
+                            { state: 'all', label: 'Tout', count: visibleTotal },
+                            { state: 'common', label: 'Possédées', count: visibleOwned },
+                            { state: 'missing-both', label: 'Manquantes', count: visibleMissing },
+                        ] %}
+                            {# un filtre à 0 n'a rien à montrer : il reste lisible mais inactif #}
+                            <button type="button"
+                                    class="filter-chip{{ loop.first ? ' is-active' }}"
+                                    data-state="{{ filter.state }}"
+                                    data-profile-filter-target="button"
+                                    data-action="profile-filter#select"
+                                    aria-pressed="{{ loop.first ? 'true' : 'false' }}"
+                                    {{ filter.count == 0 and not loop.first ? 'disabled' }}>
+                                {{ filter.label }} <span class="filter-chip__count">{{ filter.count }}</span>
+                            </button>
+                        {% endfor %}
+                    </div>
+
+                    <p class="chip-mono mb-8 border border-hairline bg-surface px-3 py-2 text-ink-muted" data-testid="masking-hint">
+                        Face cachée = carte pas encore trouvée. <span class="text-magenta">◆ 1/1</span> = carte unique.
+                    </p>
+                {% endif %}
+
+                {# annonce le résultat du filtrage aux lecteurs d'écran #}
+                <p class="sr-only" aria-live="polite" data-profile-filter-target="status"></p>
+
+                {% for universe in visibleUniverses %}
+                    <div class="mb-12" data-profile-filter-target="universe" data-testid="collection-universe">
+                        <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                            <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
+                                <a href="{{ path('universes_show', { slug: universe.extension.slug }) }}"
+                                   class="transition-colors hover:text-primary">{{ universe.extension.name }}</a>
+                            </h2>
+                            <span class="chip-mono text-ink-muted"
+                                  data-profile-filter-target="count"
+                                  data-total="{{ universe.total }}"
+                                  data-testid="universe-count">
+                                {{ universe.total }} carte{{ universe.total > 1 ? 's' }}
+                            </span>
+                        </div>
+
+                        {# compteurs du catalogue complet : estompés dès qu'un filtre restreint la grille #}
+                        <div class="chip-mono mt-2 flex flex-wrap gap-x-5 gap-y-1.5 text-ink-muted transition-opacity"
+                             data-profile-filter-target="counters"
+                             data-testid="universe-compare">
+                            <span>◈ {{ universe.common }} possédée{{ universe.common > 1 ? 's' }}</span>
+                            <span>✕ {{ universe.missingBoth }} manquante{{ universe.missingBoth > 1 ? 's' }}</span>
+                        </div>
+
+                        <div class="mt-6 grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5" data-testid="collection-grid">
+                            {% for item in universe.cards %}
+                                {% set userCard = item.profileCard %}
+                                {% set ownsHolo = userCard is not null and userCard.holoQuantity > 0 %}
+                                {# quantity is the TOTAL (holo copies included): a normal
+                                   copy exists only when quantity > holoQuantity. The
+                                   toggle only makes sense when BOTH versions are owned. #}
+                                {% set ownsNormal = userCard is not null and userCard.quantity > userCard.holoQuantity %}
+                                <div class="card-tile relative"
+                                     data-state="{{ item.state.value }}"
+                                     data-profile-filter-target="tile"
+                                     data-testid="collection-tile"
+                                     {%- if ownsHolo and ownsNormal %} data-controller="holo-toggle"
+                                     data-holo-toggle-holo-class-value="{{ card_visual(item.card).holoEffect.cssClass ?? 'holo--basic' }}"
+                                     {%- endif %}>
+                                    {# le voile des manquantes va sur la carte, jamais sur la tuile :
+                                       il éteindrait les chips, qui portent toute l'information #}
+                                    <div class="{{ userCard is null ? 'opacity-60' }}">
+                                        {% if userCard is not null %}
+                                            {{ include('components/CardComponent.html.twig', { card: item.card, holo: ownsHolo, lazy: true }) }}
+                                        {% else %}
+                                            {{ include('parts/_masked_card.html.twig') }}
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="card-tile__chips pointer-events-none absolute -right-2 -top-2 z-10 flex max-w-full flex-col items-end gap-1.5 sm:flex-row sm:flex-wrap sm:justify-end">
+                                        {% if item.card.isUnique %}
+                                            <span class="chip-mono border border-magenta bg-black/90 px-2 py-1 font-bold text-magenta" data-testid="chip-unique">
+                                                ◆<span class="sr-only sm:not-sr-only sm:ml-1">1/1</span>
+                                            </span>
+                                        {% endif %}
+                                        {% if userCard is not null %}
+                                            <span class="chip-mono bg-black/90 px-2 py-1 font-bold text-white">×{{ userCard.quantity }}</span>
+                                            {% if ownsHolo %}
+                                                <span class="chip-mono bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black">✦{{ userCard.holoQuantity }}</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+
+                                    {% if ownsHolo and ownsNormal %}
+                                        {# toggle OUTSIDE the .card element: a click on the card itself triggers the 3D zoom.
+                                           card-tile__toggle (et pas card-tile__chips) : c'est une commande, elle ne
+                                           s'efface pas et reste au-dessus de la carte inclinée #}
+                                        <button type="button"
+                                                class="card-tile__toggle chip-mono absolute -left-2 -top-2 border border-hairline bg-black/90 px-2 py-1 font-bold text-ink-dim transition-colors hover:text-ink-strong aria-pressed:border-transparent aria-pressed:bg-gradient-to-r aria-pressed:from-primary aria-pressed:to-magenta aria-pressed:text-black"
+                                                aria-pressed="true"
+                                                data-action="holo-toggle#toggle"
+                                                data-holo-toggle-target="button"
+                                                data-testid="holo-toggle">
+                                            ✦ HOLO
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+
+                {# filtre qui ne ramène rien : sans ça la page tombe dans le vide #}
+                <div class="border border-dashed border-hairline px-8 py-16 text-center text-ink-dim"
+                     data-profile-filter-target="empty"
+                     data-testid="filter-empty"
+                     hidden>
+                    <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Rien dans cet état.</p>
+                    <p class="mt-3 text-sm">Choisis un autre filtre.</p>
+                </div>
             </div>
         </section>
     </main>
