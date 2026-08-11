@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Twig\Components;
 
+use App\Dto\OpeningStreak;
 use App\Entity\Booster;
 use App\Entity\DiscordUser;
+use App\Entity\StreakReward;
 use App\Enum\Booster\BoosterCodeRefusalEnum;
 use App\Exception\Booster\BoosterCodeRefusedException;
 use App\Exception\Booster\BoosterException;
@@ -14,6 +16,8 @@ use App\Repository\UserBoosterRepository;
 use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\BoosterClaimService;
 use App\Service\Booster\BoosterCodeRedeemService;
+use App\Service\Booster\OpeningStreakService;
+use App\Service\Booster\StreakRewardService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Uid\Uuid;
@@ -40,6 +44,16 @@ final class BoosterHub extends AbstractController
     #[LiveProp]
     public ?string $codeSuccess = null;
 
+    #[LiveProp]
+    public ?string $streakError = null;
+
+    #[LiveProp]
+    public ?string $streakSuccess = null;
+
+    /** Pack picked in the streak reward selector (its id). */
+    #[LiveProp(writable: true)]
+    public string $streakRewardBoosterId = '';
+
     /**
      * Inventory is read twice per render (hero total + packs grid): memoize
      * the query for the lifetime of the (per-request) component instance.
@@ -55,6 +69,8 @@ final class BoosterHub extends AbstractController
         private readonly BoosterClaimService $boosterClaimService,
         private readonly BoosterCodeRedeemService $boosterCodeRedeemService,
         private readonly RateLimiterFactoryInterface $boosterCodeRedeemLimiter,
+        private readonly OpeningStreakService $openingStreakService,
+        private readonly StreakRewardService $streakRewardService,
     ) {
     }
 
@@ -205,6 +221,91 @@ final class BoosterHub extends AbstractController
             $redemption->getBoosterCode()->getBooster()->getDisplayName(),
             $redemption->getQuantity() > 1 ? 's' : '',
         );
+    }
+
+    public function getStreak(): OpeningStreak
+    {
+        return $this->openingStreakService->getStreak($this->getDiscordUser());
+    }
+
+    /**
+     * Streak milestones whose bonus booster is still to pick, oldest first.
+     * The hub surfaces the first one; the rest queue up behind it.
+     *
+     * @return list<StreakReward>
+     */
+    public function getPendingStreakRewards(): array
+    {
+        return $this->streakRewardService->getPendingRewards($this->getDiscordUser());
+    }
+
+    /**
+     * Boosters offered as a streak bonus: the claimable ones, same visibility
+     * rule as the daily claim (findPublished already scopes to published
+     * extensions).
+     *
+     * @return list<Booster>
+     */
+    public function getStreakRewardChoices(): array
+    {
+        return array_values(array_filter(
+            $this->boosterRepository->findPublished(),
+            $this->boosterAvailability->isClaimable(...),
+        ));
+    }
+
+    /**
+     * Spends a streak reward on the chosen booster. The real guards live in
+     * StreakRewardService (FOR UPDATE on the reward row, claimable booster):
+     * a forged live action gets a clean French refusal.
+     */
+    #[LiveAction]
+    public function chooseStreakReward(#[LiveArg] string $rewardId): void
+    {
+        $this->streakError = null;
+        $this->streakSuccess = null;
+
+        $booster = $this->findBooster($this->streakRewardBoosterId);
+
+        if (!$booster instanceof Booster) {
+            $this->streakError = 'Choisis un pack avant de valider.';
+
+            return;
+        }
+
+        if (!Uuid::isValid($rewardId)) {
+            $this->streakError = 'Cette récompense n\'est plus disponible.';
+
+            return;
+        }
+
+        try {
+            $reward = $this->streakRewardService->chooseBooster($this->getDiscordUser(), $rewardId, $booster);
+        } catch (BoosterException $exception) {
+            $this->streakError = $exception->getUserMessage();
+
+            return;
+        }
+
+        $this->inventory = null; // the memoized inventory is stale after the credit
+        $this->streakRewardBoosterId = '';
+        $this->streakSuccess = \sprintf(
+            'Palier %d jours : un pack « %s » ajouté à ton stock !',
+            $reward->getMilestone(),
+            $booster->getDisplayName(),
+        );
+
+        // the banner immediately shows the next milestone: say so, or spending
+        // a reward looks like the click did nothing
+        $remaining = \count($this->getPendingStreakRewards());
+
+        if ($remaining > 0) {
+            $this->streakSuccess .= \sprintf(
+                ' Il te reste %d récompense%s à récupérer.',
+                $remaining,
+                $remaining > 1 ? 's' : '',
+            );
+        }
     }
 
     /**
