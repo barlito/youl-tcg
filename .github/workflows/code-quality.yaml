@@ -23,7 +23,7 @@ jobs:
           docker compose -f docker-compose-prod.yml config -q
 
       - name: Setup castor
-        uses: castor-php/setup-castor@v1.0.0
+        uses: castor-php/setup-castor@v1.1.0
 
       - name: Login to Docker Hub
         uses: docker/login-action@v4
