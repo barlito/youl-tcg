@@ -68,6 +68,8 @@
                 {% endif %}
 
                 {% if comparison.total > 0 %}
+                    {# pseudo tronqué : un pseudo Discord long ferait déborder la barre en mobile #}
+                    {% set shortName = profile.username|slice(0, 12) ~ (profile.username|length > 12 ? '…' : '') %}
                     {% set filters = isSelf
                         ? [
                             { state: 'all', label: 'Tout', count: comparison.total },
@@ -77,44 +79,58 @@
                         : [
                             { state: 'all', label: 'Tout', count: comparison.total },
                             { state: 'common', label: 'En commun', count: comparison.common },
-                            { state: 'profile-only', label: 'Seulement ' ~ profile.username, count: comparison.profileOnly },
+                            { state: 'profile-only', label: 'Seulement ' ~ shortName, count: comparison.profileOnly },
                             { state: 'visitor-only', label: 'Seulement toi', count: comparison.visitorOnly },
                             { state: 'missing-both', label: 'Manquantes aux deux', count: comparison.missingBoth },
                         ] %}
 
-                    <div class="mb-8 flex flex-wrap items-center gap-2" data-testid="profile-filters">
+                    <div class="mb-8 flex flex-wrap items-center gap-2" role="group" aria-label="Filtrer la collection" data-testid="profile-filters">
                         {% for filter in filters %}
+                            {# un filtre à 0 n'a rien à montrer : il reste lisible mais inactif #}
                             <button type="button"
                                     class="filter-chip{{ loop.first ? ' is-active' }}"
                                     data-state="{{ filter.state }}"
                                     data-profile-filter-target="button"
                                     data-action="profile-filter#select"
-                                    aria-pressed="{{ loop.first ? 'true' : 'false' }}">
+                                    aria-pressed="{{ loop.first ? 'true' : 'false' }}"
+                                    {{ filter.count == 0 and not loop.first ? 'disabled' }}>
                                 {{ filter.label }} <span class="filter-chip__count">{{ filter.count }}</span>
                             </button>
                         {% endfor %}
                     </div>
 
-                    {% if not isSelf %}
-                        <p class="chip-mono mb-8 border border-hairline bg-surface px-3 py-2 text-ink-muted" data-testid="masking-hint">
-                            Face cachée = tu ne l'as pas encore. <span class="text-primary">◈ Sa collection</span> = {{ profile.username }} l'a, toi non. Éteinte = personne ne l'a. <span class="text-magenta">◆ 1/1</span> = carte unique.
-                        </p>
-                    {% endif %}
+                    <p class="chip-mono mb-8 border border-hairline bg-surface px-3 py-2 text-ink-muted" data-testid="masking-hint">
+                        {% if isSelf %}
+                            Face cachée = carte pas encore trouvée.
+                        {% else %}
+                            Face cachée = tu ne l'as pas encore. <span class="text-primary">◈ Sa collection</span> = {{ profile.username }} l'a, toi non. Éteinte = personne ne l'a.
+                        {% endif %}
+                        <span class="text-magenta">◆ 1/1</span> = carte unique.
+                    </p>
                 {% endif %}
+
+                {# annonce le résultat du filtrage aux lecteurs d'écran #}
+                <p class="sr-only" aria-live="polite" data-profile-filter-target="status"></p>
 
                 {% for universe in comparison.universes %}
                     <div class="mb-12" data-profile-filter-target="universe" data-testid="profile-universe">
-                        <div class="flex flex-wrap items-baseline justify-between gap-2">
+                        <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
                             <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
                                 {{ universe.extension.name }}
                             </h2>
-                            <span class="chip-mono text-ink-dim" data-testid="universe-count">
+                            <span class="chip-mono text-ink-muted"
+                                  data-profile-filter-target="count"
+                                  data-total="{{ universe.total }}"
+                                  data-testid="universe-count">
                                 {{ universe.total }} carte{{ universe.total > 1 ? 's' }}
                             </span>
                         </div>
 
-                        <div class="chip-mono mt-2 flex flex-wrap gap-x-5 gap-y-1.5 text-ink-dim" data-testid="universe-compare">
-                            <span class="{{ universe.common > 0 ? 'text-ink-muted' }}">◈ {{ universe.common }} {{ isSelf ? 'possédée' ~ (universe.common > 1 ? 's') : 'en commun' }}</span>
+                        {# compteurs du catalogue complet : estompés dès qu'un filtre restreint la grille #}
+                        <div class="chip-mono mt-2 flex flex-wrap gap-x-5 gap-y-1.5 text-ink-muted transition-opacity"
+                             data-profile-filter-target="counters"
+                             data-testid="universe-compare">
+                            <span>◈ {{ universe.common }} {{ isSelf ? 'possédée' ~ (universe.common > 1 ? 's') : 'en commun' }}</span>
                             {% if not isSelf %}
                                 <span>▲ {{ universe.profileOnly }} seulement {{ profile.username }}</span>
                                 <span>▼ {{ universe.visitorOnly }} seulement toi</span>
@@ -124,23 +140,27 @@
 
                         <div class="mt-6 grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5" data-testid="profile-grid">
                             {% for item in universe.cards %}
-                                {# une tuile révélée sans profileCard = le visiteur l'a, le profil non #}
-                                <div class="card-tile relative{{ item.state.value == 'visitor-only' ? ' opacity-50 grayscale' }}"
+                                <div class="card-tile relative"
                                      data-state="{{ item.state.value }}"
                                      data-profile-filter-target="tile"
                                      data-testid="profile-tile">
-                                    {% if item.state.revealsCard %}
-                                        {{ include('components/CardComponent.html.twig', { card: item.card, holo: item.profileCard and item.profileCard.holoQuantity > 0, lazy: true }) }}
-                                    {% else %}
-                                        {# dos de carte : seule la possession est signalée, jamais la carte #}
-                                        <div class="{{ item.state.value == 'profile-only' ? 'ring-1 ring-primary/60' : 'opacity-45' }}">
+                                    {# le voile des états va sur la carte, jamais sur la tuile :
+                                       il éteindrait les chips, qui portent toute l'information #}
+                                    <div class="{{ item.state.value == 'visitor-only' ? 'opacity-50 grayscale' }}{{ item.state.value == 'profile-only' ? 'ring-1 ring-primary/60' }}{{ item.state.value == 'missing-both' ? 'opacity-60' }}">
+                                        {% if item.state.revealsCard %}
+                                            {{ include('components/CardComponent.html.twig', { card: item.card, holo: item.profileCard and item.profileCard.holoQuantity > 0, lazy: true }) }}
+                                        {% else %}
                                             {{ include('parts/_masked_card.html.twig') }}
-                                        </div>
-                                    {% endif %}
+                                        {% endif %}
+                                    </div>
 
-                                    <div class="card-tile__chips pointer-events-none absolute -right-2 -top-2 z-10 flex flex-wrap justify-end gap-1.5">
+                                    {# libellés en toutes lettres à partir de sm : sur 2 colonnes ils
+                                       recouvriraient le nom de la carte #}
+                                    <div class="card-tile__chips card-tile__chips--sticky pointer-events-none absolute -right-2 -top-2 z-10 flex max-w-full flex-col items-end gap-1.5 sm:flex-row sm:flex-wrap sm:justify-end">
                                         {% if item.card.isUnique %}
-                                            <span class="chip-mono border border-magenta bg-black/90 px-2 py-1 font-bold text-magenta" data-testid="chip-unique">◆ 1/1</span>
+                                            <span class="chip-mono border border-magenta bg-black/90 px-2 py-1 font-bold text-magenta" data-testid="chip-unique">
+                                                ◆<span class="sr-only sm:not-sr-only sm:ml-1">1/1</span>
+                                            </span>
                                         {% endif %}
                                         {% if item.state.value == 'common' %}
                                             <span class="chip-mono bg-black/90 px-2 py-1 font-bold text-white">×{{ item.profileCard.quantity }}</span>
@@ -148,9 +168,13 @@
                                                 <span class="chip-mono bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black">✦{{ item.profileCard.holoQuantity }}</span>
                                             {% endif %}
                                         {% elseif item.state.value == 'profile-only' %}
-                                            <span class="chip-mono border border-primary bg-black/90 px-2 py-1 font-bold text-primary" data-testid="chip-owned">◈ Sa collection</span>
+                                            <span class="chip-mono border border-primary bg-black/90 px-2 py-1 font-bold text-primary" data-testid="chip-owned">
+                                                ◈<span class="sr-only sm:not-sr-only sm:ml-1">Sa collection</span>
+                                            </span>
                                         {% elseif item.state.value == 'visitor-only' %}
-                                            <span class="chip-mono border border-hairline bg-black/90 px-2 py-1 font-bold text-ink-muted" data-testid="chip-wanted">Lui manque</span>
+                                            <span class="chip-mono border border-hairline bg-black/90 px-2 py-1 font-bold text-ink-muted" data-testid="chip-wanted">
+                                                ✕<span class="sr-only sm:not-sr-only sm:ml-1">Lui manque</span>
+                                            </span>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -158,6 +182,15 @@
                         </div>
                     </div>
                 {% endfor %}
+
+                {# filtre qui ne ramène rien : sans ça la page tombe dans le vide #}
+                <div class="border border-dashed border-hairline px-8 py-16 text-center text-ink-dim"
+                     data-profile-filter-target="empty"
+                     data-testid="filter-empty"
+                     hidden>
+                    <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Rien dans cet état.</p>
+                    <p class="mt-3 text-sm">Choisis un autre filtre.</p>
+                </div>
             </div>
         </section>
     </main>
