@@ -392,6 +392,10 @@
     display: grid;
     grid-template-columns: repeat(var(--track-count, 3), minmax(0, 1fr));
     gap: 10px;
+    /* 1fr per slot blew a 1-card pack up to the whole panel width: cap the
+       grid so a tile keeps the size it has in a 5-card pack, then centre it */
+    max-width: calc(var(--track-count, 3) * 132px + (var(--track-count, 3) - 1) * 10px);
+    margin-inline: auto;
 }
 .opening__track-tile { min-width: 0; }
 .opening__track-img {
