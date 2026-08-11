@@ -174,6 +174,29 @@ final class PlayerProfileTest extends WebTestCase
         $this->assertSame(['all', 'common', 'profile-only', 'visitor-only', 'missing-both'], $states);
     }
 
+    public function testAFilterWithNothingToShowIsDisabledAndHasAFallback(): void
+    {
+        // a player owning nothing shares no card with the visitor
+        $empty = new DiscordUser()
+            ->setDiscordId((string) random_int(300000000000000000, 999999999999999999))
+            ->setUsername('Empty ' . uniqid())
+        ;
+        $this->entityManager->persist($empty);
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/joueur/' . $empty->getDiscordId());
+
+        self::assertResponseIsSuccessful();
+        $common = $crawler->filter('[data-testid="profile-filters"] button[data-state="common"]');
+        $this->assertCount(1, $common);
+        $this->assertNotNull($common->attr('disabled'), 'A filter counting zero card must not be clickable.');
+
+        // the client-side fallback exists (hidden until a filter empties the grid)
+        $fallback = $crawler->filter('[data-testid="filter-empty"]');
+        $this->assertCount(1, $fallback);
+        $this->assertNotNull($fallback->attr('hidden'));
+    }
+
     public function testOwnProfileShowsEverythingOwnedInClear(): void
     {
         // the rival visits their own profile: their cards are all in clear, the
@@ -189,7 +212,11 @@ final class PlayerProfileTest extends WebTestCase
         $block = $this->universeBlock($crawler);
         $this->assertCount(2, $block->filter('[data-testid="masked-card"]'));
         $this->assertCount(2, $block->filter('[data-testid="profile-tile"][data-state="missing-both"]'));
-        $this->assertCount(0, $crawler->filter('[data-testid="masking-hint"]'));
+        // the legend still explains the card backs, without the comparison wording
+        $hint = $crawler->filter('[data-testid="masking-hint"]');
+        $this->assertCount(1, $hint);
+        $this->assertStringContainsString('pas encore trouvée', $hint->text());
+        $this->assertStringNotContainsString('Sa collection', $hint->text());
 
         $counters = $block->filter('[data-testid="universe-compare"]')->text();
         $this->assertStringContainsString('3 possédées', $counters);
