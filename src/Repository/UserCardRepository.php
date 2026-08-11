@@ -144,12 +144,13 @@ class UserCardRepository extends ServiceEntityRepository
     }
 
     /**
-     * Total number of cards owned, holo included (collection banner stat).
+     * Total number of cards owned (collection banner stat). quantity already
+     * counts holo copies (holoQuantity is a sub-count, not an extra).
      */
     public function sumOwnedQuantities(DiscordUser $discordUser): int
     {
         return (int) $this->createQueryBuilder('uc')
-            ->select('COALESCE(SUM(uc.quantity + uc.holoQuantity), 0)')
+            ->select('COALESCE(SUM(uc.quantity), 0)')
             ->andWhere('uc.discordUser = :user')
             ->setParameter('user', $discordUser)
             ->getQuery()
