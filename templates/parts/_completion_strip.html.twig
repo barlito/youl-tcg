@@ -1,0 +1,71 @@
+{# Bandeau « complétion par univers », partagé par ma collection et les profils
+   joueur. Paramètres : strip (tuiles), currentExtension, route + routeParams du
+   lien de chaque tuile, owned/total/percentage pour la tuile « Tout ». #}
+{% set routeParams = routeParams|default({}) %}
+<section class="border-b border-hairline px-6 py-8 lg:px-12">
+    <div class="mx-auto max-w-7xl" data-controller="carousel">
+        <div class="flex items-center justify-between">
+            <p class="eyebrow">Complétion par univers</p>
+            <div class="flex gap-1.5">
+                <button type="button" data-action="carousel#prev" aria-label="Univers précédents"
+                        class="border border-hairline px-3 py-1 font-mono text-sm text-ink-muted transition-colors hover:border-primary hover:text-primary">◂</button>
+                <button type="button" data-action="carousel#next" aria-label="Univers suivants"
+                        class="border border-hairline px-3 py-1 font-mono text-sm text-ink-muted transition-colors hover:border-primary hover:text-primary">▸</button>
+            </div>
+        </div>
+
+        {# Tri par complétion décroissante : les univers les plus avancés en tête,
+           la traîne des 0% (alphabétique) défile hors champ #}
+        <div class="carousel-track -mx-5 mt-4 flex snap-x gap-3 overflow-x-auto scroll-px-5 px-5 py-1"
+             data-carousel-target="track"
+             data-action="wheel->carousel#wheel:!passive"
+             data-testid="completion-strip">
+            {# Tuile « Tout » : retour au catalogue complet + complétion globale #}
+            <a href="{{ path(route, routeParams) }}"
+               {{ currentExtension is null ? 'data-carousel-active' }}
+               class="group relative h-36 w-44 shrink-0 snap-start overflow-hidden border bg-surface {{ currentExtension is null ? 'border-primary shadow-[0_0_14px_#a435f055]' : 'border-hairline hover:border-primary/60' }}">
+                <div class="absolute inset-0 bg-gradient-to-br from-primary/35 via-[#2a0f44] to-magenta/40" aria-hidden="true"></div>
+                <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-black/90" aria-hidden="true"></div>
+
+                <p class="absolute inset-x-3 top-2.5 truncate font-display text-[13px] font-bold uppercase leading-tight text-white">Tout</p>
+                <div class="absolute inset-x-3 bottom-2.5">
+                    <p class="font-display text-3xl font-bold tracking-[-0.04em] text-primary [text-shadow:0_0_14px_#a435f077]">{{ percentage }}%</p>
+                    <div class="mt-1.5 h-1 bg-white/15">
+                        <div class="h-full bg-gradient-to-r from-primary to-magenta" style="width: {{ percentage }}%;"></div>
+                    </div>
+                    <p class="chip-mono mt-1.5 text-white/70">{{ owned }}/{{ total }} cartes</p>
+                </div>
+            </a>
+            {% for universe in strip|sort((a, b) => (b.percentage - a.percentage) ?: (a.extension.name < b.extension.name ? -1 : 1)) %}
+                {% set isActive = currentExtension is not null and currentExtension.id == universe.extension.id %}
+                <a href="{{ path(route, routeParams|merge({ slug: universe.extension.slug })) }}"
+                   {{ isActive ? 'data-carousel-active' }}
+                   class="group relative h-36 w-44 shrink-0 snap-start overflow-hidden border bg-surface {{ isActive ? 'border-primary shadow-[0_0_14px_#a435f055]' : 'border-hairline hover:border-primary/60' }}">
+                    {# fond de tuile : image uploadée de l'extension, sinon l'artwork de sa
+                       carte la plus rare, sinon le gradient seul (aussi le repli si 404) #}
+                    <div class="absolute inset-0 bg-gradient-to-br from-[#2a0f44] via-[#7a1f9c] to-magenta opacity-50" aria-hidden="true"></div>
+                    {% set coverUrl = universe.extension.imageName
+                        ? vich_uploader_asset(universe.extension)
+                        : (universe.coverImage ? asset('uploads/cards/' ~ universe.coverImage)) %}
+                    {% if coverUrl %}
+                        <img src="{{ coverUrl }}" alt="" loading="lazy" onerror="this.remove()"
+                             class="absolute inset-0 h-full w-full object-cover object-top opacity-60 transition-opacity duration-300 group-hover:opacity-90">
+                    {% endif %}
+                    <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-black/90" aria-hidden="true"></div>
+
+                    <p class="absolute inset-x-3 top-2.5 truncate font-display text-[13px] font-bold uppercase leading-tight text-white"
+                       title="{{ universe.extension.name }}">
+                        {{ universe.extension.name }}
+                    </p>
+                    <div class="absolute inset-x-3 bottom-2.5">
+                        <p class="font-display text-3xl font-bold tracking-[-0.04em] text-primary [text-shadow:0_0_14px_#a435f077]">{{ universe.percentage }}%</p>
+                        <div class="mt-1.5 h-1 bg-white/15">
+                            <div class="h-full bg-gradient-to-r from-primary to-magenta" style="width: {{ universe.percentage }}%;"></div>
+                        </div>
+                        <p class="chip-mono mt-1.5 text-white/70">{{ universe.owned }}/{{ universe.total }} cartes</p>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>

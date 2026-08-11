@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Dto\ProfileComparison;
 use App\Entity\DiscordUser;
+use App\Entity\Extension;
 use App\Repository\DiscordUserRepository;
+use App\Service\Collection\CompletionStripBuilder;
 use App\Service\Leaderboard\LeaderboardService;
 use App\Service\Leaderboard\ProfileComparisonService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,6 +27,7 @@ class LeaderboardController extends AbstractController
         private readonly LeaderboardService $leaderboardService,
         private readonly DiscordUserRepository $discordUserRepository,
         private readonly ProfileComparisonService $profileComparisonService,
+        private readonly CompletionStripBuilder $stripBuilder,
     ) {
     }
 
@@ -36,12 +40,17 @@ class LeaderboardController extends AbstractController
         ]);
     }
 
-    #[Route('/joueur/{discordId}', name: 'leaderboard_player', requirements: ['discordId' => '\d+'])]
-    public function player(#[CurrentUser] DiscordUser $visitor, string $discordId): Response
+    #[Route(
+        '/joueur/{discordId}/{slug}',
+        name: 'leaderboard_player',
+        requirements: ['discordId' => '\d+', 'slug' => '[a-z0-9-]+'],
+        defaults: ['slug' => null],
+    )]
+    public function player(#[CurrentUser] DiscordUser $visitor, string $discordId, ?string $slug = null): Response
     {
         // your own profile IS your collection page: one page, not two
         if ($visitor->getDiscordId() === $discordId) {
-            return $this->redirectToRoute('collection');
+            return $this->redirectToRoute('collection', ['slug' => $slug]);
         }
 
         $profile = $this->discordUserRepository->find($discordId);
@@ -50,10 +59,27 @@ class LeaderboardController extends AbstractController
             throw $this->createNotFoundException(\sprintf('Unknown player "%s".', $discordId));
         }
 
+        $comparison = $this->profileComparisonService->compare($profile, $visitor);
+        $currentExtension = $this->resolveExtensionFilter($comparison, $slug);
+
         return $this->render('pages/player_profile.html.twig', [
             'profile' => $profile,
             'entry' => $this->leaderboardService->getEntryFor($profile),
-            'comparison' => $this->profileComparisonService->compare($profile, $visitor),
+            'comparison' => $comparison,
+            // grid and filter chips follow the extension actually rendered
+            'visible' => $this->profileComparisonService->restrictTo($comparison, $currentExtension),
+            'strip' => $this->stripBuilder->build($comparison->universes),
+            'currentExtension' => $currentExtension,
         ]);
+    }
+
+    private function resolveExtensionFilter(ProfileComparison $comparison, ?string $slug): ?Extension
+    {
+        if (null === $slug || '' === $slug) {
+            return null;
+        }
+
+        return $comparison->extensionBySlug($slug)
+            ?? throw $this->createNotFoundException(\sprintf('Unknown extension "%s".', $slug));
     }
 }

@@ -8,7 +8,10 @@ use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
+use App\Enum\Entity\CardStatusEnum;
+use App\Enum\Entity\ExtensionStatusEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -111,6 +114,10 @@ class UserCardRepository extends ServiceEntityRepository
      * cards, total copies (holos included) and holo copies — a single grouped
      * query instead of one per player.
      *
+     * Scoped to the published catalogue, the same denominator the completion is
+     * computed against: an unpublished card counting toward completion made the
+     * leaderboard and the profile header disagree.
+     *
      * @return array<string, array{distinct: int, total: int, holo: int}> discord id => stats
      */
     public function aggregateOwnedByUser(): array
@@ -125,7 +132,12 @@ class UserCardRepository extends ServiceEntityRepository
                 'COALESCE(SUM(uc.holoQuantity), 0) AS holoCount',
             )
             ->join('uc.card', 'c')
+            ->join('c.extension', 'e')
             ->andWhere('uc.quantity > 0 OR uc.holoQuantity > 0')
+            ->andWhere('c.status = :cardStatus')
+            ->andWhere('e.status = :extensionStatus')
+            ->setParameter('cardStatus', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->setParameter('extensionStatus', ExtensionStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
             ->groupBy('uc.discordUser')
             ->getQuery()
             ->getResult()

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Dto\ProfileUniverseComparison;
+use App\Dto\ProfileComparison;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
-use App\Repository\CardRepository;
 use App\Service\Booster\BoosterClaimQuotaInterface;
+use App\Service\Collection\CompletionStripBuilder;
 use App\Service\Leaderboard\LeaderboardService;
 use App\Service\Leaderboard\ProfileComparisonService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,13 +24,13 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  * to visit their own /joueur/{id} page, which redirects here.
  *
  * The comparison of the user with themselves is the same one the public
- * profiles use: same states, same grid, one service.
+ * profiles use: same states, same grid, same strip, one service.
  */
 class CollectionController extends AbstractController
 {
     public function __construct(
-        private readonly CardRepository $cardRepository,
         private readonly ProfileComparisonService $profileComparisonService,
+        private readonly CompletionStripBuilder $stripBuilder,
         private readonly LeaderboardService $leaderboardService,
         private readonly BoosterClaimQuotaInterface $boosterClaimQuota,
     ) {
@@ -49,93 +49,40 @@ class CollectionController extends AbstractController
         // the contract the query-param version already had.
         $legacyId = $request->query->getString('extension');
         if (null === $slug && '' !== $legacyId) {
+            $legacyExtension = $comparison->extensionById($legacyId);
+
+            if (!$legacyExtension instanceof Extension) {
+                throw $this->createNotFoundException(\sprintf('Unknown extension "%s".', $legacyId));
+            }
+
             return $this->redirectToRoute(
                 'collection',
-                ['slug' => $this->resolveLegacyExtensionId($legacyId, $comparison->universes)->getSlug()],
+                ['slug' => $legacyExtension->getSlug()],
                 Response::HTTP_MOVED_PERMANENTLY,
             );
         }
 
-        $currentExtension = $this->resolveExtensionFilter($slug, $comparison->universes);
-        $visibleUniverses = $this->filterUniverses($comparison->universes, $currentExtension);
-
-        // fond des tuiles du carrousel quand l'extension n'a pas d'image uploadée
-        $coverImages = $this->cardRepository->findCoverImageNamesByExtension();
-
-        $strip = array_map(static fn (ProfileUniverseComparison $universe): array => [
-            'extension' => $universe->extension,
-            'total' => $universe->total,
-            'owned' => $universe->common,
-            'percentage' => $universe->total > 0 ? (int) round($universe->common / $universe->total * 100) : 0,
-            'coverImage' => $coverImages[(string) $universe->extension->getId()] ?? null,
-        ], $comparison->universes);
+        $currentExtension = $this->resolveExtensionFilter($comparison, $slug);
 
         return $this->render('pages/collection.html.twig', [
             'entry' => $this->leaderboardService->getEntryFor($user),
-            'universes' => $strip,
-            'visibleUniverses' => $visibleUniverses,
+            'comparison' => $comparison,
+            // grid and filter chips follow the extension actually rendered
+            'visible' => $this->profileComparisonService->restrictTo($comparison, $currentExtension),
+            'strip' => $this->stripBuilder->build($comparison->universes),
             'currentExtension' => $currentExtension,
-            'ownedTotalDistinct' => $comparison->common,
-            'totalPublished' => $comparison->total,
-            'completionPct' => $comparison->total > 0 ? (int) round($comparison->common / $comparison->total * 100) : 0,
-            // filter chip counters follow the grid actually rendered, not the catalogue
-            'visibleTotal' => array_sum(array_map(static fn (ProfileUniverseComparison $u): int => $u->total, $visibleUniverses)),
-            'visibleOwned' => array_sum(array_map(static fn (ProfileUniverseComparison $u): int => $u->common, $visibleUniverses)),
-            'visibleMissing' => array_sum(array_map(static fn (ProfileUniverseComparison $u): int => $u->missingBoth, $visibleUniverses)),
             'remainingClaims' => $this->boosterClaimQuota->getRemainingClaims($user),
             'dailyLimit' => BoosterClaimQuotaInterface::DAILY_LIMIT,
         ]);
     }
 
-    /**
-     * @param list<ProfileUniverseComparison> $universes
-     *
-     * @return list<ProfileUniverseComparison>
-     */
-    private function filterUniverses(array $universes, ?Extension $currentExtension): array
-    {
-        if (!$currentExtension instanceof Extension) {
-            return $universes;
-        }
-
-        return array_values(array_filter(
-            $universes,
-            static fn (ProfileUniverseComparison $universe): bool => $universe->extension->getId() === $currentExtension->getId(),
-        ));
-    }
-
-    /**
-     * @param list<ProfileUniverseComparison> $universes
-     */
-    private function resolveLegacyExtensionId(string $id, array $universes): Extension
-    {
-        foreach ($universes as $universe) {
-            if (((string) $universe->extension->getId()) === $id) {
-                return $universe->extension;
-            }
-        }
-
-        throw $this->createNotFoundException(\sprintf('Unknown extension "%s".', $id));
-    }
-
-    /**
-     * Resolves the {slug} route parameter against the compared universes already
-     * built: no extra Doctrine lookup, and an unknown slug is a plain 404.
-     *
-     * @param list<ProfileUniverseComparison> $universes
-     */
-    private function resolveExtensionFilter(?string $slug, array $universes): ?Extension
+    private function resolveExtensionFilter(ProfileComparison $comparison, ?string $slug): ?Extension
     {
         if (null === $slug || '' === $slug) {
             return null;
         }
 
-        foreach ($universes as $universe) {
-            if ($universe->extension->getSlug() === $slug) {
-                return $universe->extension;
-            }
-        }
-
-        throw $this->createNotFoundException(\sprintf('Unknown extension "%s".', $slug));
+        return $comparison->extensionBySlug($slug)
+            ?? throw $this->createNotFoundException(\sprintf('Unknown extension "%s".', $slug));
     }
 }

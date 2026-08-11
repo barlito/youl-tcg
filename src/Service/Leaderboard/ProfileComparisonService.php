@@ -8,6 +8,7 @@ use App\Dto\ProfileCardComparison;
 use App\Dto\ProfileComparison;
 use App\Dto\ProfileUniverseComparison;
 use App\Entity\DiscordUser;
+use App\Entity\Extension;
 use App\Entity\UserCard;
 use App\Enum\ProfileCardStateEnum;
 use App\Repository\CardRepository;
@@ -97,6 +98,41 @@ final readonly class ProfileComparisonService
             visitorOnly: $totals['visitorOnly'],
             missingBoth: $totals['missingBoth'],
         );
+    }
+
+    /**
+     * The same comparison narrowed to a single universe: the grid and the filter
+     * counters must agree with what is actually rendered. A null extension is
+     * the unfiltered comparison, returned as is.
+     */
+    public function restrictTo(ProfileComparison $comparison, ?Extension $extension): ProfileComparison
+    {
+        if (!$extension instanceof Extension) {
+            return $comparison;
+        }
+
+        $universes = array_values(array_filter(
+            $comparison->universes,
+            static fn (ProfileUniverseComparison $universe): bool => $universe->extension->getId() === $extension->getId(),
+        ));
+
+        return new ProfileComparison(
+            universes: $universes,
+            total: $this->sum($universes, static fn (ProfileUniverseComparison $u): int => $u->total),
+            common: $this->sum($universes, static fn (ProfileUniverseComparison $u): int => $u->common),
+            profileOnly: $this->sum($universes, static fn (ProfileUniverseComparison $u): int => $u->profileOnly),
+            visitorOnly: $this->sum($universes, static fn (ProfileUniverseComparison $u): int => $u->visitorOnly),
+            missingBoth: $this->sum($universes, static fn (ProfileUniverseComparison $u): int => $u->missingBoth),
+        );
+    }
+
+    /**
+     * @param list<ProfileUniverseComparison>          $universes
+     * @param callable(ProfileUniverseComparison): int $counter
+     */
+    private function sum(array $universes, callable $counter): int
+    {
+        return array_sum(array_map($counter, $universes));
     }
 
     private function resolveState(bool $profileOwns, bool $visitorOwns): ProfileCardStateEnum
