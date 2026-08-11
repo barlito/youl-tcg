@@ -93,6 +93,18 @@
   
   }
   
+  /* Rendu figé (CardComponent avec interactive: false) : le cadre, le nom et le
+     filigrane, sans le survol scripté ci-dessus — les vignettes de l'ouverture
+     ne doivent ni bouger ni grossir pendant l'animation de révélation. */
+  .card.card--static:hover {
+    --card-scale: 1 !important;
+    --translate-x: 0px !important;
+    --translate-y: 0px !important;
+    --rotate-x: 0deg !important;
+    --rotate-y: 0deg !important;
+    --card-opacity: 0 !important;
+  }
+
   .card,
   .card__rotator {
     aspect-ratio: var(--card-aspect);

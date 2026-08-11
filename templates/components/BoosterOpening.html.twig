@@ -158,8 +158,13 @@
                                 <div class="opening__track-img">
                                     <span class="opening__track-back" aria-hidden="true"
                                           style="background-image: url('{{ asset('images/card-back.svg') }}');"></span>
-                                    <img loading="lazy" src="{{ vich_uploader_asset(reveal.card) }}" alt=""
-                                         onerror="this.onerror=null;this.src='{{ asset('images/default_card.png') }}';">
+                                    {{ include('components/CardComponent.html.twig', {
+                                        card: reveal.card,
+                                        holo: reveal.holo,
+                                        interactive: false,
+                                        lazy: true,
+                                        id: 'track-card-' ~ loop.index0,
+                                    }) }}
                                     {% if reveal.holo %}<span class="opening__track-holo">HOLO</span>{% endif %}
                                     {% if reveal.card.id ~ '' in newCardIds %}<span class="opening__track-new">NOUVEAU</span>{% endif %}
                                 </div>
@@ -230,9 +235,16 @@
                                      {% if isOwned %}style="--tile-rar: var(--rarity-{{ rarity }});"{% endif %}>
                                 <div class="opening__card-art">
                                     {% if isOwned or isPending %}
-                                        <img loading="lazy" src="{{ vich_uploader_asset(card) }}" alt="{{ isOwned ? card.name : '' }}"
-                                             {% if isPending %}hidden{% endif %}
-                                             onerror="this.onerror=null;this.src='{{ asset('images/default_card.png') }}';">
+                                        {# wrapper dédié : c'est lui que le contrôleur dévoile à la
+                                           révélation, le composant contient plusieurs <img> #}
+                                        <div class="opening__card-render"{% if isPending %} hidden{% endif %}>
+                                            {{ include('components/CardComponent.html.twig', {
+                                                card: card,
+                                                interactive: false,
+                                                lazy: true,
+                                                id: 'set-card-' ~ cardId,
+                                            }) }}
+                                        </div>
                                     {% endif %}
                                     {% if not isOwned %}
                                         <span class="opening__card-back" aria-hidden="true"

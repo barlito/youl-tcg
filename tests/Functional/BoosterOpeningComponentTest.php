@@ -118,7 +118,9 @@ final class BoosterOpeningComponentTest extends WebTestCase
             $this->assertContains((string) $tile->attr('data-card-id'), $newCardIds);
             $this->assertNotSame('', (string) $tile->attr('data-pending-name'));
             $this->assertNotSame('', (string) $tile->attr('data-pending-rarity'));
-            $this->assertNotNull($tile->filter('img')->attr('hidden'), 'Pending artwork must stay hidden until the flip.');
+            // the whole rendered card is hidden: the component carries several
+            // <img> (front face + card back), the wrapper is the reveal hook
+            $this->assertNotNull($tile->filter('.opening__card-render')->attr('hidden'), 'Pending artwork must stay hidden until the flip.');
         });
     }
 

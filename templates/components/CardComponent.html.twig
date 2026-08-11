@@ -2,6 +2,12 @@
 {#- lazy: opt-in for grid usages (collection / univers) — keep the default
     eager where the card is visible immediately (homepage, opening reveal) -#}
 {%- set lazy = lazy|default(false) -%}
+{#- interactive: false = rendu figé (cadre, nom, filigrane) sans contrôleur de
+    tilt ni survol, pour les vignettes de l'ouverture où des dizaines de cartes
+    coexistent avec l'animation de révélation -#}
+{%- set interactive = interactive is defined ? interactive : true -%}
+{#- id explicite obligatoire quand la même carte est rendue deux fois dans la
+    page (ruban + encart) : sans ça les id se dupliquent -#}
 {%- set id = id|default(card.id) -%}
 {%- set visual = card_visual(card) -%}
 {#- CSS frame variant (cards/frame.css): resolved through the visual-config
@@ -22,9 +28,9 @@
    cascade resolves no preset falls back to the basic recipe #}
 {%- set holoClass = visual.holoEffect ? visual.holoEffect.cssClass : (holo ? 'holo--basic' : null) -%}
 <div id="{{ id }}"
-     class="card interactive{{ visual.hasMask ? ' masked' }}{{ holo ? ' holo' }}{{ card.isUnique ? ' unique' }}{{ frame ? ' framed' }}{{ visual.cssClass ? ' ' ~ visual.cssClass }}{{ holoClass ? ' ' ~ holoClass }}"
+     class="card {{ interactive ? 'interactive' : 'card--static' }}{{ visual.hasMask ? ' masked' }}{{ holo ? ' holo' }}{{ card.isUnique ? ' unique' }}{{ frame ? ' framed' }}{{ visual.cssClass ? ' ' ~ visual.cssClass }}{{ holoClass ? ' ' ~ holoClass }}"
      data-rarity="{{ card.rarity.value }}"
-     data-controller="card"
+     {%- if interactive %} data-controller="card"{% endif %}
      {%- if styleVars is not empty %} style="{{ styleVars|join('; ') }}"{% endif %}>
     <div class="card__translater">
         <div class="card__rotator">

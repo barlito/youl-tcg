@@ -387,9 +387,10 @@ export default class extends Controller {
                 tile.style.setProperty('--tile-rar', `var(--rarity-${tile.dataset.rarity})`);
             }
             tile.querySelector('.opening__card-back')?.remove();
-            const img = tile.querySelector('img');
-            if (img) {
-                img.hidden = false;
+            // the rendered card, not an <img>: the component carries both faces
+            const render = tile.querySelector('.opening__card-render');
+            if (render) {
+                render.hidden = false;
             }
             const name = tile.querySelector('.opening__card-name');
             if (name && name.dataset.revealName) {
