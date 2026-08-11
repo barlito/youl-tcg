@@ -114,4 +114,30 @@ class BoosterOpeningRepository extends ServiceEntityRepository
 
         return $counts;
     }
+
+    /**
+     * Distinct calendar days (in the given timezone) with at least one opening
+     * by the user, most recent first, as Y-m-d strings. Native SQL: opened_at
+     * is stored UTC in a timestamp-without-timezone column, hence the double
+     * AT TIME ZONE to project it onto local calendar days.
+     *
+     * @return list<string>
+     */
+    public function findDistinctOpeningDays(DiscordUser $discordUser, string $timezone, int $limit): array
+    {
+        $sql = <<<'SQL'
+            SELECT DISTINCT to_char((booster_opening.opened_at AT TIME ZONE 'UTC') AT TIME ZONE :timezone, 'YYYY-MM-DD') AS opening_day
+            FROM booster_opening
+            WHERE booster_opening.discord_user_id = :discordUserId
+            ORDER BY opening_day DESC
+            LIMIT :maxDays
+            SQL;
+
+        /** @var list<string> */
+        return $this->getEntityManager()->getConnection()->fetchFirstColumn($sql, [
+            'timezone' => $timezone,
+            'discordUserId' => $discordUser->getDiscordId(),
+            'maxDays' => $limit,
+        ]);
+    }
 }

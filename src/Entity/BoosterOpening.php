@@ -18,6 +18,7 @@ use Gedmo\Timestampable\Traits\TimestampableEntity;
  * (the seed makes any draw reproducible) and which cards came out.
  */
 #[ORM\Entity(repositoryClass: BoosterOpeningRepository::class)]
+#[ORM\Index(columns: ['discord_user_id', 'opened_at'])]
 class BoosterOpening
 {
     use IdUuidTrait;
