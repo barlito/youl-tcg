@@ -97,8 +97,8 @@
 
                     {% if not isSelf %}
                         <p class="chip-mono mb-8 border border-hairline bg-surface px-3 py-2 text-ink-muted" data-testid="masking-hint">
-                            Face cachée = tu ne l'as pas encore.
-                            {%- if comparison.mysteryCount > 0 %} Les {{ comparison.mysteryCount }} carte{{ comparison.mysteryCount > 1 ? 's' }} 1/1 restent hors décompte : leur détenteur ne se devine pas.{% endif %}
+                            Face cachée = tu ne l'as pas encore. <span class="text-primary">◈ Sa collection</span> = {{ profile.username }} l'a, toi non. Éteinte = personne ne l'a.
+                            {%- if comparison.mysteryCount > 0 %} <span class="text-magenta">◆ 1/1</span> : détenteur jamais révélé, donc hors décompte.{% endif %}
                         </p>
                     {% endif %}
                 {% endif %}
@@ -146,7 +146,18 @@
                                             {% endif %}
                                         </div>
                                     {% else %}
-                                        {{ include('parts/_masked_card.html.twig') }}
+                                        {# dos de carte : l'état est signalé par l'habillage, jamais par la carte —
+                                           une 1/1 garde le même badge qu'elle soit détenue ou non #}
+                                        <div class="{{ item.state.value == 'profile-only' ? 'ring-1 ring-primary/60' : (item.state.value == 'mystery' ? 'ring-1 ring-magenta/50' : 'opacity-45') }}">
+                                            {{ include('parts/_masked_card.html.twig') }}
+                                        </div>
+                                        <div class="card-tile__chips pointer-events-none absolute -right-2 -top-2 z-10 flex gap-1.5">
+                                            {% if item.state.value == 'profile-only' %}
+                                                <span class="chip-mono border border-primary bg-black/90 px-2 py-1 font-bold text-primary" data-testid="chip-owned">◈ Sa collection</span>
+                                            {% elseif item.state.value == 'mystery' %}
+                                                <span class="chip-mono border border-magenta bg-black/90 px-2 py-1 font-bold text-magenta" data-testid="chip-mystery">◆ 1/1</span>
+                                            {% endif %}
+                                        </div>
                                     {% endif %}
                                 </div>
                             {% endfor %}
