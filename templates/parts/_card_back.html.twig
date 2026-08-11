@@ -1,7 +1,14 @@
-{# Carte masquée : dos de carte, aucun indice (nom, rareté, artwork).
-   Ce partial ne reçoit JAMAIS de carte : rien à faire fuiter. #}
-<div class="flex aspect-[0.718] items-center justify-center overflow-hidden rounded-[4.55%/3.5%] border border-hairline bg-surface"
-     data-testid="masked-card">
+{# Carte masquée : dos de carte. `rarity` (optionnel) = la VALEUR scalaire de la
+   rareté, seule information volontairement conservée ; le libellé est rendu par
+   l'appelant. Ce partial ne reçoit JAMAIS de carte : rien à faire fuiter. #}
+{% set rarity = rarity|default(null) %}
+<div class="relative flex aspect-[0.718] items-center justify-center overflow-hidden rounded-[4.55%/3.5%] border border-hairline bg-surface"
+     {% if rarity %}style="border-color: color-mix(in srgb, var(--rarity-{{ rarity }}) 55%, transparent);"{% endif %}
+     data-testid="masked-card"{% if rarity %} data-rarity="{{ rarity }}"{% endif %}>
     <span class="h-full w-full bg-cover bg-center opacity-50" aria-hidden="true"
           style="background-image: url('{{ asset('images/card-back.svg') }}');"></span>
+    {% if rarity %}
+        <span class="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full" aria-hidden="true"
+              style="background: var(--rarity-{{ rarity }}); box-shadow: 0 0 8px var(--rarity-{{ rarity }});"></span>
+    {% endif %}
 </div>

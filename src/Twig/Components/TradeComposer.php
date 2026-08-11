@@ -7,6 +7,7 @@ namespace App\Twig\Components;
 use App\Dto\TradeLineRequest;
 use App\Entity\Card;
 use App\Entity\DiscordUser;
+use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Trade\TradeOfferSideEnum;
 use App\Exception\Trade\TradeException;
 use App\Repository\DiscordUserRepository;
@@ -95,19 +96,26 @@ final class TradeComposer extends AbstractController
      * Displayed subset: the search filter never hides an already-selected
      * card, otherwise its steppers would vanish mid-composition.
      *
-     * @return array<string, array{card: Card, normal: int, holo: int}>
+     * @return array<string, array{card: ?Card, rarity: CardRarityEnum, normal: int, holo: int}>
      */
     public function getVisibleMyCopies(): array
     {
-        return $this->filter($this->getMyCopies(), $this->searchMine, $this->offered);
+        $visible = [];
+
+        foreach ($this->filter($this->getMyCopies(), $this->searchMine, $this->offered) as $cardId => $entry) {
+            $visible[$cardId] = $this->toView($entry, $entry['card']);
+        }
+
+        return $visible;
     }
 
     /**
      * Their side, masked: a card the visitor does not own is still requestable
      * (quantities and steppers stay live) but its entry carries NO Card at all,
-     * so the template cannot leak a name it never receives.
+     * so the template cannot leak a name it never receives. Its rarity is kept:
+     * that is what an offer is judged on when composed blind.
      *
-     * @return array<string, array{card: ?Card, normal: int, holo: int}>
+     * @return array<string, array{card: ?Card, rarity: CardRarityEnum, normal: int, holo: int}>
      */
     public function getVisibleTheirCopies(): array
     {
@@ -121,9 +129,9 @@ final class TradeComposer extends AbstractController
             if (!isset($known[$cardId])) {
                 // masked cards ignore the search: filtering them on a name the
                 // visitor is not allowed to read would give that name away
-                $visible[$cardId] = ['card' => null, 'normal' => $entry['normal'], 'holo' => $entry['holo']];
+                $visible[$cardId] = $this->toView($entry, null);
             } elseif (isset($revealed[$cardId])) {
-                $visible[$cardId] = $entry;
+                $visible[$cardId] = $this->toView($entry, $entry['card']);
             }
         }
 
@@ -220,6 +228,21 @@ final class TradeComposer extends AbstractController
         }
 
         return $lines;
+    }
+
+    /**
+     * @param array{card: Card, normal: int, holo: int} $entry
+     *
+     * @return array{card: ?Card, rarity: CardRarityEnum, normal: int, holo: int}
+     */
+    private function toView(array $entry, ?Card $card): array
+    {
+        return [
+            'card' => $card,
+            'rarity' => $entry['card']->getRarity(),
+            'normal' => $entry['normal'],
+            'holo' => $entry['holo'],
+        ];
     }
 
     /**

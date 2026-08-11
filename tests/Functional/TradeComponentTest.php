@@ -223,6 +223,68 @@ final class TradeComponentTest extends WebTestCase
         $this->assertSame(1, new Crawler($html)->filter('[data-testid="sent-offers"] [data-testid="masked-card"]')->count());
     }
 
+    public function testAReceivedOfferMasksAnOfferedCardTheReaderDoesNotOwn(): void
+    {
+        $barlito = $this->user(self::BARLITO);
+        $juju = $this->authenticateClient($this->client, self::JUJU);
+        $offered = $this->giveCard($barlito, 'Trésor inconnu', quantity: 1, rarity: CardRarityEnum::LEGENDARY);
+        $requested = $this->giveCard($juju, 'Ma commune en double', quantity: 2);
+        $this->createOffer($barlito, $juju, $offered, $requested);
+
+        $html = (string) $this->createLiveComponent(TradeInbox::class, client: $this->client)->render();
+
+        $this->assertStringNotContainsString(
+            $offered->getName(),
+            $html,
+            'Une carte proposée que le destinataire ne possède pas ne doit pas apparaître dans le HTML brut.',
+        );
+        // ce qu'il donne est à lui : toujours lisible
+        $this->assertStringContainsString($requested->getName(), $html);
+
+        $received = new Crawler($html)->filter('[data-testid="received-offers"]');
+        $this->assertSame(1, $received->filter('[data-testid="masked-card"]')->count());
+        $this->assertStringContainsString(
+            CardRarityEnum::LEGENDARY->label(),
+            $received->filter('[data-testid="masked-rarity"]')->text(),
+            'La rareté reste affichée : c\'est à elle que se juge une offre à l\'aveugle.',
+        );
+        $this->assertSame(1, $received->filter('[data-testid="masking-hint"]')->count());
+    }
+
+    public function testAReceivedOfferShowsAnOfferedCardTheReaderAlreadyOwns(): void
+    {
+        $barlito = $this->user(self::BARLITO);
+        $juju = $this->authenticateClient($this->client, self::JUJU);
+        $offered = $this->giveCard($barlito, 'Déjà vue', quantity: 1);
+        $this->giveCopy($juju, $offered);
+        $requested = $this->giveCard($juju, 'Demandée', quantity: 1);
+        $this->createOffer($barlito, $juju, $offered, $requested);
+
+        $html = (string) $this->createLiveComponent(TradeInbox::class, client: $this->client)->render();
+        $received = new Crawler($html)->filter('[data-testid="received-offers"]');
+
+        $this->assertStringContainsString($offered->getName(), $html, 'Une carte déjà possédée reste en clair.');
+        $this->assertSame(0, $received->filter('[data-testid="masked-card"]')->count());
+        $this->assertSame(0, $received->filter('[data-testid="masking-hint"]')->count());
+    }
+
+    public function testTheHistoryNeverLeaksACardTheReaderDoesNotOwn(): void
+    {
+        $barlito = $this->user(self::BARLITO);
+        $juju = $this->authenticateClient($this->client, self::JUJU);
+        $offered = $this->giveCard($barlito, 'Jamais possédée', quantity: 1);
+        $requested = $this->giveCard($juju, 'Demandée', quantity: 1);
+        $offer = $this->createOffer($barlito, $juju, $offered, $requested);
+
+        // refusée : rien n'a changé de main, la carte proposée reste inconnue
+        static::getContainer()->get(TradeOfferService::class)->refuse($offer, $juju);
+
+        $html = (string) $this->createLiveComponent(TradeInbox::class, client: $this->client)->render();
+
+        $this->assertSame(1, new Crawler($html)->filter('[data-testid="trade-history"]')->count());
+        $this->assertStringNotContainsString($offered->getName(), $html, 'L\'historique ne doit rien révéler non plus.');
+    }
+
     public function testInboxAcceptSwapsTheCards(): void
     {
         $barlito = $this->user(self::BARLITO);
@@ -355,14 +417,19 @@ final class TradeComponentTest extends WebTestCase
         return $user;
     }
 
-    private function giveCard(DiscordUser $user, string $name, int $quantity, int $holoQuantity = 0): Card
-    {
+    private function giveCard(
+        DiscordUser $user,
+        string $name,
+        int $quantity,
+        int $holoQuantity = 0,
+        CardRarityEnum $rarity = CardRarityEnum::COMMON,
+    ): Card {
         $card = new Card()
             ->setName($name . ' ' . uniqid())
             ->setDescription('Test')
             ->setExtension($this->extension)
             ->setStatus(CardStatusEnum::PUBLISHED)
-            ->setRarity(CardRarityEnum::COMMON)
+            ->setRarity($rarity)
         ;
         $this->entityManager->persist($card);
         $this->entityManager->persist(
