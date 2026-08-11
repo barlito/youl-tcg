@@ -33,13 +33,29 @@ services:
 
                 - traefik.http.services.ytcg.loadbalancer.server.port=80
 
-                - traefik.http.routers.ytcg.rule=Host(`ytcg.barlito.fr`)
+                - traefik.http.routers.ytcg.rule=Host(`ytcg.youlz.fr`)
                 - traefik.http.routers.ytcg.entrypoints=http
 
-                - traefik.http.routers.ytcg-secure.rule=Host(`ytcg.barlito.fr`)
+                - traefik.http.routers.ytcg-secure.rule=Host(`ytcg.youlz.fr`)
                 - traefik.http.routers.ytcg-secure.entrypoints=https
                 - traefik.http.routers.ytcg-secure.tls=true
                 - traefik.http.routers.ytcg-secure.tls.certresolver=letsencrypt
+
+                # Ancien domaine : 301 vers youlz.fr. Le `$$` échappe
+                # l'interpolation de variables de docker stack deploy.
+                - traefik.http.middlewares.ytcg-legacy.redirectregex.regex=^https?://ytcg\.barlito\.fr/(.*)
+                - traefik.http.middlewares.ytcg-legacy.redirectregex.replacement=https://ytcg.youlz.fr/$${1}
+                - traefik.http.middlewares.ytcg-legacy.redirectregex.permanent=true
+
+                - traefik.http.routers.ytcg-legacy.rule=Host(`ytcg.barlito.fr`)
+                - traefik.http.routers.ytcg-legacy.entrypoints=http
+                - traefik.http.routers.ytcg-legacy.middlewares=ytcg-legacy
+
+                - traefik.http.routers.ytcg-legacy-secure.rule=Host(`ytcg.barlito.fr`)
+                - traefik.http.routers.ytcg-legacy-secure.entrypoints=https
+                - traefik.http.routers.ytcg-legacy-secure.tls=true
+                - traefik.http.routers.ytcg-legacy-secure.tls.certresolver=letsencrypt
+                - traefik.http.routers.ytcg-legacy-secure.middlewares=ytcg-legacy
         networks:
             - traefik_traefik_proxy
             - ytcg_internal

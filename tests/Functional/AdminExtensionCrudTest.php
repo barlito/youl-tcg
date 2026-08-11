@@ -125,6 +125,45 @@ final class AdminExtensionCrudTest extends WebTestCase
         ], $saved->getVisualConfig()->toArray());
     }
 
+    public function testFlaggingUpcomingClearsTheFlagOnEveryOtherExtension(): void
+    {
+        $client = self::createClient();
+        $client->followRedirects();
+        $this->authenticateClient($client);
+
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $previous = new Extension()
+            ->setName('Ancien teaser ' . uniqid())
+            ->setDescription('Test')
+            ->setStatus(ExtensionStatusEnum::DRAFT)
+            ->setUpcoming(true)
+        ;
+        $next = new Extension()
+            ->setName('Nouveau teaser ' . uniqid())
+            ->setDescription('Test')
+            ->setStatus(ExtensionStatusEnum::DRAFT)
+        ;
+        $entityManager->persist($previous);
+        $entityManager->persist($next);
+        $entityManager->flush();
+
+        $crawler = $client->request('GET', \sprintf('%s/%s/edit', self::CRUD_URL, $next->getId()));
+        self::assertResponseIsSuccessful();
+
+        $form = $crawler->filter('form[name="Extension"]')->form();
+        $form['Extension[upcoming]']->tick();
+        $client->submit($form);
+        self::assertResponseIsSuccessful();
+
+        $entityManager->clear();
+        $savedNext = $entityManager->find(Extension::class, $next->getId());
+        $savedPrevious = $entityManager->find(Extension::class, $previous->getId());
+        $this->assertInstanceOf(Extension::class, $savedNext);
+        $this->assertInstanceOf(Extension::class, $savedPrevious);
+        $this->assertTrue($savedNext->isUpcoming());
+        $this->assertFalse($savedPrevious->isUpcoming(), 'Un seul univers peut porter le flag upcoming.');
+    }
+
     public function testClearingOneWidgetOnlyDropsItsOwnKey(): void
     {
         $client = self::createClient();

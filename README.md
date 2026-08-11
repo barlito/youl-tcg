@@ -42,7 +42,7 @@ make doctrine.migrate
 make doctrine.load_fixtures
 ```
 
-App: `ytcg.local.barlito.fr` — Adminer: `ytcg-adminer.local.barlito.fr` (prod: `ytcg.barlito.fr`).
+App: `ytcg.local.barlito.fr` — Adminer: `ytcg-adminer.local.barlito.fr` (prod: `ytcg.youlz.fr`, l'ancien `ytcg.barlito.fr` redirige en 301).
 
 Discord OAuth needs `OAUTH_DISCORD_CLIENT_ID` / `OAUTH_DISCORD_CLIENT_SECRET` in your env (see `.env` for the full list: `DATABASE_URL`, `JWT_*`, `APP_SECRET`, …).
 

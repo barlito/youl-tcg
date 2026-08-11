@@ -64,6 +64,13 @@ class Extension implements \Stringable
     private ?string $logoName = null;
 
     /**
+     * Teased as the next universe on the front (blurred tile). At most one
+     * extension carries the flag: saving it from the admin clears the others.
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $upcoming = false;
+
+    /**
      * Default visual configuration (glow / border / css class / holo preset)
      * applied to the extension's cards, each card may override individual
      * fields.
@@ -202,6 +209,18 @@ class Extension implements \Stringable
     public function getLogoName(): ?string
     {
         return $this->logoName;
+    }
+
+    public function isUpcoming(): bool
+    {
+        return $this->upcoming;
+    }
+
+    public function setUpcoming(bool $upcoming): static
+    {
+        $this->upcoming = $upcoming;
+
+        return $this;
     }
 
     public function getVisualConfig(): VisualConfig

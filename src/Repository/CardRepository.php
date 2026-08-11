@@ -108,6 +108,38 @@ class CardRepository extends ServiceEntityRepository
     }
 
     /**
+     * Cover artwork of the "next universe" teaser: the extension's rarest
+     * card, DRAFTS INCLUDED — a teased universe is unpublished, so its cards
+     * usually are too (the tile blurs the artwork anyway).
+     */
+    public function findTeaserCoverImageName(Extension $extension): ?string
+    {
+        /** @var list<array{rarity: CardRarityEnum|string, imageName: string, name: string}> $rows */
+        $rows = $this->createQueryBuilder('c')
+            ->select('c.rarity AS rarity', 'c.imageName AS imageName', 'c.name AS name')
+            ->andWhere('c.extension = :extension')
+            ->andWhere('c.imageName IS NOT NULL')
+            ->setParameter('extension', $extension)
+            ->getQuery()
+            ->getArrayResult()
+        ;
+
+        $cover = null;
+        $bestKey = null;
+        foreach ($rows as $row) {
+            $rarity = $row['rarity'] instanceof CardRarityEnum ? $row['rarity'] : CardRarityEnum::tryFrom($row['rarity']);
+            $key = [-($rarity?->rank() ?? -1), $row['name']];
+
+            if (null === $bestKey || $key < $bestKey) {
+                $bestKey = $key;
+                $cover = $row['imageName'];
+            }
+        }
+
+        return $cover;
+    }
+
+    /**
      * Cover artwork per extension: the image of each extension's rarest
      * published card (name as tiebreak, so the pick is deterministic). One
      * portable query, the "rarest" pick happens in PHP — no DISTINCT ON,

@@ -1,0 +1,73 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% form_theme form '@EasyAdmin/crud/form_theme.html.twig' %}
+
+{% block content_title %}🎟️ Génération de codes{% endblock %}
+
+{% block main %}
+    <div style="max-width: 720px;">
+        <p>
+            Chaque code donne droit au booster choisi, <strong>sans toucher au quota
+            quotidien</strong> de récupération. Un joueur ne peut utiliser un code
+            qu'une seule fois, même sur un code à usages multiples. Un code dont
+            l'extension est encore en brouillon est refusé <em>sans être consommé</em> :
+            il redeviendra utilisable à la publication.
+        </p>
+
+        {{ form_start(form) }}
+            <div class="mb-3">{{ form_errors(form) }}</div>
+            <div class="mb-3">{{ form_row(form.booster) }}</div>
+            <div class="mb-3">{{ form_row(form.batchLabel) }}</div>
+            <div class="mb-3">{{ form_row(form.count) }}</div>
+            <div class="mb-3">{{ form_row(form.quantity) }}</div>
+            <div class="mb-3">{{ form_row(form.maxUses) }}</div>
+            <div class="mb-3">{{ form_row(form.expiresAt) }}</div>
+            <button type="submit" class="btn btn-primary">Générer les codes</button>
+        {{ form_end(form) }}
+
+        {% if batchLabel %}
+            <hr class="my-4">
+            <h2 class="h5">Lot « {{ batchLabel }} » — {{ batchCodes|length }} code(s)</h2>
+
+            {% if batchCodes is empty %}
+                <p>Aucun code sous ce libellé.</p>
+            {% else %}
+                <p class="d-flex gap-2">
+                    <a class="btn btn-secondary" href="{{ path('admin_booster_codes_batch_export', {batch: batchLabel}) }}">
+                        <i class="fa fa-download"></i> Télécharger le CSV
+                    </a>
+                    {# one code per line: ready to paste into a message or a sheet #}
+                    <button type="button" class="btn btn-secondary"
+                            data-copy-value="{{ batchCodes|map(code => code.formattedCode)|join("\n") }}"
+                            title="Copier les codes, un par ligne">
+                        <i class="fa fa-copy"></i> Copier les {{ batchCodes|length }} codes
+                    </button>
+                </p>
+                <div style="max-height: 320px; overflow-y: auto;">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr><th>Code</th><th>Booster</th><th>Utilisations</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for code in batchCodes %}
+                                <tr>
+                                    <td class="text-nowrap">
+                                        <code>{{ code.formattedCode }}</code>
+                                        <button type="button" class="btn btn-link btn-sm p-0 ms-2 align-baseline"
+                                                data-copy-value="{{ code.formattedCode }}"
+                                                title="Copier le code"
+                                                aria-label="Copier le code {{ code.formattedCode }}">
+                                            <i class="fa fa-copy"></i>
+                                        </button>
+                                    </td>
+                                    <td>{{ code.booster.displayName }}</td>
+                                    <td>{{ code.uses }} / {{ code.maxUses ?? '∞' }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+{% endblock %}

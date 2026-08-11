@@ -36,6 +36,7 @@
                 <li><a href="#booster">Booster &amp; taux de drop</a></li>
                 <li><a href="#bannieres">Bannières d'univers</a></li>
                 <li><a href="#tailles">Récap : tailles d'images recommandées</a></li>
+                <li><a href="#codes">Codes de récupération</a></li>
                 <li><a href="#economie">Économie : les écrans de consultation</a></li>
                 <li><a href="#ne-pas-toucher">Ce qu'on ne touche jamais à la main</a></li>
             </ol>
@@ -182,7 +183,24 @@
             <tr><td>Bannière univers</td><td>Bannières d'univers</td><td>1920×640 min paysage</td><td>Texte de la page superposé en bas à gauche.</td></tr>
         </table>
 
-        <h2 id="economie">10. Économie : les écrans de consultation</h2>
+        <h2 id="codes">10. Codes de récupération</h2>
+        <p>
+            Un code donne un ou plusieurs exemplaires d'un booster <strong>sans consommer
+            le quota quotidien</strong> du joueur. C'est le canal pour les events, les
+            giveaways et les dédommagements — y compris pour les packs marqués
+            <strong>non récupérables</strong> sur le hub.
+        </p>
+        <ul>
+            <li><strong>Générer des codes</strong> : on choisit le booster, un libellé de lot, le nombre de codes, les packs crédités par code, les utilisations autorisées et une date d'expiration facultative. Le lot s'affiche ensuite sous le formulaire, avec un <strong>export CSV</strong>.</li>
+            <li><strong>Code nominatif</strong> = 1 utilisation. <strong>Code public</strong> (Discord, stream) = plusieurs utilisations, ou vide pour illimité. Dans tous les cas, <strong>un joueur ne peut utiliser un code qu'une seule fois</strong>.</li>
+            <li><strong>Libellé du lot</strong> : c'est la seule façon de retrouver un lot. Réutiliser le même libellé agrandit le lot existant (et son export).</li>
+            <li><strong>Révocation</strong> : dans « Codes », coche les lignes puis « Révoquer ». Le code reste en base avec son historique — on ne supprime jamais un code.</li>
+            <li><strong>Extension en brouillon</strong> : le code est refusé <em>sans être consommé</em>. On peut donc distribuer les codes avant la sortie, ils s'activeront à la publication.</li>
+            <li><strong>Expiration</strong> : saisie en heure de Paris.</li>
+        </ul>
+        <div class="tip">« Utilisations de codes » liste qui a utilisé quoi et combien de packs ont été crédités.</div>
+
+        <h2 id="economie">11. Économie : les écrans de consultation</h2>
         <p>
             La section <strong>« Économie (lecture seule) »</strong> du menu donne la visibilité
             sur ce que font les joueurs. Ces trois écrans n'ont <strong>ni création, ni édition,
@@ -197,11 +215,11 @@
         </table>
         <div class="tip">Les dates de ces écrans sont affichées en heure de Paris, comme la remise à zéro du quota.</div>
 
-        <h2 id="ne-pas-toucher">11. Ce qu'on ne touche jamais à la main</h2>
+        <h2 id="ne-pas-toucher">12. Ce qu'on ne touche jamais à la main</h2>
         <ul>
             <li><strong>Utilisateurs Discord et rôles</strong> : créés et synchronisés automatiquement à la connexion (JWT). Ne jamais créer/modifier en base.</li>
             <li><strong>Inventaires</strong> (cartes et boosters possédés) : alimentés par les claims et les ouvertures. Une retouche manuelle fausse les compteurs et l'historique.</li>
-            <li><strong>Historique d'ouverture</strong> (claims, openings, seed RNG) : c'est l'audit — chaque tirage est rejouable grâce à sa seed. Consultable dans la section « Économie » (<a href="#economie">§10</a>), jamais modifiable.</li>
+            <li><strong>Historique d'ouverture</strong> (claims, openings, seed RNG) : c'est l'audit — chaque tirage est rejouable grâce à sa seed. Consultable dans la section « Économie » (<a href="#economie">§11</a>), jamais modifiable.</li>
             <li><strong>claimedBy d'une carte unique</strong> : posé atomiquement par le premier tirage. Le vider rendrait l'unique tirable une deuxième fois.</li>
         </ul>
     </div>

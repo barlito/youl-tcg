@@ -6,12 +6,16 @@ namespace App\Twig\Components;
 
 use App\Entity\Booster;
 use App\Entity\DiscordUser;
+use App\Enum\Booster\BoosterCodeRefusalEnum;
+use App\Exception\Booster\BoosterCodeRefusedException;
 use App\Exception\Booster\BoosterException;
 use App\Repository\BoosterRepository;
 use App\Repository\UserBoosterRepository;
 use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\BoosterClaimService;
+use App\Service\Booster\BoosterCodeRedeemService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Uid\Uuid;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -27,6 +31,15 @@ final class BoosterHub extends AbstractController
     #[LiveProp]
     public ?string $error = null;
 
+    #[LiveProp(writable: true)]
+    public string $code = '';
+
+    #[LiveProp]
+    public ?string $codeError = null;
+
+    #[LiveProp]
+    public ?string $codeSuccess = null;
+
     /**
      * Inventory is read twice per render (hero total + packs grid): memoize
      * the query for the lifetime of the (per-request) component instance.
@@ -40,6 +53,8 @@ final class BoosterHub extends AbstractController
         private readonly UserBoosterRepository $userBoosterRepository,
         private readonly BoosterAvailabilityService $boosterAvailability,
         private readonly BoosterClaimService $boosterClaimService,
+        private readonly BoosterCodeRedeemService $boosterCodeRedeemService,
+        private readonly RateLimiterFactoryInterface $boosterCodeRedeemLimiter,
     ) {
     }
 
@@ -133,6 +148,63 @@ final class BoosterHub extends AbstractController
         } catch (BoosterException $exception) {
             $this->error = $exception->getUserMessage();
         }
+    }
+
+    /**
+     * Redeems an event/giveaway code.
+     *
+     * Only unknown codes are charged to the player's attempt budget: they are
+     * the sole answer that tells a stranger anything (this code exists, that
+     * one does not). Every other refusal — expired, already redeemed,
+     * exhausted, pack not out yet — proves the player was given a real code,
+     * and a successful redemption costs nothing at all. Someone redeeming
+     * thirty event codes in a row is never throttled.
+     */
+    #[LiveAction]
+    public function redeemCode(): void
+    {
+        $this->codeError = null;
+        $this->codeSuccess = null;
+
+        $user = $this->getDiscordUser();
+        $limiter = $this->boosterCodeRedeemLimiter->create($user->getDiscordId());
+
+        // Peek without spending: charging happens below, but a player who
+        // already burnt the budget must not keep probing for free.
+        // NB: consume(0) reports accepted whatever the state — the remaining
+        // token count is the only reliable read.
+        $limit = $limiter->consume(0);
+
+        if ($limit->getRemainingTokens() < 1) {
+            $this->codeError = \sprintf(
+                'Trop de tentatives. Réessaie dans %d minute(s).',
+                max(1, (int) ceil(($limit->getRetryAfter()->getTimestamp() - time()) / 60)),
+            );
+
+            return;
+        }
+
+        try {
+            $redemption = $this->boosterCodeRedeemService->redeem($user, $this->code);
+        } catch (BoosterCodeRefusedException $exception) {
+            if (BoosterCodeRefusalEnum::UNKNOWN === $exception->getReason()) {
+                $limiter->consume();
+            }
+
+            $this->codeError = $exception->getUserMessage();
+
+            return;
+        }
+
+        $this->inventory = null; // the memoized inventory is stale after a redemption
+        $this->code = '';
+        $this->codeSuccess = \sprintf(
+            '%d pack%s « %s » ajouté%s à ton stock !',
+            $redemption->getQuantity(),
+            $redemption->getQuantity() > 1 ? 's' : '',
+            $redemption->getBoosterCode()->getBooster()->getDisplayName(),
+            $redemption->getQuantity() > 1 ? 's' : '',
+        );
     }
 
     /**

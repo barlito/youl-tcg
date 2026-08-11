@@ -67,8 +67,12 @@ class UniverseController extends AbstractController
             ];
         }, $extensions);
 
+        $upcoming = $this->extensionRepository->findUpcoming();
+
         return $this->render('pages/universes.html.twig', [
             'universes' => $universes,
+            'upcoming' => $upcoming,
+            'upcomingCover' => $upcoming ? $this->cardRepository->findTeaserCoverImageName($upcoming) : null,
         ]);
     }
 
