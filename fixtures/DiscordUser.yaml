@@ -23,3 +23,9 @@ App\Entity\DiscordUser:
   discord_user_veli:
     discordId: 189029821328785409
     username: "Veli"
+
+  # collectionneur de démo : il a des cartes (voir UserCard.yaml) pour que le
+  # classement et le masquage des profils soient testables sans rien ouvrir
+  discord_user_collectionneur:
+    discordId: 100000000000000001
+    username: "Collectionneur"

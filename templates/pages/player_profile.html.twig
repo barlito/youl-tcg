@@ -1,0 +1,107 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+    YOUL TCG — Profil de {{ profile.username }}
+{% endblock %}
+
+{% block body %}
+    <main>
+        {# --------------------------------------------------- Bandeau joueur #}
+        <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
+            <div class="glow-ambient" aria-hidden="true"></div>
+            <div class="relative mx-auto grid max-w-7xl items-center gap-8 md:grid-cols-[auto_1fr_auto]">
+                <div class="notched-avatar h-[100px] w-[100px] bg-gradient-to-br from-primary to-magenta p-[3px]">
+                    <div class="notched-avatar flex h-full w-full items-center justify-center bg-bg font-display text-[44px] font-bold text-primary">
+                        {{ profile.username|first|upper }}
+                    </div>
+                </div>
+
+                <div>
+                    <p class="eyebrow">Profil joueur</p>
+                    <h1 class="mt-1 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
+                        {{ profile.username }}
+                        {% if isSelf %}<span class="align-middle font-mono text-xs tracking-[.2em] text-primary">· TOI</span>{% endif %}
+                    </h1>
+                    <p class="mt-1.5 font-mono text-xs text-ink-dim">joueur depuis {{ profile.createdAt|date('m/Y') }}</p>
+
+                    <div class="mt-4 max-w-md" data-testid="profile-completion">
+                        <div class="chip-mono mb-1 flex justify-between text-ink-muted">
+                            <span>Complétion</span>
+                            <span>{{ entry.distinctCards }} cartes distinctes · {{ entry.completionPct }}%</span>
+                        </div>
+                        <div class="h-2 border border-hairline bg-surface">
+                            <div class="h-full bg-gradient-to-r from-primary to-magenta shadow-[0_0_10px_#a435f0]"
+                                 style="width: {{ entry.completionPct }}%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="chip-mono mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-ink-muted" data-testid="profile-stats">
+                        <span>◈ {{ entry.totalCards }} carte{{ entry.totalCards > 1 ? 's' }} au total</span>
+                        <span class="{{ entry.holoCards > 0 ? 'text-primary' : '' }}">✦ {{ entry.holoCards }} holo{{ entry.holoCards > 1 ? 's' }}</span>
+                        <span class="{{ entry.uniqueCards > 0 ? 'text-magenta' : '' }}">◆ {{ entry.uniqueCards }} unique{{ entry.uniqueCards > 1 ? 's' }} 1/1</span>
+                        <span>▣ {{ entry.openedBoosters }} pack{{ entry.openedBoosters > 1 ? 's' }} ouvert{{ entry.openedBoosters > 1 ? 's' }}</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col items-start gap-2.5 md:items-end">
+                    <div class="bg-primary px-5 py-3.5 text-black" data-testid="profile-rank">
+                        <p class="font-mono text-[10px] font-bold tracking-[.2em]">CLASSEMENT</p>
+                        <p class="mt-1 font-display text-3xl font-bold leading-none">#{{ entry.rank }}</p>
+                    </div>
+                    <a href="{{ path('leaderboard') }}"
+                       class="border border-primary bg-black px-5 py-3.5 font-display text-[13px] font-bold uppercase tracking-[.15em] text-primary">
+                        ◂ Le classement
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        {# ------------------------------------------- Collection par univers #}
+        <section class="px-6 pb-24 pt-8 lg:px-12">
+            <div class="mx-auto max-w-7xl">
+                {% if not isSelf and hiddenTotal > 0 %}
+                    <p class="chip-mono mb-8 inline-block border border-hairline bg-surface px-3 py-2 text-ink-muted" data-testid="masking-hint">
+                        Les cartes que tu ne possèdes pas encore restent face cachée. À toi de les trouver.
+                    </p>
+                {% endif %}
+
+                {% for universe in universes %}
+                    {% set universeCount = universe.cards|length %}
+                    <div class="mb-12" data-testid="profile-universe">
+                        <div class="flex flex-wrap items-baseline justify-between gap-2">
+                            <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
+                                {{ universe.extension.name }}
+                            </h2>
+                            <span class="chip-mono text-ink-dim" data-testid="universe-count">
+                                {{ universeCount }} carte{{ universeCount > 1 ? 's' }}{% if universe.hiddenCount > 0 %} dont {{ universe.hiddenCount }} que tu n'as pas encore{% endif %}
+                            </span>
+                        </div>
+
+                        <div class="mt-6 grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5" data-testid="profile-grid">
+                            {% for item in universe.cards %}
+                                <div class="card-tile relative">
+                                    {% if item.visible %}
+                                        {{ include('components/CardComponent.html.twig', { card: item.userCard.card, holo: item.userCard.holoQuantity > 0, lazy: true }) }}
+                                        <div class="card-tile__chips pointer-events-none absolute -right-2 -top-2 z-10 flex gap-1.5">
+                                            <span class="chip-mono bg-black/90 px-2 py-1 font-bold text-white">×{{ item.userCard.quantity }}</span>
+                                            {% if item.userCard.holoQuantity > 0 %}
+                                                <span class="chip-mono bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black">✦{{ item.userCard.holoQuantity }}</span>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        {{ include('parts/_masked_card.html.twig') }}
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="border border-dashed border-hairline px-8 py-20 text-center text-ink-dim" data-testid="empty-state">
+                        <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Collection vide.</p>
+                        <p class="mt-3 text-sm">{{ isSelf ? 'Aucune carte pour le moment. Ouvre un pack, gros youl.' : 'Ce joueur n\'a encore aucune carte.' }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+{% endblock %}

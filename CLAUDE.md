@@ -163,6 +163,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
   - Routes: `/` (homepage), `/boosters` (opening hub), `/extensions` (301 → `/univers`)
   - Uses custom `CardRepository::findRandomCardId()` with RANDOM() DQL function
 - **UniverseController**: `/univers` (index of published extensions with per-universe completion) + `/univers/{slug}` (pokédex page: banner carousel, full description, personal completion, set grid with unowned cards masked behind the card back, related boosters using the hub's claimable-or-owned visibility rule, unique 1/1 drop status without revealing the holder)
+- **LeaderboardController**: `/classement` (route `leaderboard`) + `/joueur/{discordId}` (route `leaderboard_player` — discordId, not username: usernames are not unique). `LeaderboardService` (`src/Service/Leaderboard/`) ranks every player by global completion from one grouped query per metric (never one query per player), deterministic tiebreaks (total copies → username → discordId). Uniques 1/1 are a COUNT only, never named. Profile masking rule: a card of the profile renders in clear ONLY if the visitor also owns it, otherwise the shared `parts/_masked_card.html.twig` card back (also used by the universe page) with zero name leak in the DOM — a 1/1 of another player is therefore always masked. `UserCard.quantity` already includes holo copies (`holoQuantity` is a subset): total copies = SUM(quantity), never quantity + holoQuantity
 
 **Admin (`src/Controller/Admin/`):**
 - **DashboardController**: EasyAdmin dashboard entry

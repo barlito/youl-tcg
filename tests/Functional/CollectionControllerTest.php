@@ -20,6 +20,8 @@ final class CollectionControllerTest extends WebTestCase
 {
     use JwtAuthTrait;
 
+    private const string USER_WITHOUT_FIXTURE_CARDS = '195659530363731968';
+
     private KernelBrowser $client;
 
     private EntityManagerInterface $entityManager;
@@ -38,7 +40,9 @@ final class CollectionControllerTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $this->user = $this->authenticateClient($this->client);
+        // a player WITHOUT any fixture card: the banner totals below are exact,
+        // they must not drift when the demo collections grow
+        $this->user = $this->authenticateClient($this->client, self::USER_WITHOUT_FIXTURE_CARDS);
 
         $this->createScenario();
     }
