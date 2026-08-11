@@ -211,6 +211,7 @@ class CardRepository extends ServiceEntityRepository
             ->join('c.extension', 'e')
             ->andWhere('c.status = :status')
             ->andWhere('e.status = :extensionStatus')
+            ->andWhere('c.uniqueFlag = false')
             ->setParameter('status', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
             ->setParameter('extensionStatus', ExtensionStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
             ->orderBy('RANDOM()')
