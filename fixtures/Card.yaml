@@ -15,6 +15,7 @@ App\Entity\Card:
         description: 'Rogue is the queen of the Afterlife. She is a key figure in the game Cyberpunk 2077.'
         unique: false
         imageName: 'default_card.png'
+        status: 2
         rarity: 'rare'
     card_ichigo:
         name: 'Bleach Ichigo Kurosaki'
@@ -22,7 +23,26 @@ App\Entity\Card:
         description: 'Ichigo Kurosaki is the main character of the Bleach series. He is a teenager with the ability to see ghosts who gains the powers of a Soul Reaper after a fateful encounter with another Soul Reaper, Rukia Kuchiki.'
         unique: false
         imageName: 'default_card.png'
+        status: 2
         rarity: 'rare'
+    # possédée par Barlito seulement : l'état « seulement toi » de la grille comparée
+    card_cp_v:
+        name: 'Cyberpunk V'
+        extension: '@extension_cyberpunk'
+        description: 'V is the mercenary outlaw you play in Cyberpunk 2077, chasing a one-of-a-kind implant that is the key to immortality.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2
+        rarity: 'uncommon'
+    # possédée par personne : l'état « manquante aux deux »
+    card_bleach_rukia:
+        name: 'Bleach Rukia Kuchiki'
+        extension: '@extension_bleach'
+        description: 'Rukia Kuchiki is the Soul Reaper who gives Ichigo her powers, and one of the central characters of the Bleach series.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2
+        rarity: 'uncommon'
     card_cp_barlito:
         name: 'Cyberpunk Barlito'
         extension: '@extension_cyberpunk'
@@ -31,6 +51,7 @@ App\Entity\Card:
         imageName: 'default_card.png'
         status: 2
         rarity: 'common'
+    # 1/1 déjà attribuée : reste face cachée et hors décompte sur tous les profils
     card_cp_farf:
         name: 'Cyberpunk Farf'
         extension: '@extension_cyberpunk'
@@ -39,6 +60,7 @@ App\Entity\Card:
         imageName: 'default_card.png'
         status: 2
         rarity: 'rare'
+        claimedBy: '@discord_user_collectionneur'
     card_magic_king_julian:
         name: 'Magic King Julian'
         extension: '@extension_magic'

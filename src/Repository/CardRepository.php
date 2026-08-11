@@ -65,6 +65,54 @@ class CardRepository extends ServiceEntityRepository
     }
 
     /**
+     * The whole published catalogue (published cards of published extensions),
+     * grouped by extension — the reference set the compared profile grid is
+     * built on. One query, extensions hydrated by the join.
+     *
+     * @return list<array{extension: Extension, cards: list<Card>}>
+     */
+    public function findPublishedGroupedByExtension(): array
+    {
+        /** @var list<Card> $cards */
+        $cards = $this->createQueryBuilder('c')
+            ->join('c.extension', 'e')
+            ->addSelect('e')
+            ->andWhere('c.status = :cardStatus')
+            ->andWhere('e.status = :extensionStatus')
+            ->setParameter('cardStatus', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->setParameter('extensionStatus', ExtensionStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->orderBy('e.name', 'ASC')
+            ->addOrderBy('c.name', 'ASC')
+            ->getQuery()
+            ->getResult()
+        ;
+
+        $groups = [];
+        foreach ($cards as $card) {
+            $extension = $card->getExtension();
+            if (!$extension instanceof Extension) {
+                continue;
+            }
+
+            $extensionId = (string) $extension->getId();
+            $groups[$extensionId] ??= ['extension' => $extension, 'cards' => []];
+            $groups[$extensionId]['cards'][] = $card;
+        }
+
+        // rarity is a string-backed enum: rank it in PHP, name already sorted by SQL
+        foreach ($groups as $extensionId => $group) {
+            $groupCards = $group['cards'];
+            usort(
+                $groupCards,
+                static fn (Card $a, Card $b): int => CardRarityEnum::compareRarestFirst($a->getRarity(), $b->getRarity()),
+            );
+            $groups[$extensionId]['cards'] = $groupCards;
+        }
+
+        return array_values($groups);
+    }
+
+    /**
      * The draw pool of an extension: published cards, EXCLUDING one-of-one
      * unique cards that are already claimed (so a claimed unique can never be
      * drawn again). Available (unclaimed) uniques stay in the pool.

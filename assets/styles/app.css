@@ -45,6 +45,27 @@
         display: none;
     }
 
+    /* Filtre de la collection comparée (profil joueur) */
+    .filter-chip {
+        @apply border border-hairline bg-surface px-3 py-2 font-mono text-[10px] uppercase tracking-[.15em] text-ink-muted;
+    }
+
+    .filter-chip:hover {
+        @apply border-primary text-primary;
+    }
+
+    .filter-chip.is-active {
+        @apply border-primary bg-primary text-black;
+    }
+
+    .filter-chip__count {
+        @apply text-ink-dim;
+    }
+
+    .filter-chip.is-active .filter-chip__count {
+        @apply text-black/60;
+    }
+
     /* Piste sans le fondu latéral (héros pleine largeur : bannières d'univers) */
     .scrollbar-hidden {
         scrollbar-width: none;

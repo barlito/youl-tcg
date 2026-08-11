@@ -14,11 +14,13 @@ use App\Enum\Entity\ExtensionStatusEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 
 /**
- * The player profile masking rule: a card of the profile is only shown in
- * clear when the visitor ALSO owns it — otherwise card back, and the name must
- * not leak anywhere in the DOM (no text, no alt, no title, no aria).
+ * The compared profile grid: the whole published catalogue, crossed with the
+ * visitor's collection. A card of the profile is only revealed when the visitor
+ * owns it too; a card the profile does NOT own may be revealed (nothing to
+ * hide); a 1/1 the visitor doesn't hold stays a mystery, out of the counters.
  */
 final class PlayerProfileTest extends WebTestCase
 {
@@ -37,6 +39,10 @@ final class PlayerProfileTest extends WebTestCase
     private Card $sharedCard;
 
     private Card $secretCard;
+
+    private Card $visitorCard;
+
+    private Card $missingCard;
 
     private Card $uniqueCard;
 
@@ -73,7 +79,8 @@ final class PlayerProfileTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $this->assertCount(1, $crawler->filter(\sprintf('img[alt="%s"]', $this->sharedCard->getName())));
         // the profile's own quantities are public: ×2 and one holo chip
-        $this->assertStringContainsString('×2', $crawler->filter('[data-testid="profile-grid"]')->text());
+        $this->assertStringContainsString('×2', $this->universeBlock($crawler)->filter('[data-testid="profile-grid"]')->text());
+        $this->assertStringContainsString('✦1', $this->universeBlock($crawler)->filter('[data-testid="profile-grid"]')->text());
     }
 
     public function testUnsharedCardsAreMaskedWithoutLeakingTheirNames(): void
@@ -81,37 +88,94 @@ final class PlayerProfileTest extends WebTestCase
         $crawler = $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId());
 
         self::assertResponseIsSuccessful();
-        // secret + unique: two card backs
-        $this->assertCount(2, $crawler->filter('[data-testid="masked-card"]'));
+        // secret (their card) + unique (mystery) + missing (nobody's): three card backs
+        $this->assertCount(3, $this->universeBlock($crawler)->filter('[data-testid="masked-card"]'));
 
         // no leak at all in the HTML — covers text, alt, title and aria attributes
         $html = (string) $this->client->getResponse()->getContent();
         $this->assertStringNotContainsString($this->secretCard->getName(), $html);
         $this->assertStringNotContainsString($this->uniqueCard->getName(), $html);
+        $this->assertStringNotContainsString($this->missingCard->getName(), $html);
     }
 
-    public function testCardCountsStayVisibleOnMaskedUniverses(): void
+    public function testCardMissingFromTheProfileIsShownWhenTheVisitorOwnsIt(): void
     {
         $crawler = $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId());
 
         self::assertResponseIsSuccessful();
-        $this->assertStringContainsString(
-            "3 cartes dont 2 que tu n'as pas encore",
-            $crawler->filter('[data-testid="universe-count"]')->text(),
-        );
+        // nothing of the profile to hide here: the visitor already knows the card
+        $this->assertCount(1, $crawler->filter(\sprintf('img[alt="%s"]', $this->visitorCard->getName())));
+
+        $tile = $this->universeBlock($crawler)->filter('[data-testid="profile-tile"][data-state="visitor-only"]');
+        $this->assertCount(1, $tile);
+        $this->assertStringContainsString('Manque', $tile->text());
     }
 
-    public function testOwnProfileShowsEverythingInClear(): void
+    public function testEveryComparisonStateIsExposedOnTheTiles(): void
     {
-        // the rival visits their own profile: nothing is masked, the 1/1 included
+        $crawler = $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId());
+
+        self::assertResponseIsSuccessful();
+        $block = $this->universeBlock($crawler);
+        foreach (['common', 'profile-only', 'visitor-only', 'missing-both', 'mystery'] as $state) {
+            $this->assertCount(
+                1,
+                $block->filter(\sprintf('[data-testid="profile-tile"][data-state="%s"]', $state)),
+                \sprintf('Exactly one tile is expected in state "%s".', $state),
+            );
+        }
+    }
+
+    public function testUniverseCountersCompareBothCollections(): void
+    {
+        $crawler = $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId());
+
+        self::assertResponseIsSuccessful();
+        $block = $this->universeBlock($crawler);
+        $this->assertStringContainsString('5 cartes', $block->filter('[data-testid="universe-count"]')->text());
+
+        $counters = $block->filter('[data-testid="universe-compare"]')->text();
+        $this->assertStringContainsString('1 en commun', $counters);
+        $this->assertStringContainsString('1 seulement ' . $this->rival->getUsername(), $counters);
+        $this->assertStringContainsString('1 seulement toi', $counters);
+        $this->assertStringContainsString('1 manquante aux deux', $counters);
+        // the 1/1 is counted apart, so a single unique can't be solved by subtraction
+        $this->assertStringContainsString('1 × 1/1 hors décompte', $counters);
+    }
+
+    public function testFilterBarOffersEveryBucket(): void
+    {
+        $crawler = $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId());
+
+        self::assertResponseIsSuccessful();
+        $states = $crawler->filter('[data-testid="profile-filters"] button')->each(
+            static fn (Crawler $node): string => (string) $node->attr('data-state'),
+        );
+
+        $this->assertSame(['all', 'common', 'profile-only', 'visitor-only', 'missing-both'], $states);
+    }
+
+    public function testOwnProfileShowsEverythingOwnedInClear(): void
+    {
+        // the rival visits their own profile: their cards are all in clear, the
+        // 1/1 included, and only what they miss stays face down
         $this->authenticateClient($this->client, $this->rival->getDiscordId());
         $crawler = $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId());
 
         self::assertResponseIsSuccessful();
-        $this->assertCount(0, $crawler->filter('[data-testid="masked-card"]'));
         $this->assertCount(1, $crawler->filter(\sprintf('img[alt="%s"]', $this->secretCard->getName())));
         $this->assertCount(1, $crawler->filter(\sprintf('img[alt="%s"]', $this->uniqueCard->getName())));
-        $this->assertStringNotContainsString("que tu n'as pas encore", $crawler->filter('main')->text());
+
+        // the two cards they don't own (the visitor's one and the orphan one)
+        $block = $this->universeBlock($crawler);
+        $this->assertCount(2, $block->filter('[data-testid="masked-card"]'));
+        $this->assertCount(2, $block->filter('[data-testid="profile-tile"][data-state="missing-both"]'));
+        $this->assertCount(0, $crawler->filter('[data-testid="masking-hint"]'));
+
+        $counters = $block->filter('[data-testid="universe-compare"]')->text();
+        $this->assertStringContainsString('3 possédées', $counters);
+        $this->assertStringContainsString('2 manquantes', $counters);
+        $this->assertStringNotContainsString('seulement', $counters);
     }
 
     public function testAnotherPlayersUniqueIsAlwaysMaskedForVisitors(): void
@@ -126,7 +190,7 @@ final class PlayerProfileTest extends WebTestCase
         );
     }
 
-    public function testEmptyProfileShowsAnEmptyState(): void
+    public function testEmptyProfileStillShowsTheCatalogueBehindAnEmptyState(): void
     {
         $empty = new DiscordUser()
             ->setDiscordId((string) random_int(300000000000000000, 999999999999999999))
@@ -139,6 +203,42 @@ final class PlayerProfileTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $this->assertCount(1, $crawler->filter('[data-testid="empty-state"]'));
+        // the comparison still stands: the two cards the visitor owns are shown
+        $this->assertCount(2, $this->universeBlock($crawler)->filter('[data-testid="profile-tile"][data-state="visitor-only"]'));
+    }
+
+    public function testUnpublishedContentNeverReachesTheGrid(): void
+    {
+        $draftCard = $this->createCard('Brouillon ' . uniqid());
+        $draftCard->setStatus(CardStatusEnum::DRAFT);
+
+        $draftExtension = new Extension()
+            ->setName('Univers brouillon ' . uniqid())
+            ->setDescription('Univers non publié')
+            ->setStatus(ExtensionStatusEnum::DRAFT)
+        ;
+        $this->entityManager->persist($draftExtension);
+
+        $hiddenCard = new Card()
+            ->setName('Carte cachée ' . uniqid())
+            ->setDescription('Test card')
+            ->setStatus(CardStatusEnum::PUBLISHED)
+            ->setRarity(CardRarityEnum::COMMON)
+            ->setExtension($draftExtension)
+        ;
+        $hiddenCard->setImageName('default_card.png');
+        $this->entityManager->persist($hiddenCard);
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId());
+
+        self::assertResponseIsSuccessful();
+        // the draft card is not part of the published set of its (published) universe
+        $this->assertStringContainsString('5 cartes', $this->universeBlock($crawler)->filter('[data-testid="universe-count"]')->text());
+
+        $html = (string) $this->client->getResponse()->getContent();
+        $this->assertStringNotContainsString($draftCard->getName(), $html);
+        $this->assertStringNotContainsString($draftExtension->getName(), $html);
     }
 
     public function testUnknownPlayerIsNotFound(): void
@@ -156,8 +256,24 @@ final class PlayerProfileTest extends WebTestCase
     }
 
     /**
-     * A rival with 3 cards: one the visitor also owns (shared), one the
-     * visitor doesn't (secret), and a claimed 1/1 (unique).
+     * The universe block of the scenario: the test database also holds the dev
+     * catalogue, so every grid assertion is scoped to it.
+     */
+    private function universeBlock(Crawler $crawler): Crawler
+    {
+        $block = $crawler->filter('[data-testid="profile-universe"]')->reduce(
+            fn (Crawler $node): bool => str_contains($node->filter('h2')->text(), $this->extension->getName()),
+        );
+
+        $this->assertCount(1, $block, 'The scenario universe must appear exactly once in the grid.');
+
+        return $block;
+    }
+
+    /**
+     * A published universe of 5 cards covering every comparison state: shared
+     * (both), secret (rival only), visitor (visitor only), missing (nobody) and
+     * a 1/1 claimed by the rival.
      */
     private function createScenario(): void
     {
@@ -176,6 +292,8 @@ final class PlayerProfileTest extends WebTestCase
 
         $this->sharedCard = $this->createCard('Carte Partagée ' . uniqid());
         $this->secretCard = $this->createCard('Carte Secrète ' . uniqid());
+        $this->visitorCard = $this->createCard('Carte Visiteur ' . uniqid());
+        $this->missingCard = $this->createCard('Carte Orpheline ' . uniqid());
         $this->uniqueCard = $this->createCard('Unique Mystère ' . uniqid(), CardRarityEnum::LEGENDARY);
         $this->uniqueCard->setUnique(true);
         $this->uniqueCard->setClaimedBy($this->rival);
@@ -184,6 +302,7 @@ final class PlayerProfileTest extends WebTestCase
         $this->giveCard($this->rival, $this->secretCard);
         $this->giveCard($this->rival, $this->uniqueCard);
         $this->giveCard($this->user, $this->sharedCard);
+        $this->giveCard($this->user, $this->visitorCard);
 
         $this->entityManager->flush();
     }
