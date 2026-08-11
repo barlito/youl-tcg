@@ -14,47 +14,58 @@
                     </p>
                 </div>
 
-                <div class="flex flex-col items-start gap-2.5 md:items-end">
-                    <div class="bg-primary px-5 py-3.5 text-black" data-testid="daily-packs">
-                        <p class="font-mono text-[10px] font-bold tracking-[.2em]">PACKS / JOUR</p>
-                        <p class="mt-1 font-display text-3xl font-bold leading-none">
-                            {{ this.remainingClaims }}<span class="text-lg opacity-50"> / {{ constant('App\\Service\\Booster\\BoosterClaimQuotaInterface::DAILY_LIMIT') }}</span>
-                        </p>
+                {# trois tuiles de même gabarit : l'empilement de chips de
+                   longueurs différentes était illisible et jamais aligné #}
+                {% set totalOwned = this.totalOwned %}
+                {% set streak = this.streak %}
+                <div class="flex flex-col items-stretch gap-2.5">
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <div class="bg-primary px-4 py-3 text-black" data-testid="daily-packs">
+                            <p class="font-mono text-[10px] font-bold tracking-[.16em]">PACKS / JOUR</p>
+                            <p class="mt-1 font-display text-3xl font-bold leading-none">
+                                {{ this.remainingClaims }}<span class="text-lg opacity-50">/{{ constant('App\\Service\\Booster\\BoosterClaimQuotaInterface::DAILY_LIMIT') }}</span>
+                            </p>
+                            <p class="mt-1.5 font-mono text-[10px] leading-tight tracking-[.08em] text-black/70">
+                                {% if this.remainingClaims == 0 %}
+                                    dans <span data-controller="countdown"
+                                               data-countdown-seconds-value="{{ this.secondsUntilReset }}">--:--:--</span>
+                                {% else %}
+                                    à récupérer
+                                {% endif %}
+                            </p>
+                        </div>
+
+                        <div class="border border-hairline bg-surface px-4 py-3" data-testid="total-owned">
+                            <p class="font-mono text-[10px] font-bold tracking-[.16em] text-ink-dim">EN STOCK</p>
+                            <p class="mt-1 font-display text-3xl font-bold leading-none {{ totalOwned > 0 ? 'text-primary' : 'text-ink-dim' }}">{{ totalOwned }}</p>
+                            <p class="mt-1.5 font-mono text-[10px] leading-tight tracking-[.08em] text-ink-dim">
+                                pack{{ totalOwned > 1 ? 's' }} à ouvrir
+                            </p>
+                        </div>
+
+                        <div class="border px-4 py-3 {{ streak.running ? 'border-soon/50 bg-soon/5' : 'border-hairline bg-surface' }}"
+                             data-testid="streak-flame">
+                            <p class="font-mono text-[10px] font-bold tracking-[.16em] text-ink-dim">SÉRIE</p>
+                            <p class="mt-1 font-display text-3xl font-bold leading-none {{ streak.running ? 'text-soon' : 'text-ink-dim' }}">
+                                {{ streak.running ? streak.length : 0 }}<span class="text-lg opacity-60">j</span>
+                            </p>
+                            <p class="mt-1.5 font-mono text-[10px] leading-tight tracking-[.08em] {{ streak.atRisk ? 'text-soon' : 'text-ink-dim' }}">
+                                {% if not streak.running %}
+                                    ouvre un pack
+                                {% elseif streak.atRisk %}
+                                    ouvre aujourd'hui !
+                                {% else %}
+                                    palier à {{ streak.nextMilestone }}j
+                                {% endif %}
+                            </p>
+                        </div>
                     </div>
 
-                    {% if this.remainingClaims == 0 %}
-                        <p class="chip-mono text-ink-dim">
-                            Prochains packs dans
-                            <span class="text-primary"
-                                  data-controller="countdown"
-                                  data-countdown-seconds-value="{{ this.secondsUntilReset }}">--:--:--</span>
-                        </p>
-                    {% else %}
-                        <p class="chip-mono text-live">✦ {{ this.remainingClaims }} pack{{ this.remainingClaims > 1 ? 's' }} à récupérer</p>
-                    {% endif %}
-
-                    {% set totalOwned = this.totalOwned %}
-                    <p class="chip-mono {{ totalOwned > 0 ? 'text-primary' : 'text-ink-dim' }}" data-testid="total-owned">
-                        ◈ {{ totalOwned }} pack{{ totalOwned > 1 ? 's' }} en stock
-                    </p>
                     <a href="{{ path('opening_history') }}"
-                       class="chip-mono text-ink-dim transition-colors hover:text-primary"
+                       class="chip-mono self-end text-ink-dim transition-colors hover:text-primary"
                        data-testid="history-link">
                         ◎ Mes ouvertures ▸
                     </a>
-
-                    {% set streak = this.streak %}
-                    {% if streak.running %}
-                        <p class="chip-mono {{ streak.openedToday ? 'text-live' : 'text-soon' }}"
-                           data-testid="streak-flame"
-                           title="Prochain palier à {{ streak.nextMilestone }} jours de suite">
-                            🔥 {{ streak.length }} jour{{ streak.length > 1 ? 's' }} de suite{% if streak.atRisk %} — ouvre un pack aujourd'hui pour continuer !{% endif %}
-                        </p>
-                    {% else %}
-                        <p class="chip-mono text-ink-dim" data-testid="streak-flame">
-                            🔥 Ouvre un pack aujourd'hui pour lancer ta série
-                        </p>
-                    {% endif %}
                 </div>
             </div>
         </section>
@@ -79,23 +90,36 @@
                                 </p>
                             </div>
 
-                            <div class="flex flex-wrap gap-2 md:justify-end">
-                                {% for booster in this.streakRewardChoices %}
+                            {# un bouton par pack devenait ingérable dès que le
+                               catalogue grandit : sélecteur + validation #}
+                            <div class="flex flex-wrap items-center gap-2 md:justify-end">
+                                {% set choices = this.streakRewardChoices %}
+                                {% if choices is empty %}
+                                    <p class="chip-mono text-ink-dim">Aucun pack disponible pour l'instant — ta récompense t'attend.</p>
+                                {% else %}
+                                    <select data-model="norender|streakRewardBoosterId"
+                                            aria-label="Choisir le pack de ta récompense"
+                                            data-testid="streak-reward-select"
+                                            class="w-full min-w-0 border border-hairline bg-surface px-3 py-2 font-mono text-xs tracking-[.08em] text-ink-strong focus:border-primary focus:outline-none md:w-72">
+                                        <option value="">Choisis ton pack…</option>
+                                        {% for booster in choices %}
+                                            <option value="{{ booster.id }}" {{ booster.id == streakRewardBoosterId ? 'selected' }}>
+                                                {{ booster.displayName }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
                                     {# plain label + opacity while loading: swapping two spans
                                        leaves the hidden one hidden after the re-render #}
                                     <button type="button"
                                             data-action="live#action"
                                             data-live-action-param="chooseStreakReward"
                                             data-live-reward-id-param="{{ reward.id }}"
-                                            data-live-booster-id-param="{{ booster.id }}"
                                             data-loading="addClass(opacity-50)"
                                             data-testid="streak-reward-choice"
-                                            class="border border-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-primary transition hover:bg-primary hover:text-black">
-                                        {{ booster.displayName }}
+                                            class="shrink-0 border border-primary bg-primary px-4 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary">
+                                        Récupérer
                                     </button>
-                                {% else %}
-                                    <p class="chip-mono text-ink-dim">Aucun pack disponible pour l'instant — ta récompense t'attend.</p>
-                                {% endfor %}
+                                {% endif %}
                             </div>
                         </div>
                     {% endif %}

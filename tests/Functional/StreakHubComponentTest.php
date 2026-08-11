@@ -13,6 +13,7 @@ use App\Repository\BoosterRepository;
 use App\Twig\Components\BoosterHub;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 final class StreakHubComponentTest extends WebTestCase
@@ -30,8 +31,7 @@ final class StreakHubComponentTest extends WebTestCase
 
         $rendered = (string) $this->createLiveComponent(BoosterHub::class, client: $client)->render();
 
-        $this->assertStringContainsString('data-testid="streak-flame"', $rendered);
-        $this->assertStringContainsString('Ouvre un pack aujourd\'hui pour lancer ta série', $rendered);
+        $this->assertStringContainsString('ouvre un pack', $this->streakTile($rendered));
         $this->assertStringNotContainsString('data-testid="streak-reward-banner"', $rendered);
     }
 
@@ -43,8 +43,10 @@ final class StreakHubComponentTest extends WebTestCase
 
         $rendered = (string) $this->createLiveComponent(BoosterHub::class, client: $client)->render();
 
-        $this->assertStringContainsString('🔥 3 jours de suite', $rendered);
-        $this->assertStringNotContainsString('pour continuer', $rendered);
+        $tile = $this->streakTile($rendered);
+        $this->assertStringContainsString('3j', $tile);
+        $this->assertStringContainsString('palier à 7j', $tile);
+        $this->assertStringNotContainsString('aujourd\'hui', $tile);
     }
 
     public function testASeriesNotFedTodayAsksForAnOpening(): void
@@ -55,7 +57,9 @@ final class StreakHubComponentTest extends WebTestCase
 
         $rendered = (string) $this->createLiveComponent(BoosterHub::class, client: $client)->render();
 
-        $this->assertStringContainsString('🔥 2 jours de suite — ouvre un pack aujourd\'hui pour continuer !', $rendered);
+        $tile = $this->streakTile($rendered);
+        $this->assertStringContainsString('2j', $tile);
+        $this->assertStringContainsString('ouvre aujourd\'hui !', $tile);
     }
 
     public function testAPendingRewardShowsTheBannerWithClaimableChoicesOnly(): void
@@ -82,7 +86,8 @@ final class StreakHubComponentTest extends WebTestCase
         $booster = $this->firstClaimableBooster();
 
         $component = $this->createLiveComponent(BoosterHub::class, client: $client);
-        $component->call('chooseStreakReward', ['rewardId' => (string) $reward->getId(), 'boosterId' => (string) $booster->getId()]);
+        $component->set('streakRewardBoosterId', (string) $booster->getId());
+        $component->call('chooseStreakReward', ['rewardId' => (string) $reward->getId()]);
 
         $this->assertNull($component->component()->streakError);
         $this->assertStringContainsString('Palier 7 jours', (string) $component->component()->streakSuccess);
@@ -108,8 +113,9 @@ final class StreakHubComponentTest extends WebTestCase
         $booster = $this->firstClaimableBooster();
 
         $component = $this->createLiveComponent(BoosterHub::class, client: $client);
-        $component->call('chooseStreakReward', ['rewardId' => (string) $reward->getId(), 'boosterId' => (string) $booster->getId()]);
-        $component->call('chooseStreakReward', ['rewardId' => (string) $reward->getId(), 'boosterId' => (string) $booster->getId()]);
+        $component->set('streakRewardBoosterId', (string) $booster->getId());
+        $component->call('chooseStreakReward', ['rewardId' => (string) $reward->getId()]);
+        $component->call('chooseStreakReward', ['rewardId' => (string) $reward->getId()]);
 
         $this->assertSame('Cette récompense n\'est plus disponible.', $component->component()->streakError);
 
@@ -128,7 +134,8 @@ final class StreakHubComponentTest extends WebTestCase
         $eventBooster = $this->createEventBooster('Pack Event Forgé');
 
         $component = $this->createLiveComponent(BoosterHub::class, client: $client);
-        $component->call('chooseStreakReward', ['rewardId' => (string) $reward->getId(), 'boosterId' => (string) $eventBooster->getId()]);
+        $component->set('streakRewardBoosterId', (string) $eventBooster->getId());
+        $component->call('chooseStreakReward', ['rewardId' => (string) $reward->getId()]);
 
         $this->assertSame('Ce pack ne peut pas être choisi en récompense.', $component->component()->streakError);
 
@@ -145,11 +152,23 @@ final class StreakHubComponentTest extends WebTestCase
 
         $component = $this->createLiveComponent(BoosterHub::class, client: $client);
 
-        $component->call('chooseStreakReward', ['rewardId' => 'not-a-uuid', 'boosterId' => (string) $this->firstClaimableBooster()->getId()]);
+        $component->set('streakRewardBoosterId', (string) $this->firstClaimableBooster()->getId());
+        $component->call('chooseStreakReward', ['rewardId' => 'not-a-uuid']);
         $this->assertSame('Cette récompense n\'est plus disponible.', $component->component()->streakError);
 
-        $component->call('chooseStreakReward', ['rewardId' => 'not-a-uuid', 'boosterId' => 'not-a-uuid']);
-        $this->assertSame('Booster introuvable.', $component->component()->streakError);
+        // nothing picked in the selector, or a forged id: same clean refusal
+        $component->set('streakRewardBoosterId', 'not-a-uuid');
+        $component->call('chooseStreakReward', ['rewardId' => 'not-a-uuid']);
+        $this->assertSame('Choisis un pack avant de valider.', $component->component()->streakError);
+    }
+
+    /**
+     * Text of the streak tile, whitespace normalized: the assertions target
+     * what the player reads, not the markup around it.
+     */
+    private function streakTile(string $rendered): string
+    {
+        return new Crawler($rendered)->filter('[data-testid="streak-flame"]')->text(normalizeWhitespace: true);
     }
 
     /**

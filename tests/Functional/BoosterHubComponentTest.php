@@ -9,6 +9,7 @@ use App\Repository\BoosterRepository;
 use App\Twig\Components\BoosterHub;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 final class BoosterHubComponentTest extends WebTestCase
@@ -40,7 +41,7 @@ final class BoosterHubComponentTest extends WebTestCase
         // The owned count is surfaced on the pack card and totalled in the hero.
         $rendered = (string) $component->render();
         $this->assertStringContainsString('◈ 1 pack à ouvrir', $rendered);
-        $this->assertStringContainsString('◈ 1 pack en stock', $rendered);
+        $this->assertStringContainsString('1 pack à ouvrir', $this->stockTile($rendered));
     }
 
     public function testEmptyInventoryShowsAnExplicitZeroStockState(): void
@@ -52,7 +53,7 @@ final class BoosterHubComponentTest extends WebTestCase
         $rendered = (string) $component->render();
 
         $this->assertStringContainsString('◈ Aucun pack', $rendered);
-        $this->assertStringContainsString('◈ 0 pack en stock', $rendered);
+        $this->assertStringContainsString('0 pack à ouvrir', $this->stockTile($rendered));
     }
 
     public function testClaimBoosterWithMalformedIdReportsNotFoundInsteadOfCrashing(): void
@@ -174,6 +175,14 @@ final class BoosterHubComponentTest extends WebTestCase
         // The rendered "Ouvrir" control for Bleach is disabled, no scary error needed.
         $rendered = (string) $component->render();
         $this->assertStringContainsString('À venir', $rendered);
+    }
+
+    /**
+     * Text of the "en stock" hero tile, whitespace normalized.
+     */
+    private function stockTile(string $rendered): string
+    {
+        return new Crawler($rendered)->filter('[data-testid="total-owned"]')->text(normalizeWhitespace: true);
     }
 
     private function firstPublishedBooster(): \App\Entity\Booster

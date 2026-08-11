@@ -50,6 +50,10 @@ final class BoosterHub extends AbstractController
     #[LiveProp]
     public ?string $streakSuccess = null;
 
+    /** Pack picked in the streak reward selector (its id). */
+    #[LiveProp(writable: true)]
+    public string $streakRewardBoosterId = '';
+
     /**
      * Inventory is read twice per render (hero total + packs grid): memoize
      * the query for the lifetime of the (per-request) component instance.
@@ -256,15 +260,15 @@ final class BoosterHub extends AbstractController
      * a forged live action gets a clean French refusal.
      */
     #[LiveAction]
-    public function chooseStreakReward(#[LiveArg] string $rewardId, #[LiveArg] string $boosterId): void
+    public function chooseStreakReward(#[LiveArg] string $rewardId): void
     {
         $this->streakError = null;
         $this->streakSuccess = null;
 
-        $booster = $this->findBooster($boosterId);
+        $booster = $this->findBooster($this->streakRewardBoosterId);
 
         if (!$booster instanceof Booster) {
-            $this->streakError = 'Booster introuvable.';
+            $this->streakError = 'Choisis un pack avant de valider.';
 
             return;
         }
