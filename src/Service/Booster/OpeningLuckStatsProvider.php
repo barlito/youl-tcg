@@ -75,7 +75,7 @@ final readonly class OpeningLuckStatsProvider
 
         $boosters = [];
 
-        foreach ($this->boosterRepository->findBy(['id' => array_keys($openingsPerBooster)]) as $booster) {
+        foreach ($this->boosterRepository->findWithExtensionByIds(array_keys($openingsPerBooster)) as $booster) {
             $boosterId = (string) $booster->getId();
             $pulls = $pullsPerBooster[$boosterId] ?? ['cards' => 0, 'holos' => 0, 'rarities' => []];
             ['expectedShares' => $expectedShares, 'expectedHoloRate' => $expectedHoloRate] = $this->expectedRates($booster);

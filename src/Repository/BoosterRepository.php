@@ -42,4 +42,28 @@ class BoosterRepository extends ServiceEntityRepository
             ->getResult()
         ;
     }
+
+    /**
+     * Boosters by id WITH their extension: getDisplayName() falls back to
+     * extension.name, so a plain findBy() lazy-loads one extension per booster.
+     *
+     * @param list<string> $ids
+     *
+     * @return list<Booster>
+     */
+    public function findWithExtensionByIds(array $ids): array
+    {
+        if ([] === $ids) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('booster')
+            ->join('booster.extension', 'extension')
+            ->addSelect('extension')
+            ->andWhere('booster.id IN (:ids)')
+            ->setParameter('ids', $ids)
+            ->getQuery()
+            ->getResult()
+        ;
+    }
 }
