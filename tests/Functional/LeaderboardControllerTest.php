@@ -48,14 +48,15 @@ final class LeaderboardControllerTest extends WebTestCase
     public function testRanksCollectorsByCompletionWithTheirMetrics(): void
     {
         $rival = $this->createPlayer('Rival');
-        $cards = [$this->createCard(), $this->createCard(), $this->createCard()];
+        $cards = array_map(fn (): Card => $this->createCard(), range(1, 6));
 
-        // rival: 3 distinct cards (4 copies, 1 holo) + 1 opened pack; me: 1 distinct
-        // card. The gap stays wide enough that the demo fixture collections
-        // cannot flip the order.
+        // rival: 6 distinct cards (7 copies, 1 holo) + 1 opened pack; me: 1 distinct
+        // card. The rival is given more cards than the whole demo catalogue holds,
+        // so no fixture collection can flip the order.
         $this->giveCard($rival, $cards[0], quantity: 2, holoQuantity: 1);
-        $this->giveCard($rival, $cards[1]);
-        $this->giveCard($rival, $cards[2]);
+        foreach (\array_slice($cards, 1) as $card) {
+            $this->giveCard($rival, $card);
+        }
         $this->giveCard($this->user, $cards[0]);
 
         $booster = new Booster()
@@ -75,7 +76,7 @@ final class LeaderboardControllerTest extends WebTestCase
         $this->assertLessThan($this->positionOf($rows, $this->user->getUsername()), $rivalPosition);
 
         $rivalRow = $rows->eq($rivalPosition);
-        $this->assertStringContainsString('3 distinctes', $rivalRow->text());
+        $this->assertStringContainsString('6 distinctes', $rivalRow->text());
         $this->assertStringContainsString('✦1', $rivalRow->text());
         // ▣N is the mobile summary of the opened packs count
         $this->assertStringContainsString('▣1', $rivalRow->text());

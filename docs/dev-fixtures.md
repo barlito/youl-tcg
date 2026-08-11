@@ -1,6 +1,17 @@
 # Fixtures dev
 
-Les fixtures de `fixtures/` rejouent un catalogue complet en local :
+| dossier | chargé en | contenu |
+|---|---|---|
+| `fixtures/shared` | dev + test | les joueurs (vrais discordId) |
+| `fixtures/dev` | dev | le catalogue complet généré depuis `public/uploads` |
+| `fixtures/test` | test (et CI) | un jeu minimal et stable, écrit à la main |
+
+Le jeu de test ne grossit pas au gré des images déposées : les tests
+fonctionnels s'appuient dessus (un univers sans carte publiée, un booster non
+réclamable, une 1/1 attribuée), donc toute modification de `fixtures/test` est
+un changement de contrat — fais tourner la suite complète après.
+
+Rejouer le catalogue complet en local :
 
 ```bash
 docker exec $(docker ps --filter name="ytcg_php" -q) bin/console hautelook:fixtures:load -n

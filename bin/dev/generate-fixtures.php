@@ -176,7 +176,8 @@ foreach ($files as $index => $file) {
 $used = array_unique(array_column($cards, 'universe'));
 $universes = array_filter($universes, static fn (string $key): bool => \in_array($key, $used, true), \ARRAY_FILTER_USE_KEY);
 
-$out = static fn (string $file, string $content): bool|int => file_put_contents($root . '/fixtures/' . $file, $content);
+// only the dev set is generated: fixtures/test stays hand-written and stable
+$out = static fn (string $file, string $content): bool|int => file_put_contents($root . '/fixtures/dev/' . $file, $content);
 
 // ------------------------------------------------------------------ Extension
 // the smallest universe stays a draft and carries the "next universe" teaser

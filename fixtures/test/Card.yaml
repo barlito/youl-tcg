@@ -1,0 +1,73 @@
+App\Entity\Card:
+    card_silverhand:
+        name: 'Cyberpunk Johnny Silverhand'
+        extension: '@extension_cyberpunk'
+        description: 'Silverhand is a former member of the rock band Samurai. He is a central character in the Cyberpunk series and is known for his anti-corporate views and his fight against the Arasaka Corporation. He is a key figure in the game Cyberpunk 2077.'
+        unique: true
+        imageName: 'default_card.png'
+        status: 2
+        rarity: 'legendary'
+        alwaysHolo: true
+        visualConfigOverrideJson: '{"glow": "#ff3db0"}'
+    card_rogue:
+        name: 'Cyberpunk Rogue'
+        extension: '@extension_cyberpunk'
+        description: 'Rogue is the queen of the Afterlife. She is a key figure in the game Cyberpunk 2077.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2
+        rarity: 'rare'
+    # brouillon volontaire : Bleach doit rester un univers SANS carte publiée
+    # (le hub le rend « à venir », cf. BoosterHubComponentTest)
+    card_ichigo:
+        name: 'Bleach Ichigo Kurosaki'
+        extension: '@extension_bleach'
+        description: 'Ichigo Kurosaki is the main character of the Bleach series. He is a teenager with the ability to see ghosts who gains the powers of a Soul Reaper after a fateful encounter with another Soul Reaper, Rukia Kuchiki.'
+        unique: false
+        imageName: 'default_card.png'
+        rarity: 'rare'
+    # possédée par Barlito seulement : l'état « seulement toi » de la grille comparée
+    card_cp_v:
+        name: 'Cyberpunk V'
+        extension: '@extension_cyberpunk'
+        description: 'V is the mercenary outlaw you play in Cyberpunk 2077, chasing a one-of-a-kind implant that is the key to immortality.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2
+        rarity: 'uncommon'
+    # possédée par personne : l'état « manquante aux deux »
+    card_cp_orphan:
+        name: 'Cyberpunk Nomade Anonyme'
+        extension: '@extension_cyberpunk'
+        description: 'Un nomade des Badlands que personne ne semble avoir croisé. Sa carte circule pourtant.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2
+        rarity: 'uncommon'
+    card_cp_barlito:
+        name: 'Cyberpunk Barlito'
+        extension: '@extension_cyberpunk'
+        description: 'Barlito is a former member of the rock band Samurai. He is a central character in the Cyberpunk series and is known for his anti-corporate views and his fight against the Arasaka Corporation. He is a key figure in the game Cyberpunk 2077.'
+        unique: false
+        imageName: 'default_card.png'
+        status: 2
+        rarity: 'common'
+    # 1/1 déjà attribuée : reste face cachée et hors décompte sur tous les profils
+    card_cp_farf:
+        name: 'Cyberpunk Farf'
+        extension: '@extension_cyberpunk'
+        description: 'Farf is a former member of the rock band Samurai. He is a central character in the Cyberpunk series and is known for his anti-corporate views and his fight against the Arasaka Corporation. He is a key figure in the game Cyberpunk 2077.'
+        unique: true
+        imageName: 'default_card.png'
+        status: 2
+        rarity: 'rare'
+        claimedBy: '@discord_user_collectionneur'
+    card_magic_king_julian:
+        name: 'Magic King Julian'
+        extension: '@extension_magic'
+        description: 'Julian is the king of the Magic Kingdom. He is a key figure in the game Magic.'
+        unique: true
+        imageName: 'default_card.png'
+        status: 2
+        rarity: 'legendary'
+        alwaysHolo: true
