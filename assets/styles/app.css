@@ -101,6 +101,20 @@
     opacity: .45;
 }
 
+/* Toggle HOLO : une commande, pas une décoration. Pendant l'inspection, la
+ * carte monte à z-index 120 (base.css) et son .card__rotator capte le clic —
+ * le bouton passe donc au-dessus, garde son opacité, et son ::after élargit la
+ * cible de 8px sans changer son apparence (elle ne fait que 25px de haut). */
+.card-tile__toggle {
+    z-index: 200;
+}
+
+.card-tile__toggle::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+}
+
 /* Panneau « Taux » des cartes booster du hub (details/summary natif) */
 .booster-rates > summary { list-style: none; }
 .booster-rates > summary::-webkit-details-marker { display: none; }
