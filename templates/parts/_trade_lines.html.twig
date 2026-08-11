@@ -1,4 +1,7 @@
-{# Cartes d'un côté d'une offre. `lines` = TradeOfferLine[], `label` = intitulé. #}
+{# Cartes d'un côté d'une offre. `lines` = TradeOfferLine[], `label` = intitulé.
+   `knownCardIds` (optionnel) = ids des cartes que le lecteur possède : fourni,
+   toute autre carte est rendue dos visible, nom compris. #}
+{% set maskUnknown = knownCardIds is defined %}
 <div>
     <p class="chip-mono text-ink-dim">{{ label }}</p>
     {% if lines is empty %}
@@ -7,7 +10,12 @@
         <div class="mt-2 flex flex-wrap gap-3">
             {% for line in lines %}
                 <div class="relative w-24 shrink-0">
-                    {{ include('components/CardComponent.html.twig', { card: line.card, holo: line.holoQuantity > 0, lazy: true }) }}
+                    {% if maskUnknown and (line.card.id ~ '') not in knownCardIds %}
+                        {# sans contexte : le rendu masqué n'a accès à aucune carte #}
+                        {{ include('parts/_card_back.html.twig', {}, with_context = false) }}
+                    {% else %}
+                        {{ include('components/CardComponent.html.twig', { card: line.card, holo: line.holoQuantity > 0, lazy: true }) }}
+                    {% endif %}
                     <span class="chip-mono absolute -right-1.5 -top-1.5 bg-black/90 px-1.5 py-0.5 font-bold text-white">
                         ×{{ line.totalQuantity }}{% if line.holoQuantity > 0 %} <span class="text-primary">✦{{ line.holoQuantity }}</span>{% endif %}
                     </span>

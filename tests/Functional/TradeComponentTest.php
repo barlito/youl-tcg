@@ -23,6 +23,7 @@ use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Cookie;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 final class TradeComponentTest extends WebTestCase
@@ -143,6 +144,83 @@ final class TradeComponentTest extends WebTestCase
         $this->assertStringContainsString($other->getName(), $rendered, 'La carte cherchée doit être visible.');
         $this->assertStringContainsString($picked->getName(), $rendered, 'Une carte déjà sélectionnée ne doit jamais disparaître.');
         $this->assertStringNotContainsString($ignored->getName(), $rendered, 'Une carte hors recherche doit être masquée.');
+    }
+
+    public function testTheirColumnMasksTheCardsTheVisitorDoesNotOwn(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $shared = $this->giveCard($juju, 'Carte partagée', quantity: 1);
+        $this->giveCopy($barlito, $shared);
+        $unknown = $this->giveCard($juju, 'Carte secrète', quantity: 2, holoQuantity: 1);
+
+        $component = $this->createLiveComponent(
+            TradeComposer::class,
+            data: ['counterpartId' => self::JUJU],
+            client: $this->client,
+        );
+        $html = (string) $component->render();
+
+        $this->assertStringNotContainsString(
+            $unknown->getName(),
+            $html,
+            'Le nom d\'une carte que le visiteur ne possède pas ne doit apparaître nulle part dans le DOM.',
+        );
+        $this->assertStringContainsString($shared->getName(), $html, 'Une carte déjà possédée reste lisible.');
+
+        $theirs = new Crawler($html)->filter('[data-testid="requested-list"]');
+        $this->assertSame(1, $theirs->filter('[data-testid="masked-card"]')->count());
+        $this->assertStringContainsString('Carte inconnue', $theirs->html());
+
+        // masquée mais toujours demandable : on demande à l'aveugle
+        $component->call('adjust', ['side' => 'requested', 'cardId' => (string) $unknown->getId(), 'finish' => 'holo', 'delta' => 1]);
+        $this->assertSame(1, $component->component()->getRequestedCount());
+    }
+
+    public function testTheSearchFilterIsNoOracleOnMaskedNames(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $shared = $this->giveCard($juju, 'Zorglub partagé', quantity: 1);
+        $this->giveCopy($barlito, $shared);
+        $this->giveCard($juju, 'Zorglub secret', quantity: 1);
+
+        $component = $this->createLiveComponent(
+            TradeComposer::class,
+            data: ['counterpartId' => self::JUJU],
+            client: $this->client,
+        );
+        $theirs = fn (string $needle): Crawler => new Crawler((string) $component->set('searchTheirs', $needle)->render())
+            ->filter('[data-testid="requested-list"]')
+        ;
+
+        // le filtre ne trie que les cartes visibles…
+        $this->assertStringNotContainsString($shared->getName(), $theirs('zzzz')->html());
+        $this->assertStringContainsString($shared->getName(), $theirs('zorglub')->html());
+
+        // …et les masquées restent affichées quoi qu'on tape : sinon leur
+        // apparition/disparition révélerait le nom qu'on cherche à cacher
+        $this->assertSame(1, $theirs('zzzz')->filter('[data-testid="masked-card"]')->count());
+        $this->assertSame(1, $theirs('secret')->filter('[data-testid="masked-card"]')->count());
+    }
+
+    public function testASentOfferKeepsTheRequestedUnknownCardMasked(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $mine = $this->giveCard($barlito, 'Ma carte', quantity: 1);
+        $unknown = $this->giveCard($juju, 'Carte convoitée', quantity: 1);
+        $this->createOffer($barlito, $juju, $mine, $unknown);
+
+        $html = (string) $this->createLiveComponent(TradeInbox::class, client: $this->client)->render();
+
+        $this->assertStringNotContainsString(
+            $unknown->getName(),
+            $html,
+            'Demander une carte à l\'aveugle ne doit pas la révéler dans l\'offre envoyée.',
+        );
+        $this->assertStringContainsString($mine->getName(), $html);
+        $this->assertSame(1, new Crawler($html)->filter('[data-testid="sent-offers"] [data-testid="masked-card"]')->count());
     }
 
     public function testInboxAcceptSwapsTheCards(): void
@@ -297,6 +375,18 @@ final class TradeComponentTest extends WebTestCase
         $this->entityManager->flush();
 
         return $card;
+    }
+
+    private function giveCopy(DiscordUser $user, Card $card, int $quantity = 1): void
+    {
+        $this->entityManager->persist(
+            new UserCard()
+                ->setDiscordUser($user)
+                ->setCard($card)
+                ->setQuantity($quantity)
+                ->setHoloQuantity(0),
+        );
+        $this->entityManager->flush();
     }
 
     private function createOffer(DiscordUser $proposer, DiscordUser $receiver, Card $offered, Card $requested): TradeOffer

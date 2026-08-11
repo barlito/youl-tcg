@@ -10,6 +10,7 @@ use App\Entity\DiscordUser;
 use App\Enum\Trade\TradeOfferSideEnum;
 use App\Exception\Trade\TradeException;
 use App\Repository\DiscordUserRepository;
+use App\Repository\UserCardRepository;
 use App\Service\Trade\TradeOfferService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -59,6 +60,7 @@ final class TradeComposer extends AbstractController
     public function __construct(
         private readonly TradeOfferService $tradeOfferService,
         private readonly DiscordUserRepository $discordUserRepository,
+        private readonly UserCardRepository $userCardRepository,
     ) {
     }
 
@@ -101,11 +103,31 @@ final class TradeComposer extends AbstractController
     }
 
     /**
-     * @return array<string, array{card: Card, normal: int, holo: int}>
+     * Their side, masked: a card the visitor does not own is still requestable
+     * (quantities and steppers stay live) but its entry carries NO Card at all,
+     * so the template cannot leak a name it never receives.
+     *
+     * @return array<string, array{card: ?Card, normal: int, holo: int}>
      */
     public function getVisibleTheirCopies(): array
     {
-        return $this->filter($this->getTheirCopies(), $this->searchTheirs, $this->requested);
+        $copies = $this->getTheirCopies();
+        $known = array_fill_keys($this->userCardRepository->findOwnedCardIds($this->getDiscordUser()), true);
+        $revealed = $this->filter(array_intersect_key($copies, $known), $this->searchTheirs, $this->requested);
+
+        $visible = [];
+
+        foreach ($copies as $cardId => $entry) {
+            if (!isset($known[$cardId])) {
+                // masked cards ignore the search: filtering them on a name the
+                // visitor is not allowed to read would give that name away
+                $visible[$cardId] = ['card' => null, 'normal' => $entry['normal'], 'holo' => $entry['holo']];
+            } elseif (isset($revealed[$cardId])) {
+                $visible[$cardId] = $entry;
+            }
+        }
+
+        return $visible;
     }
 
     public function getOfferedCount(): int

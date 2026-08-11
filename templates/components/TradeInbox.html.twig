@@ -98,7 +98,8 @@
                                 </p>
                                 <div class="mt-4 grid gap-6 md:grid-cols-2">
                                     {{ include('parts/_trade_lines.html.twig', { lines: offer.offeredLines, label: 'Tu donnes' }) }}
-                                    {{ include('parts/_trade_lines.html.twig', { lines: offer.requestedLines, label: 'Tu reçois' }) }}
+                                    {# demandées à l'aveugle : elles restent masquées tant qu'on ne les a pas #}
+                                    {{ include('parts/_trade_lines.html.twig', { lines: offer.requestedLines, label: 'Tu reçois', knownCardIds: this.knownCardIds }) }}
                                 </div>
                                 <div class="mt-5 border-t border-hairline pt-4">
                                     <button type="button"

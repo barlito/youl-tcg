@@ -8,6 +8,7 @@ use App\Entity\DiscordUser;
 use App\Entity\TradeOffer;
 use App\Exception\Trade\TradeException;
 use App\Repository\TradeOfferRepository;
+use App\Repository\UserCardRepository;
 use App\Service\Trade\TradeOfferService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -30,7 +31,19 @@ final class TradeInbox extends AbstractController
     public function __construct(
         private readonly TradeOfferRepository $tradeOfferRepository,
         private readonly TradeOfferService $tradeOfferService,
+        private readonly UserCardRepository $userCardRepository,
     ) {
+    }
+
+    /**
+     * Cards the reader owns, hence may see. Asking for a card blindly in the
+     * composer must not reveal it through the sent offer that follows.
+     *
+     * @return list<string>
+     */
+    public function getKnownCardIds(): array
+    {
+        return $this->userCardRepository->findOwnedCardIds($this->getDiscordUser());
     }
 
     /**
