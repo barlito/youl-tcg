@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Twig\Components;
 
+use App\Dto\TradeLineView;
 use App\Entity\DiscordUser;
 use App\Entity\TradeOffer;
+use App\Entity\TradeOfferLine;
 use App\Exception\Trade\TradeException;
 use App\Repository\TradeOfferRepository;
 use App\Repository\UserCardRepository;
@@ -28,6 +30,14 @@ final class TradeInbox extends AbstractController
     #[LiveProp]
     public ?string $success = null;
 
+    /**
+     * Cards the reader owns, hence may see. Memoized: one query per render,
+     * never one per offer.
+     *
+     * @var array<string, true>|null
+     */
+    private ?array $owned = null;
+
     public function __construct(
         private readonly TradeOfferRepository $tradeOfferRepository,
         private readonly TradeOfferService $tradeOfferService,
@@ -36,14 +46,19 @@ final class TradeInbox extends AbstractController
     }
 
     /**
-     * Cards the reader owns, hence may see. Asking for a card blindly in the
-     * composer must not reveal it through the sent offer that follows.
-     *
-     * @return list<string>
+     * @return list<TradeLineView>
      */
-    public function getKnownCardIds(): array
+    public function offeredView(TradeOffer $offer): array
     {
-        return $this->userCardRepository->findOwnedCardIds($this->getDiscordUser());
+        return $this->view($offer->getOfferedLines());
+    }
+
+    /**
+     * @return list<TradeLineView>
+     */
+    public function requestedView(TradeOffer $offer): array
+    {
+        return $this->view($offer->getRequestedLines());
     }
 
     /**
@@ -103,6 +118,40 @@ final class TradeInbox extends AbstractController
 
             return 'Offre annulée, tes cartes sont de nouveau disponibles.';
         });
+    }
+
+    /**
+     * Uniform rule of the whole trade screen, whatever the side: a card the
+     * reader does not own is never handed to the template, only its rarity is.
+     *
+     * @param list<TradeOfferLine> $lines
+     *
+     * @return list<TradeLineView>
+     */
+    private function view(array $lines): array
+    {
+        $owned = $this->ownedCardIds();
+
+        return array_map(
+            static fn (TradeOfferLine $line): TradeLineView => new TradeLineView(
+                isset($owned[(string) $line->getCard()->getId()]) ? $line->getCard() : null,
+                $line->getCard()->getRarity(),
+                $line->getTotalQuantity(),
+                $line->getHoloQuantity(),
+            ),
+            $lines,
+        );
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    private function ownedCardIds(): array
+    {
+        return $this->owned ??= array_fill_keys(
+            $this->userCardRepository->findOwnedCardIds($this->getDiscordUser()),
+            true,
+        );
     }
 
     /**

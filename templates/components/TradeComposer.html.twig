@@ -25,7 +25,7 @@
             'searchTheirs',
             searchTheirs,
             'Ce joueur n\'a aucune carte pour l\'instant.',
-            'Les cartes que tu ne possèdes pas restent masquées : le filtre ne porte que sur les autres.'
+            'Les cartes que tu ne possèdes pas restent face cachée, seule leur rareté est affichée : le filtre ne porte que sur les autres.'
         ) }}
     </div>
 
@@ -77,12 +77,16 @@
                                 {{ include('components/CardComponent.html.twig', { card: entry.card, holo: entry.normal == 0, lazy: true }) }}
                             {% else %}
                                 {# sans contexte : le rendu masqué n'a accès à aucune carte #}
-                                {{ include('parts/_card_back.html.twig', {}, with_context = false) }}
+                                {{ include('parts/_card_back.html.twig', { rarity: entry.rarity.value }, with_context = false) }}
                             {% endif %}
                         </div>
                         <div class="min-w-0 flex-1">
                             <p class="truncate font-display text-sm font-bold uppercase tracking-[-0.02em] {{ entry.card ? 'text-ink-strong' : 'text-ink-dim' }}">
                                 {{ entry.card ? entry.card.name : 'Carte inconnue' }}
+                                {% if not entry.card %}
+                                    <span class="chip-mono ml-1" data-testid="masked-rarity"
+                                          style="color: var(--rarity-{{ entry.rarity.value }});">{{ entry.rarity.label }}</span>
+                                {% endif %}
                             </p>
                             <p class="chip-mono mt-0.5 text-ink-dim">
                                 {{ entry.normal }} dispo{% if entry.holo > 0 %} · <span class="text-primary">✦ {{ entry.holo }}</span>{% endif %}

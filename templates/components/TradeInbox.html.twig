@@ -46,10 +46,13 @@
                                 <p class="chip-mono text-ink-muted">
                                     <span class="font-bold text-ink-strong">{{ offer.proposer.username }}</span> te propose un échange
                                 </p>
+                                {% set offeredLines = this.offeredView(offer) %}
+                                {% set requestedLines = this.requestedView(offer) %}
                                 <div class="mt-4 grid gap-6 md:grid-cols-2">
-                                    {{ include('parts/_trade_lines.html.twig', { lines: offer.offeredLines, label: 'Tu reçois' }) }}
-                                    {{ include('parts/_trade_lines.html.twig', { lines: offer.requestedLines, label: 'Tu donnes' }) }}
+                                    {{ include('parts/_trade_lines.html.twig', { lines: offeredLines, label: 'Tu reçois' }) }}
+                                    {{ include('parts/_trade_lines.html.twig', { lines: requestedLines, label: 'Tu donnes' }) }}
                                 </div>
+                                {{ _self.masking_hint(offeredLines|merge(requestedLines)) }}
                                 <div class="mt-5 flex flex-wrap gap-3 border-t border-hairline pt-4">
                                     <button type="button"
                                             data-action="live#action"
@@ -96,11 +99,13 @@
                                 <p class="chip-mono text-ink-muted">
                                     En attente de <span class="font-bold text-ink-strong">{{ offer.receiver.username }}</span>
                                 </p>
+                                {% set offeredLines = this.offeredView(offer) %}
+                                {% set requestedLines = this.requestedView(offer) %}
                                 <div class="mt-4 grid gap-6 md:grid-cols-2">
-                                    {{ include('parts/_trade_lines.html.twig', { lines: offer.offeredLines, label: 'Tu donnes' }) }}
-                                    {# demandées à l'aveugle : elles restent masquées tant qu'on ne les a pas #}
-                                    {{ include('parts/_trade_lines.html.twig', { lines: offer.requestedLines, label: 'Tu reçois', knownCardIds: this.knownCardIds }) }}
+                                    {{ include('parts/_trade_lines.html.twig', { lines: offeredLines, label: 'Tu donnes' }) }}
+                                    {{ include('parts/_trade_lines.html.twig', { lines: requestedLines, label: 'Tu reçois' }) }}
                                 </div>
+                                {{ _self.masking_hint(offeredLines|merge(requestedLines)) }}
                                 <div class="mt-5 border-t border-hairline pt-4">
                                     <button type="button"
                                             data-action="live#action"
@@ -143,3 +148,12 @@
         {% endif %}
     </main>
 </div>
+
+{% macro masking_hint(lines) %}
+    {% if lines|filter(line => line.masked)|length > 0 %}
+        <p class="mt-3 text-xs text-ink-dim" data-testid="masking-hint">
+            Face cachée = carte que tu ne possèdes pas encore. Seule sa rareté est affichée :
+            c'est à elle que se juge une offre à l'aveugle.
+        </p>
+    {% endif %}
+{% endmacro %}
