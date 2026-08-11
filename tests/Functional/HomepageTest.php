@@ -67,8 +67,9 @@ final class HomepageTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $ticker = $crawler->filter('[data-testid="ticker"]')->text();
         $this->assertStringContainsString('2 packs ouverts', $ticker);
-        // 2 openings × (2 normal + 1 holo): duplicates and holos all count
-        $this->assertStringContainsString('6 cartes tirées', $ticker);
+        // 2 openings × quantity 2 — quantity already includes the holo copy,
+        // holoQuantity is a sub-count and must NOT be added on top
+        $this->assertStringContainsString('4 cartes tirées', $ticker);
         $this->assertStringContainsString('univers', $ticker);
         $this->assertStringContainsString('2 packs / jour', $ticker);
     }

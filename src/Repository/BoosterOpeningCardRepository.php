@@ -21,12 +21,13 @@ class BoosterOpeningCardRepository extends ServiceEntityRepository
     }
 
     /**
-     * Every card ever pulled from a booster, duplicates and holos included.
+     * Every card ever pulled from a booster, duplicates included. quantity
+     * already counts holo copies (holoQuantity is a sub-count, not an extra).
      */
     public function countPulledCards(): int
     {
         return (int) $this->createQueryBuilder('oc')
-            ->select('COALESCE(SUM(oc.quantity + oc.holoQuantity), 0)')
+            ->select('COALESCE(SUM(oc.quantity), 0)')
             ->getQuery()
             ->getSingleScalarResult()
         ;
