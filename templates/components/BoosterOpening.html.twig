@@ -13,6 +13,9 @@
     <div class="opening opening--page"
          data-controller="booster-opening"
          {% if opening %}data-booster-opening-count-value="{{ revealCards|length }}"{% endif %}
+         {#- l'id du tirage, pas son nombre de cartes : deux packs d'affilée ont
+             le même compte, seul l'id dit qu'un nouveau tirage est sur la table -#}
+         data-booster-opening-opening-id-value="{{ opening ? opening.id : '' }}"
          data-action="pack3d:opened->booster-opening#startReveal pack3d:ready->booster-opening#syncPack">
 
         {# ====================================================== LEFT: the pack #}
@@ -88,8 +91,11 @@
                     {% if opening %}
                         <footer class="opening__foot" data-booster-opening-target="foot" hidden>
                             {% if ownedCount > 0 %}
-                                <button type="button" data-action="live#action" data-live-action-param="reset" class="btn-arcade">
-                                    Ouvrir un autre ▸
+                                {# open, pas reset : le tirage suivant part du même clic #}
+                                <button type="button" data-action="live#action" data-live-action-param="open"
+                                        class="btn-arcade" data-testid="open-another">
+                                    <span data-loading="hide">Ouvrir un autre ▸</span>
+                                    <span data-loading="show" class="hidden">···</span>
                                 </button>
                                 <a href="{{ path('boosters') }}" class="opening__skip">← Tous les packs</a>
                             {% else %}
@@ -158,8 +164,13 @@
                                 <div class="opening__track-img">
                                     <span class="opening__track-back" aria-hidden="true"
                                           style="background-image: url('{{ asset('images/card-back.svg') }}');"></span>
-                                    <img loading="lazy" src="{{ vich_uploader_asset(reveal.card) }}" alt=""
-                                         onerror="this.onerror=null;this.src='{{ asset('images/default_card.png') }}';">
+                                    {{ include('components/CardComponent.html.twig', {
+                                        card: reveal.card,
+                                        holo: reveal.holo,
+                                        interactive: false,
+                                        lazy: true,
+                                        id: 'track-card-' ~ loop.index0,
+                                    }) }}
                                     {% if reveal.holo %}<span class="opening__track-holo">HOLO</span>{% endif %}
                                     {% if reveal.card.id ~ '' in newCardIds %}<span class="opening__track-new">NOUVEAU</span>{% endif %}
                                 </div>
@@ -230,9 +241,16 @@
                                      {% if isOwned %}style="--tile-rar: var(--rarity-{{ rarity }});"{% endif %}>
                                 <div class="opening__card-art">
                                     {% if isOwned or isPending %}
-                                        <img loading="lazy" src="{{ vich_uploader_asset(card) }}" alt="{{ isOwned ? card.name : '' }}"
-                                             {% if isPending %}hidden{% endif %}
-                                             onerror="this.onerror=null;this.src='{{ asset('images/default_card.png') }}';">
+                                        {# wrapper dédié : c'est lui que le contrôleur dévoile à la
+                                           révélation, le composant contient plusieurs <img> #}
+                                        <div class="opening__card-render"{% if isPending %} hidden{% endif %}>
+                                            {{ include('components/CardComponent.html.twig', {
+                                                card: card,
+                                                interactive: false,
+                                                lazy: true,
+                                                id: 'set-card-' ~ cardId,
+                                            }) }}
+                                        </div>
                                     {% endif %}
                                     {% if not isOwned %}
                                         <span class="opening__card-back" aria-hidden="true"

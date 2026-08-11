@@ -413,15 +413,15 @@
     box-shadow: 0 0 14px -2px var(--slot-rar, transparent), 0 8px 18px #0008;
 }
 .opening__track-tile.is-popping .opening__track-img { animation: opening-slotPop .5s ease-out; }
-.opening__track-img img {
-    display: block;
+/* la carte rendue (CardComponent figé) remplace la vignette : c'est elle qui
+   porte le cadre, le nom et le filigrane */
+.opening__track-img .card {
     width: 100%;
     height: 100%;
-    object-fit: cover;
     opacity: 0;
     transition: opacity .4s ease;
 }
-.opening__track-tile.is-revealed .opening__track-img img { opacity: 1; }
+.opening__track-tile.is-revealed .opening__track-img .card { opacity: 1; }
 .opening__track-back {
     position: absolute;
     inset: 0;
@@ -580,7 +580,8 @@
     /* rarity halo */
     box-shadow: 0 0 16px -4px var(--tile-rar, transparent), 0 8px 18px #0007;
 }
-.opening__card-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.opening__card-render,
+.opening__card-render .card { width: 100%; height: 100%; }
 /* masked (unowned) tile: card back, no halo, muted label */
 .opening__card-back {
     position: absolute;

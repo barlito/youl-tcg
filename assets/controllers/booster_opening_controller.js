@@ -50,6 +50,7 @@ export default class extends Controller {
 
     static values = {
         count: Number,
+        openingId: String,
     };
 
     connect() {
@@ -62,26 +63,60 @@ export default class extends Controller {
     }
 
     // The `.opening` root is stable across the live re-render of `open()`, so
-    // Stimulus does NOT re-run connect() — it fires this value-changed callback
-    // when the draw lands (count 0 → N) or is cleared on reset (N → 0). Note it
-    // can run before connect(), hence the explicit init guard.
+    // Stimulus does NOT re-run connect() — it fires these value-changed
+    // callbacks instead. Note they can run before connect(), hence the explicit
+    // init guard.
     countValueChanged(current, previous) {
         this._ensureInit();
 
         if (current > 0) {
-            // a fresh opening — reset the reveal state and let the pack be peeled
-            this._resetReveal();
-            this.lastIndex = current - 1;
-            window.dispatchEvent(new CustomEvent('pack3d:arm'));
-
-            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                this._after(0, () => this._revealAllAtOnce());
-            }
+            this._armDraw();
         } else if (previous > 0) {
-            // "open another": re-seal the (data-live-ignore) pack for the next draw
-            window.dispatchEvent(new CustomEvent('pack3d:reset'));
-            this._resetReveal();
+            this._sealPack();
         }
+    }
+
+    // Opening one pack right after another keeps the same card count, so the
+    // count alone can't tell a new draw from the previous one: the opening id
+    // is what changes. Without it, "open another" had to go through the sealed
+    // state first — one extra click per pack.
+    openingIdValueChanged(current, previous) {
+        this._ensureInit();
+
+        if (current) {
+            // a pack left torn by the previous draw has to be re-sealed first
+            this._armDraw(Boolean(previous));
+        } else if (previous) {
+            this._sealPack();
+        }
+    }
+
+    // Arms the (data-live-ignore) 3D pack for the draw on the table. Guarded by
+    // the opening id: count and id both land on the same re-render, whichever
+    // callback runs first wins and the other is a no-op.
+    _armDraw(reseal = false) {
+        if (this._armedOpeningId && this._armedOpeningId === this.openingIdValue) {
+            return;
+        }
+        this._armedOpeningId = this.openingIdValue;
+
+        if (reseal) {
+            window.dispatchEvent(new CustomEvent('pack3d:reset'));
+        }
+
+        this._resetReveal();
+        this.lastIndex = this.countValue - 1;
+        window.dispatchEvent(new CustomEvent('pack3d:arm'));
+
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            this._after(0, () => this._revealAllAtOnce());
+        }
+    }
+
+    _sealPack() {
+        this._armedOpeningId = null;
+        window.dispatchEvent(new CustomEvent('pack3d:reset'));
+        this._resetReveal();
     }
 
     _ensureInit() {
@@ -387,9 +422,10 @@ export default class extends Controller {
                 tile.style.setProperty('--tile-rar', `var(--rarity-${tile.dataset.rarity})`);
             }
             tile.querySelector('.opening__card-back')?.remove();
-            const img = tile.querySelector('img');
-            if (img) {
-                img.hidden = false;
+            // the rendered card, not an <img>: the component carries both faces
+            const render = tile.querySelector('.opening__card-render');
+            if (render) {
+                render.hidden = false;
             }
             const name = tile.querySelector('.opening__card-name');
             if (name && name.dataset.revealName) {

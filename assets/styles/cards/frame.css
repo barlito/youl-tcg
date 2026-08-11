@@ -247,48 +247,14 @@
 }
 
 /* =======================================================================
-   Mini frames — thumbnail tiles of the opening view (reveal tracker + set
-   contents list). Same mat + neon line at thumbnail scale, no chrome (the
-   tile prints the name below the artwork). Gated on the revealed/unmasked
-   states so the card-back mystery tiles stay frameless.
+   Vignettes de l'ouverture (ruban de révélation + encart « contenu du set ») :
+   elles rendent désormais le CardComponent figé, donc le vrai cadre — nom,
+   univers et filigrane compris. Le mini-cadre en pseudo-éléments qui vivait
+   ici faisait double emploi et a été retiré ; il ne reste que le contexte de
+   conteneur, sur lequel le cadre se dimensionne (cqi).
    ======================================================================= */
 
 .opening__track-img,
 .opening__card-art {
     container-type: inline-size;
-}
-
-.opening__track-tile.is-revealed .opening__track-img::before,
-.opening__card-tile:not(.is-masked) .opening__card-art::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    border-radius: inherit;
-    box-shadow:
-        inset 0 0 0 2.6cqi rgb(8 5 15 / 0.95),
-        inset 0 -9cqi 7cqi -6cqi rgb(8 5 15 / 0.85);
-}
-
-.opening__track-tile.is-revealed .opening__track-img::after,
-.opening__card-tile:not(.is-masked) .opening__card-art::after {
-    content: '';
-    position: absolute;
-    inset: 2cqi;
-    z-index: 1;
-    border-radius: 6px;
-    padding: 0.5cqi;
-    background: linear-gradient(
-        200deg,
-        var(--frame-line-1, rgb(70 230 230 / 0.85)),
-        var(--frame-line-2, rgb(255 62 165 / 0.9))
-    );
-    -webkit-mask:
-        linear-gradient(#000 0 0) content-box,
-        linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask:
-        linear-gradient(#000 0 0) content-box,
-        linear-gradient(#000 0 0);
-    mask-composite: exclude;
 }

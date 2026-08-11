@@ -118,7 +118,9 @@ final class BoosterOpeningComponentTest extends WebTestCase
             $this->assertContains((string) $tile->attr('data-card-id'), $newCardIds);
             $this->assertNotSame('', (string) $tile->attr('data-pending-name'));
             $this->assertNotSame('', (string) $tile->attr('data-pending-rarity'));
-            $this->assertNotNull($tile->filter('img')->attr('hidden'), 'Pending artwork must stay hidden until the flip.');
+            // the whole rendered card is hidden: the component carries several
+            // <img> (front face + card back), the wrapper is the reveal hook
+            $this->assertNotNull($tile->filter('.opening__card-render')->attr('hidden'), 'Pending artwork must stay hidden until the flip.');
         });
     }
 
@@ -178,7 +180,7 @@ final class BoosterOpeningComponentTest extends WebTestCase
         $this->assertSame('Tu ne possèdes pas ce booster.', $opening->error);
     }
 
-    public function testResetAllowsOpeningAnotherPack(): void
+    public function testOpeningAnotherPackDrawsInOneClick(): void
     {
         $client = static::createClient();
         $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
@@ -193,15 +195,49 @@ final class BoosterOpeningComponentTest extends WebTestCase
         );
 
         $component->call('open');
-        $this->assertNotNull($component->component()->opening, 'first open');
+        $first = $component->component()->opening;
+        $this->assertNotNull($first, 'first open');
+        $firstId = (string) $first->getId();
+
+        // « Ouvrir un autre » appelle open directement : plus de passage par
+        // l'état scellé, donc un seul clic par pack
+        $component->call('open');
+        $second = $component->component();
+        $this->assertNull($second->error, 'second open must not error');
+        $this->assertNotNull($second->opening, 'second open');
+        $this->assertNotSame($firstId, (string) $second->opening->getId(), 'a second draw, not the first one again');
+
+        // c'est cet id que le contrôleur JS surveille pour ré-armer le pack :
+        // le nombre de cartes, lui, est identique d'un pack à l'autre
+        $rendered = new Crawler((string) $component->render());
+        $this->assertSame(
+            (string) $second->opening->getId(),
+            $rendered->filter('.opening')->attr('data-booster-opening-opening-id-value'),
+        );
+    }
+
+    public function testResetClearsTheTable(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $booster = $this->firstPublishedBooster();
+        $this->claim($user, $booster);
+
+        $component = $this->createLiveComponent(
+            BoosterOpening::class,
+            data: ['boosterId' => (string) $booster->getId()],
+            client: $client,
+        );
+
+        $component->call('open');
+        $this->assertNotNull($component->component()->opening);
 
         $component->call('reset');
         $this->assertNull($component->component()->opening, 'reset clears the opening');
-
-        $component->call('open');
-        $secondOpening = $component->component();
-        $this->assertNull($secondOpening->error, 'second open must not error');
-        $this->assertNotNull($secondOpening->opening, 'second open');
+        $this->assertSame(
+            '',
+            new Crawler((string) $component->render())->filter('.opening')->attr('data-booster-opening-opening-id-value'),
+        );
     }
 
     private function claim(DiscordUser $user, Booster $booster): void
