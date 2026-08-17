@@ -114,6 +114,25 @@ final class BoosterHubComponentTest extends WebTestCase
         $this->assertStringContainsString('Taux par carte', $rendered);
         // every fixture slot weight map normalises to percentages
         $this->assertStringContainsString('%', $rendered);
+        // no fixture slot advertises a one-of-one chance
+        $this->assertStringNotContainsString('◆ Unique', $rendered);
+    }
+
+    public function testDropRatesPanelAdvertisesTheUniqueChance(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $this->firstPublishedBooster()->setRarityRates([
+            ['rarities' => ['common' => 100], 'holoChance' => 0, 'uniqueChance' => 25],
+        ]);
+        $entityManager->flush();
+
+        $rendered = (string) $this->createLiveComponent(BoosterHub::class, client: $client)->render();
+
+        // 25 per 10 000 read by the player as a percentage
+        $this->assertStringContainsString('◆ Unique 0.25%', $rendered);
     }
 
     private function createEventBooster(): \App\Entity\Booster

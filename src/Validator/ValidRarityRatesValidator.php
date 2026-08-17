@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Validator;
 
+use App\Entity\Booster;
 use App\Enum\Entity\CardRarityEnum;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
@@ -46,6 +47,8 @@ final class ValidRarityRatesValidator extends ConstraintValidator
 
         $this->validateRarities($constraint, $slotNumber, $slot['rarities']);
         $this->validateHoloChance($constraint, $slotNumber, $slot['holoChance']);
+        // optional key: slots stored before the option existed read as 0
+        $this->validateUniqueChance($constraint, $slotNumber, $slot['uniqueChance'] ?? 0);
     }
 
     private function validateRarities(ValidRarityRates $constraint, int $slotNumber, mixed $rarities): void
@@ -84,6 +87,17 @@ final class ValidRarityRatesValidator extends ConstraintValidator
         if (!\is_int($holoChance) || $holoChance < 0 || $holoChance > 100) {
             $this->context->buildViolation($constraint->invalidHoloChanceMessage)
                 ->setParameter('{{ slot }}', (string) $slotNumber)
+                ->addViolation()
+            ;
+        }
+    }
+
+    private function validateUniqueChance(ValidRarityRates $constraint, int $slotNumber, mixed $uniqueChance): void
+    {
+        if (!\is_int($uniqueChance) || $uniqueChance < 0 || $uniqueChance > Booster::UNIQUE_CHANCE_SCALE) {
+            $this->context->buildViolation($constraint->invalidUniqueChanceMessage)
+                ->setParameter('{{ slot }}', (string) $slotNumber)
+                ->setParameter('{{ scale }}', (string) Booster::UNIQUE_CHANCE_SCALE)
                 ->addViolation()
             ;
         }

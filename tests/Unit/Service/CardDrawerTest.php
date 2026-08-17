@@ -145,6 +145,160 @@ final class CardDrawerTest extends TestCase
         }
     }
 
+    public function testUniqueIsNeverDrawnByTheRarityRoll(): void
+    {
+        $drawer = $this->createDrawer([
+            $this->card('Unique rare', CardRarityEnum::RARE)->setUnique(true),
+            $this->card('Plain rare', CardRarityEnum::RARE),
+        ]);
+        $booster = $this->booster([['rare' => 100]]);
+
+        for ($i = 0; $i < 300; ++$i) {
+            $this->assertSame('Plain rare', $drawer->draw($booster)[0]->card->getName());
+        }
+    }
+
+    public function testFullUniqueChanceAlwaysDrawsAUnique(): void
+    {
+        $drawer = $this->createDrawer([
+            $this->card('Unique rare', CardRarityEnum::RARE)->setUnique(true),
+            $this->card('Plain common', CardRarityEnum::COMMON),
+        ]);
+        $booster = $this->booster([['common' => 100]], uniqueChance: Booster::UNIQUE_CHANCE_SCALE);
+
+        for ($i = 0; $i < 200; ++$i) {
+            $drawnCard = $drawer->draw($booster)[0];
+
+            $this->assertSame('Unique rare', $drawnCard->card->getName());
+            // the unique brings its own rarity, the slot weights are bypassed
+            $this->assertSame(CardRarityEnum::RARE, $drawnCard->rarity);
+        }
+    }
+
+    public function testUniqueChanceDistributionOverManyDraws(): void
+    {
+        $drawer = $this->createDrawer([
+            $this->card('Unique rare', CardRarityEnum::RARE)->setUnique(true),
+            $this->card('Plain common', CardRarityEnum::COMMON),
+        ]);
+        // 1 000 per 10 000 = 10 %
+        $booster = $this->booster([['common' => 100]], uniqueChance: 1_000);
+
+        $draws = 10_000;
+        $uniques = 0;
+
+        for ($i = 0; $i < $draws; ++$i) {
+            $uniques += $drawer->draw($booster)[0]->card->isUnique() ? 1 : 0;
+        }
+
+        $this->assertEqualsWithDelta(0.10, $uniques / $draws, 0.02);
+    }
+
+    public function testUniqueChanceIsResolvedPerSlot(): void
+    {
+        $drawer = $this->createDrawer([
+            $this->card('Unique rare', CardRarityEnum::RARE)->setUnique(true),
+            $this->card('Plain common', CardRarityEnum::COMMON),
+        ]);
+        $booster = new Booster()
+            ->setExtension($this->extension())
+            ->setRarityRates([
+                ['rarities' => ['common' => 100], 'holoChance' => 0, 'uniqueChance' => 0],
+                ['rarities' => ['common' => 100], 'holoChance' => 0, 'uniqueChance' => Booster::UNIQUE_CHANCE_SCALE],
+            ])
+        ;
+
+        for ($i = 0; $i < 200; ++$i) {
+            $drawnCards = $drawer->draw($booster);
+
+            $this->assertFalse($drawnCards[0]->card->isUnique());
+            $this->assertTrue($drawnCards[1]->card->isUnique());
+        }
+    }
+
+    public function testUniqueStillRollsTheSlotHoloChance(): void
+    {
+        $drawer = $this->createDrawer([
+            $this->card('Unique rare', CardRarityEnum::RARE)->setUnique(true),
+            $this->card('Plain common', CardRarityEnum::COMMON),
+        ]);
+
+        $always = $this->booster([['common' => 100]], holoChance: 100, uniqueChance: Booster::UNIQUE_CHANCE_SCALE);
+        $never = $this->booster([['common' => 100]], holoChance: 0, uniqueChance: Booster::UNIQUE_CHANCE_SCALE);
+
+        for ($i = 0; $i < 100; ++$i) {
+            $this->assertTrue($drawer->draw($always)[0]->holo);
+            $this->assertFalse($drawer->draw($never)[0]->holo);
+        }
+    }
+
+    public function testFallsBackToTheRarityDrawWhenNoUniqueIsLeft(): void
+    {
+        // a claimed one-of-one is already filtered out of the drawable pool
+        $drawer = $this->createDrawer([$this->card('Plain common', CardRarityEnum::COMMON)]);
+        $booster = $this->booster([['common' => 100]], uniqueChance: Booster::UNIQUE_CHANCE_SCALE);
+
+        for ($i = 0; $i < 100; ++$i) {
+            $this->assertSame('Plain common', $drawer->draw($booster)[0]->card->getName());
+        }
+    }
+
+    public function testTwoUniqueSlotsCannotLandOnTheSameUnique(): void
+    {
+        $drawer = $this->createDrawer([
+            $this->card('Unique A', CardRarityEnum::RARE)->setUnique(true),
+            $this->card('Unique B', CardRarityEnum::RARE)->setUnique(true),
+            $this->card('Plain common', CardRarityEnum::COMMON),
+        ]);
+        $booster = $this->booster([['common' => 100], ['common' => 100]], uniqueChance: Booster::UNIQUE_CHANCE_SCALE);
+
+        for ($i = 0; $i < 200; ++$i) {
+            $names = array_map(static fn ($drawnCard): string => $drawnCard->card->getName(), $drawer->draw($booster));
+
+            $this->assertCount(2, array_unique($names));
+        }
+    }
+
+    public function testDrawsAUniqueWhenTheExtensionHasNothingElseToOffer(): void
+    {
+        // no regular card at all: the slot cannot fall back on a rarity roll,
+        // so the unique goes out whatever the configured chance
+        $drawer = $this->createDrawer([$this->card('Unique rare', CardRarityEnum::RARE)->setUnique(true)]);
+
+        $this->assertSame('Unique rare', $drawer->draw($this->booster([['common' => 100]]))[0]->card->getName());
+    }
+
+    public function testAUniqueInThePoolDoesNotShiftTheSeededRarityDraw(): void
+    {
+        $cards = [
+            $this->card('Common A', CardRarityEnum::COMMON),
+            $this->card('Common B', CardRarityEnum::COMMON),
+            $this->card('Plain rare', CardRarityEnum::RARE),
+        ];
+        $booster = $this->booster([['common' => 70, 'rare' => 30], ['common' => 70, 'rare' => 30]]);
+
+        $names = static fn (array $drawnCards): array => array_map(
+            static fn ($drawnCard): string => $drawnCard->card->getName() . ($drawnCard->holo ? '*' : ''),
+            $drawnCards,
+        );
+
+        // A slot that configures no unique chance rolls nothing for it, so an
+        // unclaimed 1/1 sitting in the extension shifts neither the RNG stream
+        // nor the candidate lists of the other slots.
+        $withoutUnique = new RandomService();
+        $withoutUnique->seed(20260812);
+        $reference = $names(new CardDrawer($this->repositoryWith($cards), $withoutUnique)->draw($booster));
+
+        $withUnique = new RandomService();
+        $withUnique->seed(20260812);
+        $drawer = new CardDrawer(
+            $this->repositoryWith([...$cards, $this->card('Unique rare', CardRarityEnum::RARE)->setUnique(true)]),
+            $withUnique,
+        );
+
+        $this->assertSame($reference, $names($drawer->draw($booster)));
+    }
+
     public function testThrowsWhenRarityRatesAreEmpty(): void
     {
         // The guard must fire before any pool load or roll: an empty slot list
@@ -300,13 +454,17 @@ final class CardDrawerTest extends TestCase
     /**
      * Wraps plain rarity weight maps into the per-slot shape
      * ({rarities, holoChance}), applying the same holo chance to every slot.
+     * uniqueChance is only written when asked for, so the default booster is
+     * exactly the pre-option shape.
      *
      * @param list<array<string, int>> $raritySlots
      */
-    private function booster(array $raritySlots, int $holoChance = 10): Booster
+    private function booster(array $raritySlots, int $holoChance = 10, ?int $uniqueChance = null): Booster
     {
         $rarityRates = array_map(
-            static fn (array $rarities): array => ['rarities' => $rarities, 'holoChance' => $holoChance],
+            static fn (array $rarities): array => null === $uniqueChance
+                ? ['rarities' => $rarities, 'holoChance' => $holoChance]
+                : ['rarities' => $rarities, 'holoChance' => $holoChance, 'uniqueChance' => $uniqueChance],
             $raritySlots,
         );
 

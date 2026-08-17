@@ -296,6 +296,9 @@
                                                             {% if slot.holoChance > 0 %}
                                                                 <span class="text-magenta">✦ Holo {{ slot.holoChance }}%</span>
                                                             {% endif %}
+                                                            {% if slot.uniqueChance > 0 %}
+                                                                <span class="text-magenta" title="Chance de tirer une carte unique 1/1 encore non réclamée">◆ Unique {{ slot.uniqueRate == slot.uniqueRate|round ? slot.uniqueRate|round : slot.uniqueRate }}%</span>
+                                                            {% endif %}
                                                         </div>
                                                     {% endfor %}
                                                 </div>

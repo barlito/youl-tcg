@@ -151,9 +151,18 @@ class BoosterCrudController extends AbstractGuardedCrudController
         }
 
         $holoChance = $slot['holoChance'] ?? 0;
+        $uniqueChance = $slot['uniqueChance'] ?? 0;
         $summary = implode(' · ', $parts);
 
-        return \is_int($holoChance) && $holoChance > 0 ? $summary . ' — holo ' . $holoChance . ' %' : $summary;
+        if (\is_int($holoChance) && $holoChance > 0) {
+            $summary .= ' — holo ' . $holoChance . ' %';
+        }
+
+        if (\is_int($uniqueChance) && $uniqueChance > 0) {
+            $summary .= ' — unique ' . $this->formatUniqueRate($uniqueChance) . ' %';
+        }
+
+        return $summary;
     }
 
     /**
@@ -182,7 +191,7 @@ class BoosterCrudController extends AbstractGuardedCrudController
     }
 
     /**
-     * @return array{compact: bool, unavailable: list<string>, slots: list<array{rates: array<string, float>, weights: array<string, int>, holoChance: int}>}
+     * @return array{compact: bool, unavailable: list<string>, slots: list<array{rates: array<string, float>, weights: array<string, int>, holoChance: int, uniqueRate: string}>}
      */
     private function dropRatesData(mixed $entity, bool $compact): array
     {
@@ -198,6 +207,9 @@ class BoosterCrudController extends AbstractGuardedCrudController
                 'rates' => $slot['rates'],
                 'weights' => $rarityRates[$index]['rarities'] ?? [],
                 'holoChance' => $slot['holoChance'],
+                // '' when the slot cannot yield a unique: the template only
+                // prints the marker for a configured chance
+                'uniqueRate' => $slot['uniqueChance'] > 0 ? $this->formatUniqueRate($slot['uniqueChance']) : '',
             ];
         }
 
@@ -214,6 +226,15 @@ class BoosterCrudController extends AbstractGuardedCrudController
     private function formatPercentage(float $percentage): string
     {
         return rtrim(rtrim(number_format($percentage, 1, ',', ''), '0'), ',');
+    }
+
+    /**
+     * A uniqueChance setting as a percentage, keeping its 2 decimals (0,01 %
+     * is a meaningful 1/1 rate, unlike for the rarity weights).
+     */
+    private function formatUniqueRate(int $uniqueChance): string
+    {
+        return rtrim(rtrim(number_format(Booster::toUniquePercentage($uniqueChance), 2, ',', ''), '0'), ',');
     }
 
     #[\Override]

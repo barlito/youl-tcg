@@ -40,7 +40,7 @@ final class AdminBoosterCrudTest extends WebTestCase
 
         $booster = $this->createBooster([
             ['rarities' => ['common' => 70, 'rare' => 30], 'holoChance' => 20],
-            ['rarities' => ['rare' => 100], 'holoChance' => 100],
+            ['rarities' => ['rare' => 100], 'holoChance' => 100, 'uniqueChance' => 25],
         ]);
 
         $crawler = $client->request('GET', self::CRUD_URL . '/' . $booster->getId() . '/edit');
@@ -58,6 +58,9 @@ final class AdminBoosterCrudTest extends WebTestCase
         $this->assertSame('', (string) $crawler->filter('input[name="Booster[rarityRates][0][rarities][legendary]"]')->attr('value'));
         $this->assertSame('20', $crawler->filter('input[name="Booster[rarityRates][0][holoChance]"]')->attr('value'));
         $this->assertSame('100', $crawler->filter('input[name="Booster[rarityRates][1][rarities][rare]"]')->attr('value'));
+        // slot #1 predates the unique option: blank input, no crash
+        $this->assertSame('', (string) $crawler->filter('input[name="Booster[rarityRates][0][uniqueChance]"]')->attr('value'));
+        $this->assertSame('25', $crawler->filter('input[name="Booster[rarityRates][1][uniqueChance]"]')->attr('value'));
     }
 
     public function testSubmittingTheFormStoresACleanSlotList(): void
@@ -80,8 +83,8 @@ final class AdminBoosterCrudTest extends WebTestCase
         // slot #2 deleted in the browser and a new one appended: the submitted
         // keys are gapped, the stored JSON must still be a list
         $values['Booster']['rarityRates'] = [
-            0 => ['rarities' => ['common' => '80', 'uncommon' => '', 'rare' => '20', 'legendary' => ''], 'holoChance' => '15'],
-            2 => ['rarities' => ['common' => '', 'uncommon' => '', 'rare' => '', 'legendary' => '1'], 'holoChance' => ''],
+            0 => ['rarities' => ['common' => '80', 'uncommon' => '', 'rare' => '20', 'legendary' => ''], 'holoChance' => '15', 'uniqueChance' => ''],
+            2 => ['rarities' => ['common' => '', 'uncommon' => '', 'rare' => '', 'legendary' => '1'], 'holoChance' => '', 'uniqueChance' => '25'],
         ];
         $client->request('POST', $form->getUri(), $values);
         self::assertResponseIsSuccessful();
@@ -92,8 +95,8 @@ final class AdminBoosterCrudTest extends WebTestCase
         \assert($saved instanceof Booster);
 
         $this->assertSame([
-            ['rarities' => ['common' => 80, 'rare' => 20], 'holoChance' => 15],
-            ['rarities' => ['legendary' => 1], 'holoChance' => 0],
+            ['rarities' => ['common' => 80, 'rare' => 20], 'holoChance' => 15, 'uniqueChance' => 0],
+            ['rarities' => ['legendary' => 1], 'holoChance' => 0, 'uniqueChance' => 25],
         ], $saved->getRarityRates());
         $this->assertSame(2, $saved->getCardCount());
     }
@@ -131,7 +134,7 @@ final class AdminBoosterCrudTest extends WebTestCase
         $client->followRedirects();
         $this->authenticateClient($client);
 
-        $booster = $this->createBooster([['rarities' => ['common' => 60, 'rare' => 40], 'holoChance' => 25]]);
+        $booster = $this->createBooster([['rarities' => ['common' => 60, 'rare' => 40], 'holoChance' => 25, 'uniqueChance' => 25]]);
 
         $crawler = $client->request('GET', self::CRUD_URL . '/' . $booster->getId());
 
@@ -141,6 +144,22 @@ final class AdminBoosterCrudTest extends WebTestCase
         $this->assertStringContainsString('Rare 40 %', $rates);
         $this->assertStringContainsString('poids 60', $rates);
         $this->assertStringContainsString('holo 25 %', $rates);
+        // 25 per 10 000 read back as the percentage the player will see
+        $this->assertStringContainsString('unique 0,25 %', $rates);
+    }
+
+    public function testASlotWithoutUniqueChanceShowsNoUniqueMarker(): void
+    {
+        $client = self::createClient();
+        $client->followRedirects();
+        $this->authenticateClient($client);
+
+        $booster = $this->createBooster([['rarities' => ['common' => 100], 'holoChance' => 0]]);
+
+        $crawler = $client->request('GET', self::CRUD_URL . '/' . $booster->getId());
+
+        self::assertResponseIsSuccessful();
+        $this->assertStringNotContainsString('unique', $crawler->filter('.booster-drop-rates')->text());
     }
 
     public function testIndexPageShowsADropRatesColumn(): void
@@ -181,8 +200,8 @@ final class AdminBoosterCrudTest extends WebTestCase
     }
 
     /**
-     * @param list<array{rarities: array<string, int>, holoChance: int}> $rarityRates
-     * @param list<CardRarityEnum>                                       $publishedRarities
+     * @param list<array{rarities: array<string, int>, holoChance: int, uniqueChance?: int}> $rarityRates
+     * @param list<CardRarityEnum>                                                           $publishedRarities
      */
     private function createBooster(array $rarityRates, array $publishedRarities = []): Booster
     {
