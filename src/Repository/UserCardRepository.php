@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\UserCard;
@@ -11,6 +12,7 @@ use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\LockMode;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -22,6 +24,25 @@ class UserCardRepository extends ServiceEntityRepository
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, UserCard::class);
+    }
+
+    /**
+     * Pessimistic write lock on one inventory row, guarding its quantities
+     * against concurrent trades/openings. Requires an active transaction.
+     * NB: the locked SELECT does NOT re-hydrate an entity already in the
+     * identity map — callers must refresh() the returned row.
+     */
+    public function findOneForUpdate(DiscordUser $discordUser, Card $card): ?UserCard
+    {
+        return $this->createQueryBuilder('userCard')
+            ->andWhere('userCard.discordUser = :discordUser')
+            ->andWhere('userCard.card = :card')
+            ->setParameter('discordUser', $discordUser)
+            ->setParameter('card', $card)
+            ->getQuery()
+            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+            ->getOneOrNullResult()
+        ;
     }
 
     /**

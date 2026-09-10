@@ -17,4 +17,19 @@ class DiscordUserRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, DiscordUser::class);
     }
+
+    /**
+     * Everyone but the given player, for the trade counterpart picker.
+     *
+     * @return list<DiscordUser>
+     */
+    public function findOthersOrderedByUsername(DiscordUser $user): array
+    {
+        return array_values($this->createQueryBuilder('discordUser')
+            ->andWhere('discordUser.discordId != :self')
+            ->setParameter('self', $user->getDiscordId())
+            ->orderBy('LOWER(discordUser.username)', 'ASC')
+            ->getQuery()
+            ->getResult());
+    }
 }

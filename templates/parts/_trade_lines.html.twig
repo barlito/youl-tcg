@@ -1,0 +1,32 @@
+{# Cartes d'un côté d'une offre. `lines` = TradeLineView[], `label` = intitulé.
+   La visibilité est déjà tranchée côté serveur : une vue masquée ne porte
+   aucune carte, seulement sa rareté. #}
+<div>
+    <p class="chip-mono text-ink-dim">{{ label }}</p>
+    {% if lines is empty %}
+        <p class="mt-2 text-sm text-ink-dim">—</p>
+    {% else %}
+        <div class="mt-2 flex flex-wrap items-start gap-3">
+            {% for line in lines %}
+                <div class="w-24 shrink-0">
+                    <div class="relative">
+                        {% if line.masked %}
+                            {# sans contexte : le rendu masqué n'a accès à aucune carte #}
+                            {{ include('parts/_card_back.html.twig', { rarity: line.rarity.value }, with_context = false) }}
+                        {% else %}
+                            {{ include('components/CardComponent.html.twig', { card: line.card, holo: line.holoQuantity > 0, lazy: true }) }}
+                        {% endif %}
+                        <span class="chip-mono absolute -right-1.5 -top-1.5 bg-black/90 px-1.5 py-0.5 font-bold text-white">
+                            ×{{ line.totalQuantity }}{% if line.holoQuantity > 0 %} <span class="text-primary">✦{{ line.holoQuantity }}</span>{% endif %}
+                        </span>
+                    </div>
+                    {% if line.masked %}
+                        <p class="chip-mono mt-1 truncate text-center text-ink-dim">Carte inconnue</p>
+                        <p class="chip-mono truncate text-center font-bold" data-testid="masked-rarity"
+                           style="color: var(--rarity-{{ line.rarity.value }});">{{ line.rarity.label }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>

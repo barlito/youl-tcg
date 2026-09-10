@@ -15,7 +15,7 @@
             {{ _self.nav_link('universes', 'Univers') }}
             {{ _self.nav_link('boosters', 'Boosters') }}
             {{ _self.nav_link('leaderboard', 'Classement') }}
-            {{ _self.nav_soon('Échanges') }}
+            {{ _self.nav_trades(pending_trade_offers()) }}
             {{ _self.nav_soon('Duels') }}
         </nav>
 
@@ -40,6 +40,17 @@
     {# starts with = les sous-pages allument aussi l'entrée (universes_show → Univers) #}
     <a href="{{ path(route) }}"
        class="text-ink-muted hover:text-ink-strong {{ app.request.get('_route')|default('') starts with route ? 'active' : '' }}">{{ label }}</a>
+{% endmacro %}
+
+{% macro nav_trades(pending) %}
+    <a href="{{ path('trades') }}"
+       class="flex items-center gap-1.5 text-ink-muted hover:text-ink-strong {{ app.request.get('_route')|default('') starts with 'trades' ? 'active' : '' }}">
+        Échanges
+        {% if pending > 0 %}
+            <span class="flex h-4 min-w-4 items-center justify-center bg-primary px-1 font-mono text-[10px] font-bold text-black"
+                  data-testid="pending-trades-badge">{{ pending }}</span>
+        {% endif %}
+    </a>
 {% endmacro %}
 
 {% macro nav_soon(label) %}

@@ -156,6 +156,32 @@ class CardRepository extends ServiceEntityRepository
     }
 
     /**
+     * Atomically moves a one-of-one's claim from its current holder to the new
+     * one: the conditional WHERE only matches while $from still holds the
+     * claim, so a concurrent transfer loses cleanly instead of duplicating
+     * the 1/1.
+     *
+     * @return bool true if this call transferred the claim
+     */
+    public function transferUniqueClaim(Card $card, DiscordUser $from, DiscordUser $to): bool
+    {
+        $affected = $this->createQueryBuilder('c')
+            ->update()
+            ->set('c.claimedBy', ':to')
+            ->where('c = :card')
+            ->andWhere('c.uniqueFlag = true')
+            ->andWhere('c.claimedBy = :from')
+            ->setParameter('to', $to)
+            ->setParameter('from', $from)
+            ->setParameter('card', $card)
+            ->getQuery()
+            ->execute()
+        ;
+
+        return 1 === $affected;
+    }
+
+    /**
      * How many one-of-one uniques each player holds (leaderboard stat): the
      * count only — WHICH uniques someone holds stays a mystery on purpose.
      *
