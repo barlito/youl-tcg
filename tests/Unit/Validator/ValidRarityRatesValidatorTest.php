@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Validator;
 
+use App\Entity\Booster;
 use App\Enum\Entity\CardRarityEnum;
 use App\Validator\ValidRarityRates;
 use App\Validator\ValidRarityRatesValidator;
@@ -159,6 +160,41 @@ final class ValidRarityRatesValidatorTest extends ConstraintValidatorTestCase
         yield 'below zero' => [-1];
         yield 'above one hundred' => [101];
         yield 'not an integer' => ['10'];
+    }
+
+    #[DataProvider('provideInvalidUniqueChances')]
+    public function testInvalidUniqueChanceIsRejected(mixed $uniqueChance): void
+    {
+        $this->validator->validate([
+            ['rarities' => ['common' => 100], 'holoChance' => 10, 'uniqueChance' => $uniqueChance],
+        ], $this->rarityRatesConstraint);
+
+        $this->buildViolation($this->rarityRatesConstraint->invalidUniqueChanceMessage)
+            ->setParameter('{{ slot }}', '1')
+            ->setParameter('{{ scale }}', (string) Booster::UNIQUE_CHANCE_SCALE)
+            ->assertRaised()
+        ;
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function provideInvalidUniqueChances(): iterable
+    {
+        yield 'below zero' => [-1];
+        yield 'above the scale' => [Booster::UNIQUE_CHANCE_SCALE + 1];
+        yield 'not an integer' => ['25'];
+    }
+
+    public function testSlotWithoutUniqueChanceStaysValid(): void
+    {
+        // the key is optional: slots stored before the option must not break
+        $this->validator->validate([
+            ['rarities' => ['common' => 100], 'holoChance' => 10],
+            ['rarities' => ['rare' => 100], 'holoChance' => 0, 'uniqueChance' => Booster::UNIQUE_CHANCE_SCALE],
+        ], $this->rarityRatesConstraint);
+
+        $this->assertNoViolation();
     }
 
     public function testUnknownRarityWithInvalidWeightRaisesBothViolations(): void

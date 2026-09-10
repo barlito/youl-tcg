@@ -14,8 +14,8 @@ use App\Repository\CardRepository;
  * them. CardDrawer silently falls back to the nearest tier in that case, so
  * the back-office warns instead of letting the misconfiguration go unnoticed.
  *
- * Availability is read from the very pool the draw uses (published cards,
- * claimed one-of-ones excluded) and memoised per extension: an admin index
+ * Availability is read from the very pool the rarity roll uses (published
+ * cards, uniques excluded) and memoised per extension: an admin index
  * lists many boosters sharing a handful of extensions.
  */
 final class BoosterRarityAvailability
@@ -71,7 +71,11 @@ final class BoosterRarityAvailability
             $rarities = [];
 
             foreach ($this->cardRepository->findDrawablePool($extension) as $card) {
-                $rarities[$card->getRarity()->value] = true;
+                // uniques are drawn by their own chance, never by the rarity
+                // roll: a tier holding nothing but a 1/1 is unavailable
+                if (!$card->isUnique()) {
+                    $rarities[$card->getRarity()->value] = true;
+                }
             }
 
             $this->drawableRaritiesByExtension[$key] = array_keys($rarities);
