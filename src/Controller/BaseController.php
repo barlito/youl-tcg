@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Extension;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\BoosterOpeningCardRepository;
 use App\Repository\BoosterOpeningRepository;
@@ -68,7 +69,7 @@ class BaseController extends AbstractController
             'packsOpenedCount' => $boosterOpeningRepository->countAll(),
             'cardsPulledCount' => $boosterOpeningCardRepository->countPulledCards(),
             'upcoming' => $upcoming,
-            'upcomingCover' => $upcoming ? $cardRepository->findTeaserCoverImageName($upcoming) : null,
+            'upcomingCover' => $upcoming instanceof Extension ? $cardRepository->findTeaserCoverImageName($upcoming) : null,
         ]);
     }
 
