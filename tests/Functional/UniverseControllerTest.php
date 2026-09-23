@@ -59,6 +59,32 @@ final class UniverseControllerTest extends WebTestCase
         );
     }
 
+    public function testIndexIgnoresAnOwnedCardPutBackToDraft(): void
+    {
+        $this->ownAllPublishedCardsThenDraftOne();
+
+        $crawler = $this->client->request('GET', '/univers');
+
+        self::assertResponseIsSuccessful();
+        $tile = $crawler->filter(\sprintf('[data-testid="universes-grid"] a[href="/univers/%s"]', $this->extension->getSlug()));
+        // 2 published cards left, both owned: 2/2, not 3/2 = 150%
+        $this->assertStringContainsString('2/2 cartes', $tile->text());
+        $this->assertStringContainsString('100%', $tile->text());
+    }
+
+    public function testShowIgnoresAnOwnedCardPutBackToDraft(): void
+    {
+        $this->ownAllPublishedCardsThenDraftOne();
+
+        $crawler = $this->client->request('GET', '/univers/' . $this->extension->getSlug());
+
+        self::assertResponseIsSuccessful();
+        $stats = $crawler->filter('[data-testid="universe-stats"]')->text();
+        $this->assertStringContainsString('2/2', $stats);
+        $this->assertStringContainsString('100%', $stats);
+        $this->assertStringNotContainsString($this->cards[1]->getName(), $crawler->filter('[data-testid="set-grid"]')->text());
+    }
+
     public function testSoonTileShowsOnlyWithAnUpcomingExtension(): void
     {
         $crawler = $this->client->request('GET', '/univers');
@@ -259,6 +285,20 @@ final class UniverseControllerTest extends WebTestCase
 
         $this->createBooster('Pack Classique Univers');
 
+        $this->entityManager->flush();
+    }
+
+    private function ownAllPublishedCardsThenDraftOne(): void
+    {
+        foreach ([$this->cards[1], $this->cards[2]] as $card) {
+            $this->entityManager->persist(
+                new UserCard()
+                    ->setDiscordUser($this->user)
+                    ->setCard($card)
+                    ->setQuantity(1),
+            );
+        }
+        $this->cards[1]->setStatus(CardStatusEnum::DRAFT);
         $this->entityManager->flush();
     }
 
