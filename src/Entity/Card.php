@@ -15,6 +15,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 use Vich\UploaderBundle\Mapping\Attribute as Vich;
 
 #[Vich\Uploadable]
@@ -180,6 +181,30 @@ class Card implements \Stringable
     public function isClaimed(): bool
     {
         return $this->claimedBy instanceof DiscordUser;
+    }
+
+    /**
+     * Why the unique flag is frozen, null while it can still be changed: an
+     * unflagged drawn 1/1 would re-enter the draw pool while still counted as
+     * its holder's unique.
+     */
+    public function uniqueFlagLockReason(): ?string
+    {
+        if (!$this->claimedBy instanceof DiscordUser) {
+            return null;
+        }
+
+        return \sprintf('Cette carte unique a déjà été tirée par %s : le flag unique ne peut plus être modifié.', $this->claimedBy);
+    }
+
+    #[Assert\Callback]
+    public function validateUniqueFlagLock(ExecutionContextInterface $context): void
+    {
+        $reason = $this->uniqueFlagLockReason();
+
+        if (null !== $reason && !$this->uniqueFlag) {
+            $context->buildViolation($reason)->atPath('unique')->addViolation();
+        }
     }
 
     public function isAlwaysHolo(): bool

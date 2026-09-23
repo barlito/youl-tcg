@@ -262,10 +262,16 @@ class CardCrudController extends AbstractGuardedCrudController
             ->setChoices(CardRarityEnum::cases())
         ;
         yield AssociationField::new('extension')->setLabel('Univers');
-        yield BooleanField::new('unique')
+        $uniqueField = BooleanField::new('unique')
             ->setLabel('Carte unique (1/1)')
             ->renderAsSwitch(false)
         ;
+        $lockReason = $this->editedCard()?->uniqueFlagLockReason();
+        if (null !== $lockReason) {
+            // disabled: a tampered POST is ignored, Card's own constraint backs it up
+            $uniqueField->setFormTypeOption('disabled', true)->setHelp(htmlspecialchars($lockReason, \ENT_QUOTES));
+        }
+        yield $uniqueField;
         // read-only on purpose: the holder is set atomically the first time the
         // unique is drawn, reassigning it by hand would rewrite a player's luck
         yield AssociationField::new('claimedBy')
@@ -299,6 +305,13 @@ class CardCrudController extends AbstractGuardedCrudController
         ;
         yield from VisualConfigFields::fields(isOverride: true);
         yield Field::new('visualConfigOverrideJson')->setLabel('Surcharges visuelles (JSON)')->onlyOnDetail();
+    }
+
+    private function editedCard(): ?Card
+    {
+        $card = $this->getContext()?->getEntity()->getInstance();
+
+        return $card instanceof Card ? $card : null;
     }
 
     #[\Override]
