@@ -7,9 +7,12 @@ namespace App\Controller\Admin;
 use App\Admin\Field\ImageField as VichImageField;
 use App\Admin\FoilSizeSliderScript;
 use App\Admin\VisualConfigFields;
+use App\Entity\BoosterOpeningCard;
 use App\Entity\Card;
+use App\Entity\DiscordUser;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
+use App\Repository\UserCardRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -18,7 +21,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\BatchActionDto;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
@@ -34,16 +36,17 @@ use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 use Vich\UploaderBundle\Templating\Helper\UploaderHelper;
 
 /**
- * @extends AbstractCrudController<Card>
+ * @extends AbstractGuardedCrudController<Card>
  *
  * @SuppressWarnings("PHPMD.CouplingBetweenObjects")
  */
-class CardCrudController extends AbstractCrudController
+class CardCrudController extends AbstractGuardedCrudController
 {
     public function __construct(
         private readonly UploaderHelper $uploaderHelper,
         private readonly AssetMapperInterface $assetMapper,
         private readonly EntityManagerInterface $entityManager,
+        private readonly UserCardRepository $userCardRepository,
     ) {
     }
 
@@ -296,5 +299,40 @@ class CardCrudController extends AbstractCrudController
         ;
         yield from VisualConfigFields::fields(isOverride: true);
         yield Field::new('visualConfigOverrideJson')->setLabel('Surcharges visuelles (JSON)')->onlyOnDetail();
+    }
+
+    #[\Override]
+    protected function deletionBlockers(object $entity): array
+    {
+        if (!$entity instanceof Card) {
+            throw new UnexpectedTypeException($entity, Card::class);
+        }
+
+        // every FK pointing at card must be counted here, or the delete ends on a bare 409
+        $blockers = $this->describeBlockers([
+            '%d joueur(s) la possèdent' => $this->userCardRepository->countHolders($entity),
+            '%d ouverture(s) l\'ont tirée' => $this->entityManager->getRepository(BoosterOpeningCard::class)->count(['card' => $entity]),
+        ]);
+
+        $holder = $entity->getClaimedBy();
+        if ($holder instanceof DiscordUser) {
+            $blockers[] = \sprintf('carte unique (1/1) déjà tirée par %s', $holder);
+        }
+
+        return $blockers;
+    }
+
+    #[\Override]
+    protected function deletionAdvice(): string
+    {
+        return 'Cet historique est volontairement immuable — pour retirer cette carte du jeu, repasse-la en brouillon plutôt que de la supprimer.';
+    }
+
+    #[\Override]
+    protected function purgeDisposableReferences(object $entity): void
+    {
+        if ($entity instanceof Card) {
+            $this->userCardRepository->deleteEmptyRows($entity);
+        }
     }
 }

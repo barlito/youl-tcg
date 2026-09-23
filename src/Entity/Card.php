@@ -20,7 +20,7 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
 #[Vich\Uploadable]
 #[ORM\Entity(repositoryClass: CardRepository::class)]
 #[ORM\Index(columns: ['extension_id', 'status'])]
-class Card
+class Card implements \Stringable
 {
     use HasVisualConfigTrait;
     use IdUuidTrait;
@@ -155,6 +155,11 @@ class Card
         $this->uniqueFlag = $uniqueFlag;
 
         return $this;
+    }
+
+    public function __toString(): string
+    {
+        return $this->name ?? 'Carte';
     }
 
     public function getClaimedBy(): ?DiscordUser
