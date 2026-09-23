@@ -19,9 +19,12 @@ use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
+use Symfony\Component\Uid\Uuid;
 
 final class BoosterClaimServiceTest extends TestCase
 {
+    private const string EXTENSION_ID = '0198f3a2-6c1e-7d4b-9a3f-2b8c5d7e9f10';
+
     public function testClaimCreditsTheInventoryAndPersistsAnAuditRow(): void
     {
         $clock = new MockClock('2026-06-10 12:00:00', 'UTC');
@@ -109,8 +112,29 @@ final class BoosterClaimServiceTest extends TestCase
             $service->claim($this->user(), $booster);
             $this->fail('Expected BoosterNotClaimableException.');
         } catch (BoosterNotClaimableException $exception) {
-            $this->assertSame('Ce pack n\'est pas disponible.', $exception->getUserMessage());
+            $this->assertSame('Ce pack n\'est pas récupérable pour le moment.', $exception->getUserMessage());
         }
+    }
+
+    public function testClaimRefusesABoosterWithNothingToDraw(): void
+    {
+        $inventory = $this->createMock(UserInventoryService::class);
+        $inventory->expects($this->never())->method('creditBooster');
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects($this->never())->method('wrapInTransaction');
+
+        $service = new BoosterClaimService(
+            $this->quotaWithRemaining(2),
+            $inventory,
+            $entityManager,
+            new MockClock('2026-06-10 12:00:00', 'UTC'),
+            $this->availability(drawable: false),
+        );
+
+        $this->expectException(BoosterNotClaimableException::class);
+
+        $service->claim($this->user(), $this->claimableBooster());
     }
 
     public function testQuotaAccessorsDelegateToThePolicy(): void
@@ -132,9 +156,14 @@ final class BoosterClaimServiceTest extends TestCase
         $this->assertSame($resetTime, $service->getNextResetTime());
     }
 
-    private function availability(): BoosterAvailabilityService
+    private function availability(bool $drawable = true): BoosterAvailabilityService
     {
-        return new BoosterAvailabilityService($this->createStub(CardRepository::class));
+        $cardRepository = $this->createStub(CardRepository::class);
+        $cardRepository->method('findExtensionIdsWithPublishedCards')
+            ->willReturn($drawable ? [self::EXTENSION_ID] : [])
+        ;
+
+        return new BoosterAvailabilityService($cardRepository);
     }
 
     private function quotaWithRemaining(int $remaining): BoosterClaimQuotaInterface
@@ -152,8 +181,9 @@ final class BoosterClaimServiceTest extends TestCase
 
     private function claimableBooster(): Booster
     {
-        return new Booster()->setExtension(
-            new Extension()->setName('Published ext')->setStatus(ExtensionStatusEnum::PUBLISHED),
-        );
+        $extension = new Extension()->setName('Published ext')->setStatus(ExtensionStatusEnum::PUBLISHED);
+        new \ReflectionProperty(Extension::class, 'id')->setValue($extension, Uuid::fromString(self::EXTENSION_ID));
+
+        return new Booster()->setExtension($extension);
     }
 }

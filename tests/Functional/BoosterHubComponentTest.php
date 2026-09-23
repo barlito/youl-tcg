@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional;
 
 use App\Entity\UserBooster;
+use App\Repository\BoosterClaimRepository;
 use App\Repository\BoosterRepository;
 use App\Twig\Components\BoosterHub;
 use Doctrine\ORM\EntityManagerInterface;
@@ -81,7 +82,7 @@ final class BoosterHubComponentTest extends WebTestCase
         // …even so, a forged live claim is refused server-side, in French
         $component->call('claimBooster', ['boosterId' => (string) $eventBooster->getId()]);
         $this->assertSame(
-            'Ce pack ne peut pas être récupéré ici — il se gagne en event ou via un code.',
+            'Ce pack n\'est pas récupérable pour le moment.',
             $component->component()->error,
         );
 
@@ -175,6 +176,36 @@ final class BoosterHubComponentTest extends WebTestCase
         // The rendered "Ouvrir" control for Bleach is disabled, no scary error needed.
         $rendered = (string) $component->render();
         $this->assertStringContainsString('À venir', $rendered);
+    }
+
+    public function testABoosterWithNothingToDrawCannotBeClaimed(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $cyberpunk = $this->firstPublishedBooster();
+        $bleach = null;
+        foreach (static::getContainer()->get(BoosterRepository::class)->findPublished() as $booster) {
+            if ('Bleach' === $booster->getExtension()->getName()) {
+                $bleach = $booster;
+            }
+        }
+        $this->assertNotNull($bleach, 'Bleach booster fixture missing.');
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        $rendered = (string) $component->render();
+
+        // "À venir" alone: no claim button next to it
+        $this->assertStringContainsString('data-live-booster-id-param="' . $cyberpunk->getId() . '"', $rendered);
+        $this->assertStringNotContainsString('data-live-booster-id-param="' . $bleach->getId() . '"', $rendered);
+
+        // a forged action is refused without burning a daily claim
+        $component->call('claimBooster', ['boosterId' => (string) $bleach->getId()]);
+
+        $this->assertSame('Ce pack n\'est pas récupérable pour le moment.', $component->component()->error);
+        $this->assertSame(0, static::getContainer()->get(BoosterClaimRepository::class)->countSince($user, new \DateTimeImmutable('-1 day')));
+        $this->assertNull(static::getContainer()->get(EntityManagerInterface::class)
+            ->getRepository(UserBooster::class)
+            ->findOneBy(['discordUser' => $user, 'booster' => $bleach]));
     }
 
     /**

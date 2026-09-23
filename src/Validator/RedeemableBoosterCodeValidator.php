@@ -71,7 +71,7 @@ final class RedeemableBoosterCodeValidator extends ConstraintValidator
 
         $booster = $boosterCode->getBooster();
 
-        if (!$this->boosterAvailability->hasPublishedExtension($booster) || !$this->boosterAvailability->isDrawable($booster)) {
+        if (!$this->boosterAvailability->isDistributable($booster)) {
             $this->refuse($constraint->notAvailableYetMessage, BoosterCodeRefusalEnum::NOT_AVAILABLE_YET);
         }
     }

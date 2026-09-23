@@ -59,9 +59,9 @@ final readonly class StreakRewardService
     }
 
     /**
-     * Spends a pending reward on the chosen booster. Same guards as a daily
-     * claim (claimable + published extension): a forged live action must not
-     * reach an event/code-only pack through a streak reward.
+     * Spends a pending reward on the chosen booster. Same check as a daily
+     * claim (BoosterAvailabilityService::isRetrievable): a forged live action
+     * must not reach an event/code-only or undrawable pack.
      *
      * @throws StreakRewardUnavailableException
      * @throws BoosterNotClaimableException
@@ -78,17 +78,10 @@ final readonly class StreakRewardService
                 );
             }
 
-            if (!$this->boosterAvailability->isClaimable($booster)) {
+            if (!$this->boosterAvailability->isRetrievable($booster)) {
                 throw new BoosterNotClaimableException(
-                    \sprintf('Booster "%s" is not claimable (event/code distribution only).', $booster->getDisplayName()),
-                    'Ce pack ne peut pas être choisi en récompense.',
-                );
-            }
-
-            if (!$this->boosterAvailability->hasPublishedExtension($booster)) {
-                throw new BoosterNotClaimableException(
-                    \sprintf('Booster "%s" belongs to an unpublished extension.', $booster->getDisplayName()),
-                    'Ce pack n\'est pas disponible.',
+                    \sprintf('Booster "%s" is not retrievable (not claimable, unpublished extension or nothing to draw).', $booster->getDisplayName()),
+                    'Ce pack ne peut pas être choisi en récompense pour le moment.',
                 );
             }
 
