@@ -38,4 +38,34 @@ class UserBoosterRepository extends ServiceEntityRepository
             ->getOneOrNullResult()
         ;
     }
+
+    public function countHolders(Booster $booster): int
+    {
+        return (int) $this->createQueryBuilder('userBooster')
+            ->select('COUNT(userBooster.quantity)')
+            ->andWhere('userBooster.booster = :booster')
+            ->andWhere('userBooster.quantity > 0')
+            ->setParameter('booster', $booster)
+            ->getQuery()
+            ->getSingleScalarResult()
+        ;
+    }
+
+    /**
+     * Drops the rows left at zero once a player opened every copy: they hold
+     * nothing, yet their FK would still block the booster's deletion.
+     */
+    public function deleteEmptyRows(Booster $booster): int
+    {
+        $deleted = $this->createQueryBuilder('userBooster')
+            ->delete()
+            ->andWhere('userBooster.booster = :booster')
+            ->andWhere('userBooster.quantity <= 0')
+            ->setParameter('booster', $booster)
+            ->getQuery()
+            ->execute()
+        ;
+
+        return \is_int($deleted) ? $deleted : 0;
+    }
 }

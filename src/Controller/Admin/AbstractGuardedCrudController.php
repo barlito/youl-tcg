@@ -40,7 +40,10 @@ abstract class AbstractGuardedCrudController extends AbstractCrudController
         $blockers = $this->deletionBlockers($entityInstance);
 
         if ([] === $blockers) {
-            parent::deleteEntity($entityManager, $entityInstance);
+            $entityManager->wrapInTransaction(function () use ($entityManager, $entityInstance): void {
+                $this->purgeDisposableReferences($entityInstance);
+                parent::deleteEntity($entityManager, $entityInstance);
+            });
 
             return;
         }
@@ -48,10 +51,28 @@ abstract class AbstractGuardedCrudController extends AbstractCrudController
         $label = $entityInstance instanceof \Stringable ? (string) $entityInstance : '';
 
         $this->addFlash('danger', \sprintf(
-            '%sn\'a pas été supprimé : %s. Cet historique est volontairement immuable — pour retirer cet élément du jeu, repasse-le en brouillon plutôt que de le supprimer.',
+            '%sn\'a pas été supprimé : %s. %s',
             '' === $label ? 'L\'élément ' : \sprintf('« %s » ', $label),
             implode(', ', $blockers),
+            $this->deletionAdvice(),
         ));
+    }
+
+    /**
+     * What the admin should do instead of deleting, appended to the refusal.
+     */
+    protected function deletionAdvice(): string
+    {
+        return 'Cet historique est volontairement immuable — pour retirer cet élément du jeu, repasse-le en brouillon plutôt que de le supprimer.';
+    }
+
+    /**
+     * Removes the references that carry no information and would still trip a
+     * foreign key, in the same transaction as the delete. Only called once
+     * deletionBlockers() found nothing.
+     */
+    protected function purgeDisposableReferences(object $entity): void
+    {
     }
 
     /**
