@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\UserCard;
@@ -11,7 +12,10 @@ use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\LockMode;
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -153,5 +157,59 @@ class UserCardRepository extends ServiceEntityRepository
         }
 
         return $stats;
+    }
+
+    /**
+     * Locks the user's rows of these cards FOR UPDATE in card id order, missing rows
+     * being created at 0 first; managed entities are refreshed with the locked values.
+     *
+     * @param list<Card> $cards
+     *
+     * @return array<string, UserCard> card id => locked row
+     */
+    public function lockForCredit(DiscordUser $discordUser, array $cards): array
+    {
+        $connection = $this->getEntityManager()->getConnection();
+        if (!$connection->isTransactionActive()) {
+            throw new \LogicException('User cards can only be locked inside a transaction.');
+        }
+
+        $cardIds = array_values(array_unique(array_map(static fn (Card $card): string => (string) $card->getId(), $cards)));
+        if ([] === $cardIds) {
+            return [];
+        }
+
+        sort($cardIds);
+
+        $now = new \DateTimeImmutable();
+        foreach ($cardIds as $cardId) {
+            $connection->executeStatement(
+                'INSERT INTO user_card (discord_user_id, card_id, quantity, holo_quantity, created_at, updated_at)
+                 VALUES (:user, :card, 0, 0, :now, :now)
+                 ON CONFLICT (discord_user_id, card_id) DO NOTHING',
+                ['user' => $discordUser->getDiscordId(), 'card' => $cardId, 'now' => $now],
+                ['now' => Types::DATETIME_IMMUTABLE],
+            );
+        }
+
+        /** @var list<UserCard> $rows */
+        $rows = $this->createQueryBuilder('uc')
+            ->andWhere('uc.discordUser = :user')
+            ->andWhere('uc.card IN (:cards)')
+            ->setParameter('user', $discordUser)
+            ->setParameter('cards', $cardIds)
+            ->orderBy('uc.card', 'ASC')
+            ->getQuery()
+            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+            ->setHint(Query::HINT_REFRESH, true)
+            ->getResult()
+        ;
+
+        $locked = [];
+        foreach ($rows as $userCard) {
+            $locked[(string) $userCard->getCard()->getId()] = $userCard;
+        }
+
+        return $locked;
     }
 }

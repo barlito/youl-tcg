@@ -65,9 +65,8 @@ class UserInventoryService
     }
 
     /**
-     * Credits several cards with a SINGLE inventory lookup (one `card IN (…)`
-     * query) instead of one findOneBy per card — a booster opening credits its
-     * whole draw at once.
+     * Credits several cards on rows locked FOR UPDATE (see UserCardRepository::lockForCredit):
+     * concurrent credits of the same card serialize instead of losing an update.
      *
      * @param list<array{card: Card, quantity: int, holoQuantity: int}> $credits
      *
@@ -75,28 +74,16 @@ class UserInventoryService
      */
     public function addCards(DiscordUser $discordUser, array $credits): array
     {
-        $ownedRows = $this->userCardRepository->findBy([
-            'discordUser' => $discordUser,
-            'card' => array_map(static fn (array $credit): Card => $credit['card'], $credits),
-        ]);
-
-        $existing = [];
-        foreach ($ownedRows as $userCard) {
-            $existing[(string) $userCard->getCard()->getId()] = $userCard;
-        }
+        $locked = $this->userCardRepository->lockForCredit(
+            $discordUser,
+            array_map(static fn (array $credit): Card => $credit['card'], $credits),
+        );
 
         $userCards = [];
         foreach ($credits as $credit) {
-            $userCard = $existing[(string) $credit['card']->getId()] ?? null;
+            $userCard = $locked[(string) $credit['card']->getId()];
 
-            if (null === $userCard) {
-                $userCard = new UserCard()
-                    ->setDiscordUser($discordUser)
-                    ->setCard($credit['card'])
-                ;
-                $this->entityManager->persist($userCard);
-            }
-
+            // quantity is the total (holos included), holoQuantity a subset of it
             $userCards[] = $userCard
                 ->setQuantity($userCard->getQuantity() + $credit['quantity'])
                 ->setHoloQuantity($userCard->getHoloQuantity() + $credit['holoQuantity'])
