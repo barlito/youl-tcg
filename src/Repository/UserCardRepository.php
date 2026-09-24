@@ -139,7 +139,11 @@ class UserCardRepository extends ServiceEntityRepository
             ->addSelect('e')
             ->andWhere('uc.discordUser = :user')
             ->andWhere('uc.quantity > 1')
+            ->andWhere('c.status = :cardStatus')
+            ->andWhere('e.status = :extensionStatus')
             ->setParameter('user', $discordUser)
+            ->setParameter('cardStatus', CardStatusEnum::PUBLISHED)
+            ->setParameter('extensionStatus', ExtensionStatusEnum::PUBLISHED)
             ->getQuery()
             ->getResult()
         ;

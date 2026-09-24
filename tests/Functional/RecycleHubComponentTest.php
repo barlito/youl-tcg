@@ -45,6 +45,24 @@ final class RecycleHubComponentTest extends WebTestCase
         $this->assertStringNotContainsString($scenario['cards'][1]->getName(), $content, 'A card without duplicates is not recyclable.');
     }
 
+    public function testOnlyThePublishedCatalogueIsListed(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $scenario = $this->createScenario($user, [
+            ['name' => 'Published dup', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 3],
+            ['name' => 'Draft dup', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 3],
+        ]);
+        $scenario['cards'][1]->setStatus(CardStatusEnum::DRAFT);
+        static::getContainer()->get(EntityManagerInterface::class)->flush();
+
+        $client->request('GET', '/recyclage');
+
+        $content = (string) $client->getResponse()->getContent();
+        $this->assertStringContainsString($scenario['cards'][0]->getName(), $content);
+        $this->assertStringNotContainsString($scenario['cards'][1]->getName(), $content, 'A draft card is not listed.');
+    }
+
     public function testTheEmptyStateShowsWithoutAnyDuplicate(): void
     {
         $client = static::createClient();

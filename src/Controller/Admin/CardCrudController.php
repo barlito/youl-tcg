@@ -10,6 +10,7 @@ use App\Admin\VisualConfigFields;
 use App\Entity\BoosterOpeningCard;
 use App\Entity\Card;
 use App\Entity\DiscordUser;
+use App\Entity\RecycleOperationCard;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\UserCardRepository;
@@ -325,6 +326,7 @@ class CardCrudController extends AbstractGuardedCrudController
         $blockers = $this->describeBlockers([
             '%d joueur(s) la possèdent' => $this->userCardRepository->countHolders($entity),
             '%d ouverture(s) l\'ont tirée' => $this->entityManager->getRepository(BoosterOpeningCard::class)->count(['card' => $entity]),
+            '%d recyclage(s) l\'ont consommée' => $this->entityManager->getRepository(RecycleOperationCard::class)->count(['card' => $entity]),
         ]);
 
         $holder = $entity->getClaimedBy();
