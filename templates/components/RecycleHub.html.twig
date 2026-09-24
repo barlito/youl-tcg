@@ -115,9 +115,15 @@
                                         </span>
 
                                         <div class="flex items-start gap-3">
-                                            <img src="{{ vich_uploader_asset(card) }}" alt="{{ card.name }}" loading="lazy" decoding="async"
-                                                 onerror="this.onerror=null;this.src='{{ asset('images/default_card.png') }}';"
-                                                 class="h-24 w-auto shrink-0 border border-hairline object-cover">
+                                            <div class="w-28 shrink-0">
+                                                {{ include('components/CardComponent.html.twig', {
+                                                    card: card,
+                                                    holo: row.holoQuantity > 0,
+                                                    interactive: false,
+                                                    lazy: true,
+                                                    id: 'recycle-' ~ card.id,
+                                                }) }}
+                                            </div>
                                             <div class="min-w-0 pr-6">
                                                 <h4 class="truncate font-display text-sm font-bold uppercase leading-tight text-ink-strong" title="{{ card.name }}">
                                                     {{ card.name }}
