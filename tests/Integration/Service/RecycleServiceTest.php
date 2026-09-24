@@ -21,6 +21,7 @@ use App\Exception\Recycle\NotEnoughCopiesException;
 use App\Exception\Recycle\NotEnoughRecyclePointsException;
 use App\Service\Recycle\RecycleService;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class RecycleServiceTest extends KernelTestCase
@@ -60,6 +61,7 @@ final class RecycleServiceTest extends KernelTestCase
         $persisted = $this->entityManager->getRepository(RecycleOperation::class)->find($operation->getId());
         $this->assertNotNull($persisted);
         $this->assertSame(10, $persisted->getPoints());
+        $this->assertSame(1, $persisted->getBoosterCount());
         $this->assertSame(10, $persisted->getRecycledCardCount());
         $this->assertCount(1, $persisted->getRecycleOperationCards());
         $recycledCard = $persisted->getRecycleOperationCards()->first();
@@ -133,25 +135,63 @@ final class RecycleServiceTest extends KernelTestCase
         $this->assertSame(1, $uncommon->getHoloQuantity(), 'Only one of the two holo copies is debited.');
     }
 
-    public function testSurplusPointsBeyondTheCostAreLost(): void
+    /**
+     * @return iterable<string, array{int, int}> common copies recycled => boosters expected
+     */
+    public static function tranches(): iterable
     {
-        // 3 legendaries = 15 points: one booster, the 5 extra points vanish
-        $scenario = $this->createScenario([['rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 4]]);
+        yield '10 points, exactly one tranche' => [10, 1];
+        yield '19 points, the 9 extra are lost' => [19, 1];
+        yield '20 points, two tranches' => [20, 2];
+        yield '35 points, three tranches and 5 lost' => [35, 3];
+    }
+
+    #[DataProvider('tranches')]
+    public function testEachFullTrancheOfPointsIsWorthOneBooster(int $points, int $expectedBoosters): void
+    {
+        // commons are worth 1 point each: the copy count is the point total
+        $scenario = $this->createScenario([['rarity' => CardRarityEnum::COMMON, 'quantity' => $points + 1]]);
 
         $operation = $this->recycleService->recycle(
             $scenario['user'],
-            [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 3, holoQuantity: 0)],
+            [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: $points, holoQuantity: 0)],
             $scenario['booster'],
         );
 
-        $this->assertSame(15, $operation->getPoints(), 'The audit keeps the real total, surplus included.');
+        $this->entityManager->clear();
+
+        $userBoosters = $this->entityManager->getRepository(UserBooster::class)->findBy(['discordUser' => $scenario['user']]);
+        $this->assertCount(1, $userBoosters, 'Every booster granted is a copy of the single chosen pack.');
+        $this->assertSame((string) $scenario['booster']->getId(), (string) $userBoosters[0]->getBooster()->getId());
+        $this->assertSame($expectedBoosters, $userBoosters[0]->getQuantity());
+
+        $persisted = $this->entityManager->getRepository(RecycleOperation::class)->findBy(['discordUser' => $scenario['user']]);
+        $this->assertCount(1, $persisted, 'One operation, whatever the number of boosters.');
+        $this->assertSame((string) $operation->getId(), (string) $persisted[0]->getId());
+        $this->assertSame($points, $persisted[0]->getPoints(), 'The audit keeps the real total, surplus included.');
+        $this->assertSame($expectedBoosters, $persisted[0]->getBoosterCount());
+        $this->assertSame((string) $scenario['booster']->getId(), (string) $persisted[0]->getBooster()->getId());
+        $this->assertSame(1, $this->findUserCard($scenario['user'], $scenario['cards'][0])->getQuantity());
+    }
+
+    public function testBoostersAddUpWithTheOnesAlreadyOwned(): void
+    {
+        $scenario = $this->createScenario([['rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 5]]);
+        $this->entityManager->persist(new UserBooster()->setDiscordUser($scenario['user'])->setBooster($scenario['booster'])->setQuantity(2));
+        $this->entityManager->flush();
+
+        // 4 legendaries = 20 points = 2 boosters, on top of the 2 owned
+        $this->recycleService->recycle(
+            $scenario['user'],
+            [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 4, holoQuantity: 0)],
+            $scenario['booster'],
+        );
 
         $this->entityManager->clear();
 
         $userBooster = $this->entityManager->getRepository(UserBooster::class)->findOneBy(['discordUser' => $scenario['user']]);
         $this->assertNotNull($userBooster);
-        $this->assertSame(1, $userBooster->getQuantity(), 'Exactly ONE booster per operation, whatever the surplus.');
-        $this->assertCount(1, $this->entityManager->getRepository(RecycleOperation::class)->findBy(['discordUser' => $scenario['user']]));
+        $this->assertSame(4, $userBooster->getQuantity());
     }
 
     public function testRefusesASelectionBelowTheCost(): void

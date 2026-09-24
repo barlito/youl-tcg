@@ -13,7 +13,7 @@ use Gedmo\Timestampable\Traits\TimestampableEntity;
 
 /**
  * Audit log of a recycle operation: who traded which duplicate copies, for how
- * many points, against which booster. The card rows carry the exact debited
+ * many points, against how many copies of which booster. The card rows carry the exact debited
  * copies so the operation can be reconstructed.
  */
 #[ORM\Entity(repositoryClass: RecycleOperationRepository::class)]
@@ -33,7 +33,8 @@ class RecycleOperation
         private DiscordUser $discordUser, #[ORM\ManyToOne]
         #[ORM\JoinColumn(nullable: false)]
         private Booster $booster, #[ORM\Column]
-        private int $points, #[ORM\Column]
+        private int $points, #[ORM\Column(options: ['default' => 1])]
+        private int $boosterCount, #[ORM\Column]
         private \DateTimeImmutable $recycledAt)
     {
         $this->recycleOperationCards = new ArrayCollection();
@@ -52,6 +53,11 @@ class RecycleOperation
     public function getPoints(): int
     {
         return $this->points;
+    }
+
+    public function getBoosterCount(): int
+    {
+        return $this->boosterCount;
     }
 
     public function getRecycledAt(): \DateTimeImmutable

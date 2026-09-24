@@ -27,8 +27,9 @@ use Psr\Clock\ClockInterface;
  * lock, debit the copies and persist the audit trail.
  *
  * Own distribution channel, like the codes: no BoosterClaim row, so the daily
- * quota is neither checked nor consumed. Points beyond the cost are lost by
- * design (no balance, no currency) — the UI says so before confirming.
+ * quota is neither checked nor consumed. Every full tranche of BOOSTER_COST
+ * points is worth one copy of the single chosen booster; the remainder is lost
+ * by design (no balance, no currency) — the UI says so before confirming.
  */
 final readonly class RecycleService
 {
@@ -36,6 +37,22 @@ final readonly class RecycleService
      * Points a booster costs; the per-rarity scale lives on CardRarityEnum.
      */
     public const int BOOSTER_COST = 10;
+
+    /**
+     * Copies of the chosen booster a selection is worth: one per full tranche.
+     */
+    public static function boosterCountFor(int $points): int
+    {
+        return intdiv(max(0, $points), self::BOOSTER_COST);
+    }
+
+    /**
+     * Points left below the last full tranche: lost on confirmation.
+     */
+    public static function lostPointsFor(int $points): int
+    {
+        return max(0, $points) % self::BOOSTER_COST;
+    }
 
     public function __construct(
         private UserCardRepository $userCardRepository,
@@ -69,9 +86,11 @@ final readonly class RecycleService
             );
         }
 
-        return $this->entityManager->wrapInTransaction(function () use ($discordUser, $selection, $booster, $points): RecycleOperation {
+        $boosterCount = self::boosterCountFor($points);
+
+        return $this->entityManager->wrapInTransaction(function () use ($discordUser, $selection, $booster, $points, $boosterCount): RecycleOperation {
             // booster row first, then the card rows: the same lock order as an opening
-            $this->userInventoryService->creditBooster($discordUser, $booster);
+            $this->userInventoryService->creditBooster($discordUser, $booster, $boosterCount);
 
             $lockedRows = $this->userCardRepository->lockForDebit(
                 $discordUser,
@@ -81,7 +100,7 @@ final readonly class RecycleService
                 $this->debit($lockedRows[(string) $line->card->getId()] ?? null, $line);
             }
 
-            $operation = new RecycleOperation($discordUser, $booster, $points, $this->clock->now());
+            $operation = new RecycleOperation($discordUser, $booster, $points, $boosterCount, $this->clock->now());
             foreach ($selection as $line) {
                 $operation->addRecycleOperationCard(new RecycleOperationCard($operation, $line->card, $line->getTotalQuantity(), $line->holoQuantity));
             }
