@@ -7,10 +7,12 @@ namespace App\Controller\Admin;
 use App\Admin\Field\ImageField as VichImageField;
 use App\Entity\Booster;
 use App\Entity\BoosterClaim;
+use App\Entity\BoosterCode;
 use App\Entity\BoosterOpening;
-use App\Entity\UserBooster;
+use App\Entity\StreakReward;
 use App\Enum\Entity\CardRarityEnum;
 use App\Form\BoosterSlotType;
+use App\Repository\UserBoosterRepository;
 use App\Service\Booster\BoosterRarityAvailability;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -39,6 +41,7 @@ class BoosterCrudController extends AbstractGuardedCrudController
         private readonly AssetMapperInterface $assetMapper,
         private readonly BoosterRarityAvailability $rarityAvailability,
         private readonly EntityManagerInterface $entityManager,
+        private readonly UserBoosterRepository $userBoosterRepository,
     ) {
     }
 
@@ -240,10 +243,31 @@ class BoosterCrudController extends AbstractGuardedCrudController
     #[\Override]
     protected function deletionBlockers(object $entity): array
     {
+        if (!$entity instanceof Booster) {
+            throw new UnexpectedTypeException($entity, Booster::class);
+        }
+
+        // every FK pointing at booster must be counted here, or the delete ends on a bare 409
         return $this->describeBlockers([
-            '%d joueur(s) le possèdent encore' => $this->entityManager->getRepository(UserBooster::class)->count(['booster' => $entity]),
-            '%d ouverture(s) le référencent' => $this->entityManager->getRepository(BoosterOpening::class)->count(['booster' => $entity]),
-            '%d récupération(s) le référencent' => $this->entityManager->getRepository(BoosterClaim::class)->count(['booster' => $entity]),
+            '%d joueur(s) en possèdent encore' => $this->userBoosterRepository->countHolders($entity),
+            '%d ouverture(s) figurent dans l\'historique' => $this->entityManager->getRepository(BoosterOpening::class)->count(['booster' => $entity]),
+            '%d récupération(s) quotidienne(s) figurent dans l\'historique' => $this->entityManager->getRepository(BoosterClaim::class)->count(['booster' => $entity]),
+            '%d code(s) le distribuent' => $this->entityManager->getRepository(BoosterCode::class)->count(['booster' => $entity]),
+            '%d récompense(s) de streak l\'ont attribué' => $this->entityManager->getRepository(StreakReward::class)->count(['chosenBooster' => $entity]),
         ]);
+    }
+
+    #[\Override]
+    protected function deletionAdvice(): string
+    {
+        return 'Cet historique est volontairement immuable — pour retirer ce booster du jeu, passe-le en non récupérable (et révoque ses codes) plutôt que de le supprimer.';
+    }
+
+    #[\Override]
+    protected function purgeDisposableReferences(object $entity): void
+    {
+        if ($entity instanceof Booster) {
+            $this->userBoosterRepository->deleteEmptyRows($entity);
+        }
     }
 }
