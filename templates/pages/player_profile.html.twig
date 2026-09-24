@@ -151,7 +151,7 @@
                                         {% if item.state.revealsCard %}
                                             {{ include('components/CardComponent.html.twig', { card: item.card, holo: item.profileCard and item.profileCard.holoQuantity > 0, lazy: true }) }}
                                         {% else %}
-                                            {{ include('parts/_masked_card.html.twig') }}
+                                            {{ include('parts/_masked_card.html.twig', with_context = false) }}
                                         {% endif %}
                                     </div>
 

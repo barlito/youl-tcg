@@ -372,6 +372,16 @@ final class TradeComponentTest extends WebTestCase
         );
     }
 
+    public function testAMalformedOfferIdIsAPlainError(): void
+    {
+        $this->authenticateClient($this->client, self::JUJU);
+
+        $component = $this->createLiveComponent(TradeInbox::class, client: $this->client);
+        $component->call('accept', ['offerId' => 'not-a-uuid']);
+
+        $this->assertSame('Cette offre n\'existe plus.', $component->component()->error);
+    }
+
     public function testTradePagesRenderAndUnknownCounterpartIs404(): void
     {
         $this->authenticateClient($this->client, self::BARLITO);

@@ -12,7 +12,7 @@
                     <div class="relative">
                         {% if line.masked %}
                             {# sans contexte : le rendu masqué n'a accès à aucune carte #}
-                            {{ include('parts/_card_back.html.twig', { rarity: line.rarity.value }, with_context = false) }}
+                            {{ include('parts/_masked_card.html.twig', { rarity: line.rarity.value }, with_context = false) }}
                         {% else %}
                             {{ include('components/CardComponent.html.twig', { card: line.card, holo: line.holoQuantity > 0, lazy: true }) }}
                         {% endif %}

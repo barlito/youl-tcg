@@ -13,6 +13,7 @@ use App\Repository\TradeOfferRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Trade\TradeOfferService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Uid\Uuid;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
@@ -163,7 +164,8 @@ final class TradeInbox extends AbstractController
         $this->success = null;
 
         $user = $this->getDiscordUser();
-        $offer = $this->tradeOfferRepository->find($offerId);
+        // client-provided: a malformed id is "not found", never a conversion error
+        $offer = Uuid::isValid($offerId) ? $this->tradeOfferRepository->find($offerId) : null;
 
         // membership is re-checked by the service, but an offer of someone
         // else must not even be readable through this component

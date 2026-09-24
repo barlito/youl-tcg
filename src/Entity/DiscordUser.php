@@ -97,11 +97,12 @@ class DiscordUser implements UserInterface, \Stringable
 
     /**
      * Distinct cards owned, i.e. how many entries of the catalogue the player
-     * has unlocked — not how many copies they hold.
+     * has unlocked — not how many copies they hold. Rows left at 0 by a trade
+     * or a recycle hold nothing.
      */
     public function getDistinctCardCount(): int
     {
-        return $this->userCards->count();
+        return $this->userCards->filter(static fn (UserCard $userCard): bool => $userCard->getQuantity() > 0)->count();
     }
 
     /**
