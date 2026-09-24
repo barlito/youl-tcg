@@ -1,0 +1,48 @@
+/* Admin economy dashboard: built on the EasyAdmin theme variables so it
+   follows the light/dark scheme. */
+.eco-dashboard { display: grid; gap: 1.25rem; }
+
+.eco-meta { margin: 0; color: var(--text-muted); font-size: .85rem; }
+
+.eco-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: .75rem;
+}
+
+.eco-tile,
+.eco-card {
+    background: var(--form-control-bg, transparent);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.eco-tile { display: flex; flex-direction: column; gap: .2rem; padding: .85rem 1rem; }
+.eco-tile__label { color: var(--text-muted); font-size: .8rem; font-weight: 500; }
+.eco-tile__value { color: var(--text-color); font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.eco-tile__hint { color: var(--text-muted); font-size: .75rem; }
+
+.eco-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.eco-card { padding: 1rem 1.1rem; min-width: 0; }
+.eco-card--wide { grid-column: 1 / -1; }
+.eco-card h2 { margin: 0 0 .75rem; font-size: 1rem; font-weight: 600; }
+.eco-card .eco-meta { margin-bottom: .75rem; }
+
+.eco-chart { position: relative; height: 260px; }
+
+.eco-table { width: 100%; margin-top: 1rem; border-collapse: collapse; font-size: .85rem; }
+.eco-table th,
+.eco-table td { padding: .35rem .6rem; border-bottom: 1px solid var(--border-color); text-align: left; }
+.eco-table th { color: var(--text-muted); font-weight: 500; }
+.eco-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.eco-table__split td { border-top: 2px solid var(--border-color); }
+
+.eco-notes { margin-top: .75rem; color: var(--text-muted); font-size: .8rem; }
+.eco-notes summary { cursor: pointer; }
+.eco-notes ul { margin: .5rem 0 0; padding-left: 1.2rem; }
+
+@media (max-width: 992px) {
+    .eco-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.eco-empty { color: var(--text-muted); font-style: italic; }

@@ -1,0 +1,132 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}Tableau de bord{% endblock %}
+
+{% block head_stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('styles/admin/dashboard.css') }}">
+{% endblock %}
+
+{% block importmap %}
+    {{ importmap('admin_dashboard') }}
+{% endblock %}
+
+{% block page_actions %}
+    <div class="btn-group" role="group" aria-label="Période des graphiques">
+        {% for period in periods %}
+            <a href="{{ path('admin', {period: period.value}) }}"
+               class="btn {{ period == dashboard.period ? 'btn-primary' : 'btn-secondary' }}"
+               data-testid="period-{{ period.value }}"
+               {% if period == dashboard.period %}aria-current="true"{% endif %}>{{ period.label }}</a>
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{% macro tile(testid, label, value, hint = null) %}
+    <div class="eco-tile" data-testid="kpi-{{ testid }}">
+        <span class="eco-tile__label">{{ label }}</span>
+        <span class="eco-tile__value">{{ value }}</span>
+        {% if hint %}<span class="eco-tile__hint">{{ hint }}</span>{% endif %}
+    </div>
+{% endmacro %}
+
+{% macro pts(value) %}{{ value > 0 ? '+' : (value < 0 ? '−' : '') }}{{ value|abs|number_format(2, ',', ' ') }}&nbsp;pt{% endmacro %}
+
+{% block main %}
+    {% set kpis = dashboard.kpis %}
+    {% set rarity = dashboard.rarityComparison %}
+
+    <div class="eco-dashboard">
+        <p class="eco-meta">
+            Jours en heure de Paris · période : {{ dashboard.period.label }} (aujourd'hui inclus) ·
+            calculé le {{ dashboard.generatedAt|date('d/m/Y à H:i', 'Europe/Paris') }}, en cache {{ cacheMinutes }} min.
+        </p>
+
+        <section class="eco-tiles" aria-label="Indicateurs clés">
+            {{ _self.tile('players', 'Joueurs inscrits', kpis.registeredPlayers|number_format(0, ',', ' ')) }}
+            {{ _self.tile('active', 'Joueurs actifs', kpis.activePlayers7Days|number_format(0, ',', ' ') ~ ' / ' ~ kpis.activePlayers30Days|number_format(0, ',', ' '), '7 j / 30 j · ouverture ou claim') }}
+            {{ _self.tile('openings', 'Packs ouverts', kpis.openingsToday|number_format(0, ',', ' '), 'aujourd\'hui · ' ~ kpis.openings7Days|number_format(0, ',', ' ') ~ ' sur 7 j · ' ~ kpis.openingsTotal|number_format(0, ',', ' ') ~ ' au total') }}
+            {{ _self.tile('cards', 'Cartes tirées', kpis.cardsDrawn|number_format(0, ',', ' '), 'dont ' ~ kpis.holosDrawn|number_format(0, ',', ' ') ~ ' holo') }}
+            {{ _self.tile('uniques', 'Uniques 1/1 tirées', kpis.uniquesDrawn|number_format(0, ',', ' ') ~ ' / ' ~ kpis.uniquesTotal|number_format(0, ',', ' '), 'tirées / publiées') }}
+            {{ _self.tile('unopened', 'Boosters non ouverts', kpis.unopenedBoosters|number_format(0, ',', ' '), 'dans les inventaires') }}
+        </section>
+
+        <div class="eco-grid">
+            <section class="eco-card">
+                <h2>Packs ouverts par jour</h2>
+                <div class="eco-chart">{{ render_chart(charts.openings, {'aria-label': 'Packs ouverts par jour', role: 'img'}) }}</div>
+            </section>
+
+            <section class="eco-card">
+                <h2>Joueurs actifs par jour</h2>
+                <div class="eco-chart">{{ render_chart(charts.activePlayers, {'aria-label': 'Joueurs actifs par jour', role: 'img'}) }}</div>
+            </section>
+
+            <section class="eco-card eco-card--wide" data-testid="channels">
+                <h2>Boosters distribués par canal</h2>
+                <div class="eco-chart">{{ render_chart(charts.channels, {'aria-label': 'Boosters distribués par canal et par jour', role: 'img'}) }}</div>
+                <table class="eco-table">
+                    <thead><tr><th>Canal</th><th class="num">Boosters sur la période</th></tr></thead>
+                    <tbody>
+                        {% set channelTotals = dashboard.channelTotals %}
+                        {% for channel in channels %}
+                            <tr data-testid="channel-{{ channel.value }}"><td>{{ channel.label }}</td><td class="num">{{ (channelTotals[channel.value] ?? 0)|number_format(0, ',', ' ') }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="eco-card eco-card--wide" data-testid="recycles">
+                <h2>Recyclages par semaine</h2>
+                <p class="eco-meta">Semaines du lundi au dimanche ; la première peut être tronquée par le début de la période.</p>
+                <div class="eco-chart">{{ render_chart(charts.recycles, {'aria-label': 'Recyclages par semaine', role: 'img'}) }}</div>
+                <table class="eco-table">
+                    <thead><tr><th>Semaine du</th><th class="num">Opérations</th><th class="num">Points dépensés</th><th class="num">Boosters obtenus</th></tr></thead>
+                    <tbody>
+                        {% for week in dashboard.weeklyRecycles|filter(week => week.operations > 0) %}
+                            <tr><td>{{ week.weekStart|date('d/m/Y') }}</td><td class="num">{{ week.operations|number_format(0, ',', ' ') }}</td><td class="num">{{ week.points|number_format(0, ',', ' ') }}</td><td class="num">{{ week.boosters|number_format(0, ',', ' ') }}</td></tr>
+                        {% else %}
+                            <tr><td colspan="4" class="eco-empty">Aucun recyclage sur la période.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="eco-card eco-card--wide" data-testid="rarities">
+                <h2>Raretés tirées vs attendues</h2>
+                <p class="eco-meta">
+                    {{ rarity.cardCount|number_format(0, ',', ' ') }} cartes sur {{ rarity.openingCount|number_format(0, ',', ' ') }} ouvertures de la période.
+                    « Attendu » = taux configurés des boosters ouverts, pondérés par slot et par nombre d'ouvertures.
+                </p>
+                {% if rarity.cardCount == 0 %}
+                    <p class="eco-empty" data-testid="rarities-empty">Aucune ouverture sur la période : rien à comparer.</p>
+                {% endif %}
+                <div class="eco-chart"{% if rarity.cardCount == 0 %} hidden{% endif %}>{{ render_chart(charts.rarities, {'aria-label': 'Part des raretés tirées contre attendues', role: 'img'}) }}</div>
+                {% if rarity.cardCount > 0 %}
+                <table class="eco-table">
+                    <thead><tr><th>Palier</th><th class="num">Cartes</th><th class="num">Attendu</th><th class="num">Observé</th><th class="num">Écart</th></tr></thead>
+                    <tbody>
+                        {% for row in rarity.rows|merge([rarity.holo]) %}
+                            <tr data-testid="rarity-{{ row.key }}"{% if row.key == 'holo' %} class="eco-table__split"{% endif %}>
+                                <td>{{ row.label }}</td>
+                                <td class="num">{{ row.observedCount|number_format(0, ',', ' ') }}</td>
+                                <td class="num">{{ row.expectedShare|number_format(2, ',', ' ') }}&nbsp;%</td>
+                                <td class="num">{{ row.observedShare|number_format(2, ',', ' ') }}&nbsp;%</td>
+                                <td class="num" data-testid="gap-{{ row.key }}">{{ _self.pts(row.gap) }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+                <details class="eco-notes">
+                    <summary>Comment est calculé l'attendu ?</summary>
+                    <ul>
+                        <li>Chaque slot pèse autant que le nombre d'ouvertures de son booster : sa <code>uniqueChance</code> va au palier « Unique 1/1 », le reste est réparti selon ses poids de rareté.</li>
+                        <li>Un palier sans carte publiée est redirigé vers le palier le plus proche, comme au tirage — avec le pool de cartes <strong>actuel</strong> de l'extension.</li>
+                        <li>Approximations : taux et pool d'aujourd'hui (pas ceux du jour de l'ouverture), <code>uniqueChance</code> comptée même quand toutes les 1/1 sont déjà tirées, cartes « toujours holo » non modélisées dans le taux holo.</li>
+                    </ul>
+                </details>
+            </section>
+        </div>
+    </div>
+{% endblock %}

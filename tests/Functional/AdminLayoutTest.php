@@ -64,14 +64,14 @@ final class AdminLayoutTest extends WebTestCase
         $this->assertSame('fr', $crawler->filter('html')->attr('lang'));
     }
 
-    public function testCardCrudIsStillTheAdminEntryPoint(): void
+    public function testAdminEntryPointIsTheEconomyDashboard(): void
     {
         $client = self::createClient();
         $this->authenticateClient($client);
 
-        $client->request('GET', '/admin');
+        $crawler = $client->request('GET', '/admin');
 
-        // EA5 pretty URLs: /admin lands on the cards listing
-        self::assertResponseRedirects(self::CARDS_URL);
+        self::assertResponseIsSuccessful();
+        $this->assertCount(1, $crawler->filter('[data-testid="kpi-players"]'));
     }
 }

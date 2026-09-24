@@ -361,6 +361,9 @@
             "ref": "0df5844274d871b37fc3816c57a768ffc60a43a5"
         }
     },
+    "symfony/ux-chartjs": {
+        "version": "v3.5.1"
+    },
     "symfony/ux-live-component": {
         "version": "3.1",
         "recipe": {

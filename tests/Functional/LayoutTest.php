@@ -80,8 +80,7 @@ final class LayoutTest extends WebTestCase
         $client = self::createClient();
         $this->authenticateClient($client);
 
-        $client->request('GET', '/admin');
-        $crawler = $client->followRedirect();
+        $crawler = $client->request('GET', '/admin');
 
         self::assertResponseIsSuccessful();
         $this->assertGreaterThan(0, $crawler->filter('[data-testid="app-version"]')->count());
