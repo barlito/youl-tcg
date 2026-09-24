@@ -132,6 +132,12 @@
                                                 <p class="chip-mono mt-1.5 text-ink-dim">
                                                     ×{{ row.quantity }}{% if row.holoQuantity > 0 %} dont ✦{{ row.holoQuantity }}{% endif %} · 1 gardée
                                                 </p>
+                                                {% set reserved = this.reservedFor(row) %}
+                                                {% if reserved.normal + reserved.holo > 0 %}
+                                                    <p class="chip-mono mt-1 text-soon" data-testid="reserved-copies">
+                                                        ⇄ {{ reserved.normal + reserved.holo }} engagée{{ reserved.normal + reserved.holo > 1 ? 's' }} en échange
+                                                    </p>
+                                                {% endif %}
                                             </div>
                                         </div>
 

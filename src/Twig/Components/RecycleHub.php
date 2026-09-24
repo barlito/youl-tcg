@@ -16,6 +16,7 @@ use App\Enum\FeatureEnum;
 use App\Exception\Recycle\RecycleException;
 use App\Repository\BoosterRepository;
 use App\Repository\CardRepository;
+use App\Repository\TradeOfferRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Recycle\RecycleService;
@@ -80,12 +81,18 @@ final class RecycleHub extends AbstractController
      */
     private ?array $boosters = null;
 
+    /**
+     * @var array<string, array{normal: int, holo: int}>|null card id => copies engaged in pending trade offers
+     */
+    private ?array $reserved = null;
+
     public function __construct(
         private readonly UserCardRepository $userCardRepository,
         private readonly BoosterRepository $boosterRepository,
         private readonly CardRepository $cardRepository,
         private readonly BoosterAvailabilityService $boosterAvailability,
         private readonly RecycleService $recycleService,
+        private readonly TradeOfferRepository $tradeOfferRepository,
     ) {
     }
 
@@ -171,11 +178,14 @@ final class RecycleHub extends AbstractController
     }
 
     /**
-     * Copies that can leave the collection: all but one, whatever their kind.
+     * Copies that can leave the collection: all but one, whatever their kind,
+     * on top of the ones engaged in pending trade offers.
      */
     public function recyclableCopies(UserCard $row): int
     {
-        return max(0, $row->getQuantity() - 1);
+        $reserved = $this->reservedFor($row);
+
+        return max(0, $row->getQuantity() - 1 - $reserved['normal'] - $reserved['holo']);
     }
 
     /**
@@ -183,24 +193,34 @@ final class RecycleHub extends AbstractController
      */
     public function normalCap(UserCard $row): int
     {
-        return min($row->getQuantity() - $row->getHoloQuantity(), $this->recyclableCopies($row));
+        return max(0, min($row->getQuantity() - $row->getHoloQuantity() - $this->reservedFor($row)['normal'], $this->recyclableCopies($row)));
     }
 
     public function holoCap(UserCard $row): int
     {
-        return min($row->getHoloQuantity(), $this->recyclableCopies($row));
+        return max(0, min($row->getHoloQuantity() - $this->reservedFor($row)['holo'], $this->recyclableCopies($row)));
     }
 
     /**
-     * Best value of a card's duplicates: the copy kept is the cheapest one.
+     * @return array{normal: int, holo: int}
+     */
+    public function reservedFor(UserCard $row): array
+    {
+        $this->reserved ??= $this->tradeOfferRepository->sumReservedQuantities($this->getDiscordUser());
+
+        return $this->reserved[(string) $row->getCard()->getId()] ?? ['normal' => 0, 'holo' => 0];
+    }
+
+    /**
+     * Best value of a card's recyclable copies: holos first, they are worth more.
      */
     public function maxPoints(UserCard $row): int
     {
         $rarity = $row->getCard()->getRarity();
-        $keptHolo = $row->getQuantity() === $row->getHoloQuantity() ? 1 : 0;
+        $holo = $this->holoCap($row);
+        $normal = min($this->normalCap($row), $this->recyclableCopies($row) - $holo);
 
-        return ($row->getQuantity() - $row->getHoloQuantity() - 1 + $keptHolo) * $rarity->recyclePoints()
-            + ($row->getHoloQuantity() - $keptHolo) * $rarity->holoRecyclePoints();
+        return $normal * $rarity->recyclePoints() + $holo * $rarity->holoRecyclePoints();
     }
 
     public function getRecyclableTotal(): int
@@ -404,6 +424,7 @@ final class RecycleHub extends AbstractController
 
         $this->selection = [];
         $this->rows = null; // the memoized inventory is stale after the debit
+        $this->reserved = null;
         $this->success = \sprintf(
             '%d copie%s recyclée%s — %d pack%s « %s » ajouté%s à ton stock !%s',
             $copies,
@@ -429,7 +450,9 @@ final class RecycleHub extends AbstractController
         $rows = [];
 
         foreach ($this->userCardRepository->findRecyclableWithCards($this->getDiscordUser()) as $userCard) {
-            $rows[(string) $userCard->getCard()->getId()] = $userCard;
+            if ($this->recyclableCopies($userCard) > 0) {
+                $rows[(string) $userCard->getCard()->getId()] = $userCard;
+            }
         }
 
         return $this->rows = $rows;

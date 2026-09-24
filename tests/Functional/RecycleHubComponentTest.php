@@ -9,14 +9,18 @@ use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\RecycleOperation;
+use App\Entity\TradeOffer;
+use App\Entity\TradeOfferLine;
 use App\Entity\UserBooster;
 use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Enum\Trade\TradeOfferSideEnum;
 use App\Twig\Components\RecycleHub;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 final class RecycleHubComponentTest extends WebTestCase
@@ -120,6 +124,31 @@ final class RecycleHubComponentTest extends WebTestCase
         // 1 holo (sub-count cap) then 2 normal (keep-one total cap), 4 points
         $this->assertSame(['normal' => 2, 'holo' => 1], $component->component()->selection[$cardId]);
         $this->assertStringContainsString('Encore 6 pts pour 1 booster', (string) $component->render());
+    }
+
+    public function testCopiesEngagedInATradeOfferAreNeitherSelectableNorCounted(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        // 5 copies, 2 engaged: 5 - 1 kept - 2 engaged = 2 recyclable
+        $scenario = $this->createScenario($user, [
+            ['name' => 'Engaged card', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 5],
+            ['name' => 'Fully engaged', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 2],
+        ]);
+        $this->engage($user, $scenario['cards'][0], 2);
+        $this->engage($user, $scenario['cards'][1], 1);
+        $cardId = (string) $scenario['cards'][0]->getId();
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        foreach (range(1, 5) as $ignored) {
+            $component->call('addCopy', ['cardId' => $cardId, 'kind' => 'normal']);
+        }
+
+        $this->assertSame(['normal' => 2, 'holo' => 0], $component->component()->selection[$cardId]);
+        $html = (string) $component->render();
+        $this->assertSame('2', trim(new Crawler($html)->filter('[data-testid="recyclable-total"] p')->eq(1)->text()));
+        $this->assertStringContainsString('2 engagées en échange', $html);
+        $this->assertStringNotContainsString($scenario['cards'][1]->getName(), $html, 'A card whose only duplicate is engaged is not listed.');
     }
 
     public function testRemoveCopyDropsTheLineAtZero(): void
@@ -460,6 +489,19 @@ final class RecycleHubComponentTest extends WebTestCase
         $component = $this->createLiveComponent(RecycleHub::class, client: $client);
 
         $this->assertStringNotContainsString($emptyBooster->getName() ?? '', (string) $component->render(), 'A pack without drawable card is not offered.');
+    }
+
+    private function engage(DiscordUser $proposer, Card $card, int $normal): void
+    {
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $receiver = new DiscordUser()->setDiscordId('recycle-hub-receiver-' . uniqid())->setUsername('Receiver');
+        $entityManager->persist($receiver);
+
+        $offer = new TradeOffer()->setProposer($proposer)->setReceiver($receiver);
+        $offer->addLine(new TradeOfferLine()->setSide(TradeOfferSideEnum::OFFERED)->setCard($card)->setNormalQuantity($normal)->setHoloQuantity(0));
+        $offer->addLine(new TradeOfferLine()->setSide(TradeOfferSideEnum::REQUESTED)->setCard($card)->setNormalQuantity(1)->setHoloQuantity(0));
+        $entityManager->persist($offer);
+        $entityManager->flush();
     }
 
     /**

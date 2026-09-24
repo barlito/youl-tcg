@@ -17,6 +17,7 @@ use App\Exception\Recycle\InvalidRecycleSelectionException;
 use App\Exception\Recycle\NotEnoughCopiesException;
 use App\Exception\Recycle\NotEnoughRecyclePointsException;
 use App\Exception\Recycle\RecyclingClosedException;
+use App\Repository\TradeOfferRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\UserInventoryService;
@@ -59,6 +60,7 @@ final readonly class RecycleService
 
     public function __construct(
         private UserCardRepository $userCardRepository,
+        private TradeOfferRepository $tradeOfferRepository,
         private UserInventoryService $userInventoryService,
         private BoosterAvailabilityService $boosterAvailability,
         private EntityManagerInterface $entityManager,
@@ -105,8 +107,11 @@ final readonly class RecycleService
                 $discordUser,
                 array_map(static fn (RecycleSelectionLine $line): Card => $line->card, $selection),
             );
+            // read under the row locks: an offer created meanwhile has committed
+            $reserved = $this->tradeOfferRepository->sumReservedQuantities($discordUser);
             foreach ($selection as $line) {
-                $this->debit($lockedRows[(string) $line->card->getId()] ?? null, $line);
+                $cardId = (string) $line->card->getId();
+                $this->debit($lockedRows[$cardId] ?? null, $line, $reserved[$cardId] ?? ['normal' => 0, 'holo' => 0]);
             }
 
             $operation = new RecycleOperation($discordUser, $booster, $points, $boosterCount, $this->clock->now());
@@ -171,9 +176,12 @@ final readonly class RecycleService
      * may have moved between display and confirmation — the locked row is the
      * only truth. Invariants kept: quantity >= holoQuantity >= 0, and at least
      * one copy of the card always stays in the collection (a 1/1 unique, at
-     * quantity 1 by construction, is therefore never recyclable).
+     * quantity 1 by construction, is therefore never recyclable), on top of
+     * the copies engaged in pending trade offers.
+     *
+     * @param array{normal: int, holo: int} $reserved
      */
-    private function debit(?UserCard $userCard, RecycleSelectionLine $line): void
+    private function debit(?UserCard $userCard, RecycleSelectionLine $line, array $reserved): void
     {
         $cardName = $line->card->getName();
 
@@ -203,6 +211,17 @@ final readonly class RecycleService
             throw new NotEnoughCopiesException(
                 \sprintf('Not enough normal copies of "%s" (asked %d, owned %d).', $cardName, $line->normalQuantity, $userCard->getQuantity() - $userCard->getHoloQuantity()),
                 \sprintf('Tu n\'as plus assez de copies normales de « %s ».', $cardName),
+            );
+        }
+
+        if (
+            $line->holoQuantity > $userCard->getHoloQuantity() - $reserved['holo']
+            || $line->normalQuantity > $userCard->getQuantity() - $userCard->getHoloQuantity() - $reserved['normal']
+            || $userCard->getQuantity() - $line->getTotalQuantity() < 1 + $reserved['normal'] + $reserved['holo']
+        ) {
+            throw new NotEnoughCopiesException(
+                \sprintf('Copies of "%s" are engaged in a pending trade offer.', $cardName),
+                \sprintf('Des copies de « %s » sont engagées dans une offre d\'échange en attente : annule-la d\'abord pour les recycler.', $cardName),
             );
         }
 
