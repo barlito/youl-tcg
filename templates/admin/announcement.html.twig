@@ -1,0 +1,57 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% form_theme form '@EasyAdmin/crud/form_theme.html.twig' %}
+
+{% block content_title %}📣 Annonces{% endblock %}
+
+{% block main %}
+    <div style="max-width: 720px;">
+        <p>
+            L'annonce arrive <strong>en direct</strong> (toast + cloche) chez les joueurs connectés,
+            et reste dans leur cloche pour les autres. <strong>Texte brut uniquement</strong> :
+            pas de HTML, pas de mise en forme. Le lien éventuel ne peut viser qu'une page du site.
+        </p>
+
+        {{ form_start(form, {attr: {'data-testid': 'announcement-form'}}) }}
+            <div class="mb-3">{{ form_errors(form) }}</div>
+            <div class="mb-3">{{ form_row(form.title) }}</div>
+            <div class="mb-3">{{ form_row(form.message) }}</div>
+            <div class="mb-3">{{ form_row(form.link) }}</div>
+            <div class="mb-3" data-recipient-target>
+                {{ form_row(form.target.mode) }}
+                {{ form_row(form.target.recipients) }}
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fa fa-paper-plane"></i> Envoyer l'annonce
+            </button>
+        {{ form_end(form) }}
+    </div>
+
+    <hr class="my-4">
+    <h2 class="h5">Derniers envois</h2>
+    {% if history is empty %}
+        <p>Aucun envoi pour l'instant.</p>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-striped" data-testid="announcement-history">
+                <thead>
+                    <tr><th>Date</th><th>Type</th><th>Titre</th><th>Auteur</th><th>Cible</th><th>Notifications</th></tr>
+                </thead>
+                <tbody>
+                    {% for announcement in history %}
+                        <tr>
+                            <td class="text-nowrap">{{ announcement.createdAt|date('d/m/Y H:i', 'Europe/Paris') }}</td>
+                            <td>{{ announcement.typeLabel }}</td>
+                            <td>{{ announcement.title }}</td>
+                            <td>{{ announcement.author ? announcement.author.username : '—' }}</td>
+                            {% set target = announcement.targetLabel %}
+                            <td>{{ target|length > 80 ? target|slice(0, 80) ~ '…' : target }}</td>
+                            <td>{{ announcement.sentCount }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p><a href="{{ path('admin_send_log_index') }}">Tout l'historique →</a></p>
+    {% endif %}
+{% endblock %}

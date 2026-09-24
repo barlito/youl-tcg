@@ -1,0 +1,35 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% form_theme form '@EasyAdmin/crud/form_theme.html.twig' %}
+
+{% block content_title %}🔔 Notifier le code {{ boosterCode.formattedCode }}{% endblock %}
+
+{% block main %}
+    <div style="max-width: 720px;">
+        <p>
+            {{ boosterCode.quantity }} pack{{ boosterCode.quantity > 1 ? 's' }} « {{ boosterCode.booster.displayName }} »
+            — utilisations {{ boosterCode.usageLabel }}{% if boosterCode.batchLabel %} — lot « {{ boosterCode.batchLabel }} »{% endif %}.
+        </p>
+        <p>
+            Les destinataires reçoivent « 🎁 Un code booster t'attend » avec un lien vers le hub où le code est
+            déjà saisi : ils n'ont plus qu'à valider.
+            {% if boosterCode.singleUse %}
+                <strong>Code à usage unique</strong> : il ne s'envoie qu'à <strong>un seul joueur</strong>
+                {%- if boosterCode.assignedTo %} (déjà envoyé à {{ boosterCode.assignedTo.username }} : seul lui peut le recevoir à nouveau){% endif %}.
+            {% else %}
+                Code à usages multiples : tous les destinataires reçoivent le même code.
+            {% endif %}
+        </p>
+
+        {{ form_start(form, {attr: {'data-testid': 'code-notify-form'}}) }}
+            <div class="mb-3">{{ form_errors(form) }}</div>
+            <div class="mb-3" data-recipient-target>
+                {{ form_row(form.target.mode) }}
+                {{ form_row(form.target.recipients) }}
+            </div>
+            <div class="mb-3">{{ form_row(form.message) }}</div>
+            <button type="submit" class="btn btn-primary"><i class="fa fa-paper-plane"></i> Envoyer</button>
+            <a class="btn btn-secondary" href="{{ indexUrl }}">Annuler</a>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

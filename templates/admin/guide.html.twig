@@ -37,6 +37,7 @@
                 <li><a href="#bannieres">Bannières d'univers</a></li>
                 <li><a href="#tailles">Récap : tailles d'images recommandées</a></li>
                 <li><a href="#codes">Codes de récupération</a></li>
+                <li><a href="#annonces">Annonces et notification de codes</a></li>
                 <li><a href="#economie">Économie : les écrans de consultation</a></li>
                 <li><a href="#fonctionnalites">Fonctionnalités : couper / rouvrir</a></li>
                 <li><a href="#ne-pas-toucher">Ce qu'on ne touche jamais à la main</a></li>
@@ -202,7 +203,25 @@
         </ul>
         <div class="tip">« Utilisations de codes » liste qui a utilisé quoi et combien de packs ont été crédités.</div>
 
-        <h2 id="economie">11. Économie : les écrans de consultation</h2>
+        <h2 id="annonces">11. Annonces et notification de codes</h2>
+        <p>
+            Section <strong>« Communication »</strong> du menu. Tout ce qui est envoyé arrive
+            <strong>en direct</strong> chez les joueurs connectés (toast + cloche) et reste dans
+            la cloche pour les autres.
+        </p>
+        <ul>
+            <li><strong>Annonces</strong> : un titre court, un message, un lien facultatif. Destinataires : <strong>tous les joueurs</strong> ou <strong>une sélection</strong> (tape un pseudo ou un ID Discord).</li>
+            <li><strong>Texte brut uniquement</strong> : pas de HTML ni de Markdown, tout s'affiche tel quel. Les retours à la ligne sont conservés.</li>
+            <li><strong>Lien</strong> : une page du site seulement (« /boosters », « /univers/… » ou une adresse complète du site). Un lien externe, « //… » ou « javascript: » est refusé.</li>
+            <li><strong>Notifier des codes</strong> : sur « Générer des codes », bloc « Notification ». Le joueur reçoit « 🎁 Un code booster t'attend » avec un lien vers le hub où <strong>le code est déjà saisi</strong> : il n'a plus qu'à valider.</li>
+            <li><strong>Un code par joueur</strong> : utilisations = 1 + une sélection → un code est généré <em>par joueur sélectionné</em> (le « Nombre de codes » est ignoré) et chacun ne reçoit que le sien.</li>
+            <li><strong>Code partagé</strong> : plusieurs utilisations (ou illimité) → génère <em>un seul</em> code ; tous les destinataires, ou tout le monde, reçoivent le même.</li>
+            <li><strong>Refusé</strong> : un code à usage unique envoyé à tous, plusieurs codes partagés à la fois, plus de joueurs sélectionnés que d'utilisations, un pack pas encore disponible.</li>
+            <li><strong>Code existant</strong> : bouton « Notifier » dans « Codes ». Absent sur un code révoqué, expiré ou épuisé. Un code à usage unique ne part qu'à <strong>un seul</strong> joueur, et plus jamais à un autre ensuite (colonne « Envoyé à »).</li>
+        </ul>
+        <div class="tip">« Historique des envois » garde chaque envoi : date, auteur, cible, nombre de notifications. Une annonce envoyée ne se retire pas : relis-toi avant d'envoyer.</div>
+
+        <h2 id="economie">12. Économie : les écrans de consultation</h2>
         <p>
             La section <strong>« Économie (lecture seule) »</strong> du menu donne la visibilité
             sur ce que font les joueurs. Ces trois écrans n'ont <strong>ni création, ni édition,
@@ -217,7 +236,7 @@
         </table>
         <div class="tip">Les dates de ces écrans sont affichées en heure de Paris, comme la remise à zéro du quota.</div>
 
-        <h2 id="fonctionnalites">12. Fonctionnalités : couper / rouvrir</h2>
+        <h2 id="fonctionnalites">13. Fonctionnalités : couper / rouvrir</h2>
         <p>
             Le menu <strong>Réglages → Fonctionnalités</strong> liste les fonctionnalités qu'on peut
             couper pour tous les joueurs d'un clic (interrupteur « Active »), sans déploiement.
@@ -231,11 +250,11 @@
         </table>
         <div class="tip">L'effet est immédiat, à la requête suivante des joueurs. Rouvrir remet tout en place à l'identique : aucune donnée n'est effacée par une coupure.</div>
 
-        <h2 id="ne-pas-toucher">13. Ce qu'on ne touche jamais à la main</h2>
+        <h2 id="ne-pas-toucher">14. Ce qu'on ne touche jamais à la main</h2>
         <ul>
             <li><strong>Utilisateurs Discord et rôles</strong> : créés et synchronisés automatiquement à la connexion (JWT). Ne jamais créer/modifier en base.</li>
             <li><strong>Inventaires</strong> (cartes et boosters possédés) : alimentés par les claims et les ouvertures. Une retouche manuelle fausse les compteurs et l'historique.</li>
-            <li><strong>Historique d'ouverture</strong> (claims, openings, seed RNG) : c'est l'audit — chaque tirage est rejouable grâce à sa seed. Consultable dans la section « Économie » (<a href="#economie">§11</a>), jamais modifiable.</li>
+            <li><strong>Historique d'ouverture</strong> (claims, openings, seed RNG) : c'est l'audit — chaque tirage est rejouable grâce à sa seed. Consultable dans la section « Économie » (<a href="#economie">§12</a>), jamais modifiable.</li>
             <li><strong>claimedBy d'une carte unique</strong> : posé atomiquement par le premier tirage. Le vider rendrait l'unique tirable une deuxième fois.</li>
         </ul>
     </div>

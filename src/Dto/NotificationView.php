@@ -6,7 +6,7 @@ namespace App\Dto;
 
 /**
  * A notification ready to display: plain text (escaped by Twig) and an
- * internal path, both rendered server-side from type + payload.
+ * internal path (or none), both rendered server-side from type + payload.
  */
 final readonly class NotificationView
 {
@@ -14,9 +14,10 @@ final readonly class NotificationView
         public ?string $id,
         public string $icon,
         public string $text,
-        public string $link,
+        public ?string $link,
         public ?\DateTimeImmutable $createdAt,
         public bool $unread,
+        public ?string $body = null,
     ) {
     }
 }

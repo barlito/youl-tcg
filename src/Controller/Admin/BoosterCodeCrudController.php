@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Dto\Admin\RecipientTarget;
 use App\Entity\BoosterCode;
+use App\Entity\DiscordUser;
+use App\Exception\Notification\NotificationRefusedException;
+use App\Form\Admin\RecipientTargetType;
+use App\Service\Notification\BoosterCodeNotifier;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -22,8 +27,14 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\BooleanFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\DateTimeFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Codes are generated from the batch page, never hand-written: this CRUD is
@@ -36,6 +47,8 @@ class BoosterCodeCrudController extends AbstractReadOnlyCrudController
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
+        private readonly BoosterCodeNotifier $boosterCodeNotifier,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -72,7 +85,14 @@ class BoosterCodeCrudController extends AbstractReadOnlyCrudController
     #[\Override]
     public function configureActions(Actions $actions): Actions
     {
+        $notify = Action::new('notifyCode', 'Notifier', 'fa fa-bell')
+            ->linkToCrudAction('notifyCode')
+            ->displayIf(fn (BoosterCode $code): bool => $code->isRedeemable($this->clock->now()))
+        ;
+
         return parent::configureActions($actions)
+            ->add(Crud::PAGE_INDEX, $notify)
+            ->add(Crud::PAGE_DETAIL, $notify)
             ->addBatchAction(
                 Action::new('revokeCodes', 'Révoquer')
                     ->linkToCrudAction('revokeCodes')
@@ -104,8 +124,72 @@ class BoosterCodeCrudController extends AbstractReadOnlyCrudController
         yield DateTimeField::new('expiresAt')->setLabel('Expire le');
         yield BooleanField::new('disabled')->setLabel('Révoqué')->renderAsSwitch(false);
         yield TextField::new('batchLabel')->setLabel('Lot');
+        yield AssociationField::new('assignedTo')->setLabel('Envoyé à')
+            ->setHelp('Joueur à qui ce code à usage unique a été notifié : il ne peut plus être envoyé à un autre.')
+        ;
         yield DateTimeField::new('createdAt')->setLabel('Créé le')->onlyOnDetail();
         yield Field::new('id')->setLabel('Identifiant')->onlyOnDetail();
+    }
+
+    /**
+     * Sends an existing code as a notification. Same rules as the batch
+     * screen (BoosterCodeNotifier): a revoked, expired or exhausted code is
+     * refused, a single-use code only goes to one player, never to all.
+     *
+     * @param AdminContext<BoosterCode> $context
+     */
+    #[AdminRoute(path: '/{entityId}/notify', name: 'notify')]
+    public function notifyCode(AdminContext $context, Request $request): Response
+    {
+        $boosterCode = $context->getEntity()->getInstance();
+
+        if (!$boosterCode instanceof BoosterCode) {
+            throw new NotFoundHttpException();
+        }
+
+        $indexUrl = $this->generateUrl('admin_booster_code_index');
+        $blocking = $this->boosterCodeNotifier->stateRefusal($boosterCode);
+
+        if (null !== $blocking) {
+            $this->addFlash('danger', $blocking);
+
+            return $this->redirect($indexUrl);
+        }
+
+        $form = $this->createFormBuilder(['target' => $boosterCode->isSingleUse() ? RecipientTarget::selection([]) : RecipientTarget::all()])
+            ->add('target', RecipientTargetType::class, ['label' => false])
+            ->add('message', TextareaType::class, [
+                'label' => 'Message joint (optionnel)',
+                'required' => false,
+                'help' => 'Texte brut ajouté sous « 🎁 Un code booster t\'attend… ». 500 caractères max.',
+                'attr' => ['rows' => 3, 'maxlength' => 500],
+                'constraints' => [new Assert\Length(max: 500)],
+            ])
+            ->getForm()
+        ;
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            /** @var array{target: RecipientTarget, message: string|null} $data */
+            $data = $form->getData();
+            $author = $this->getUser();
+
+            try {
+                $announcement = $this->boosterCodeNotifier->notifyCode($boosterCode, $data['target'], $data['message'], $author instanceof DiscordUser ? $author : null);
+
+                $this->addFlash('success', \sprintf('Code %s notifié — %s.', $boosterCode->getFormattedCode(), $announcement->getTargetLabel()));
+
+                return $this->redirect($indexUrl);
+            } catch (NotificationRefusedException $exception) {
+                $form->addError(new FormError($exception->getMessage()));
+            }
+        }
+
+        return $this->render('admin/booster_code_notify.html.twig', [
+            'form' => $form, // a FormInterface makes an invalid submission answer 422
+            'boosterCode' => $boosterCode,
+            'indexUrl' => $indexUrl,
+        ]);
     }
 
     /**

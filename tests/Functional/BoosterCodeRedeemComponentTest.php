@@ -52,6 +52,65 @@ final class BoosterCodeRedeemComponentTest extends WebTestCase
         $this->assertStringContainsString('data-testid="code-input"', $rendered);
     }
 
+    public function testANotificationLinkPreFillsTheCodeWithoutRedeemingIt(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        [$booster, $code] = $this->createCode();
+
+        $crawler = $client->request('GET', '/boosters?code=' . strtolower($code->getCode()));
+
+        self::assertResponseIsSuccessful();
+        $this->assertSame($code->getFormattedCode(), $crawler->filter('[data-testid="code-input"]')->attr('value'));
+        $this->assertCount(1, $crawler->filter('[data-testid="code-prefilled"]'));
+        $this->assertCount(0, $crawler->filter('[data-testid="code-success"]'));
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+        $this->assertSame(0, $entityManager->find(BoosterCode::class, $code->getId())?->getUses(), 'Opening the link never redeems the code.');
+        $this->assertNull($entityManager->getRepository(UserBooster::class)->findOneBy(['discordUser' => $user->getDiscordId(), 'booster' => $booster->getId()]));
+    }
+
+    public function testThePreFilledCodeIsNormalized(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+
+        $crawler = $client->request('GET', '/boosters?code=' . urlencode('ab"><script>alert(1)</script>'));
+
+        self::assertResponseIsSuccessful();
+        $this->assertSame('ABSC-RIPT-ALER-T1SC-RIPT', $crawler->filter('[data-testid="code-input"]')->attr('value'));
+        $this->assertStringNotContainsString('<script>alert(1)', (string) $client->getResponse()->getContent());
+    }
+
+    public function testWithoutCodeParameterTheFieldStaysEmpty(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+
+        $crawler = $client->request('GET', '/boosters');
+
+        $this->assertSame('', $crawler->filter('[data-testid="code-input"]')->attr('value'));
+        $this->assertCount(0, $crawler->filter('[data-testid="code-prefilled"]'));
+    }
+
+    public function testThePlayerValidatesThePreFilledCodeThemselves(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        [, $code] = $this->createCode();
+
+        $component = $this->createLiveComponent(BoosterHub::class, ['code' => $code->getCode()], $client);
+        $this->assertSame($code->getFormattedCode(), $component->component()->code);
+        $this->assertTrue($component->component()->codePrefilled);
+
+        $component->call('redeemCode');
+
+        $this->assertNull($component->component()->codeError);
+        $this->assertNotNull($component->component()->codeSuccess);
+        $this->assertFalse($component->component()->codePrefilled);
+    }
+
     public function testRedeemingACodeCreditsTheInventory(): void
     {
         $client = static::createClient();

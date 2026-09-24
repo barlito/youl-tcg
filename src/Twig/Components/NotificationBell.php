@@ -108,7 +108,8 @@ final class NotificationBell extends AbstractController
     }
 
     /**
-     * Marks the entry read and follows its (server-rendered, internal) link.
+     * Marks the entry read and follows its (server-rendered, internal) link,
+     * if any.
      * Unknown ids and other players' entries only close the dropdown.
      */
     #[LiveAction]
@@ -123,7 +124,10 @@ final class NotificationBell extends AbstractController
             return null;
         }
 
-        return $this->redirect($this->renderer->render($notification, $viewer)->link);
+        $link = $this->renderer->render($notification, $viewer)->link;
+
+        // no link (plain announcement): marked read, the dropdown stays open
+        return null !== $link ? $this->redirect($link) : null;
     }
 
     private function getDiscordUser(): DiscordUser
