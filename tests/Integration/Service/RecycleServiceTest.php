@@ -380,18 +380,19 @@ final class RecycleServiceTest extends KernelTestCase
         $this->assertNothingChanged($scenario, expectedQuantities: [[8, 3]]);
     }
 
-    public function testACardRequestedFromThePlayerIsNotRecyclable(): void
+    public function testACardRequestedFromThePlayerStaysRecyclable(): void
     {
+        // only the proposer's offered side locks: the receiver consented to nothing
         $scenario = $this->createScenario([['rarity' => CardRarityEnum::UNCOMMON, 'quantity' => 12]]);
         $this->pendingOffer($scenario['user'], $scenario['cards'][0], asProposer: false, side: TradeOfferSideEnum::REQUESTED);
 
-        $this->expectException(NotEnoughCopiesException::class);
-
-        $this->recycleService->recycle(
+        $operation = $this->recycleService->recycle(
             $scenario['user'],
             [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 5, holoQuantity: 0)],
             $scenario['booster'],
         );
+
+        $this->assertSame(5, $operation->getRecycledCardCount());
     }
 
     public function testACardThePlayerAsksForOrIsOfferedStaysRecyclable(): void

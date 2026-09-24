@@ -81,8 +81,8 @@ class TradeOfferRepository extends ServiceEntityRepository
     }
 
     /**
-     * Cards $user is engaged on through PENDING offers: offered as proposer or
-     * requested from them as receiver. Such cards cannot be recycled at all.
+     * Cards $user offers as proposer in PENDING offers: such cards cannot be
+     * recycled at all. Cards requested from $user lock nothing (they consented to nothing).
      *
      * @return array<string, true> card id => engaged
      */
@@ -94,11 +94,11 @@ class TradeOfferRepository extends ServiceEntityRepository
             ->from(TradeOfferLine::class, 'line')
             ->join('line.tradeOffer', 'offer')
             ->andWhere('offer.status = :status')
-            ->andWhere('(offer.proposer = :user AND line.side = :offered) OR (offer.receiver = :user AND line.side = :requested)')
+            ->andWhere('offer.proposer = :user')
+            ->andWhere('line.side = :offered')
             ->setParameter('user', $user)
             ->setParameter('status', TradeOfferStatusEnum::PENDING->value)
             ->setParameter('offered', TradeOfferSideEnum::OFFERED->value)
-            ->setParameter('requested', TradeOfferSideEnum::REQUESTED->value)
             ->getQuery()
             ->getResult()
         ;

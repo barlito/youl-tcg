@@ -135,7 +135,7 @@ final class RecycleHubComponentTest extends WebTestCase
             ['name' => 'Requested card', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 4],
             ['name' => 'Free card', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 3],
         ]);
-        // a single copy engaged is enough to lock every duplicate, on either side of the offer
+        // a single copy offered is enough to lock every duplicate; a card requested from the player locks nothing
         $this->engage($user, $scenario['cards'][0], asProposer: true, side: TradeOfferSideEnum::OFFERED);
         $this->engage($user, $scenario['cards'][1], asProposer: false, side: TradeOfferSideEnum::REQUESTED);
 
@@ -144,11 +144,11 @@ final class RecycleHubComponentTest extends WebTestCase
             $component->call('addCopy', ['cardId' => (string) $scenario['cards'][$index]->getId(), 'kind' => 'normal']);
         }
 
-        $this->assertSame([], $component->component()->selection);
+        $this->assertSame([(string) $scenario['cards'][1]->getId()], array_keys($component->component()->selection), 'The requested card stays selectable.');
         $crawler = new Crawler((string) $component->render());
-        $this->assertSame('2', trim($crawler->filter('[data-testid="recyclable-total"] p')->eq(1)->text()), 'Only the free card counts.');
+        $this->assertSame('5', trim($crawler->filter('[data-testid="recyclable-total"] p')->eq(1)->text()), 'The requested and the free cards count.');
         $engaged = $crawler->filter('[data-testid="recycle-card"][data-engaged="true"]');
-        $this->assertCount(2, $engaged);
+        $this->assertCount(1, $engaged);
         $this->assertStringContainsString('⇄ engagée dans un échange', $engaged->text());
         $this->assertCount(0, $engaged->filter('[data-testid="add-normal"]'), 'A locked card has no selection control.');
     }

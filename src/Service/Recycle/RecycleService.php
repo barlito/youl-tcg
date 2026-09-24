@@ -177,7 +177,7 @@ final readonly class RecycleService
      * only truth. Invariants kept: quantity >= holoQuantity >= 0, and at least
      * one copy of the card always stays in the collection (a 1/1 unique, at
      * quantity 1 by construction, is therefore never recyclable). A card
-     * engaged in a pending trade offer, on either side, is not recyclable at all.
+     * the player offers in a pending trade offer is not recyclable at all.
      */
     private function debit(?UserCard $userCard, RecycleSelectionLine $line, bool $engaged): void
     {
@@ -193,7 +193,7 @@ final readonly class RecycleService
         if ($engaged) {
             throw new NotEnoughCopiesException(
                 \sprintf('Card "%s" is engaged in a pending trade offer.', $cardName),
-                \sprintf('« %s » est engagée dans une offre d\'échange en attente : elle ne peut pas être recyclée tant que l\'offre n\'est pas acceptée, refusée ou annulée.', $cardName),
+                \sprintf('« %s » est engagée dans une offre d\'échange en attente que tu as proposée : elle ne peut pas être recyclée tant que l\'offre n\'est pas acceptée, refusée ou annulée.', $cardName),
             );
         }
 

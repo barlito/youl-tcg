@@ -179,7 +179,7 @@ final class RecycleHub extends AbstractController
 
     /**
      * Copies that can leave the collection: all but one, whatever their kind —
-     * none while the card is engaged in a pending trade offer.
+     * none while the player offers the card in a pending trade offer.
      */
     public function recyclableCopies(UserCard $row): int
     {
@@ -200,7 +200,8 @@ final class RecycleHub extends AbstractController
     }
 
     /**
-     * Offered by the player or requested from them in a pending trade offer.
+     * Offered by the player in one of their pending trade offers (a card
+     * requested from them stays recyclable).
      */
     public function isEngaged(UserCard $row): bool
     {
