@@ -10,12 +10,16 @@ use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\RecycleOperation;
+use App\Entity\TradeOffer;
+use App\Entity\TradeOfferLine;
 use App\Entity\UserBooster;
 use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use App\Enum\FeatureEnum;
+use App\Enum\Trade\TradeOfferSideEnum;
+use App\Enum\Trade\TradeOfferStatusEnum;
 use App\Exception\Recycle\BoosterNotRecyclableException;
 use App\Exception\Recycle\InvalidRecycleSelectionException;
 use App\Exception\Recycle\NotEnoughCopiesException;
@@ -338,6 +342,97 @@ final class RecycleServiceTest extends KernelTestCase
         $this->assertNothingChanged($scenario, expectedQuantities: [[1, 0], [2, 0]]);
     }
 
+    public function testACardOfferedInAPendingOfferIsNotRecyclableAtAll(): void
+    {
+        // 12 uncommons, a single one engaged: the 10 spare duplicates are locked too
+        $scenario = $this->createScenario([['rarity' => CardRarityEnum::UNCOMMON, 'quantity' => 12]]);
+        $this->pendingOffer($scenario['user'], $scenario['cards'][0], asProposer: true, side: TradeOfferSideEnum::OFFERED);
+
+        try {
+            $this->recycleService->recycle(
+                $scenario['user'],
+                [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 5, holoQuantity: 0)],
+                $scenario['booster'],
+            );
+            $this->fail('Expected NotEnoughCopiesException');
+        } catch (NotEnoughCopiesException $exception) {
+            $this->assertStringContainsString('engagée dans une offre d\'échange en attente', $exception->getUserMessage());
+        }
+
+        $this->assertNothingChanged($scenario, expectedQuantities: [[12, 0]]);
+    }
+
+    public function testAnEngagedHoloLocksTheNormalCopiesToo(): void
+    {
+        $scenario = $this->createScenario([['rarity' => CardRarityEnum::RARE, 'quantity' => 8, 'holoQuantity' => 3]]);
+        $this->pendingOffer($scenario['user'], $scenario['cards'][0], asProposer: true, side: TradeOfferSideEnum::OFFERED, normal: 0, holo: 1);
+
+        try {
+            $this->recycleService->recycle(
+                $scenario['user'],
+                [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 4, holoQuantity: 0)],
+                $scenario['booster'],
+            );
+            $this->fail('Expected NotEnoughCopiesException');
+        } catch (NotEnoughCopiesException) {
+        }
+
+        $this->assertNothingChanged($scenario, expectedQuantities: [[8, 3]]);
+    }
+
+    public function testACardRequestedFromThePlayerStaysRecyclable(): void
+    {
+        // only the proposer's offered side locks: the receiver consented to nothing
+        $scenario = $this->createScenario([['rarity' => CardRarityEnum::UNCOMMON, 'quantity' => 12]]);
+        $this->pendingOffer($scenario['user'], $scenario['cards'][0], asProposer: false, side: TradeOfferSideEnum::REQUESTED);
+
+        $operation = $this->recycleService->recycle(
+            $scenario['user'],
+            [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 5, holoQuantity: 0)],
+            $scenario['booster'],
+        );
+
+        $this->assertSame(5, $operation->getRecycledCardCount());
+    }
+
+    public function testACardThePlayerAsksForOrIsOfferedStaysRecyclable(): void
+    {
+        // the player's own request and another player's offer take nothing from their stock
+        $scenario = $this->createScenario([
+            ['rarity' => CardRarityEnum::UNCOMMON, 'quantity' => 6],
+            ['rarity' => CardRarityEnum::UNCOMMON, 'quantity' => 6],
+        ]);
+        $this->pendingOffer($scenario['user'], $scenario['cards'][0], asProposer: true, side: TradeOfferSideEnum::REQUESTED);
+        $this->pendingOffer($scenario['user'], $scenario['cards'][1], asProposer: false, side: TradeOfferSideEnum::OFFERED);
+
+        $operation = $this->recycleService->recycle(
+            $scenario['user'],
+            [
+                new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 5, holoQuantity: 0),
+                new RecycleSelectionLine($scenario['cards'][1], normalQuantity: 5, holoQuantity: 0),
+            ],
+            $scenario['booster'],
+        );
+
+        $this->assertSame(10, $operation->getRecycledCardCount());
+    }
+
+    public function testAResolvedOfferLocksNothing(): void
+    {
+        $scenario = $this->createScenario([['rarity' => CardRarityEnum::UNCOMMON, 'quantity' => 12]]);
+        $offer = $this->pendingOffer($scenario['user'], $scenario['cards'][0], asProposer: true, side: TradeOfferSideEnum::OFFERED, normal: 4);
+        $offer->resolve(TradeOfferStatusEnum::CANCELLED, new \DateTimeImmutable());
+        $this->entityManager->flush();
+
+        $operation = $this->recycleService->recycle(
+            $scenario['user'],
+            [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 11, holoQuantity: 0)],
+            $scenario['booster'],
+        );
+
+        $this->assertSame(11, $operation->getRecycledCardCount());
+    }
+
     public function testRefusesMoreHoloCopiesThanOwned(): void
     {
         $scenario = $this->createScenario([['rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 4, 'holoQuantity' => 1]]);
@@ -529,6 +624,25 @@ final class RecycleServiceTest extends KernelTestCase
 
         $this->assertNull($this->entityManager->getRepository(UserBooster::class)->findOneBy(['discordUser' => $scenario['user']]));
         $this->assertSame([], $this->entityManager->getRepository(RecycleOperation::class)->findBy(['discordUser' => $scenario['user']]));
+    }
+
+    /**
+     * A pending offer between $player and a fresh counterpart, holding one
+     * line on $side for $card.
+     */
+    private function pendingOffer(DiscordUser $player, Card $card, bool $asProposer, TradeOfferSideEnum $side, int $normal = 1, int $holo = 0): TradeOffer
+    {
+        $other = new DiscordUser()->setDiscordId('recycle-other-' . uniqid())->setUsername('Other');
+        $this->entityManager->persist($other);
+
+        $offer = $asProposer
+            ? new TradeOffer()->setProposer($player)->setReceiver($other)
+            : new TradeOffer()->setProposer($other)->setReceiver($player);
+        $offer->addLine(new TradeOfferLine()->setSide($side)->setCard($card)->setNormalQuantity($normal)->setHoloQuantity($holo));
+        $this->entityManager->persist($offer);
+        $this->entityManager->flush();
+
+        return $offer;
     }
 
     private function findUserCard(DiscordUser $user, Card $card): UserCard

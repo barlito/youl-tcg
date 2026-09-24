@@ -28,6 +28,13 @@ final class DiscordUserTest extends TestCase
         $this->assertSame(2, $user->getCardCopyCount());
     }
 
+    public function testDistinctCountSkipsEmptyRows(): void
+    {
+        $user = $this->userOwning([[3, 1], [0, 0], [1, 0]]);
+
+        $this->assertSame(2, $user->getDistinctCardCount());
+    }
+
     public function testCountsAreZeroWithoutAnyCard(): void
     {
         $user = new DiscordUser();

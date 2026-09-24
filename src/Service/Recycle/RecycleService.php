@@ -17,6 +17,7 @@ use App\Exception\Recycle\InvalidRecycleSelectionException;
 use App\Exception\Recycle\NotEnoughCopiesException;
 use App\Exception\Recycle\NotEnoughRecyclePointsException;
 use App\Exception\Recycle\RecyclingClosedException;
+use App\Repository\TradeOfferRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\UserInventoryService;
@@ -59,6 +60,7 @@ final readonly class RecycleService
 
     public function __construct(
         private UserCardRepository $userCardRepository,
+        private TradeOfferRepository $tradeOfferRepository,
         private UserInventoryService $userInventoryService,
         private BoosterAvailabilityService $boosterAvailability,
         private EntityManagerInterface $entityManager,
@@ -105,8 +107,11 @@ final readonly class RecycleService
                 $discordUser,
                 array_map(static fn (RecycleSelectionLine $line): Card => $line->card, $selection),
             );
+            // read under the row locks: an offer created meanwhile has committed
+            $engaged = $this->tradeOfferRepository->findEngagedCardIds($discordUser);
             foreach ($selection as $line) {
-                $this->debit($lockedRows[(string) $line->card->getId()] ?? null, $line);
+                $cardId = (string) $line->card->getId();
+                $this->debit($lockedRows[$cardId] ?? null, $line, isset($engaged[$cardId]));
             }
 
             $operation = new RecycleOperation($discordUser, $booster, $points, $boosterCount, $this->clock->now());
@@ -171,9 +176,10 @@ final readonly class RecycleService
      * may have moved between display and confirmation — the locked row is the
      * only truth. Invariants kept: quantity >= holoQuantity >= 0, and at least
      * one copy of the card always stays in the collection (a 1/1 unique, at
-     * quantity 1 by construction, is therefore never recyclable).
+     * quantity 1 by construction, is therefore never recyclable). A card
+     * the player offers in a pending trade offer is not recyclable at all.
      */
-    private function debit(?UserCard $userCard, RecycleSelectionLine $line): void
+    private function debit(?UserCard $userCard, RecycleSelectionLine $line, bool $engaged): void
     {
         $cardName = $line->card->getName();
 
@@ -181,6 +187,13 @@ final readonly class RecycleService
             throw new NotEnoughCopiesException(
                 \sprintf('Card "%s" is not owned.', $cardName),
                 \sprintf('Tu ne possèdes pas « %s ».', $cardName),
+            );
+        }
+
+        if ($engaged) {
+            throw new NotEnoughCopiesException(
+                \sprintf('Card "%s" is engaged in a pending trade offer.', $cardName),
+                \sprintf('« %s » est engagée dans une offre d\'échange en attente que tu as proposée : elle ne peut pas être recyclée tant que l\'offre n\'est pas acceptée, refusée ou annulée.', $cardName),
             );
         }
 

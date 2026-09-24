@@ -168,7 +168,7 @@
                                         {% if userCard is not null %}
                                             {{ include('components/CardComponent.html.twig', { card: item.card, holo: ownsHolo, lazy: true }) }}
                                         {% else %}
-                                            {{ include('parts/_masked_card.html.twig') }}
+                                            {{ include('parts/_masked_card.html.twig', with_context = false) }}
                                         {% endif %}
                                     </div>
 

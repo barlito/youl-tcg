@@ -111,7 +111,7 @@
                                     {% endif %}
                                 </div>
                             {% else %}
-                                {{ include('parts/_masked_card.html.twig') }}
+                                {{ include('parts/_masked_card.html.twig', with_context = false) }}
                             {% endif %}
                         </div>
                     {% endfor %}

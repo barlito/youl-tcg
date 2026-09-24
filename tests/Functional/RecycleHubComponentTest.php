@@ -9,14 +9,18 @@ use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\RecycleOperation;
+use App\Entity\TradeOffer;
+use App\Entity\TradeOfferLine;
 use App\Entity\UserBooster;
 use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Enum\Trade\TradeOfferSideEnum;
 use App\Twig\Components\RecycleHub;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 final class RecycleHubComponentTest extends WebTestCase
@@ -120,6 +124,33 @@ final class RecycleHubComponentTest extends WebTestCase
         // 1 holo (sub-count cap) then 2 normal (keep-one total cap), 4 points
         $this->assertSame(['normal' => 2, 'holo' => 1], $component->component()->selection[$cardId]);
         $this->assertStringContainsString('Encore 6 pts pour 1 booster', (string) $component->render());
+    }
+
+    public function testACardEngagedInATradeOfferIsListedButLocked(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $scenario = $this->createScenario($user, [
+            ['name' => 'Offered card', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 5],
+            ['name' => 'Requested card', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 4],
+            ['name' => 'Free card', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 3],
+        ]);
+        // a single copy offered is enough to lock every duplicate; a card requested from the player locks nothing
+        $this->engage($user, $scenario['cards'][0], asProposer: true, side: TradeOfferSideEnum::OFFERED);
+        $this->engage($user, $scenario['cards'][1], asProposer: false, side: TradeOfferSideEnum::REQUESTED);
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        foreach ([0, 1] as $index) {
+            $component->call('addCopy', ['cardId' => (string) $scenario['cards'][$index]->getId(), 'kind' => 'normal']);
+        }
+
+        $this->assertSame([(string) $scenario['cards'][1]->getId()], array_keys($component->component()->selection), 'The requested card stays selectable.');
+        $crawler = new Crawler((string) $component->render());
+        $this->assertSame('5', trim($crawler->filter('[data-testid="recyclable-total"] p')->eq(1)->text()), 'The requested and the free cards count.');
+        $engaged = $crawler->filter('[data-testid="recycle-card"][data-engaged="true"]');
+        $this->assertCount(1, $engaged);
+        $this->assertStringContainsString('⇄ engagée dans un échange', $engaged->text());
+        $this->assertCount(0, $engaged->filter('[data-testid="add-normal"]'), 'A locked card has no selection control.');
     }
 
     public function testRemoveCopyDropsTheLineAtZero(): void
@@ -460,6 +491,20 @@ final class RecycleHubComponentTest extends WebTestCase
         $component = $this->createLiveComponent(RecycleHub::class, client: $client);
 
         $this->assertStringNotContainsString($emptyBooster->getName() ?? '', (string) $component->render(), 'A pack without drawable card is not offered.');
+    }
+
+    private function engage(DiscordUser $player, Card $card, bool $asProposer, TradeOfferSideEnum $side): void
+    {
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $other = new DiscordUser()->setDiscordId('recycle-hub-other-' . uniqid())->setUsername('Other');
+        $entityManager->persist($other);
+
+        $offer = $asProposer
+            ? new TradeOffer()->setProposer($player)->setReceiver($other)
+            : new TradeOffer()->setProposer($other)->setReceiver($player);
+        $offer->addLine(new TradeOfferLine()->setSide($side)->setCard($card)->setNormalQuantity(1)->setHoloQuantity(0));
+        $entityManager->persist($offer);
+        $entityManager->flush();
     }
 
     /**

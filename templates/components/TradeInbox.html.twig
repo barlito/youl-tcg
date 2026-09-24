@@ -1,0 +1,202 @@
+<div {{ attributes }}>
+    {% set received = this.received %}
+    {% set sent = this.sent %}
+    {% set history = this.history %}
+    <main>
+        {# --------------------------------------------------------- En-tête #}
+        <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
+            <div class="glow-ambient" aria-hidden="true"></div>
+            <div class="relative mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <p class="eyebrow">04 / Échanges</p>
+                    <h1 class="mt-2 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
+                        Échanges
+                    </h1>
+                    <p class="mt-2 max-w-lg text-sm text-ink-muted">
+                        Propose tes doublons à un autre joueur contre ce qui te manque.
+                        Les cartes engagées dans une offre en attente restent réservées jusqu'à sa résolution.
+                    </p>
+                </div>
+                <a href="{{ path('trades_new') }}" class="btn-arcade shrink-0 self-start md:self-auto">Nouvelle offre ▸</a>
+            </div>
+        </section>
+
+        {% if error or success %}
+            <div class="mx-auto mt-6 max-w-7xl px-6 lg:px-12">
+                {% if error %}
+                    <div class="border border-magenta/50 bg-magenta/10 px-4 py-3 font-mono text-xs text-magenta" data-testid="trade-error">⚠ {{ error }}</div>
+                {% else %}
+                    <div class="border border-live/50 bg-live/10 px-4 py-3 font-mono text-xs text-live" data-testid="trade-success">⇄ {{ success }}</div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {# --------------------------------------------------------- Reçues #}
+        <section class="px-6 py-10 lg:px-12">
+            <div class="mx-auto max-w-7xl">
+                {{ _self.heading('Offres reçues', received|length) }}
+
+                {% if received is empty %}
+                    <div class="mt-4 border border-dashed border-hairline px-8 py-12 text-center text-ink-dim" data-testid="no-received">
+                        <p class="text-sm">Aucune offre en attente. Tranquille.</p>
+                    </div>
+                {% else %}
+                    <div class="mt-4 grid gap-4" data-testid="received-offers">
+                        {% for offer in received %}
+                            {% set offeredLines = this.offeredView(offer) %}
+                            {% set requestedLines = this.requestedView(offer) %}
+                            <article class="border bg-surface {{ confirming == (offer.id ~ '') ? 'border-primary/80 shadow-[0_0_16px_#a435f044]' : 'border-hairline' }}" data-testid="received-offer">
+                                {{ _self.offer_header(offer.proposer.username, 'te propose un échange', offer) }}
+                                {{ _self.offer_body(offeredLines, 'Tu reçois', requestedLines, 'Tu donnes', 'r-' ~ offer.id) }}
+                                <div class="flex flex-wrap items-center gap-3 border-t border-hairline px-4 py-3 md:px-5">
+                                    {% if confirming == (offer.id ~ '') %}
+                                        <p class="w-full text-xs text-ink-muted md:w-auto md:flex-1" data-testid="accept-confirmation">
+                                            Les cartes changent de collection immédiatement, sans retour possible.
+                                        </p>
+                                        <button type="button"
+                                                data-action="live#action"
+                                                data-live-action-param="accept"
+                                                data-live-offer-id-param="{{ offer.id }}"
+                                                data-loading="addAttribute(disabled) addClass(opacity-50)"
+                                                data-testid="confirm-accept"
+                                                class="border border-primary bg-primary px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary">
+                                            ✓ Confirmer l'échange
+                                        </button>
+                                        <button type="button"
+                                                data-action="live#action"
+                                                data-live-action-param="abortAccept"
+                                                data-testid="abort-accept"
+                                                class="border border-hairline px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-muted transition-colors hover:border-primary hover:text-primary">
+                                            Pas encore
+                                        </button>
+                                    {% else %}
+                                        <button type="button"
+                                                data-action="live#action"
+                                                data-live-action-param="askAccept"
+                                                data-live-offer-id-param="{{ offer.id }}"
+                                                data-testid="accept-offer"
+                                                class="border border-primary bg-primary px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary">
+                                            Accepter…
+                                        </button>
+                                        <button type="button"
+                                                data-action="live#action"
+                                                data-live-action-param="refuse"
+                                                data-live-offer-id-param="{{ offer.id }}"
+                                                data-loading="addAttribute(disabled) addClass(opacity-50)"
+                                                data-testid="refuse-offer"
+                                                class="border border-hairline px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-muted transition-colors hover:border-magenta hover:text-magenta">
+                                            Refuser
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        {# -------------------------------------------------------- Envoyées #}
+        <section class="border-t border-hairline px-6 py-10 lg:px-12">
+            <div class="mx-auto max-w-7xl">
+                {{ _self.heading('Offres envoyées', sent|length) }}
+
+                {% if sent is empty %}
+                    <div class="mt-4 border border-dashed border-hairline px-8 py-12 text-center text-ink-dim">
+                        <p class="text-sm">Tu n'as aucune offre en attente.</p>
+                        <a href="{{ path('trades_new') }}" class="btn-ghost mt-6 inline-block">Proposer un échange ▸</a>
+                    </div>
+                {% else %}
+                    <div class="mt-4 grid gap-4" data-testid="sent-offers">
+                        {% for offer in sent %}
+                            <article class="border border-hairline bg-surface">
+                                {{ _self.offer_header(offer.receiver.username, 'doit répondre à ton offre', offer) }}
+                                {{ _self.offer_body(this.offeredView(offer), 'Tu donnes', this.requestedView(offer), 'Tu reçois', 's-' ~ offer.id) }}
+                                <div class="border-t border-hairline px-4 py-3 md:px-5">
+                                    <button type="button"
+                                            data-action="live#action"
+                                            data-live-action-param="cancel"
+                                            data-live-offer-id-param="{{ offer.id }}"
+                                            data-loading="addAttribute(disabled) addClass(opacity-50)"
+                                            data-testid="cancel-offer"
+                                            class="border border-hairline px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-muted transition-colors hover:border-magenta hover:text-magenta">
+                                        Annuler l'offre
+                                    </button>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        {# ------------------------------------------------------ Historique #}
+        {% if history is not empty %}
+            <section class="border-t border-hairline px-6 py-10 lg:px-12">
+                <div class="mx-auto max-w-7xl">
+                    <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">Historique</h2>
+                    <div class="mt-4 divide-y divide-hairline border border-hairline" data-testid="trade-history">
+                        {% for offer in history %}
+                            {% set isMine = offer.proposer.discordId == app.user.discordId %}
+                            <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                                <span class="chip-mono text-ink-muted">
+                                    {{ offer.resolvedAt ? offer.resolvedAt|date('d/m/Y', 'Europe/Paris') : '' }}
+                                    · {{ isMine ? 'offre à ' ~ offer.receiver.username : 'offre de ' ~ offer.proposer.username }}
+                                </span>
+                                {{ _self.status(offer.status) }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+    </main>
+</div>
+
+{% macro heading(title, count) %}
+    <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
+        {{ title }} <span class="text-primary">{{ '%02d'|format(count) }}</span>
+    </h2>
+{% endmacro %}
+
+{% macro status(status) %}
+    {% set color = {
+        pending: 'border-soon/50 text-soon',
+        accepted: 'border-live/50 text-live',
+        refused: 'border-magenta/50 text-magenta',
+        cancelled: 'border-hairline text-ink-dim',
+        invalidated: 'border-hairline text-ink-dim',
+    }[status.value] %}
+    <span class="chip-mono border px-2 py-1 font-bold {{ color }}" data-testid="offer-status">{{ status.label }}</span>
+{% endmacro %}
+
+{% macro offer_header(username, caption, offer) %}
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-3 md:px-5">
+        <div class="flex min-w-0 items-center gap-3">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center bg-gradient-to-br from-primary to-magenta font-display text-sm font-bold text-black">
+                {{ username|first|upper }}
+            </span>
+            <p class="min-w-0 truncate text-sm text-ink-muted">
+                <span class="font-display font-bold uppercase text-ink-strong">{{ username }}</span> {{ caption }}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="chip-mono text-ink-dim">{{ offer.createdAt ? offer.createdAt|date('d/m H:i', 'Europe/Paris') }}</span>
+            {{ _self.status(offer.status) }}
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro offer_body(leftLines, leftLabel, rightLines, rightLabel, idPrefix) %}
+    <div class="grid gap-6 px-4 py-5 md:grid-cols-[1fr_auto_1fr] md:px-5">
+        {{ include('parts/_trade_lines.html.twig', { lines: leftLines, label: leftLabel, idPrefix: 'trade-' ~ idPrefix ~ '-l' }, with_context = false) }}
+        <span class="hidden self-center font-display text-3xl text-primary md:block" aria-hidden="true">⇄</span>
+        {{ include('parts/_trade_lines.html.twig', { lines: rightLines, label: rightLabel, idPrefix: 'trade-' ~ idPrefix ~ '-r' }, with_context = false) }}
+    </div>
+    {% if leftLines|merge(rightLines)|filter(line => line.masked)|length > 0 %}
+        <p class="-mt-2 px-4 pb-4 text-xs text-ink-dim md:px-5" data-testid="masking-hint">
+            Face cachée = carte que tu ne possèdes pas encore. Seule sa rareté est affichée :
+            c'est à elle que se juge une offre à l'aveugle.
+        </p>
+    {% endif %}
+{% endmacro %}
