@@ -12,6 +12,7 @@ use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\LockMode;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Types\Types;
@@ -177,17 +178,11 @@ class UserCardRepository extends ServiceEntityRepository
      */
     public function lockForCredit(DiscordUser $discordUser, array $cards): array
     {
-        $connection = $this->getEntityManager()->getConnection();
-        if (!$connection->isTransactionActive()) {
-            throw new \LogicException('User cards can only be locked inside a transaction.');
-        }
-
-        $cardIds = array_values(array_unique(array_map(static fn (Card $card): string => (string) $card->getId(), $cards)));
+        $connection = $this->assertInTransaction();
+        $cardIds = $this->sortedCardIds($cards);
         if ([] === $cardIds) {
             return [];
         }
-
-        sort($cardIds);
 
         $now = new \DateTimeImmutable();
         foreach ($cardIds as $cardId) {
@@ -200,25 +195,27 @@ class UserCardRepository extends ServiceEntityRepository
             );
         }
 
-        /** @var list<UserCard> $rows */
-        $rows = $this->createQueryBuilder('uc')
-            ->andWhere('uc.discordUser = :user')
-            ->andWhere('uc.card IN (:cards)')
-            ->setParameter('user', $discordUser)
-            ->setParameter('cards', $cardIds)
-            ->orderBy('uc.card', 'ASC')
-            ->getQuery()
-            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
-            ->setHint(Query::HINT_REFRESH, true)
-            ->getResult()
-        ;
+        return $this->lockRows($discordUser, $cardIds);
+    }
 
-        $locked = [];
-        foreach ($rows as $userCard) {
-            $locked[(string) $userCard->getCard()->getId()] = $userCard;
+    /**
+     * Same lock as lockForCredit (same card id order, so a debit and a credit
+     * never deadlock) without creating the missing rows: a card not owned is
+     * simply absent from the result.
+     *
+     * @param list<Card> $cards
+     *
+     * @return array<string, UserCard> card id => locked row
+     */
+    public function lockForDebit(DiscordUser $discordUser, array $cards): array
+    {
+        $this->assertInTransaction();
+        $cardIds = $this->sortedCardIds($cards);
+        if ([] === $cardIds) {
+            return [];
         }
 
-        return $locked;
+        return $this->lockRows($discordUser, $cardIds);
     }
 
     public function countHolders(Card $card): int
@@ -250,5 +247,56 @@ class UserCardRepository extends ServiceEntityRepository
         ;
 
         return \is_int($deleted) ? $deleted : 0;
+    }
+
+    private function assertInTransaction(): Connection
+    {
+        $connection = $this->getEntityManager()->getConnection();
+        if (!$connection->isTransactionActive()) {
+            throw new \LogicException('User cards can only be locked inside a transaction.');
+        }
+
+        return $connection;
+    }
+
+    /**
+     * @param list<Card> $cards
+     *
+     * @return list<string>
+     */
+    private function sortedCardIds(array $cards): array
+    {
+        $cardIds = array_values(array_unique(array_map(static fn (Card $card): string => (string) $card->getId(), $cards)));
+        sort($cardIds);
+
+        return $cardIds;
+    }
+
+    /**
+     * @param list<string> $cardIds
+     *
+     * @return array<string, UserCard> card id => locked row
+     */
+    private function lockRows(DiscordUser $discordUser, array $cardIds): array
+    {
+        /** @var list<UserCard> $rows */
+        $rows = $this->createQueryBuilder('uc')
+            ->andWhere('uc.discordUser = :user')
+            ->andWhere('uc.card IN (:cards)')
+            ->setParameter('user', $discordUser)
+            ->setParameter('cards', $cardIds)
+            ->orderBy('uc.card', 'ASC')
+            ->getQuery()
+            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+            ->setHint(Query::HINT_REFRESH, true)
+            ->getResult()
+        ;
+
+        $locked = [];
+        foreach ($rows as $userCard) {
+            $locked[(string) $userCard->getCard()->getId()] = $userCard;
+        }
+
+        return $locked;
     }
 }

@@ -52,4 +52,26 @@ enum CardRarityEnum: string
     {
         return $b->rank() <=> $a->rank();
     }
+
+    /**
+     * Recycling value of one normal copy of this rarity. The whole recycle
+     * scale lives here: holoRecyclePoints() derives from it.
+     */
+    public function recyclePoints(): int
+    {
+        return match ($this) {
+            self::COMMON => 1,
+            self::UNCOMMON => 2,
+            self::RARE => 3,
+            self::LEGENDARY => 5,
+        };
+    }
+
+    /**
+     * Recycling value of one holo copy: the rarity scale plus a flat bonus.
+     */
+    public function holoRecyclePoints(): int
+    {
+        return $this->recyclePoints() + 1;
+    }
 }
