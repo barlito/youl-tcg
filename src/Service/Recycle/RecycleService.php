@@ -11,13 +11,16 @@ use App\Entity\DiscordUser;
 use App\Entity\RecycleOperation;
 use App\Entity\RecycleOperationCard;
 use App\Entity\UserCard;
+use App\Enum\FeatureEnum;
 use App\Exception\Recycle\BoosterNotRecyclableException;
 use App\Exception\Recycle\InvalidRecycleSelectionException;
 use App\Exception\Recycle\NotEnoughCopiesException;
 use App\Exception\Recycle\NotEnoughRecyclePointsException;
+use App\Exception\Recycle\RecyclingClosedException;
 use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\UserInventoryService;
+use App\Service\Feature\FeatureFlags;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
@@ -60,12 +63,14 @@ final readonly class RecycleService
         private BoosterAvailabilityService $boosterAvailability,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private FeatureFlags $featureFlags,
     ) {
     }
 
     /**
      * @param list<RecycleSelectionLine> $selection
      *
+     * @throws RecyclingClosedException
      * @throws InvalidRecycleSelectionException
      * @throws BoosterNotRecyclableException
      * @throws NotEnoughCopiesException
@@ -73,6 +78,10 @@ final readonly class RecycleService
      */
     public function recycle(DiscordUser $discordUser, array $selection, Booster $booster): RecycleOperation
     {
+        if (!$this->featureFlags->isEnabled(FeatureEnum::RECYCLING)) {
+            throw new RecyclingClosedException('Recycling feature is disabled.', 'Le recyclage est momentanément fermé.');
+        }
+
         $this->assertSelectionIsWellFormed($selection);
         $this->assertBoosterIsRecyclable($booster);
 

@@ -38,6 +38,7 @@
                 <li><a href="#tailles">Récap : tailles d'images recommandées</a></li>
                 <li><a href="#codes">Codes de récupération</a></li>
                 <li><a href="#economie">Économie : les écrans de consultation</a></li>
+                <li><a href="#fonctionnalites">Fonctionnalités : couper / rouvrir</a></li>
                 <li><a href="#ne-pas-toucher">Ce qu'on ne touche jamais à la main</a></li>
             </ol>
         </div>
@@ -216,7 +217,21 @@
         </table>
         <div class="tip">Les dates de ces écrans sont affichées en heure de Paris, comme la remise à zéro du quota.</div>
 
-        <h2 id="ne-pas-toucher">12. Ce qu'on ne touche jamais à la main</h2>
+        <h2 id="fonctionnalites">12. Fonctionnalités : couper / rouvrir</h2>
+        <p>
+            Le menu <strong>Réglages → Fonctionnalités</strong> liste les fonctionnalités qu'on peut
+            couper pour tous les joueurs d'un clic (interrupteur « Active »), sans déploiement.
+            Elles arrivent <strong>coupées</strong> en production : il faut les activer explicitement.
+            On ne peut ni en créer ni en supprimer.
+        </p>
+        <table>
+            <tr><th>Fonctionnalité</th><th>Coupée, ça donne…</th></tr>
+            <tr><td>Recyclage des doublons</td><td>La page <code>/recyclage</code> répond 404, le bouton « Recycler mes doublons » disparaît de la collection, et un recyclage lancé depuis une page restée ouverte est refusé (« Le recyclage est momentanément fermé. ») sans rien débiter. L'historique des recyclages est conservé et reste consultable.</td></tr>
+            <tr><td>Échanges entre joueurs</td><td>Réservé aux échanges : l'interrupteur est prêt, il prend effet quand la fonctionnalité est livrée.</td></tr>
+        </table>
+        <div class="tip">L'effet est immédiat, à la requête suivante des joueurs. Rouvrir remet tout en place à l'identique : aucune donnée n'est effacée par une coupure.</div>
+
+        <h2 id="ne-pas-toucher">13. Ce qu'on ne touche jamais à la main</h2>
         <ul>
             <li><strong>Utilisateurs Discord et rôles</strong> : créés et synchronisés automatiquement à la connexion (JWT). Ne jamais créer/modifier en base.</li>
             <li><strong>Inventaires</strong> (cartes et boosters possédés) : alimentés par les claims et les ouvertures. Une retouche manuelle fausse les compteurs et l'historique.</li>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Twig\Components;
 
+use App\Attribute\RequiresFeature;
 use App\Dto\RecycleSelectionLine;
 use App\Entity\Booster;
 use App\Entity\Card;
@@ -11,6 +12,7 @@ use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
+use App\Enum\FeatureEnum;
 use App\Exception\Recycle\RecycleException;
 use App\Repository\BoosterRepository;
 use App\Repository\CardRepository;
@@ -34,6 +36,7 @@ use Symfony\UX\LiveComponent\Metadata\UrlMapping;
  * client cannot forge it), and RecycleService re-validates everything under
  * lock anyway — the component never trusts client-computed points.
  */
+#[RequiresFeature(FeatureEnum::RECYCLING)]
 #[AsLiveComponent]
 final class RecycleHub extends AbstractController
 {
