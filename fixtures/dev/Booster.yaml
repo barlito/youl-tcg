@@ -1,5 +1,6 @@
 # Un booster par univers publié. Le dernier n'est pas réclamable :
 # il se distribue par code ou par récompense de streak.
+# Le dernier slot porte la chance carte unique (100 pour 10 000 = 1 %).
 App\Entity\Booster:
     booster_cyberpunk:
         name: 'Pack Cyberpunk 2077'
@@ -10,7 +11,7 @@ App\Entity\Booster:
             - { rarities: { common: 100 }, holoChance: 5 }
             - { rarities: { common: 70, uncommon: 30 }, holoChance: 15 }
             - { rarities: { uncommon: 70, rare: 30 }, holoChance: 30 }
-            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60 }
+            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60, uniqueChance: 100 }
     booster_kda:
         name: 'Pack K/DA'
         extension: '@extension_kda'
@@ -20,7 +21,7 @@ App\Entity\Booster:
             - { rarities: { common: 100 }, holoChance: 5 }
             - { rarities: { common: 70, uncommon: 30 }, holoChance: 15 }
             - { rarities: { uncommon: 70, rare: 30 }, holoChance: 30 }
-            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60 }
+            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60, uniqueChance: 100 }
     booster_w40k:
         name: 'Pack Warhammer 40K'
         extension: '@extension_w40k'
@@ -30,7 +31,7 @@ App\Entity\Booster:
             - { rarities: { common: 100 }, holoChance: 5 }
             - { rarities: { common: 70, uncommon: 30 }, holoChance: 15 }
             - { rarities: { uncommon: 70, rare: 30 }, holoChance: 30 }
-            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60 }
+            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60, uniqueChance: 100 }
     booster_bleach:
         name: 'Pack Bleach'
         extension: '@extension_bleach'
@@ -40,7 +41,7 @@ App\Entity\Booster:
             - { rarities: { common: 100 }, holoChance: 5 }
             - { rarities: { common: 70, uncommon: 30 }, holoChance: 15 }
             - { rarities: { uncommon: 70, rare: 30 }, holoChance: 30 }
-            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60 }
+            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60, uniqueChance: 100 }
     booster_magic:
         name: 'Pack Magic'
         extension: '@extension_magic'
@@ -50,7 +51,7 @@ App\Entity\Booster:
             - { rarities: { common: 100 }, holoChance: 5 }
             - { rarities: { common: 70, uncommon: 30 }, holoChance: 15 }
             - { rarities: { uncommon: 70, rare: 30 }, holoChance: 30 }
-            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60 }
+            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60, uniqueChance: 100 }
     booster_cosmos:
         name: 'Pack Cosmos'
         extension: '@extension_cosmos'
@@ -60,7 +61,7 @@ App\Entity\Booster:
             - { rarities: { common: 100 }, holoChance: 5 }
             - { rarities: { common: 70, uncommon: 30 }, holoChance: 15 }
             - { rarities: { uncommon: 70, rare: 30 }, holoChance: 30 }
-            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60 }
+            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60, uniqueChance: 100 }
     booster_dystopie:
         name: 'Pack Dystopie'
         extension: '@extension_dystopie'
@@ -70,7 +71,7 @@ App\Entity\Booster:
             - { rarities: { common: 100 }, holoChance: 5 }
             - { rarities: { common: 70, uncommon: 30 }, holoChance: 15 }
             - { rarities: { uncommon: 70, rare: 30 }, holoChance: 30 }
-            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60 }
+            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60, uniqueChance: 100 }
     booster_eldritch:
         name: 'Pack Cultes Anciens'
         extension: '@extension_eldritch'
@@ -80,7 +81,7 @@ App\Entity\Booster:
             - { rarities: { common: 100 }, holoChance: 5 }
             - { rarities: { common: 70, uncommon: 30 }, holoChance: 15 }
             - { rarities: { uncommon: 70, rare: 30 }, holoChance: 30 }
-            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60 }
+            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60, uniqueChance: 100 }
     booster_sot:
         name: 'Pack Storm of Time'
         extension: '@extension_sot'
@@ -90,7 +91,7 @@ App\Entity\Booster:
             - { rarities: { common: 100 }, holoChance: 5 }
             - { rarities: { common: 70, uncommon: 30 }, holoChance: 15 }
             - { rarities: { uncommon: 70, rare: 30 }, holoChance: 30 }
-            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60 }
+            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60, uniqueChance: 100 }
     booster_velirp:
         name: 'Pack VeliRP'
         extension: '@extension_velirp'
@@ -100,7 +101,7 @@ App\Entity\Booster:
             - { rarities: { common: 100 }, holoChance: 5 }
             - { rarities: { common: 70, uncommon: 30 }, holoChance: 15 }
             - { rarities: { uncommon: 70, rare: 30 }, holoChance: 30 }
-            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60 }
+            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60, uniqueChance: 100 }
     booster_psyche:
         name: 'Pack Psyché'
         extension: '@extension_psyche'
@@ -110,7 +111,7 @@ App\Entity\Booster:
             - { rarities: { common: 100 }, holoChance: 5 }
             - { rarities: { common: 70, uncommon: 30 }, holoChance: 15 }
             - { rarities: { uncommon: 70, rare: 30 }, holoChance: 30 }
-            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60 }
+            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60, uniqueChance: 100 }
     booster_origines:
         name: 'Pack Origines'
         extension: '@extension_origines'
@@ -121,4 +122,4 @@ App\Entity\Booster:
             - { rarities: { common: 100 }, holoChance: 5 }
             - { rarities: { common: 70, uncommon: 30 }, holoChance: 15 }
             - { rarities: { uncommon: 70, rare: 30 }, holoChance: 30 }
-            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60 }
+            - { rarities: { rare: 80, legendary: 20 }, holoChance: 60, uniqueChance: 100 }

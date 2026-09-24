@@ -165,7 +165,8 @@ final class BoosterOpeningServiceTest extends KernelTestCase
         $this->entityManager->persist($extension);
 
         // The only RARE card is a one-of-one; a filler COMMON gives the draw a
-        // fallback once the unique is claimed.
+        // fallback once the unique is claimed. The 1/1 is out of the rarity
+        // pool: only the slot's uniqueChance can hand it out.
         $unique = new Card()
             ->setName('One of one')
             ->setDescription('Test card')
@@ -189,7 +190,7 @@ final class BoosterOpeningServiceTest extends KernelTestCase
 
         $booster = new Booster()
             ->setExtension($extension)
-            ->setRarityRates([['rarities' => ['rare' => 100], 'holoChance' => 0]])
+            ->setRarityRates([['rarities' => ['rare' => 100], 'holoChance' => 0, 'uniqueChance' => Booster::UNIQUE_CHANCE_SCALE]])
         ;
         $booster->setImageName('default_card.png');
         $this->entityManager->persist($booster);
@@ -202,10 +203,11 @@ final class BoosterOpeningServiceTest extends KernelTestCase
         }
         $this->entityManager->flush();
 
-        // Alice opens first: the RARE slot draws the only rare card (the unique) and claims it.
+        // Alice opens first: the slot always rolls its unique chance, draws the
+        // only unclaimed 1/1 and claims it.
         $this->openingService->open($alice, $booster);
         // Bob opens next: the claimed unique is filtered out of the pool, so the
-        // RARE slot falls back to the common — Bob can never get the 1/1.
+        // slot falls back to the rarity draw — Bob can never get the 1/1.
         $this->openingService->open($bob, $booster);
 
         $this->entityManager->clear();

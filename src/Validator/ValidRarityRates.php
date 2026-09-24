@@ -15,4 +15,5 @@ final class ValidRarityRates extends Constraint
     public string $invalidRarityMessage = 'Slot #{{ slot }} uses unknown rarity "{{ rarity }}". Valid rarities: {{ rarities }}.';
     public string $invalidWeightMessage = 'Slot #{{ slot }}, rarity "{{ rarity }}": weight must be a positive integer.';
     public string $invalidHoloChanceMessage = 'Slot #{{ slot }}: "holoChance" must be an integer between 0 and 100.';
+    public string $invalidUniqueChanceMessage = 'Slot #{{ slot }}: "uniqueChance" must be an integer between 0 and {{ scale }}.';
 }

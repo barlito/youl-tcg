@@ -15,9 +15,14 @@ use App\Repository\CardRepository;
 use App\Service\Random\RandomService;
 
 /**
- * Weighted card draw. Each booster slot rolls a rarity from its weight map,
- * then picks a card uniformly among the published cards of that rarity in
- * the booster's extension.
+ * Weighted card draw. Each booster slot first rolls its one-of-one chance,
+ * then — unless a unique came out — rolls a rarity from its weight map and
+ * picks a card uniformly among the published NON-unique cards of that rarity
+ * in the booster's extension.
+ *
+ * Uniques are kept out of the rarity pool on purpose: their drop rate is the
+ * slot's uniqueChance and nothing else, instead of drifting with the number
+ * of cards published in their tier.
  */
 final readonly class CardDrawer
 {
@@ -45,9 +50,9 @@ final readonly class CardDrawer
             );
         }
 
-        $pool = $this->loadPool($booster->getExtension());
+        ['pool' => $pool, 'uniques' => $uniques] = $this->loadPool($booster->getExtension());
 
-        if ([] === $pool) {
+        if ([] === $pool && [] === $uniques) {
             throw new NoCardAvailableException(
                 \sprintf('Extension "%s" has no published card to draw from.', $booster->getExtension()->getName()),
                 'Ce booster n\'a aucune carte à tirer pour le moment, réessaie plus tard.',
@@ -57,15 +62,48 @@ final readonly class CardDrawer
         $drawnCards = [];
 
         foreach ($booster->getRarityRates() as $slot) {
-            $rarity = $this->resolveAvailableRarity($pool, $this->drawRarity($slot['rarities']));
-            $candidates = $pool[$rarity->value];
-            $card = $candidates[$this->randomService->getInt(0, \count($candidates) - 1)];
+            $uniqueIndex = $this->rollUnique($slot['uniqueChance'] ?? 0, $pool, $uniques);
+
+            if (null !== $uniqueIndex) {
+                // taken out of the local list so a second slot cannot land on
+                // the very same 1/1 (it would be swapped out at claim time anyway)
+                [$card] = array_splice($uniques, $uniqueIndex, 1);
+                $rarity = $card->getRarity();
+            } else {
+                $rarity = $this->resolveAvailableRarity($pool, $this->drawRarity($slot['rarities']));
+                $candidates = $pool[$rarity->value];
+                $card = $candidates[$this->randomService->getInt(0, \count($candidates) - 1)];
+            }
+
             $holo = $card->isAlwaysHolo() || $this->randomService->getInt(1, 100) <= $slot['holoChance'];
 
             $drawnCards[] = new DrawnCard($card, $rarity, $holo);
         }
 
         return $drawnCards;
+    }
+
+    /**
+     * Index of the unique this slot pulls, or null for a regular rarity draw.
+     *
+     * A slot left at 0 never touches the RNG here. An extension whose only
+     * drawable cards are uniques skips the chance roll — there is nothing
+     * else left to hand out.
+     *
+     * @param array<string, non-empty-list<Card>> $pool
+     * @param list<Card>                          $uniques
+     */
+    private function rollUnique(int $uniqueChance, array $pool, array $uniques): ?int
+    {
+        if ([] === $uniques) {
+            return null;
+        }
+
+        if ([] !== $pool && ($uniqueChance <= 0 || $this->randomService->getInt(1, Booster::UNIQUE_CHANCE_SCALE) > $uniqueChance)) {
+            return null;
+        }
+
+        return $this->randomService->getInt(0, \count($uniques) - 1);
     }
 
     /**
@@ -80,7 +118,7 @@ final readonly class CardDrawer
      */
     public function drawReplacement(Booster $booster, CardRarityEnum $rarity, bool $holo = false): DrawnCard
     {
-        $pool = $this->loadPool($booster->getExtension(), excludeUniques: true);
+        ['pool' => $pool] = $this->loadPool($booster->getExtension());
 
         if ([] === $pool) {
             throw new NoCardAvailableException(
@@ -97,25 +135,28 @@ final readonly class CardDrawer
     }
 
     /**
-     * Published cards of the extension grouped by rarity, EXCLUDING claimed
-     * one-of-one uniques (filtered in SQL). With $excludeUniques every unique
-     * card is dropped — used to build a replacement pool free of uniques.
+     * The drawable cards of the extension (published, claimed one-of-ones
+     * filtered in SQL), split in two: the rarity pool, which never holds a
+     * unique, and the unclaimed uniques the slots roll for separately.
      *
-     * @return array<string, non-empty-list<Card>>
+     * @return array{pool: array<string, non-empty-list<Card>>, uniques: list<Card>}
      */
-    private function loadPool(Extension $extension, bool $excludeUniques = false): array
+    private function loadPool(Extension $extension): array
     {
         $pool = [];
+        $uniques = [];
 
         foreach ($this->cardRepository->findDrawablePool($extension) as $card) {
-            if ($excludeUniques && $card->isUnique()) {
+            if ($card->isUnique()) {
+                $uniques[] = $card;
+
                 continue;
             }
 
             $pool[$card->getRarity()->value][] = $card;
         }
 
-        return $pool;
+        return ['pool' => $pool, 'uniques' => $uniques];
     }
 
     /**

@@ -21,6 +21,9 @@
                 {% if slot.holoChance > 0 %}
                     <span class="text-muted">— holo {{ slot.holoChance }} %</span>
                 {% endif %}
+                {% if slot.uniqueRate is not empty %}
+                    <span class="text-muted" title="Chance que ce slot sorte une carte unique 1/1 non réclamée">— unique {{ slot.uniqueRate }} %</span>
+                {% endif %}
             </div>
         {% endfor %}
     </div>

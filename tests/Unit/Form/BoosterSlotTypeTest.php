@@ -35,12 +35,13 @@ final class BoosterSlotTypeTest extends TestCase
         $form->submit([
             'rarities' => ['common' => '60', 'uncommon' => '', 'rare' => '40', 'legendary' => ''],
             'holoChance' => '25',
+            'uniqueChance' => '25',
         ]);
 
         $this->assertTrue($form->isSynchronized());
         $this->assertTrue($form->isValid(), $this->errorsAsString($form));
         $this->assertSame(
-            ['rarities' => ['common' => 60, 'rare' => 40], 'holoChance' => 25],
+            ['rarities' => ['common' => 60, 'rare' => 40], 'holoChance' => 25, 'uniqueChance' => 25],
             $form->getData(),
         );
     }
@@ -50,6 +51,7 @@ final class BoosterSlotTypeTest extends TestCase
         $form = $this->factory->create(BoosterSlotType::class, [
             'rarities' => ['rare' => 30, 'legendary' => 10],
             'holoChance' => 40,
+            'uniqueChance' => 25,
         ]);
 
         $weights = $form->get('rarities');
@@ -58,6 +60,42 @@ final class BoosterSlotTypeTest extends TestCase
         $this->assertSame(30, $weights->get('rare')->getData());
         $this->assertSame(10, $weights->get('legendary')->getData());
         $this->assertSame(40, $form->get('holoChance')->getData());
+        $this->assertSame(25, $form->get('uniqueChance')->getData());
+    }
+
+    public function testSlotStoredBeforeTheUniqueOptionOpensOnABlankField(): void
+    {
+        // uniqueChance is an optional key: editing a booster saved before the
+        // option must not blow up on the missing index
+        $form = $this->factory->create(BoosterSlotType::class, [
+            'rarities' => ['common' => 100],
+            'holoChance' => 5,
+        ]);
+
+        $this->assertNull($form->get('uniqueChance')->getData());
+
+        $form->submit(['rarities' => ['common' => '100'], 'holoChance' => '5']);
+
+        $this->assertTrue($form->isValid(), $this->errorsAsString($form));
+        $this->assertSame(0, $form->getData()['uniqueChance']);
+    }
+
+    public function testBlankUniqueChanceFallsBackToZero(): void
+    {
+        $form = $this->factory->create(BoosterSlotType::class);
+        $form->submit(['rarities' => ['common' => '100'], 'holoChance' => '0', 'uniqueChance' => '']);
+
+        $this->assertTrue($form->isValid(), $this->errorsAsString($form));
+        $this->assertSame(0, $form->getData()['uniqueChance']);
+    }
+
+    public function testUniqueChanceOutOfBoundsIsRejected(): void
+    {
+        $form = $this->factory->create(BoosterSlotType::class);
+        $form->submit(['rarities' => ['common' => '100'], 'holoChance' => '0', 'uniqueChance' => '10001']);
+
+        $this->assertFalse($form->isValid());
+        $this->assertStringContainsString('chance unique', $this->errorsAsString($form));
     }
 
     public function testWeightsKeepTheRarityScaleOrderWhateverTheInputOrder(): void

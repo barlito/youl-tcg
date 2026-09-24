@@ -44,6 +44,27 @@ final class BoosterRarityAvailabilityTest extends TestCase
         $this->assertSame([], $availability->findUnavailableRarities($booster));
     }
 
+    public function testATierHoldingOnlyAUniqueIsReportedAsUnavailable(): void
+    {
+        // uniques never come out of the rarity roll: weighting legendary while
+        // the only legendary is a 1/1 is the same misconfiguration as an empty tier
+        $cardRepository = $this->createStub(CardRepository::class);
+        $cardRepository->method('findDrawablePool')->willReturn([
+            new Card()->setRarity(CardRarityEnum::COMMON),
+            new Card()->setRarity(CardRarityEnum::LEGENDARY)->setUnique(true),
+        ]);
+
+        $booster = new Booster()
+            ->setExtension(new Extension()->setName('Bleach'))
+            ->setRarityRates([['rarities' => ['common' => 90, 'legendary' => 10], 'holoChance' => 0]])
+        ;
+
+        $this->assertSame(
+            [CardRarityEnum::LEGENDARY],
+            new BoosterRarityAvailability($cardRepository)->findUnavailableRarities($booster),
+        );
+    }
+
     public function testABoosterWithoutExtensionIsNotChecked(): void
     {
         $cardRepository = $this->createMock(CardRepository::class);

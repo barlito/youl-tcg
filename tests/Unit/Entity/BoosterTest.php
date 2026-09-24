@@ -39,10 +39,31 @@ final class BoosterTest extends TestCase
         ]);
 
         $this->assertSame([
-            ['rates' => ['common' => 100.0], 'holoChance' => 5],
-            ['rates' => ['common' => 60.0, 'rare' => 30.0, 'legendary' => 10.0], 'holoChance' => 30],
-            ['rates' => ['common' => 33.3, 'rare' => 66.7], 'holoChance' => 0],
+            ['rates' => ['common' => 100.0], 'holoChance' => 5, 'uniqueChance' => 0, 'uniqueRate' => 0.0],
+            ['rates' => ['common' => 60.0, 'rare' => 30.0, 'legendary' => 10.0], 'holoChance' => 30, 'uniqueChance' => 0, 'uniqueRate' => 0.0],
+            ['rates' => ['common' => 33.3, 'rare' => 66.7], 'holoChance' => 0, 'uniqueChance' => 0, 'uniqueRate' => 0.0],
         ], $booster->getDropRates());
+    }
+
+    public function testDropRatesExposeTheUniqueChanceAsAPercentage(): void
+    {
+        $booster = new Booster()->setRarityRates([
+            ['rarities' => ['common' => 100], 'holoChance' => 0, 'uniqueChance' => 25],
+            ['rarities' => ['rare' => 100], 'holoChance' => 0, 'uniqueChance' => 10_000],
+            ['rarities' => ['rare' => 100], 'holoChance' => 0, 'uniqueChance' => 1],
+        ]);
+
+        $this->assertSame([0.25, 100.0, 0.01], array_column($booster->getDropRates(), 'uniqueRate'));
+        $this->assertSame([25, 10_000, 1], array_column($booster->getDropRates(), 'uniqueChance'));
+    }
+
+    public function testSlotStoredBeforeTheUniqueOptionReadsAsZero(): void
+    {
+        // the key is optional on purpose: no data migration was needed
+        $booster = new Booster()->setRarityRates([['rarities' => ['common' => 100], 'holoChance' => 5]]);
+
+        $this->assertSame(0, $booster->getDropRates()[0]['uniqueChance']);
+        $this->assertSame(0.0, $booster->getDropRates()[0]['uniqueRate']);
     }
 
     public function testSlotsAreReindexedSoTheJsonStaysAList(): void

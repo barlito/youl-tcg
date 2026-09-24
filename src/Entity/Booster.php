@@ -22,6 +22,12 @@ class Booster implements \Stringable
     use TimestampableEntity;
 
     /**
+     * Denominator of a slot's uniqueChance: per 10 000, the smallest non-zero
+     * rate is 0,01 % instead of the 1 % a percentage would floor it at.
+     */
+    public const int UNIQUE_CHANCE_SCALE = 10_000;
+
+    /**
      * Optional display name ("Pack Full Rare", named after its drop rates…);
      * null falls back to the extension name everywhere.
      */
@@ -39,12 +45,15 @@ class Booster implements \Stringable
 
     /**
      * One slot per card the booster yields. Each slot carries its own rarity
-     * weight map (keys are CardRarityEnum values) and its own holo chance
-     * (0-100 %) rolled independently for the card drawn in that slot.
-     * Example for a 2-card booster:
-     * [{rarities: {common: 100}, holoChance: 5}, {rarities: {common: 60, rare: 40}, holoChance: 30}].
+     * weight map (keys are CardRarityEnum values), its own holo chance
+     * (0-100 %) and its own one-of-one chance (uniqueChance, per
+     * UNIQUE_CHANCE_SCALE), all rolled independently for the card drawn in
+     * that slot. Example for a 2-card booster:
+     * [{rarities: {common: 100}, holoChance: 5}, {rarities: {common: 60, rare: 40}, holoChance: 30, uniqueChance: 25}].
      *
-     * @var list<array{rarities: array<string, int>, holoChance: int}>
+     * uniqueChance is optional: slots stored before the option existed read as 0.
+     *
+     * @var list<array{rarities: array<string, int>, holoChance: int, uniqueChance?: int}>
      */
     #[ValidRarityRates]
     #[ORM\Column(type: Types::JSON, options: ['default' => '[]'])]
@@ -98,7 +107,7 @@ class Booster implements \Stringable
     }
 
     /**
-     * @return list<array{rarities: array<string, int>, holoChance: int}>
+     * @return list<array{rarities: array<string, int>, holoChance: int, uniqueChance?: int}>
      */
     public function getRarityRates(): array
     {
@@ -110,7 +119,7 @@ class Booster implements \Stringable
      * slots with their original keys (0, 2, 3…) once a slot is deleted, and a
      * gapped array would be stored as a JSON object instead of a list.
      *
-     * @param array<array-key, array{rarities: array<string, int>, holoChance: int}> $rarityRates
+     * @param array<array-key, array{rarities: array<string, int>, holoChance: int, uniqueChance?: int}> $rarityRates
      */
     public function setRarityRates(array $rarityRates): static
     {
@@ -126,20 +135,36 @@ class Booster implements \Stringable
 
     /**
      * Player-facing drop rates: per slot, the rarity weights normalised to
-     * percentages (1 decimal) plus the slot's holo chance. Pure projection of
-     * rarityRates — nothing new is stored.
+     * percentages (1 decimal), the slot's holo chance and its one-of-one
+     * chance both as raw setting (uniqueChance) and as a percentage
+     * (uniqueRate). Pure projection of rarityRates — nothing new is stored.
      *
-     * @return list<array{rates: array<string, float>, holoChance: int}>
+     * @return list<array{rates: array<string, float>, holoChance: int, uniqueChance: int, uniqueRate: float}>
      */
     public function getDropRates(): array
     {
         $slots = [];
 
         foreach ($this->rarityRates as $slot) {
-            $slots[] = ['rates' => self::toPercentages($slot['rarities']), 'holoChance' => $slot['holoChance']];
+            $uniqueChance = $slot['uniqueChance'] ?? 0;
+            $slots[] = [
+                'rates' => self::toPercentages($slot['rarities']),
+                'holoChance' => $slot['holoChance'],
+                'uniqueChance' => $uniqueChance,
+                'uniqueRate' => self::toUniquePercentage($uniqueChance),
+            ];
         }
 
         return $slots;
+    }
+
+    /**
+     * A uniqueChance setting turned into the percentage the player reads:
+     * 25 per 10 000 = 0,25 %.
+     */
+    public static function toUniquePercentage(int $uniqueChance): float
+    {
+        return round($uniqueChance / self::UNIQUE_CHANCE_SCALE * 100, 2);
     }
 
     /**
