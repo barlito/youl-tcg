@@ -15,17 +15,22 @@ use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Enum\FeatureEnum;
 use App\Exception\Recycle\BoosterNotRecyclableException;
 use App\Exception\Recycle\InvalidRecycleSelectionException;
 use App\Exception\Recycle\NotEnoughCopiesException;
 use App\Exception\Recycle\NotEnoughRecyclePointsException;
+use App\Exception\Recycle\RecyclingClosedException;
 use App\Service\Recycle\RecycleService;
+use App\Tests\FeatureFlagTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class RecycleServiceTest extends KernelTestCase
 {
+    use FeatureFlagTrait;
+
     private EntityManagerInterface $entityManager;
 
     private RecycleService $recycleService;
@@ -68,6 +73,27 @@ final class RecycleServiceTest extends KernelTestCase
         $this->assertNotFalse($recycledCard);
         $this->assertSame(10, $recycledCard->getQuantity());
         $this->assertSame(0, $recycledCard->getHoloQuantity());
+    }
+
+    public function testRecyclingIsRefusedWhileTheFeatureIsOff(): void
+    {
+        $scenario = $this->createScenario([['rarity' => CardRarityEnum::COMMON, 'quantity' => 12]]);
+        $this->setFeature(FeatureEnum::RECYCLING, false);
+
+        try {
+            $this->recycleService->recycle(
+                $scenario['user'],
+                [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 10, holoQuantity: 0)],
+                $scenario['booster'],
+            );
+            $this->fail('Recycling must be refused while the feature is off.');
+        } catch (RecyclingClosedException $exception) {
+            $this->assertSame('Le recyclage est momentanément fermé.', $exception->getUserMessage());
+        }
+
+        $this->entityManager->clear();
+        $this->assertSame(12, $this->findUserCard($scenario['user'], $scenario['cards'][0])->getQuantity());
+        $this->assertSame(0, $this->entityManager->getRepository(RecycleOperation::class)->count(['discordUser' => $scenario['user']]));
     }
 
     public function testRecyclingDoesNotConsumeTheDailyClaimQuota(): void

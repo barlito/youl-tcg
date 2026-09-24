@@ -144,6 +144,13 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - **Spending**: `StreakRewardService::chooseBooster()` — `FOR UPDATE` on the reward row, claim-like guards (claimable + published extension), credits `UserBooster` via `UserInventoryService`. Own distribution channel: no `BoosterClaim`, daily quota untouched
 - Hub UI: flame chip in the hero (always visible — running / at-risk / empty states) + "Récompense de streak" banner surfacing the oldest pending reward with one button per claimable booster (`chooseStreakReward` LiveAction)
 
+**Feature flags (`FeatureFlag` + `FeatureFlags`):**
+- `FeatureEnum` (`trades`, `recycling`); one `FeatureFlag` row per case (PK `name`), created OFF by the migration — a missing row is OFF. Test and dev fixtures switch both ON; "OFF" tests flip the flag with `tests/FeatureFlagTrait.php`
+- `App\Service\Feature\FeatureFlags::isEnabled()/assertEnabled()`: one query per request (memoized, `ResetInterface`)
+- `#[RequiresFeature(FeatureEnum::X)]` (class or method, repeatable) → `RequiresFeatureListener` on `kernel.controller_arguments` answers 404, sub-requests included. Put it on the page controller AND the Live Component class: `/_components/...` actions and re-renders bypass the page controller
+- Services guard their own entry points too (`RecycleService::recycle()` → `RecyclingClosedException`); templates use `feature_enabled('recycling')` (unknown name = error). Audit data and admin deletion guards are never flag-dependent
+- Admin: « Fonctionnalités » (`FeatureFlagCrudController`, edit only)
+
 ### Booster Opening Flow (`src/Service/Booster/`)
 
 1. **BoosterClaimService::claim()** — asks the quota policy (`BoosterClaimQuotaInterface` / `DailyBoosterClaimQuota`) for remaining claims, credits `UserBooster` via UserInventoryService, persists a `BoosterClaim`. In dev only, the `UnlimitedBoosterClaimQuota` decorator (`#[When(env: 'dev')]`) lifts the limit unless `BOOSTER_DAILY_LIMIT_ENABLED=true` is set in `.env.dev` — prod code carries no bypass
