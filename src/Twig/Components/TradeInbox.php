@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Twig\Components;
 
+use App\Attribute\RequiresFeature;
 use App\Dto\TradeLineView;
 use App\Entity\DiscordUser;
 use App\Entity\TradeOffer;
 use App\Entity\TradeOfferLine;
+use App\Enum\FeatureEnum;
 use App\Exception\Trade\TradeException;
 use App\Repository\TradeOfferRepository;
 use App\Repository\UserCardRepository;
@@ -20,6 +22,7 @@ use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
+#[RequiresFeature(FeatureEnum::TRADES)]
 #[AsLiveComponent]
 final class TradeInbox extends AbstractController
 {

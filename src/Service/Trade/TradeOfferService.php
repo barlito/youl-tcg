@@ -12,6 +12,7 @@ use App\Entity\TradeOfferLine;
 use App\Entity\UserCard;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Enum\FeatureEnum;
 use App\Enum\Trade\TradeOfferSideEnum;
 use App\Enum\Trade\TradeOfferStatusEnum;
 use App\Exception\Trade\InvalidTradeOfferException;
@@ -19,9 +20,11 @@ use App\Exception\Trade\TradeConflictException;
 use App\Exception\Trade\TradeException;
 use App\Exception\Trade\TradeOfferInvalidatedException;
 use App\Exception\Trade\TradeOfferUnacceptableException;
+use App\Exception\Trade\TradesClosedException;
 use App\Repository\CardRepository;
 use App\Repository\TradeOfferRepository;
 use App\Repository\UserCardRepository;
+use App\Service\Feature\FeatureFlags;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
@@ -53,6 +56,7 @@ final readonly class TradeOfferService
         private CardRepository $cardRepository,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private FeatureFlags $featureFlags,
     ) {
     }
 
@@ -60,10 +64,13 @@ final readonly class TradeOfferService
      * @param list<TradeLineRequest> $offered   cards leaving the proposer's inventory
      * @param list<TradeLineRequest> $requested cards asked from the receiver's inventory
      *
+     * @throws TradesClosedException
      * @throws InvalidTradeOfferException
      */
     public function create(DiscordUser $proposer, DiscordUser $receiver, array $offered, array $requested): TradeOffer
     {
+        $this->assertOpen();
+
         if ($proposer->getDiscordId() === $receiver->getDiscordId()) {
             throw new InvalidTradeOfferException('Self-trade refused.', 'Tu ne peux pas te proposer un échange à toi-même.');
         }
@@ -145,6 +152,8 @@ final readonly class TradeOfferService
      */
     public function accept(TradeOffer $offer, DiscordUser $actor): void
     {
+        $this->assertOpen();
+
         // The invalidation path COMMITS a status change then reports a
         // failure: the closure returns the exception instead of throwing it,
         // because throwing would roll the INVALIDATED status back.
@@ -156,18 +165,24 @@ final readonly class TradeOfferService
     }
 
     /**
+     * @throws TradesClosedException
      * @throws InvalidTradeOfferException
      */
     public function refuse(TradeOffer $offer, DiscordUser $actor): void
     {
+        $this->assertOpen();
+
         $this->resolvePending($offer, $actor, TradeOfferStatusEnum::REFUSED);
     }
 
     /**
+     * @throws TradesClosedException
      * @throws InvalidTradeOfferException
      */
     public function cancel(TradeOffer $offer, DiscordUser $actor): void
     {
+        $this->assertOpen();
+
         $this->resolvePending($offer, $actor, TradeOfferStatusEnum::CANCELLED);
     }
 
@@ -186,6 +201,11 @@ final readonly class TradeOfferService
      */
     public function invalidateObviouslyInfeasible(iterable $offers): bool
     {
+        // trades off: pending offers stay frozen as they are
+        if (!$this->featureFlags->isEnabled(FeatureEnum::TRADES)) {
+            return false;
+        }
+
         $invalidated = false;
 
         foreach ($offers as $offer) {
@@ -644,5 +664,15 @@ final readonly class TradeOfferService
     private function rowKey(DiscordUser $user, Card $card): string
     {
         return \sprintf('%s|%s', $user->getDiscordId(), $card->getId());
+    }
+
+    /**
+     * @throws TradesClosedException
+     */
+    private function assertOpen(): void
+    {
+        if (!$this->featureFlags->isEnabled(FeatureEnum::TRADES)) {
+            throw new TradesClosedException('Trades feature is disabled.', 'Les échanges sont momentanément fermés.');
+        }
     }
 }

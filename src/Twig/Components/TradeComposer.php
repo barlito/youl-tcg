@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Twig\Components;
 
+use App\Attribute\RequiresFeature;
 use App\Dto\TradeLineRequest;
 use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Enum\Entity\CardRarityEnum;
+use App\Enum\FeatureEnum;
 use App\Enum\Trade\TradeOfferSideEnum;
 use App\Exception\Trade\TradeException;
 use App\Repository\CardRepository;
@@ -34,6 +36,7 @@ use Symfony\UX\LiveComponent\Metadata\UrlMapping;
  *
  * @phpstan-type Entry array{token: string, card: ?Card, rarity: CardRarityEnum, extension: Extension, normal: int, holo: int}
  */
+#[RequiresFeature(FeatureEnum::TRADES)]
 #[AsLiveComponent]
 final class TradeComposer extends AbstractController
 {

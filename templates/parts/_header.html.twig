@@ -15,7 +15,11 @@
             {{ _self.nav_link('universes', 'Univers') }}
             {{ _self.nav_link('boosters', 'Boosters') }}
             {{ _self.nav_link('leaderboard', 'Classement') }}
-            {{ _self.nav_trades(pending_trade_offers()) }}
+            {% if feature_enabled('trades') %}
+                {{ _self.nav_trades(pending_trade_offers()) }}
+            {% else %}
+                {{ _self.nav_soon('Échanges') }}
+            {% endif %}
             {{ _self.nav_soon('Duels') }}
         </nav>
 

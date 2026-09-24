@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Attribute\RequiresFeature;
 use App\Entity\DiscordUser;
+use App\Enum\FeatureEnum;
 use App\Repository\DiscordUserRepository;
 use App\Service\Trade\TradeOfferService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,6 +17,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 /**
  * Asynchronous P2P trades: the inbox of offers and the composer.
  */
+#[RequiresFeature(FeatureEnum::TRADES)]
 class TradeController extends AbstractController
 {
     #[Route('/echanges', name: 'trades')]

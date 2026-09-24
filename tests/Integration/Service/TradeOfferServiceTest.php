@@ -13,17 +13,22 @@ use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Enum\FeatureEnum;
 use App\Enum\Trade\TradeOfferStatusEnum;
 use App\Exception\Trade\InvalidTradeOfferException;
 use App\Exception\Trade\TradeOfferInvalidatedException;
 use App\Exception\Trade\TradeOfferUnacceptableException;
+use App\Exception\Trade\TradesClosedException;
 use App\Service\Trade\TradeOfferService;
+use App\Tests\FeatureFlagTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class TradeOfferServiceTest extends KernelTestCase
 {
+    use FeatureFlagTrait;
+
     private EntityManagerInterface $entityManager;
 
     private TradeOfferService $tradeOfferService;
@@ -556,6 +561,75 @@ final class TradeOfferServiceTest extends KernelTestCase
         $this->assertFalse($this->tradeOfferService->invalidateObviouslyInfeasible([$first, $second]));
         $this->assertSame(TradeOfferStatusEnum::PENDING, $first->getStatus());
         $this->assertSame(TradeOfferStatusEnum::PENDING, $second->getStatus());
+    }
+
+    // --------------------------------------------------------- feature flag
+
+    public function testCreateIsRefusedWhileTradesAreOff(): void
+    {
+        $alice = $this->createUser('alice');
+        $bob = $this->createUser('bob');
+        $offered = $this->createCard('Offered');
+        $requested = $this->createCard('Requested');
+        $this->giveCards($alice, $offered, quantity: 1);
+        $this->giveCards($bob, $requested, quantity: 1);
+        $this->setFeature(FeatureEnum::TRADES, false);
+
+        try {
+            $this->tradeOfferService->create($alice, $bob, [new TradeLineRequest($offered, 1)], [new TradeLineRequest($requested, 1)]);
+            $this->fail('Expected TradesClosedException');
+        } catch (TradesClosedException $exception) {
+            $this->assertSame('Les échanges sont momentanément fermés.', $exception->getUserMessage());
+        }
+
+        $this->assertSame(0, $this->entityManager->getRepository(TradeOffer::class)->count(['proposer' => $alice]));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function resolutions(): iterable
+    {
+        yield 'accept' => ['accept'];
+        yield 'refuse' => ['refuse'];
+        yield 'cancel' => ['cancel'];
+    }
+
+    #[DataProvider('resolutions')]
+    public function testPendingOffersAreFrozenWhileTradesAreOff(string $resolution): void
+    {
+        $alice = $this->createUser('alice');
+        $bob = $this->createUser('bob');
+        $offer = $this->createSimpleOffer($alice, $bob);
+        [$offered, $requested] = [$offer->getOfferedLines()[0]->getCard(), $offer->getRequestedLines()[0]->getCard()];
+        $this->setFeature(FeatureEnum::TRADES, false);
+
+        try {
+            $this->tradeOfferService->{$resolution}($offer, 'cancel' === $resolution ? $alice : $bob);
+            $this->fail('Expected TradesClosedException');
+        } catch (TradesClosedException) {
+        }
+
+        $this->entityManager->clear();
+        $this->assertSame(TradeOfferStatusEnum::PENDING, $this->entityManager->find(TradeOffer::class, $offer->getId())?->getStatus());
+        $this->assertInventory($alice, $offered, 1, 0);
+        $this->assertInventory($bob, $requested, 1, 0);
+    }
+
+    public function testNothingIsInvalidatedWhileTradesAreOff(): void
+    {
+        $alice = $this->createUser('alice');
+        $bob = $this->createUser('bob');
+        $offer = $this->createSimpleOffer($alice, $bob);
+        // the proposer lost the offered copy: obviously infeasible once reopened
+        $this->setInventory($alice, $offer->getOfferedLines()[0]->getCard(), 0, 0);
+        $this->setFeature(FeatureEnum::TRADES, false);
+
+        $this->assertFalse($this->tradeOfferService->invalidateObviouslyInfeasible([$offer]));
+        $this->assertSame(TradeOfferStatusEnum::PENDING, $offer->getStatus());
+
+        $this->setFeature(FeatureEnum::TRADES, true);
+        $this->assertTrue($this->tradeOfferService->invalidateObviouslyInfeasible([$offer]));
     }
 
     // ----------------------------------------------------------- utilities

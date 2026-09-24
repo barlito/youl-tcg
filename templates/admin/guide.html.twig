@@ -227,7 +227,7 @@
         <table>
             <tr><th>Fonctionnalité</th><th>Coupée, ça donne…</th></tr>
             <tr><td>Recyclage des doublons</td><td>La page <code>/recyclage</code> répond 404, le bouton « Recycler mes doublons » disparaît de la collection, et un recyclage lancé depuis une page restée ouverte est refusé (« Le recyclage est momentanément fermé. ») sans rien débiter. L'historique des recyclages est conservé et reste consultable.</td></tr>
-            <tr><td>Échanges entre joueurs</td><td>Réservé aux échanges : l'interrupteur est prêt, il prend effet quand la fonctionnalité est livrée.</td></tr>
+            <tr><td>Échanges entre joueurs</td><td>Les pages <code>/echanges</code> répondent 404 et l'entrée « Échanges » du menu redevient « bientôt » (plus de pastille d'offres en attente). Une action lancée depuis une page restée ouverte est refusée (« Les échanges sont momentanément fermés. »). Les offres en attente sont <strong>gelées</strong> : ni annulées ni libérées — les cartes qu'un joueur y propose restent réservées (et non recyclables) jusqu'à la réouverture, où tout reprend tel quel.</td></tr>
         </table>
         <div class="tip">L'effet est immédiat, à la requête suivante des joueurs. Rouvrir remet tout en place à l'identique : aucune donnée n'est effacée par une coupure.</div>
 
