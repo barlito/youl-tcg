@@ -70,7 +70,7 @@
             <tr><th>Champ</th><th>Rôle</th></tr>
             <tr><td>Nom</td><td>Affiché partout. Le <em>slug</em> d'URL (<code>/univers/cyberpunk</code>, <code>/collection/cyberpunk</code>) est généré automatiquement depuis le nom — il ne se modifie pas à la main.</td></tr>
             <tr><td>Description</td><td>Affichée <strong>en entier</strong> sur la page univers, tronquée à ~90 caractères sur les tuiles homepage/index. Soigne la première phrase.</td></tr>
-            <tr><td>Statut</td><td>L'interrupteur général (cf. §1).</td></tr>
+            <tr><td>Statut</td><td>L'interrupteur général (cf. §1). <strong>Sens unique dès qu'un joueur possède une carte de l'univers</strong> (ou qu'une 1/1 a été tirée) : le statut est alors verrouillé en <em>Published</em>, la dépublication masquerait ses cartes des collections.</td></tr>
             <tr><td>Image</td><td>La couverture : tuiles homepage &amp; /univers, carrousel de complétion de la collection, et fond du pack composite quand le booster n'a pas d'image propre. Elle est recadrée <em>cover</em> dans des cadres variés (tuiles paysage, pack portrait) : un <strong>carré ≥ 1024×1024, sujet centré</strong>, passe bien partout. <strong>Si absente, l'app utilise automatiquement l'artwork de la carte la plus rare de l'univers</strong> — fallback très correct, l'upload est donc optionnel.</td></tr>
             <tr><td>Visual config + selects</td><td>Le visuel par défaut des cartes de l'univers (cf. §6), dont la texture foil de bibliothèque partagée par tout le set.</td></tr>
         </table>
@@ -82,7 +82,7 @@
             <tr><td>Rareté</td><td>4 paliers : <code>common</code> (gris), <code>uncommon</code> (vert), <code>rare</code> (bleu), <code>legendary</code> (orange). Détermine le glow par défaut et le classement visuel.</td></tr>
             <tr><td>Unique (1/1)</td><td>Exemplaire unique <strong>global</strong> : le premier joueur qui la tire la verrouille pour tout le monde (champ <em>claimedBy</em> en détail). Une fois réclamée elle ne peut plus être tirée — les ouvertures suivantes reçoivent une carte de remplacement de même rareté. La page univers affiche « droppée / encore dans le pool », jamais le détenteur. <strong>Une 1/1 est exclue du tirage par rareté</strong> : elle ne sort que par la <em>chance carte unique</em> d'un slot de booster (cf. §7). Tant qu'aucun slot n'en configure une, elle est intirable.</td></tr>
             <tr><td>Always holo</td><td>La carte sort <em>toujours</em> en version holo, quel que soit le <code>holoChance</code> du slot du booster.</td></tr>
-            <tr><td>Statut</td><td>Cf. §1. Publier = tirable + comptée dans la complétion.</td></tr>
+            <tr><td>Statut</td><td>Cf. §1. Publier = tirable + comptée dans la complétion. Une carte déjà possédée (ou 1/1 tirée) ne peut plus repasser en <em>Draft</em>.</td></tr>
         </table>
         <div class="warn">
             L'artwork principal est <strong>obligatoire</strong> et non supprimable depuis le

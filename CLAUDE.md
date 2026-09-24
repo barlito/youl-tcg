@@ -110,6 +110,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 - **Extension**: Card sets/expansions
   - Fields: name, slug (Gedmo, updatable: renaming an extension changes its public URLs), description, status, imageName, logoName (`extension_logos` mapping, shown in the CSS card frame; falls back to the name as text), visualConfig (JSON, set-level card visual defaults — including the shared foilTexture library pick; NO extension-level foil/mask uploads: masks must match each card's artwork, so they are per-card only), upcoming (« next universe » teaser: at most ONE extension flagged — saving a flagged one from the admin clears the others; shows as a blurred tile on the homepage and /univers while the extension is still DRAFT — published ones already have their own tile)
+  - A universe whose cards players own (quantity > 0 or a drawn 1/1) can never go back PUBLISHED → DRAFT: same `NotDepublishedWhileOwned` constraint, via `ExtensionDepublicationGuard` (edit form locks the status field)
   - OneToMany with Card, Booster and ExtensionBanner (universe page hero banners, position-ordered carousel)
 
 - **Booster**: Booster packs containing cards

@@ -8,6 +8,7 @@ use App\Dto\VisualConfig;
 use App\Entity\Traits\HasVisualConfigTrait;
 use App\Enum\Entity\ExtensionStatusEnum;
 use App\Repository\ExtensionRepository;
+use App\Validator\NotDepublishedWhileOwned;
 use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -20,6 +21,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Vich\UploaderBundle\Mapping\Attribute as Vich;
 
 #[Vich\Uploadable]
+#[NotDepublishedWhileOwned]
 #[ORM\Entity(repositoryClass: ExtensionRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_extension_slug', columns: ['slug'])]
 class Extension implements \Stringable
