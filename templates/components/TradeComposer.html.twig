@@ -1,109 +1,140 @@
 <div {{ attributes }}>
-    {% if error %}
-        <p class="mb-6 border border-magenta/40 bg-magenta/10 px-4 py-3 text-sm text-magenta" data-testid="composer-error">{{ error }}</p>
-    {% endif %}
+    {% set theirName = this.counterpart.username %}
+    {% set offeredSummary = this.summary('offered') %}
+    {% set requestedSummary = this.summary('requested') %}
 
-    <div class="grid items-start gap-8 lg:grid-cols-2">
-        {# ------------------------------------------------------ Mon côté #}
-        {{ _self.side(
-            'Tu proposes',
-            this.visibleMyCopies,
-            offered,
-            'offered',
-            'searchMine',
-            searchMine,
-            'Aucun exemplaire disponible : tes cartes sont peut-être déjà engagées dans d\'autres offres.',
-            null
-        ) }}
+    {# -------------------------------------------------- Filtre par univers #}
+    {{ include('parts/_completion_strip.html.twig', {
+        strip: this.strip,
+        currentExtension: this.activeExtension,
+        route: 'trades_compose',
+        routeParams: { discordId: counterpartId },
+        slugParam: 'univers',
+        liveAction: 'filterUniverse',
+        presorted: true,
+        eyebrow: 'Filtrer par univers',
+        allStat: this.myTotal ~ ' ⇄ ' ~ this.theirTotal,
+        allCaption: 'à toi ⇄ à ' ~ theirName,
+        allBar: null,
+    }) }}
 
-        {# ---------------------------------------------------- Leur côté #}
-        {{ _self.side(
-            'Tu demandes à ' ~ this.counterpart.username,
-            this.visibleTheirCopies,
-            requested,
-            'requested',
-            'searchTheirs',
-            searchTheirs,
-            'Ce joueur n\'a aucune carte pour l\'instant.',
-            'Les cartes que tu ne possèdes pas restent face cachée, seule leur rareté est affichée : le filtre ne porte que sur les autres.'
-        ) }}
-    </div>
+    <section class="px-4 pb-10 pt-6 md:px-6 lg:px-12">
+        <div class="mx-auto max-w-7xl">
+            {% if error %}
+                <div class="mb-6 border border-magenta/50 bg-magenta/10 px-4 py-3 font-mono text-xs text-magenta" data-testid="composer-error">
+                    ⚠ {{ error }}
+                </div>
+            {% endif %}
 
-    {# ------------------------------------------------------------ Récap #}
-    <div class="mt-8 flex flex-wrap items-center justify-between gap-4 border-t-2 border-hairline pt-6">
-        <p class="chip-mono text-ink-muted" data-testid="composer-summary">
-            {{ this.offeredCount }} carte(s) proposée(s) · {{ this.requestedCount }} demandée(s)
-        </p>
-        <button type="button"
-                data-action="live#action"
-                data-live-action-param="submit"
-                data-loading="addClass(opacity-50)"
-                data-testid="submit-offer"
-                {{ this.isComplete ? '' : 'disabled' }}
-                class="notched-lg bg-primary px-6 py-3 font-display text-sm font-bold uppercase tracking-[.15em] text-black disabled:cursor-not-allowed disabled:opacity-40">
-            Envoyer l'offre ▸
-        </button>
+            {# ------------------------------------------------ Recherche #}
+            <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <input type="search"
+                       data-model="debounce(300)|search"
+                       value="{{ search }}"
+                       placeholder="Rechercher une carte…"
+                       aria-label="Rechercher une carte par son nom"
+                       data-testid="composer-search"
+                       class="w-full border border-hairline bg-surface px-3 py-2 font-mono text-xs text-ink placeholder:text-ink-dim focus:border-primary focus:outline-none md:w-72">
+                {% if this.hasMaskedCards %}
+                    <p class="text-xs text-ink-dim" data-testid="masking-hint">
+                        Face cachée = carte que tu n'as pas encore : seule sa rareté est visible, la recherche l'ignore.
+                    </p>
+                {% endif %}
+            </div>
+
+            {# ------------------------------------ Onglets (mobile seulement) #}
+            <div class="sticky top-0 z-20 -mx-4 mt-4 grid grid-cols-2 gap-2 border-b border-hairline bg-bg/95 px-4 py-2 backdrop-blur md:-mx-6 md:px-6 lg:hidden" role="tablist" data-testid="composer-tabs">
+                {{ _self.tab('offered', 'Tu proposes', this.offeredCount, tab) }}
+                {{ _self.tab('requested', 'Tu demandes', this.requestedCount, tab) }}
+            </div>
+
+            <div class="mt-6 grid items-start gap-10 lg:mt-8 lg:grid-cols-2 lg:gap-8">
+                {{ _self.column(
+                    'offered',
+                    'Tu proposes',
+                    'Tes exemplaires libres (hors offres en attente).',
+                    this.myGroups,
+                    this.myVisibleCount,
+                    this.myTotal,
+                    tab,
+                    offered,
+                    'Aucun exemplaire disponible : tes cartes sont peut-être déjà engagées dans d\'autres offres.'
+                ) }}
+                {{ _self.column(
+                    'requested',
+                    'Tu demandes à ' ~ theirName,
+                    'Sa collection publiée.',
+                    this.theirGroups,
+                    this.theirVisibleCount,
+                    this.theirTotal,
+                    tab,
+                    requested,
+                    theirName ~ ' n\'a aucune carte pour l\'instant.'
+                ) }}
+            </div>
+        </div>
+    </section>
+
+    {# ------------------------------------------------ Récapitulatif sticky #}
+    <div class="sticky bottom-0 z-30 border-t border-primary/50 bg-bg/95 px-4 py-2.5 shadow-[0_-8px_24px_#0b0712] backdrop-blur md:px-12 md:py-3"
+         data-testid="composer-bar">
+        <div class="mx-auto flex max-w-7xl items-center gap-3 md:gap-6">
+            <div class="grid min-w-0 flex-1 grid-cols-[1fr_auto_1fr] items-center gap-2 md:gap-4" data-testid="composer-summary">
+                {{ _self.recap('Tu donnes', offeredSummary, 'offered') }}
+                <span class="font-display text-lg text-primary md:text-2xl" aria-hidden="true">⇄</span>
+                {{ _self.recap('Tu reçois', requestedSummary, 'requested') }}
+            </div>
+            <button type="button"
+                    data-action="live#action"
+                    data-live-action-param="submit"
+                    data-loading="addAttribute(disabled) addClass(opacity-50)"
+                    data-testid="submit-offer"
+                    {{ this.isComplete ? '' : 'disabled' }}
+                    class="shrink-0 border border-primary bg-primary px-3 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary disabled:cursor-not-allowed disabled:border-hairline disabled:bg-surface disabled:text-ink-dim md:px-5">
+                Envoyer<span class="hidden sm:inline"> l'offre</span> ▸
+            </button>
+        </div>
     </div>
 </div>
 
-{% macro side(title, copies, selection, sideKey, searchModel, searchValue, emptyMessage, searchHint) %}
-    <section>
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">{{ title }}</h2>
-            <input type="search"
-                   data-model="debounce(300)|{{ searchModel }}"
-                   value="{{ searchValue }}"
-                   placeholder="Filtrer…"
-                   aria-label="Filtrer les cartes"
-                   data-testid="search-{{ sideKey }}"
-                   class="w-40 border border-hairline bg-surface px-3 py-1.5 font-mono text-xs text-ink placeholder:text-ink-dim focus:border-primary focus:outline-none">
-        </div>
-        {% if searchHint %}
-            <p class="mt-2 text-xs text-ink-dim" data-testid="search-hint-{{ sideKey }}">{{ searchHint }}</p>
-        {% endif %}
+{% macro tab(side, label, count, current) %}
+    <button type="button"
+            role="tab"
+            aria-selected="{{ side == current ? 'true' : 'false' }}"
+            data-action="live#action"
+            data-live-action-param="showSide"
+            data-live-side-param="{{ side }}"
+            data-testid="tab-{{ side }}"
+            class="filter-chip {{ side == current ? 'is-active' }}">
+        {{ label }}{% if count > 0 %} <span class="filter-chip__count">· {{ count }}</span>{% endif %}
+    </button>
+{% endmacro %}
 
-        {% if copies is empty %}
-            <div class="mt-4 border border-dashed border-hairline px-6 py-10 text-center text-sm text-ink-dim">
-                {{ searchValue ? 'Aucune carte ne correspond à « ' ~ searchValue ~ ' ».' : emptyMessage }}
+{% macro column(side, title, subtitle, groups, visibleCount, total, current, selection, emptyMessage) %}
+    <section class="{{ side != current ? 'hidden lg:block' }}" data-testid="{{ side }}-column">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-hairline pb-3 lg:sticky lg:top-0 lg:z-20 lg:bg-bg/95 lg:pt-3 lg:backdrop-blur">
+            <h2 class="font-display text-base font-bold uppercase tracking-[.08em] text-ink-strong">{{ title }}</h2>
+            <span class="chip-mono text-ink-dim">
+                {{ visibleCount }}{{ visibleCount != total ? ' / ' ~ total }} carte{{ visibleCount > 1 ? 's' }}
+            </span>
+        </div>
+        <p class="mt-2 text-xs text-ink-dim">{{ subtitle }}</p>
+
+        {% if groups is empty %}
+            <div class="mt-4 border border-dashed border-hairline px-6 py-10 text-center text-sm text-ink-dim" data-testid="{{ side }}-empty">
+                {{ total > 0 ? 'Aucune carte ne correspond au filtre.' : emptyMessage }}
             </div>
         {% else %}
-            {# la collection entière est bien trop longue à plat : panneau scrollable #}
-            <div class="mt-4 grid max-h-[65vh] gap-3 overflow-y-auto pr-1" data-testid="{{ sideKey }}-list">
-                {% for cardId, entry in copies %}
-                    {% set picked = selection[cardId]|default({ normal: 0, holo: 0 }) %}
-                    <div class="flex items-center gap-4 border border-hairline bg-surface p-3">
-                        <div class="w-16 shrink-0">
-                            {% if entry.card %}
-                                {{ include('components/CardComponent.html.twig', { card: entry.card, holo: entry.normal == 0, lazy: true }) }}
-                            {% else %}
-                                {# sans contexte : le rendu masqué n'a accès à aucune carte #}
-                                {{ include('parts/_masked_card.html.twig', { rarity: entry.rarity.value }, with_context = false) }}
-                            {% endif %}
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate font-display text-sm font-bold uppercase tracking-[-0.02em] {{ entry.card ? 'text-ink-strong' : 'text-ink-dim' }}">
-                                {{ entry.card ? entry.card.name : 'Carte inconnue' }}
-                                {% if not entry.card %}
-                                    <span class="chip-mono ml-1" data-testid="masked-rarity"
-                                          style="color: var(--rarity-{{ entry.rarity.value }});">{{ entry.rarity.label }}</span>
-                                {% endif %}
-                            </p>
-                            <p class="chip-mono mt-0.5 text-ink-dim">
-                                {{ entry.normal }} dispo{% if entry.holo > 0 %} · <span class="text-primary">✦ {{ entry.holo }}</span>{% endif %}
-                            </p>
-                            <div class="mt-2 flex flex-wrap gap-3">
-                                {% for finish, available in { normal: entry.normal, holo: entry.holo } %}
-                                    {% if available > 0 %}
-                                        <div class="flex items-center gap-1.5">
-                                            <span class="chip-mono {{ finish == 'holo' ? 'text-primary' : 'text-ink-dim' }}">{{ finish == 'holo' ? '✦' : '▣' }}</span>
-                                            {{ _self.stepper(sideKey, cardId, finish, -1, '−') }}
-                                            <span class="w-5 text-center font-mono text-sm text-ink-strong"
-                                                  data-testid="qty-{{ sideKey }}-{{ finish }}">{{ picked[finish] }}</span>
-                                            {{ _self.stepper(sideKey, cardId, finish, 1, '+') }}
-                                        </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
+            <div data-testid="{{ side }}-list">
+                {% for group in groups %}
+                    <div class="mt-6" data-testid="{{ side }}-universe">
+                        <h3 class="chip-mono mb-3 text-ink-muted">
+                            {{ group.extension.name }} <span class="text-ink-dim">· {{ group.entries|length }}</span>
+                        </h3>
+                        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                            {% for entry in group.entries %}
+                                {{ _self.tile(side, entry, selection[entry.token]|default({ normal: 0, holo: 0 })) }}
+                            {% endfor %}
                         </div>
                     </div>
                 {% endfor %}
@@ -112,17 +143,96 @@
     </section>
 {% endmacro %}
 
-{% macro stepper(sideKey, cardId, finish, delta, label) %}
+{% macro tile(side, entry, picked) %}
+    {% set selectedCopies = picked.normal + picked.holo %}
+    <article class="relative flex flex-col border bg-surface p-2 transition-colors {{ selectedCopies > 0 ? 'border-primary/80 shadow-[0_0_16px_#a435f044]' : 'border-hairline' }}"
+             data-testid="trade-tile"{% if selectedCopies > 0 %} data-selected{% endif %}>
+        {% if selectedCopies > 0 %}
+            <span class="chip-mono absolute -right-1.5 -top-1.5 z-10 bg-gradient-to-r from-primary to-magenta px-1.5 py-0.5 font-bold text-black" data-testid="tile-badge">
+                ×{{ selectedCopies }}
+            </span>
+        {% endif %}
+
+        <div class="mx-auto w-full max-w-[11rem]">
+            {% if entry.card %}
+                {{ include('components/CardComponent.html.twig', {
+                    card: entry.card,
+                    holo: picked.holo > 0 or entry.normal == 0,
+                    interactive: false,
+                    lazy: true,
+                    id: 'trade-' ~ side ~ '-' ~ entry.token,
+                }, with_context = false) }}
+            {% else %}
+                {{ include('parts/_masked_card.html.twig', { rarity: entry.rarity.value }, with_context = false) }}
+            {% endif %}
+        </div>
+
+        <p class="mt-2 truncate font-display text-xs font-bold uppercase leading-tight {{ entry.card ? 'text-ink-strong' : 'text-ink-dim' }}"
+           {% if entry.card %}title="{{ entry.card.name }}"{% endif %}>
+            {{ entry.card ? entry.card.name : 'Carte inconnue' }}
+        </p>
+        <p class="chip-mono mt-0.5" style="color: var(--rarity-{{ entry.rarity.value }});"{% if not entry.card %} data-testid="masked-rarity"{% endif %}>
+            {{ entry.rarity.label }}
+        </p>
+
+        <div class="mt-2 flex flex-col gap-1.5 border-t border-hairline pt-2">
+            {% for finish in ['normal', 'holo'] %}
+                {% set available = entry[finish] %}
+                {% if available > 0 %}
+                    <div class="flex items-center justify-between gap-1">
+                        <div class="min-w-0 leading-tight">
+                            <p class="chip-mono {{ finish == 'holo' ? 'text-magenta' : 'text-ink-muted' }}">{{ finish == 'holo' ? '✦ Holo' : 'Normale' }}</p>
+                            <p class="font-mono text-[10px] text-ink-dim" data-testid="cap-{{ side }}-{{ finish }}">{{ available }} dispo</p>
+                        </div>
+                        <div class="flex shrink-0 items-center">
+                            {{ _self.stepper(side, entry.token, finish, -1, picked[finish] <= 0) }}
+                            <span class="w-7 text-center font-mono text-sm font-bold {{ picked[finish] > 0 ? (finish == 'holo' ? 'text-magenta' : 'text-primary') : 'text-ink-dim' }}"
+                                  data-testid="qty-{{ side }}-{{ finish }}">{{ picked[finish] }}</span>
+                            {{ _self.stepper(side, entry.token, finish, 1, picked[finish] >= available) }}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </article>
+{% endmacro %}
+
+{% macro stepper(side, token, finish, delta, disabled) %}
     <button type="button"
+            aria-label="{{ delta > 0 ? 'Ajouter' : 'Retirer' }} une copie {{ finish == 'holo' ? 'holo' : 'normale' }}"
             data-action="live#action"
             data-live-action-param="adjust"
-            data-live-side-param="{{ sideKey }}"
-            data-live-card-id-param="{{ cardId }}"
+            data-live-side-param="{{ side }}"
+            data-live-token-param="{{ token }}"
             data-live-finish-param="{{ finish }}"
             data-live-delta-param="{{ delta }}"
-            data-loading="addClass(opacity-50)"
-            data-testid="{{ delta > 0 ? 'plus' : 'minus' }}-{{ sideKey }}-{{ finish }}"
-            class="h-6 w-6 border border-hairline font-mono text-sm leading-none text-ink-muted transition-colors hover:border-primary hover:text-primary">
-        {{ label }}
+            data-testid="{{ delta > 0 ? 'plus' : 'minus' }}-{{ side }}-{{ finish }}"
+            {{ disabled ? 'disabled' }}
+            class="h-7 w-7 border border-hairline font-mono text-sm leading-none text-ink-muted transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">
+        {{ delta > 0 ? '+' : '−' }}
     </button>
+{% endmacro %}
+
+{% macro recap(label, summary, side) %}
+    <div class="min-w-0" data-testid="recap-{{ side }}">
+        <p class="chip-mono truncate text-ink-muted">{{ label }}</p>
+        <p class="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span class="font-display text-lg font-bold leading-none md:text-2xl {{ summary.copies > 0 ? 'text-ink-strong' : 'text-ink-dim' }}"
+                  data-testid="recap-{{ side }}-count">{{ summary.copies }}</span>
+            {% for bucket in summary.byRarity %}
+                <span class="chip-mono font-bold" style="color: var(--rarity-{{ bucket.rarity.value }});"
+                      title="{{ bucket.rarity.label }}">● {{ bucket.copies }}<span class="hidden xl:inline"> {{ bucket.rarity.label }}</span></span>
+            {% endfor %}
+        </p>
+        {% if summary.items is not empty %}
+            <p class="mt-1 hidden truncate font-mono text-[10px] text-ink-dim md:block" data-testid="recap-{{ side }}-items">
+                {% for item in summary.items %}
+                    {{- item.entry.card ? item.entry.card.name : 'Inconnue (' ~ item.entry.rarity.label ~ ')' -}}
+                    {{- item.normal > 0 ? ' ×' ~ item.normal -}}
+                    {{- item.holo > 0 ? ' ✦×' ~ item.holo -}}
+                    {{- not loop.last ? ' · ' -}}
+                {% endfor %}
+            </p>
+        {% endif %}
+    </div>
 {% endmacro %}

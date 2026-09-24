@@ -31,6 +31,10 @@ final class TradeInbox extends AbstractController
     #[LiveProp]
     public ?string $success = null;
 
+    /** Received offer awaiting the second click of a two-step acceptance. */
+    #[LiveProp]
+    public ?string $confirming = null;
+
     /**
      * Cards the reader owns, hence may see. Memoized: one query per render,
      * never one per offer.
@@ -89,6 +93,20 @@ final class TradeInbox extends AbstractController
     public function getHistory(): array
     {
         return $this->tradeOfferRepository->findHistoryFor($this->getDiscordUser());
+    }
+
+    #[LiveAction]
+    public function askAccept(#[LiveArg] string $offerId): void
+    {
+        $this->error = null;
+        $this->success = null;
+        $this->confirming = $offerId;
+    }
+
+    #[LiveAction]
+    public function abortAccept(): void
+    {
+        $this->confirming = null;
     }
 
     #[LiveAction]
@@ -162,6 +180,7 @@ final class TradeInbox extends AbstractController
     {
         $this->error = null;
         $this->success = null;
+        $this->confirming = null;
 
         $user = $this->getDiscordUser();
         // client-provided: a malformed id is "not found", never a conversion error

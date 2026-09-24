@@ -25,6 +25,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
+use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 
 final class TradeComponentTest extends WebTestCase
 {
@@ -63,14 +64,12 @@ final class TradeComponentTest extends WebTestCase
         $mine = $this->giveCard($barlito, 'Ma carte', quantity: 2);
         $theirs = $this->giveCard($juju, 'Sa carte', quantity: 1);
 
-        $component = $this->createLiveComponent(
-            TradeComposer::class,
-            data: ['counterpartId' => self::JUJU],
-            client: $this->client,
-        );
+        $component = $this->composer();
+        $html = (string) $component->render();
 
-        $component->call('adjust', ['side' => 'offered', 'cardId' => (string) $mine->getId(), 'finish' => 'normal', 'delta' => 1]);
-        $component->call('adjust', ['side' => 'requested', 'cardId' => (string) $theirs->getId(), 'finish' => 'normal', 'delta' => 1]);
+        $component->call('adjust', ['side' => 'offered', 'token' => $this->tokenOf($html, 'offered', $mine->getName()), 'finish' => 'normal', 'delta' => 1]);
+        // not owned by the visitor: requested blind, through its masked tile
+        $component->call('adjust', ['side' => 'requested', 'token' => $this->tokenOf($html, 'requested', null), 'finish' => 'normal', 'delta' => 1]);
 
         $this->assertSame(1, $component->component()->getOfferedCount());
         $this->assertSame(1, $component->component()->getRequestedCount());
@@ -88,22 +87,23 @@ final class TradeComponentTest extends WebTestCase
         $barlito = $this->authenticateClient($this->client, self::BARLITO);
         $mine = $this->giveCard($barlito, 'Une seule', quantity: 1);
 
-        $component = $this->createLiveComponent(
-            TradeComposer::class,
-            data: ['counterpartId' => self::JUJU],
-            client: $this->client,
-        );
+        $component = $this->composer();
+        $token = $this->tokenOf((string) $component->render(), 'offered', $mine->getName());
 
         // three clicks on a single owned copy: the server clamps at 1
         foreach (range(1, 3) as $ignored) {
-            $component->call('adjust', ['side' => 'offered', 'cardId' => (string) $mine->getId(), 'finish' => 'normal', 'delta' => 1]);
+            $component->call('adjust', ['side' => 'offered', 'token' => $token, 'finish' => 'normal', 'delta' => 1]);
         }
 
         $this->assertSame(1, $component->component()->getOfferedCount());
+        $this->assertNotNull(
+            $this->tile((string) $component->render(), 'offered', $mine->getName())->filter('[data-testid="plus-offered-normal"]')->attr('disabled'),
+            'Le + se grise une fois le plafond atteint.',
+        );
 
         // and never below zero
         foreach (range(1, 3) as $ignored) {
-            $component->call('adjust', ['side' => 'offered', 'cardId' => (string) $mine->getId(), 'finish' => 'normal', 'delta' => -1]);
+            $component->call('adjust', ['side' => 'offered', 'token' => $token, 'finish' => 'normal', 'delta' => -1]);
         }
 
         $this->assertSame(0, $component->component()->getOfferedCount());
@@ -115,15 +115,55 @@ final class TradeComponentTest extends WebTestCase
         $juju = $this->user(self::JUJU);
         $notMine = $this->giveCard($juju, 'Pas à moi', quantity: 1);
 
-        $component = $this->createLiveComponent(
-            TradeComposer::class,
-            data: ['counterpartId' => self::JUJU],
-            client: $this->client,
-        );
+        $component = $this->composer();
+        $theirToken = $this->tokenOf((string) $component->render(), 'requested', null);
 
-        $component->call('adjust', ['side' => 'offered', 'cardId' => (string) $notMine->getId(), 'finish' => 'normal', 'delta' => 1]);
+        // their token on my side, or a raw uuid: both unknown to my side
+        $component->call('adjust', ['side' => 'offered', 'token' => $theirToken, 'finish' => 'normal', 'delta' => 1]);
+        $component->call('adjust', ['side' => 'offered', 'token' => (string) $notMine->getId(), 'finish' => 'normal', 'delta' => 1]);
+        $component->call('adjust', ['side' => 'requested', 'token' => (string) $notMine->getId(), 'finish' => 'normal', 'delta' => 1]);
 
         $this->assertSame(0, $component->component()->getOfferedCount());
+        $this->assertSame(0, $component->component()->getRequestedCount());
+    }
+
+    public function testOnlyTheAvailableFinishesAreShownWithTheirCaps(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $mixed = $this->giveCard($barlito, 'Mixte', quantity: 3, holoQuantity: 1);
+        $plain = $this->giveCard($barlito, 'Sans holo', quantity: 2);
+
+        $html = (string) $this->composer()->render();
+
+        $mixedTile = $this->tile($html, 'offered', $mixed->getName());
+        $this->assertSame('2 dispo', trim($mixedTile->filter('[data-testid="cap-offered-normal"]')->text()));
+        $this->assertSame('1 dispo', trim($mixedTile->filter('[data-testid="cap-offered-holo"]')->text()));
+
+        $plainTile = $this->tile($html, 'offered', $plain->getName());
+        $this->assertSame('2 dispo', trim($plainTile->filter('[data-testid="cap-offered-normal"]')->text()));
+        $this->assertSame(0, $plainTile->filter('[data-testid="cap-offered-holo"]')->count(), 'Pas de stepper holo sans holo à donner.');
+    }
+
+    public function testCopiesEngagedElsewhereAreNotOfferedAgain(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $mine = $this->giveCard($barlito, 'Engagée', quantity: 3);
+        $this->createOffer($barlito, $juju, $mine, $this->giveCard($juju, 'Demandée', quantity: 1));
+
+        $html = (string) $this->composer()->render();
+
+        $this->assertSame('2 dispo', trim($this->tile($html, 'offered', $mine->getName())->filter('[data-testid="cap-offered-normal"]')->text()));
+    }
+
+    public function testUnpublishedCardsAreNotListed(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $draft = $this->giveCard($barlito, 'Brouillon', quantity: 2);
+        $draft->setStatus(CardStatusEnum::DRAFT);
+        $this->entityManager->flush();
+
+        $this->assertStringNotContainsString($draft->getName(), (string) $this->composer()->render());
     }
 
     public function testSearchFiltersButNeverHidesASelectedCard(): void
@@ -133,17 +173,98 @@ final class TradeComponentTest extends WebTestCase
         $other = $this->giveCard($barlito, 'Grominet des cavernes', quantity: 1);
         $ignored = $this->giveCard($barlito, 'Bidule sans rapport', quantity: 1);
 
-        $component = $this->createLiveComponent(
-            TradeComposer::class,
-            data: ['counterpartId' => self::JUJU],
-            client: $this->client,
-        );
-        $component->call('adjust', ['side' => 'offered', 'cardId' => (string) $picked->getId(), 'finish' => 'normal', 'delta' => 1]);
-        $rendered = (string) $component->set('searchMine', 'grominet')->render();
+        $component = $this->composer();
+        $component->call('adjust', ['side' => 'offered', 'token' => $this->tokenOf((string) $component->render(), 'offered', $picked->getName()), 'finish' => 'normal', 'delta' => 1]);
+        $rendered = (string) $component->set('search', 'grominet')->render();
 
         $this->assertStringContainsString($other->getName(), $rendered, 'La carte cherchée doit être visible.');
         $this->assertStringContainsString($picked->getName(), $rendered, 'Une carte déjà sélectionnée ne doit jamais disparaître.');
         $this->assertStringNotContainsString($ignored->getName(), $rendered, 'Une carte hors recherche doit être masquée.');
+    }
+
+    public function testTheUniverseFilterAppliesToBothSides(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $other = new Extension()->setName('Autre univers ' . uniqid())->setDescription('Test')->setStatus(ExtensionStatusEnum::PUBLISHED);
+        $this->entityManager->persist($other);
+        $this->entityManager->flush();
+
+        $mineHere = $this->giveCard($barlito, 'Ici à moi', quantity: 1);
+        $mineThere = $this->giveCard($barlito, 'Là-bas à moi', quantity: 1, extension: $other);
+        $theirsHere = $this->giveCard($juju, 'Ici à lui', quantity: 1);
+        $this->giveCopy($barlito, $theirsHere);
+        $theirsThere = $this->giveCard($juju, 'Là-bas à lui', quantity: 1, extension: $other);
+        $this->giveCopy($barlito, $theirsThere);
+
+        $component = $this->composer();
+        $strip = new Crawler((string) $component->render())->filter('[data-testid="completion-strip"]');
+        $this->assertGreaterThanOrEqual(2, $strip->filter('[data-testid="strip-tile"]')->count());
+        $this->assertStringContainsString('univers=' . $other->getSlug(), $strip->html());
+
+        $component->call('filterUniverse', ['slug' => $other->getSlug()]);
+        $html = (string) $component->render();
+
+        $this->assertStringContainsString($mineThere->getName(), $html);
+        $this->assertStringContainsString($theirsThere->getName(), $html);
+        $this->assertStringNotContainsString($mineHere->getName(), $html);
+        $this->assertStringNotContainsString($theirsHere->getName(), $html);
+
+        $component->call('filterUniverse', ['slug' => '']);
+        $this->assertStringContainsString($mineHere->getName(), (string) $component->render());
+    }
+
+    public function testTheUniverseFilterIsReadFromTheUrl(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $here = $this->giveCard($barlito, 'Filtrée par url', quantity: 1);
+
+        $this->client->request('GET', '/echanges/nouveau/' . self::JUJU . '?univers=' . $this->extension->getSlug());
+
+        self::assertResponseIsSuccessful();
+        $crawler = $this->client->getCrawler();
+        $this->assertStringContainsString($here->getName(), $crawler->filter('[data-testid="offered-list"]')->html());
+        $this->assertStringContainsString('border-primary', (string) $crawler->filter('[data-testid="strip-tile"][data-carousel-active]')->attr('class'));
+    }
+
+    public function testTheStickyRecapSummarisesBothSides(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $mine = $this->giveCard($barlito, 'Donnée', quantity: 3, holoQuantity: 1, rarity: CardRarityEnum::RARE);
+        $this->giveCard($juju, 'Reçue inconnue', quantity: 1, rarity: CardRarityEnum::LEGENDARY);
+
+        $component = $this->composer();
+        $html = (string) $component->render();
+        $this->assertNotNull(new Crawler($html)->filter('[data-testid="submit-offer"]')->attr('disabled'), 'Rien à envoyer tant qu\'un côté est vide.');
+
+        $myToken = $this->tokenOf($html, 'offered', $mine->getName());
+        $component->call('adjust', ['side' => 'offered', 'token' => $myToken, 'finish' => 'normal', 'delta' => 1]);
+        $component->call('adjust', ['side' => 'offered', 'token' => $myToken, 'finish' => 'holo', 'delta' => 1]);
+        $component->call('adjust', ['side' => 'requested', 'token' => $this->tokenOf($html, 'requested', null), 'finish' => 'normal', 'delta' => 1]);
+
+        $bar = new Crawler((string) $component->render())->filter('[data-testid="composer-bar"]');
+        $this->assertSame('2', trim($bar->filter('[data-testid="recap-offered-count"]')->text()));
+        $this->assertSame('1', trim($bar->filter('[data-testid="recap-requested-count"]')->text()));
+        $this->assertStringContainsString($mine->getName() . ' ×1 ✦×1', $bar->filter('[data-testid="recap-offered-items"]')->text());
+        $this->assertStringContainsString('Inconnue (' . CardRarityEnum::LEGENDARY->label() . ')', $bar->filter('[data-testid="recap-requested-items"]')->text());
+        $this->assertNull($bar->filter('[data-testid="submit-offer"]')->attr('disabled'));
+        $this->assertStringContainsString('addAttribute(disabled)', (string) $bar->filter('[data-testid="submit-offer"]')->attr('data-loading'));
+    }
+
+    public function testMobileTabsSwitchTheShownSide(): void
+    {
+        $this->authenticateClient($this->client, self::BARLITO);
+
+        $component = $this->composer();
+        $crawler = new Crawler((string) $component->render());
+        $this->assertStringNotContainsString('hidden', (string) $crawler->filter('[data-testid="offered-column"]')->attr('class'));
+        $this->assertStringContainsString('hidden lg:block', (string) $crawler->filter('[data-testid="requested-column"]')->attr('class'));
+
+        $component->call('showSide', ['side' => 'requested']);
+        $crawler = new Crawler((string) $component->render());
+        $this->assertStringContainsString('hidden lg:block', (string) $crawler->filter('[data-testid="offered-column"]')->attr('class'));
+        $this->assertSame('true', $crawler->filter('[data-testid="tab-requested"]')->attr('aria-selected'));
     }
 
     public function testTheirColumnMasksTheCardsTheVisitorDoesNotOwn(): void
@@ -154,11 +275,7 @@ final class TradeComponentTest extends WebTestCase
         $this->giveCopy($barlito, $shared);
         $unknown = $this->giveCard($juju, 'Carte secrète', quantity: 2, holoQuantity: 1);
 
-        $component = $this->createLiveComponent(
-            TradeComposer::class,
-            data: ['counterpartId' => self::JUJU],
-            client: $this->client,
-        );
+        $component = $this->composer();
         $html = (string) $component->render();
 
         $this->assertStringNotContainsString(
@@ -173,8 +290,30 @@ final class TradeComponentTest extends WebTestCase
         $this->assertStringContainsString('Carte inconnue', $theirs->html());
 
         // masquée mais toujours demandable : on demande à l'aveugle
-        $component->call('adjust', ['side' => 'requested', 'cardId' => (string) $unknown->getId(), 'finish' => 'holo', 'delta' => 1]);
+        $component->call('adjust', ['side' => 'requested', 'token' => $this->tokenOf($html, 'requested', null), 'finish' => 'holo', 'delta' => 1]);
         $this->assertSame(1, $component->component()->getRequestedCount());
+    }
+
+    public function testNoMaskedCardUuidEverReachesTheDom(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $mine = $this->giveCard($barlito, 'La mienne', quantity: 1);
+        $unknown = $this->giveCard($juju, 'Inconnue au bataillon', quantity: 1);
+
+        $component = $this->composer();
+        $html = (string) $component->render();
+        $this->assertStringNotContainsString((string) $unknown->getId(), $html);
+
+        // selected, the masked card now lives in the checksummed props too
+        $component->call('adjust', ['side' => 'requested', 'token' => $this->tokenOf($html, 'requested', null), 'finish' => 'normal', 'delta' => 1]);
+        $component->call('adjust', ['side' => 'offered', 'token' => $this->tokenOf($html, 'offered', $mine->getName()), 'finish' => 'normal', 'delta' => 1]);
+
+        $this->assertSame(1, $component->component()->getRequestedCount());
+        $this->assertStringNotContainsString((string) $unknown->getId(), (string) $component->render());
+
+        $this->client->request('GET', '/echanges/nouveau/' . self::JUJU);
+        $this->assertStringNotContainsString((string) $unknown->getId(), (string) $this->client->getResponse()->getContent());
     }
 
     public function testTheSearchFilterIsNoOracleOnMaskedNames(): void
@@ -185,12 +324,8 @@ final class TradeComponentTest extends WebTestCase
         $this->giveCopy($barlito, $shared);
         $this->giveCard($juju, 'Zorglub secret', quantity: 1);
 
-        $component = $this->createLiveComponent(
-            TradeComposer::class,
-            data: ['counterpartId' => self::JUJU],
-            client: $this->client,
-        );
-        $theirs = fn (string $needle): Crawler => new Crawler((string) $component->set('searchTheirs', $needle)->render())
+        $component = $this->composer();
+        $theirs = fn (string $needle): Crawler => new Crawler((string) $component->set('search', $needle)->render())
             ->filter('[data-testid="requested-list"]')
         ;
 
@@ -304,6 +439,31 @@ final class TradeComponentTest extends WebTestCase
         );
         $this->assertSame(1, $this->ownedQuantity($juju, $offered));
         $this->assertSame(1, $this->ownedQuantity($barlito, $requested));
+    }
+
+    public function testAcceptingAsksForAConfirmationFirst(): void
+    {
+        $barlito = $this->user(self::BARLITO);
+        $juju = $this->authenticateClient($this->client, self::JUJU);
+        $offered = $this->giveCard($barlito, 'Offerte', quantity: 1);
+        $requested = $this->giveCard($juju, 'Demandée', quantity: 1);
+        $offer = $this->createOffer($barlito, $juju, $offered, $requested);
+
+        $component = $this->createLiveComponent(TradeInbox::class, client: $this->client);
+        $received = new Crawler((string) $component->render())->filter('[data-testid="received-offers"]');
+        $this->assertSame(0, $received->filter('[data-testid="confirm-accept"]')->count());
+        $this->assertSame('askAccept', $received->filter('[data-testid="accept-offer"]')->attr('data-live-action-param'));
+
+        $component->call('askAccept', ['offerId' => (string) $offer->getId()]);
+        $received = new Crawler((string) $component->render())->filter('[data-testid="received-offers"]');
+        $this->assertSame(1, $received->filter('[data-testid="accept-confirmation"]')->count());
+        $this->assertSame('accept', $received->filter('[data-testid="confirm-accept"]')->attr('data-live-action-param'));
+
+        // asking changed nothing yet
+        $this->assertSame(0, $this->ownedQuantity($juju, $offered));
+
+        $component->call('abortAccept');
+        $this->assertSame(0, new Crawler((string) $component->render())->filter('[data-testid="confirm-accept"]')->count());
     }
 
     public function testInboxRefusalFreesTheReservation(): void
@@ -427,17 +587,43 @@ final class TradeComponentTest extends WebTestCase
         return $user;
     }
 
+    private function composer(): TestLiveComponent
+    {
+        return $this->createLiveComponent(TradeComposer::class, data: ['counterpartId' => self::JUJU], client: $this->client);
+    }
+
+    /**
+     * The tile of a card (by name), or the first masked tile when $name is null.
+     */
+    private function tile(string $html, string $side, ?string $name): Crawler
+    {
+        $tiles = new Crawler($html)->filter(\sprintf('[data-testid="%s-column"] [data-testid="trade-tile"]', $side))
+            ->reduce(static fn (Crawler $tile): bool => null === $name
+                ? $tile->filter('[data-testid="masked-card"]')->count() > 0
+                : str_contains($tile->text(), $name))
+        ;
+        $this->assertGreaterThan(0, $tiles->count(), \sprintf('No %s tile for "%s".', $side, $name ?? 'masked card'));
+
+        return $tiles->first();
+    }
+
+    private function tokenOf(string $html, string $side, ?string $name): string
+    {
+        return (string) $this->tile($html, $side, $name)->filter('[data-live-token-param]')->attr('data-live-token-param');
+    }
+
     private function giveCard(
         DiscordUser $user,
         string $name,
         int $quantity,
         int $holoQuantity = 0,
         CardRarityEnum $rarity = CardRarityEnum::COMMON,
+        ?Extension $extension = null,
     ): Card {
         $card = new Card()
             ->setName($name . ' ' . uniqid())
             ->setDescription('Test')
-            ->setExtension($this->extension)
+            ->setExtension($extension ?? $this->extension)
             ->setStatus(CardStatusEnum::PUBLISHED)
             ->setRarity($rarity)
         ;
