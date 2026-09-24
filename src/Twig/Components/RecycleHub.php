@@ -82,9 +82,9 @@ final class RecycleHub extends AbstractController
     private ?array $boosters = null;
 
     /**
-     * @var array<string, array{normal: int, holo: int}>|null card id => copies engaged in pending trade offers
+     * @var array<string, true>|null card ids engaged in pending trade offers
      */
-    private ?array $reserved = null;
+    private ?array $engaged = null;
 
     public function __construct(
         private readonly UserCardRepository $userCardRepository,
@@ -178,14 +178,12 @@ final class RecycleHub extends AbstractController
     }
 
     /**
-     * Copies that can leave the collection: all but one, whatever their kind,
-     * on top of the ones engaged in pending trade offers.
+     * Copies that can leave the collection: all but one, whatever their kind —
+     * none while the card is engaged in a pending trade offer.
      */
     public function recyclableCopies(UserCard $row): int
     {
-        $reserved = $this->reservedFor($row);
-
-        return max(0, $row->getQuantity() - 1 - $reserved['normal'] - $reserved['holo']);
+        return $this->isEngaged($row) ? 0 : max(0, $row->getQuantity() - 1);
     }
 
     /**
@@ -193,22 +191,22 @@ final class RecycleHub extends AbstractController
      */
     public function normalCap(UserCard $row): int
     {
-        return max(0, min($row->getQuantity() - $row->getHoloQuantity() - $this->reservedFor($row)['normal'], $this->recyclableCopies($row)));
+        return max(0, min($row->getQuantity() - $row->getHoloQuantity(), $this->recyclableCopies($row)));
     }
 
     public function holoCap(UserCard $row): int
     {
-        return max(0, min($row->getHoloQuantity() - $this->reservedFor($row)['holo'], $this->recyclableCopies($row)));
+        return max(0, min($row->getHoloQuantity(), $this->recyclableCopies($row)));
     }
 
     /**
-     * @return array{normal: int, holo: int}
+     * Offered by the player or requested from them in a pending trade offer.
      */
-    public function reservedFor(UserCard $row): array
+    public function isEngaged(UserCard $row): bool
     {
-        $this->reserved ??= $this->tradeOfferRepository->sumReservedQuantities($this->getDiscordUser());
+        $this->engaged ??= $this->tradeOfferRepository->findEngagedCardIds($this->getDiscordUser());
 
-        return $this->reserved[(string) $row->getCard()->getId()] ?? ['normal' => 0, 'holo' => 0];
+        return isset($this->engaged[(string) $row->getCard()->getId()]);
     }
 
     /**
@@ -424,7 +422,7 @@ final class RecycleHub extends AbstractController
 
         $this->selection = [];
         $this->rows = null; // the memoized inventory is stale after the debit
-        $this->reserved = null;
+        $this->engaged = null;
         $this->success = \sprintf(
             '%d copie%s recyclée%s — %d pack%s « %s » ajouté%s à ton stock !%s',
             $copies,
@@ -449,10 +447,9 @@ final class RecycleHub extends AbstractController
 
         $rows = [];
 
+        // engaged duplicates stay listed, locked, so they do not vanish unexplained
         foreach ($this->userCardRepository->findRecyclableWithCards($this->getDiscordUser()) as $userCard) {
-            if ($this->recyclableCopies($userCard) > 0) {
-                $rows[(string) $userCard->getCard()->getId()] = $userCard;
-            }
+            $rows[(string) $userCard->getCard()->getId()] = $userCard;
         }
 
         return $this->rows = $rows;

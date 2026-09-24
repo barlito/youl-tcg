@@ -81,6 +81,37 @@ class TradeOfferRepository extends ServiceEntityRepository
     }
 
     /**
+     * Cards $user is engaged on through PENDING offers: offered as proposer or
+     * requested from them as receiver. Such cards cannot be recycled at all.
+     *
+     * @return array<string, true> card id => engaged
+     */
+    public function findEngagedCardIds(DiscordUser $user): array
+    {
+        /** @var list<array{cardId: mixed}> $rows */
+        $rows = $this->getEntityManager()->createQueryBuilder()
+            ->select('DISTINCT IDENTITY(line.card) AS cardId')
+            ->from(TradeOfferLine::class, 'line')
+            ->join('line.tradeOffer', 'offer')
+            ->andWhere('offer.status = :status')
+            ->andWhere('(offer.proposer = :user AND line.side = :offered) OR (offer.receiver = :user AND line.side = :requested)')
+            ->setParameter('user', $user)
+            ->setParameter('status', TradeOfferStatusEnum::PENDING->value)
+            ->setParameter('offered', TradeOfferSideEnum::OFFERED->value)
+            ->setParameter('requested', TradeOfferSideEnum::REQUESTED->value)
+            ->getQuery()
+            ->getResult()
+        ;
+
+        $engaged = [];
+        foreach ($rows as $row) {
+            $engaged[(string) $row['cardId']] = true;
+        }
+
+        return $engaged;
+    }
+
+    /**
      * Pending offers waiting for $receiver's answer, newest first.
      *
      * @return list<TradeOffer>

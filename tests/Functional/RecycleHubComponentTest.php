@@ -126,29 +126,31 @@ final class RecycleHubComponentTest extends WebTestCase
         $this->assertStringContainsString('Encore 6 pts pour 1 booster', (string) $component->render());
     }
 
-    public function testCopiesEngagedInATradeOfferAreNeitherSelectableNorCounted(): void
+    public function testACardEngagedInATradeOfferIsListedButLocked(): void
     {
         $client = static::createClient();
         $user = $this->authenticateClient($client, self::USER);
-        // 5 copies, 2 engaged: 5 - 1 kept - 2 engaged = 2 recyclable
         $scenario = $this->createScenario($user, [
-            ['name' => 'Engaged card', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 5],
-            ['name' => 'Fully engaged', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 2],
+            ['name' => 'Offered card', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 5],
+            ['name' => 'Requested card', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 4],
+            ['name' => 'Free card', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 3],
         ]);
-        $this->engage($user, $scenario['cards'][0], 2);
-        $this->engage($user, $scenario['cards'][1], 1);
-        $cardId = (string) $scenario['cards'][0]->getId();
+        // a single copy engaged is enough to lock every duplicate, on either side of the offer
+        $this->engage($user, $scenario['cards'][0], asProposer: true, side: TradeOfferSideEnum::OFFERED);
+        $this->engage($user, $scenario['cards'][1], asProposer: false, side: TradeOfferSideEnum::REQUESTED);
 
         $component = $this->createLiveComponent(RecycleHub::class, client: $client);
-        foreach (range(1, 5) as $ignored) {
-            $component->call('addCopy', ['cardId' => $cardId, 'kind' => 'normal']);
+        foreach ([0, 1] as $index) {
+            $component->call('addCopy', ['cardId' => (string) $scenario['cards'][$index]->getId(), 'kind' => 'normal']);
         }
 
-        $this->assertSame(['normal' => 2, 'holo' => 0], $component->component()->selection[$cardId]);
-        $html = (string) $component->render();
-        $this->assertSame('2', trim(new Crawler($html)->filter('[data-testid="recyclable-total"] p')->eq(1)->text()));
-        $this->assertStringContainsString('2 engagées en échange', $html);
-        $this->assertStringNotContainsString($scenario['cards'][1]->getName(), $html, 'A card whose only duplicate is engaged is not listed.');
+        $this->assertSame([], $component->component()->selection);
+        $crawler = new Crawler((string) $component->render());
+        $this->assertSame('2', trim($crawler->filter('[data-testid="recyclable-total"] p')->eq(1)->text()), 'Only the free card counts.');
+        $engaged = $crawler->filter('[data-testid="recycle-card"][data-engaged="true"]');
+        $this->assertCount(2, $engaged);
+        $this->assertStringContainsString('⇄ engagée dans un échange', $engaged->text());
+        $this->assertCount(0, $engaged->filter('[data-testid="add-normal"]'), 'A locked card has no selection control.');
     }
 
     public function testRemoveCopyDropsTheLineAtZero(): void
@@ -491,15 +493,16 @@ final class RecycleHubComponentTest extends WebTestCase
         $this->assertStringNotContainsString($emptyBooster->getName() ?? '', (string) $component->render(), 'A pack without drawable card is not offered.');
     }
 
-    private function engage(DiscordUser $proposer, Card $card, int $normal): void
+    private function engage(DiscordUser $player, Card $card, bool $asProposer, TradeOfferSideEnum $side): void
     {
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
-        $receiver = new DiscordUser()->setDiscordId('recycle-hub-receiver-' . uniqid())->setUsername('Receiver');
-        $entityManager->persist($receiver);
+        $other = new DiscordUser()->setDiscordId('recycle-hub-other-' . uniqid())->setUsername('Other');
+        $entityManager->persist($other);
 
-        $offer = new TradeOffer()->setProposer($proposer)->setReceiver($receiver);
-        $offer->addLine(new TradeOfferLine()->setSide(TradeOfferSideEnum::OFFERED)->setCard($card)->setNormalQuantity($normal)->setHoloQuantity(0));
-        $offer->addLine(new TradeOfferLine()->setSide(TradeOfferSideEnum::REQUESTED)->setCard($card)->setNormalQuantity(1)->setHoloQuantity(0));
+        $offer = $asProposer
+            ? new TradeOffer()->setProposer($player)->setReceiver($other)
+            : new TradeOffer()->setProposer($other)->setReceiver($player);
+        $offer->addLine(new TradeOfferLine()->setSide($side)->setCard($card)->setNormalQuantity(1)->setHoloQuantity(0));
         $entityManager->persist($offer);
         $entityManager->flush();
     }
