@@ -68,7 +68,10 @@ class UserCardRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return array<string, int> extension id => distinct owned cards
+     * Scoped to the published catalogue, like the completion denominator: an owned
+     * card put back to draft must not push a universe past 100 %.
+     *
+     * @return array<string, int> extension id => distinct owned published cards
      */
     public function countOwnedGroupedByExtension(DiscordUser $discordUser): array
     {
@@ -76,9 +79,14 @@ class UserCardRepository extends ServiceEntityRepository
         $rows = $this->createQueryBuilder('uc')
             ->select('IDENTITY(c.extension) AS extensionId', 'COUNT(DISTINCT c.id) AS ownedCount')
             ->join('uc.card', 'c')
+            ->join('c.extension', 'e')
             ->andWhere('uc.discordUser = :user')
             ->andWhere('uc.quantity > 0 OR uc.holoQuantity > 0')
+            ->andWhere('c.status = :cardStatus')
+            ->andWhere('e.status = :extensionStatus')
             ->setParameter('user', $discordUser)
+            ->setParameter('cardStatus', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->setParameter('extensionStatus', ExtensionStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
             ->groupBy('c.extension')
             ->getQuery()
             ->getResult()

@@ -96,6 +96,12 @@ class UniverseController extends AbstractController
             $ownedByCardId[(string) $userCard->getCard()->getId()] = $userCard;
         }
 
+        // drafts are out of the catalogue: they must not count toward the completion
+        $ownedByCardId = array_intersect_key(
+            $ownedByCardId,
+            array_flip(array_map(static fn (Card $card): string => (string) $card->getId(), $catalog)),
+        );
+
         $uniquesTotal = 0;
         $uniquesClaimed = 0;
         foreach ($catalog as $card) {
