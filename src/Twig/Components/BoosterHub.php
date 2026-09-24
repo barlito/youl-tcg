@@ -120,6 +120,16 @@ final class BoosterHub extends AbstractController
     }
 
     /**
+     * Booster ids the "+ Récupérer" button is offered on.
+     *
+     * @return array<string, true> booster id => true
+     */
+    public function getRetrievableBoosterIds(): array
+    {
+        return $this->boosterAvailability->retrievableBoosterIds($this->getBoosters());
+    }
+
+    /**
      * @return array<string, int> booster id => owned quantity
      */
     public function getInventory(): array
@@ -240,18 +250,14 @@ final class BoosterHub extends AbstractController
     }
 
     /**
-     * Boosters offered as a streak bonus: the claimable ones, same visibility
-     * rule as the daily claim (findPublished already scopes to published
-     * extensions).
+     * Boosters offered as a streak bonus: the retrievable ones, same rule as
+     * the daily claim.
      *
      * @return list<Booster>
      */
     public function getStreakRewardChoices(): array
     {
-        return array_values(array_filter(
-            $this->boosterRepository->findPublished(),
-            $this->boosterAvailability->isClaimable(...),
-        ));
+        return $this->boosterAvailability->filterRetrievable($this->boosterRepository->findPublished());
     }
 
     /**

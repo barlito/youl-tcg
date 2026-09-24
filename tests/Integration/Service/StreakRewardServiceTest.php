@@ -162,7 +162,7 @@ final class StreakRewardServiceTest extends KernelTestCase
             $this->rewardService->chooseBooster($scenario['user'], (string) $reward->getId(), $scenario['booster']);
             $this->fail('Expected BoosterNotClaimableException.');
         } catch (BoosterNotClaimableException $exception) {
-            $this->assertSame('Ce pack ne peut pas être choisi en récompense.', $exception->getUserMessage());
+            $this->assertSame('Ce pack ne peut pas être choisi en récompense pour le moment.', $exception->getUserMessage());
         }
 
         $this->entityManager->clear();
@@ -172,6 +172,24 @@ final class StreakRewardServiceTest extends KernelTestCase
             $this->entityManager->getRepository(UserBooster::class)->findBy(['discordUser' => $scenario['user']]),
             'The refused choice must not credit anything.',
         );
+        $this->assertFalse($this->entityManager->getRepository(StreakReward::class)->find($reward->getId())?->isChosen());
+    }
+
+    public function testChoosingABoosterWithNothingToDrawIsRefused(): void
+    {
+        $scenario = $this->createScenario(cardStatus: CardStatusEnum::DRAFT);
+        $reward = $this->createPendingReward($scenario['user']);
+
+        try {
+            $this->rewardService->chooseBooster($scenario['user'], (string) $reward->getId(), $scenario['booster']);
+            $this->fail('Expected BoosterNotClaimableException.');
+        } catch (BoosterNotClaimableException $exception) {
+            $this->assertSame('Ce pack ne peut pas être choisi en récompense pour le moment.', $exception->getUserMessage());
+        }
+
+        $this->entityManager->clear();
+
+        $this->assertSame([], $this->entityManager->getRepository(UserBooster::class)->findBy(['discordUser' => $scenario['user']]));
         $this->assertFalse($this->entityManager->getRepository(StreakReward::class)->find($reward->getId())?->isChosen());
     }
 
@@ -191,7 +209,7 @@ final class StreakRewardServiceTest extends KernelTestCase
     /**
      * @return array{user: DiscordUser, booster: Booster}
      */
-    private function createScenario(bool $claimable = true, int $boosterQuantity = 0): array
+    private function createScenario(bool $claimable = true, int $boosterQuantity = 0, CardStatusEnum $cardStatus = CardStatusEnum::PUBLISHED): array
     {
         $extension = new \App\Entity\Extension()
             ->setName('Streak test extension ' . uniqid())
@@ -203,7 +221,7 @@ final class StreakRewardServiceTest extends KernelTestCase
         $card = new Card()
             ->setName('Streak test card')
             ->setDescription('Test card')
-            ->setStatus(CardStatusEnum::PUBLISHED)
+            ->setStatus($cardStatus)
             ->setRarity(CardRarityEnum::COMMON)
             ->setExtension($extension)
         ;

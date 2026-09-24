@@ -80,6 +80,61 @@ final readonly class BoosterAvailabilityService
         return $drawable;
     }
 
+    /**
+     * Whether the booster can be distributed at all: published extension with
+     * at least one drawable card. Codes use it as is (they reach non-claimable
+     * boosters on purpose).
+     */
+    public function isDistributable(Booster $booster): bool
+    {
+        return $this->hasPublishedExtension($booster) && $this->isDrawable($booster);
+    }
+
+    /**
+     * The single check behind every player-side booster retrieval (daily
+     * claim, streak reward): claimable AND distributable.
+     */
+    public function isRetrievable(Booster $booster): bool
+    {
+        return $this->isClaimable($booster) && $this->isDistributable($booster);
+    }
+
+    /**
+     * Batch variant of isRetrievable: one query for a whole booster list.
+     *
+     * @param list<Booster> $boosters
+     *
+     * @return array<string, true> booster id => true
+     */
+    public function retrievableBoosterIds(array $boosters): array
+    {
+        $claimable = array_filter(
+            $boosters,
+            fn (Booster $booster): bool => $this->isClaimable($booster) && $this->hasPublishedExtension($booster),
+        );
+
+        return $this->drawableBoosterIds(array_values($claimable));
+    }
+
+    /**
+     * @param list<Booster> $boosters
+     *
+     * @return list<Booster>
+     */
+    public function filterRetrievable(array $boosters): array
+    {
+        $retrievable = $this->retrievableBoosterIds($boosters);
+
+        return array_values(array_filter(
+            $boosters,
+            static fn (Booster $booster): bool => isset($retrievable[(string) $booster->getId()]),
+        ));
+    }
+
+    /**
+     * Opening deliberately ignores claimable and the extension status: a
+     * player keeps the right to open a pack they own.
+     */
     public function isOpenable(Booster $booster, int $ownedQuantity): bool
     {
         return $ownedQuantity >= 1 && $this->isDrawable($booster);

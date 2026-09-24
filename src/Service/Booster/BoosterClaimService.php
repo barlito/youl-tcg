@@ -45,20 +45,12 @@ final readonly class BoosterClaimService
      */
     public function claim(DiscordUser $discordUser, Booster $booster): BoosterClaim
     {
-        // Server-side guards, not just UI: a forged live action must not claim
-        // an event/code-only booster, nor one whose extension is unpublished
-        // (its uuid can leak — the booster simply isn't available).
-        if (!$this->boosterAvailability->isClaimable($booster)) {
+        // Server-side guard, not just UI: a forged live action must not claim
+        // an event/code-only booster, nor one that cannot be opened.
+        if (!$this->boosterAvailability->isRetrievable($booster)) {
             throw new BoosterNotClaimableException(
-                \sprintf('Booster "%s" is not claimable (event/code distribution only).', $booster->getDisplayName()),
-                'Ce pack ne peut pas être récupéré ici — il se gagne en event ou via un code.',
-            );
-        }
-
-        if (!$this->boosterAvailability->hasPublishedExtension($booster)) {
-            throw new BoosterNotClaimableException(
-                \sprintf('Booster "%s" belongs to an unpublished extension.', $booster->getDisplayName()),
-                'Ce pack n\'est pas disponible.',
+                \sprintf('Booster "%s" is not retrievable (not claimable, unpublished extension or nothing to draw).', $booster->getDisplayName()),
+                'Ce pack n\'est pas récupérable pour le moment.',
             );
         }
 

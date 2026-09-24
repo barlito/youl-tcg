@@ -117,6 +117,9 @@ class CardRepository extends ServiceEntityRepository
      * unique cards that are already claimed (so a claimed unique can never be
      * drawn again). Available (unclaimed) uniques stay in the pool.
      *
+     * Ordered by id: the RNG picks an index in this list, so the seed replay
+     * of an opening must not depend on the physical row order.
+     *
      * @return list<Card>
      */
     public function findDrawablePool(Extension $extension): array
@@ -127,6 +130,7 @@ class CardRepository extends ServiceEntityRepository
             ->andWhere('c.uniqueFlag = false OR c.claimedBy IS NULL')
             ->setParameter('extension', $extension)
             ->setParameter('status', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->orderBy('c.id', 'ASC')
             ->getQuery()
             ->getResult());
     }

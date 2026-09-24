@@ -10,6 +10,7 @@ use App\Entity\DiscordUser;
 use App\Entity\StreakReward;
 use App\Entity\UserBooster;
 use App\Repository\BoosterRepository;
+use App\Service\Booster\BoosterAvailabilityService;
 use App\Twig\Components\BoosterHub;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -78,6 +79,29 @@ final class StreakHubComponentTest extends WebTestCase
         $this->assertStringNotContainsString('Pack Event Streak', $rendered);
     }
 
+    public function testABoosterWithNothingToDrawIsNeitherOfferedNorAccepted(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $reward = $this->createPendingReward($user);
+        // claimable, published extension, but only draft cards
+        $bleach = $this->bleachBooster();
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+
+        $this->assertNotContains($bleach, $component->component()->getStreakRewardChoices());
+        $this->assertStringNotContainsString('value="' . $bleach->getId() . '"', (string) $component->render());
+
+        $component->set('streakRewardBoosterId', (string) $bleach->getId());
+        $component->call('chooseStreakReward', ['rewardId' => (string) $reward->getId()]);
+
+        $this->assertSame('Ce pack ne peut pas être choisi en récompense pour le moment.', $component->component()->streakError);
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $this->assertNull($entityManager->getRepository(UserBooster::class)->findOneBy(['discordUser' => $user, 'booster' => $bleach]));
+        $this->assertFalse($entityManager->getRepository(StreakReward::class)->find($reward->getId())?->isChosen());
+    }
+
     public function testChoosingABoosterCreditsTheInventoryAndClosesTheReward(): void
     {
         $client = static::createClient();
@@ -141,7 +165,7 @@ final class StreakHubComponentTest extends WebTestCase
         $component->set('streakRewardBoosterId', (string) $eventBooster->getId());
         $component->call('chooseStreakReward', ['rewardId' => (string) $reward->getId()]);
 
-        $this->assertSame('Ce pack ne peut pas être choisi en récompense.', $component->component()->streakError);
+        $this->assertSame('Ce pack ne peut pas être choisi en récompense pour le moment.', $component->component()->streakError);
 
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $this->assertSame([], $entityManager->getRepository(UserBooster::class)->findBy(['discordUser' => $user]));
@@ -214,8 +238,7 @@ final class StreakHubComponentTest extends WebTestCase
      */
     private function twoClaimableBoosters(): array
     {
-        $boosters = static::getContainer()->get(BoosterRepository::class)->findPublished();
-        $claimable = array_values(array_filter($boosters, static fn (Booster $booster): bool => $booster->isClaimable()));
+        $claimable = $this->retrievableBoosters();
         $this->assertGreaterThanOrEqual(2, \count($claimable), 'Two claimable packs are needed.');
 
         return [$claimable[0], $claimable[1]];
@@ -283,12 +306,27 @@ final class StreakHubComponentTest extends WebTestCase
 
     private function firstClaimableBooster(): Booster
     {
+        return $this->retrievableBoosters()[0] ?? $this->fail('No claimable booster fixture found, load the alice fixtures first.');
+    }
+
+    /**
+     * @return list<Booster>
+     */
+    private function retrievableBoosters(): array
+    {
+        return static::getContainer()->get(BoosterAvailabilityService::class)->filterRetrievable(
+            static::getContainer()->get(BoosterRepository::class)->findPublished(),
+        );
+    }
+
+    private function bleachBooster(): Booster
+    {
         foreach (static::getContainer()->get(BoosterRepository::class)->findPublished() as $booster) {
-            if ($booster->isClaimable()) {
+            if ('Bleach' === $booster->getExtension()->getName()) {
                 return $booster;
             }
         }
 
-        $this->fail('No claimable booster fixture found, load the alice fixtures first.');
+        $this->fail('Bleach booster fixture missing.');
     }
 }

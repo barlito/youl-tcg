@@ -87,6 +87,53 @@ final class BoosterAvailabilityServiceTest extends TestCase
         );
     }
 
+    public function testIsDistributableNeedsAPublishedAndDrawableExtensionButIgnoresClaimable(): void
+    {
+        $event = $this->booster()->setClaimable(false);
+        $draft = $this->booster(ExtensionStatusEnum::DRAFT);
+        $empty = $this->booster();
+        $service = $this->service([(string) $event->getExtension()->getId(), (string) $draft->getExtension()->getId()]);
+
+        $this->assertTrue($service->isDistributable($event));
+        $this->assertFalse($service->isDistributable($draft));
+        $this->assertFalse($service->isDistributable($empty));
+    }
+
+    public function testIsRetrievableNeedsClaimablePublishedAndDrawable(): void
+    {
+        $retrievable = $this->booster();
+        $event = $this->booster()->setClaimable(false);
+        $draft = $this->booster(ExtensionStatusEnum::DRAFT);
+        $empty = $this->booster();
+        $service = $this->service(array_map(
+            static fn (Booster $booster): string => (string) $booster->getExtension()->getId(),
+            [$retrievable, $event, $draft],
+        ));
+
+        $this->assertTrue($service->isRetrievable($retrievable));
+        $this->assertFalse($service->isRetrievable($event));
+        $this->assertFalse($service->isRetrievable($draft));
+        $this->assertFalse($service->isRetrievable($empty));
+    }
+
+    public function testBatchRetrievableHelpersMatchIsRetrievable(): void
+    {
+        $retrievable = $this->booster();
+        $event = $this->booster()->setClaimable(false);
+        $draft = $this->booster(ExtensionStatusEnum::DRAFT);
+        $empty = $this->booster();
+        $service = $this->service(array_map(
+            static fn (Booster $booster): string => (string) $booster->getExtension()->getId(),
+            [$retrievable, $event, $draft],
+        ));
+
+        $this->assertSame(
+            [(string) $retrievable->getId() => true],
+            $service->retrievableBoosterIds([$event, $retrievable, $draft, $empty]),
+        );
+        $this->assertSame([$retrievable], $service->filterRetrievable([$event, $retrievable, $draft, $empty]));
+    }
+
     public function testIsOpenableNeedsADrawableBoosterAndAtLeastOneOwnedCopy(): void
     {
         $booster = $this->booster();
