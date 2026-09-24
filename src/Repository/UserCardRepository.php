@@ -220,4 +220,35 @@ class UserCardRepository extends ServiceEntityRepository
 
         return $locked;
     }
+
+    public function countHolders(Card $card): int
+    {
+        return (int) $this->createQueryBuilder('userCard')
+            ->select('COUNT(userCard.quantity)')
+            ->andWhere('userCard.card = :card')
+            ->andWhere('userCard.quantity > 0 OR userCard.holoQuantity > 0')
+            ->setParameter('card', $card)
+            ->getQuery()
+            ->getSingleScalarResult()
+        ;
+    }
+
+    /**
+     * Drops the rows left at zero: they hold nothing, yet their FK would still
+     * block the card's deletion.
+     */
+    public function deleteEmptyRows(Card $card): int
+    {
+        $deleted = $this->createQueryBuilder('userCard')
+            ->delete()
+            ->andWhere('userCard.card = :card')
+            ->andWhere('userCard.quantity <= 0')
+            ->andWhere('userCard.holoQuantity <= 0')
+            ->setParameter('card', $card)
+            ->getQuery()
+            ->execute()
+        ;
+
+        return \is_int($deleted) ? $deleted : 0;
+    }
 }
