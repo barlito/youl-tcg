@@ -8,6 +8,7 @@ use App\Dto\RecycleSelectionLine;
 use App\Entity\Booster;
 use App\Entity\Card;
 use App\Entity\DiscordUser;
+use App\Entity\Extension;
 use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
 use App\Exception\Recycle\RecycleException;
@@ -23,10 +24,12 @@ use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
+use Symfony\UX\LiveComponent\Metadata\UrlMapping;
 
 /**
- * Recycle page: pick duplicate copies (normal / holo counted apart), watch the
- * live point total, choose a claimable booster, confirm. The selection lives
+ * Recycle page: pick duplicate copies (normal / holo counted apart) grouped by
+ * universe, watch the live point total, choose a retrievable booster, confirm —
+ * every full tranche of points is one copy of that booster. The selection lives
  * in a non-writable LiveProp mutated by actions only (checksummed, so the
  * client cannot forge it), and RecycleService re-validates everything under
  * lock anyway — the component never trusts client-computed points.
@@ -48,6 +51,13 @@ final class RecycleHub extends AbstractController
     #[LiveProp(writable: true)]
     public ?string $boosterId = null;
 
+    /**
+     * Universe filter (extension slug), mirrored in the url: an unknown slug
+     * simply shows every universe.
+     */
+    #[LiveProp(writable: true, url: new UrlMapping(as: 'univers'))]
+    public ?string $universe = null;
+
     #[LiveProp]
     public ?string $error = null;
 
@@ -62,6 +72,11 @@ final class RecycleHub extends AbstractController
      */
     private ?array $rows = null;
 
+    /**
+     * @var list<Booster>|null
+     */
+    private ?array $boosters = null;
+
     public function __construct(
         private readonly UserCardRepository $userCardRepository,
         private readonly BoosterRepository $boosterRepository,
@@ -72,11 +87,127 @@ final class RecycleHub extends AbstractController
     }
 
     /**
-     * @return list<UserCard> inventory rows with at least one duplicate
+     * Universes holding at least one duplicate, the most recyclable first
+     * (name as tiebreak); cards inside sorted rarest first then by name.
+     *
+     * @return list<array{extension: Extension, rows: list<UserCard>, recyclable: int, maxPoints: int}>
      */
-    public function getRows(): array
+    public function getUniverses(): array
     {
-        return array_values($this->getRowMap());
+        $universes = [];
+        foreach ($this->getRowMap() as $row) {
+            $extension = $row->getCard()->getExtension();
+            if (!$extension instanceof Extension) {
+                continue; // the column is NOT NULL: never happens on a persisted card
+            }
+
+            $key = (string) $extension->getId();
+            $universes[$key] ??= ['extension' => $extension, 'rows' => [], 'recyclable' => 0, 'maxPoints' => 0];
+            $universes[$key]['rows'][] = $row;
+            $universes[$key]['recyclable'] += $this->recyclableCopies($row);
+            $universes[$key]['maxPoints'] += $this->maxPoints($row);
+        }
+
+        $universes = array_values($universes);
+        usort(
+            $universes,
+            static fn (array $a, array $b): int => $b['recyclable'] <=> $a['recyclable']
+                ?: $a['extension']->getName() <=> $b['extension']->getName(),
+        );
+
+        return $universes;
+    }
+
+    /**
+     * The universes rendered under the current filter.
+     *
+     * @return list<array{extension: Extension, rows: list<UserCard>, recyclable: int, maxPoints: int}>
+     */
+    public function getVisibleUniverses(): array
+    {
+        $active = $this->getActiveExtension();
+
+        return array_values(array_filter(
+            $this->getUniverses(),
+            static fn (array $universe): bool => !$active instanceof Extension || $universe['extension'] === $active,
+        ));
+    }
+
+    public function getActiveExtension(): ?Extension
+    {
+        foreach ($this->getUniverses() as $universe) {
+            if ($universe['extension']->getSlug() === $this->universe) {
+                return $universe['extension'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Tiles of the shared universe strip, recyclable copies instead of completion.
+     *
+     * @return list<array{extension: Extension, stat: string, caption: string, bar: null, coverImage: string|null}>
+     */
+    public function getStrip(): array
+    {
+        $coverImages = $this->cardRepository->findCoverImageNamesByExtension();
+
+        return array_map(static fn (array $universe): array => [
+            'extension' => $universe['extension'],
+            'stat' => (string) $universe['recyclable'],
+            'caption' => $universe['recyclable'] > 1 ? 'recyclables' : 'recyclable',
+            'bar' => null,
+            'coverImage' => $coverImages[(string) $universe['extension']->getId()] ?? null,
+        ], $this->getUniverses());
+    }
+
+    public function hasRows(): bool
+    {
+        return [] !== $this->getRowMap();
+    }
+
+    /**
+     * Copies that can leave the collection: all but one, whatever their kind.
+     */
+    public function recyclableCopies(UserCard $row): int
+    {
+        return max(0, $row->getQuantity() - 1);
+    }
+
+    /**
+     * Normal copies selectable at most (quantity is the TOTAL, holo included).
+     */
+    public function normalCap(UserCard $row): int
+    {
+        return min($row->getQuantity() - $row->getHoloQuantity(), $this->recyclableCopies($row));
+    }
+
+    public function holoCap(UserCard $row): int
+    {
+        return min($row->getHoloQuantity(), $this->recyclableCopies($row));
+    }
+
+    /**
+     * Best value of a card's duplicates: the copy kept is the cheapest one.
+     */
+    public function maxPoints(UserCard $row): int
+    {
+        $rarity = $row->getCard()->getRarity();
+        $keptHolo = $row->getQuantity() === $row->getHoloQuantity() ? 1 : 0;
+
+        return ($row->getQuantity() - $row->getHoloQuantity() - 1 + $keptHolo) * $rarity->recyclePoints()
+            + ($row->getHoloQuantity() - $keptHolo) * $rarity->holoRecyclePoints();
+    }
+
+    public function getRecyclableTotal(): int
+    {
+        return array_sum(array_map($this->recyclableCopies(...), array_values($this->getRowMap())));
+    }
+
+    public function getMaxPointsTotal(): int
+    {
+        return array_sum(array_map($this->maxPoints(...), array_values($this->getRowMap())));
     }
 
     /**
@@ -87,7 +218,18 @@ final class RecycleHub extends AbstractController
      */
     public function getBoosters(): array
     {
-        return $this->boosterAvailability->filterRetrievable($this->boosterRepository->findPublished());
+        return $this->boosters ??= $this->boosterAvailability->filterRetrievable($this->boosterRepository->findPublished());
+    }
+
+    public function getSelectedBooster(): ?Booster
+    {
+        foreach ($this->getBoosters() as $booster) {
+            if ((string) $booster->getId() === $this->boosterId) {
+                return $booster;
+            }
+        }
+
+        return null;
     }
 
     public function getCost(): int
@@ -136,9 +278,18 @@ final class RecycleHub extends AbstractController
         return $copies;
     }
 
-    public function getSurplus(): int
+    public function getBoosterCount(): int
     {
-        return max(0, $this->getPoints() - RecycleService::BOOSTER_COST);
+        return RecycleService::boosterCountFor($this->getPoints());
+    }
+
+    /**
+     * Points past the last full tranche: lost if confirmed now, or the
+     * progress toward the next booster while still selecting.
+     */
+    public function getLostPoints(): int
+    {
+        return RecycleService::lostPointsFor($this->getPoints());
     }
 
     /**
@@ -163,14 +314,11 @@ final class RecycleHub extends AbstractController
         $selected = $this->selectionFor($cardId);
 
         // keep-one rule: at most quantity - 1 copies of a card, kinds combined
-        if ($selected[self::KIND_NORMAL] + $selected[self::KIND_HOLO] >= $row->getQuantity() - 1) {
+        if ($selected[self::KIND_NORMAL] + $selected[self::KIND_HOLO] >= $this->recyclableCopies($row)) {
             return;
         }
 
-        // quantity is the TOTAL (holo included): normal copies = quantity - holoQuantity
-        $kindCap = self::KIND_NORMAL === $kind
-            ? $row->getQuantity() - $row->getHoloQuantity()
-            : $row->getHoloQuantity();
+        $kindCap = self::KIND_NORMAL === $kind ? $this->normalCap($row) : $this->holoCap($row);
 
         if ($selected[$kind] >= $kindCap) {
             return;
@@ -199,6 +347,12 @@ final class RecycleHub extends AbstractController
         }
 
         $this->selection[$cardId] = $selected;
+    }
+
+    #[LiveAction]
+    public function filterUniverse(#[LiveArg] string $slug): void
+    {
+        $this->universe = '' === $slug ? null : $slug;
     }
 
     #[LiveAction]
@@ -241,18 +395,22 @@ final class RecycleHub extends AbstractController
             return;
         }
 
-        $surplus = $operation->getPoints() - RecycleService::BOOSTER_COST;
+        $lost = RecycleService::lostPointsFor($operation->getPoints());
         $copies = $operation->getRecycledCardCount();
+        $packs = $operation->getBoosterCount();
 
         $this->selection = [];
         $this->rows = null; // the memoized inventory is stale after the debit
         $this->success = \sprintf(
-            '%d copie%s recyclée%s — 1 pack « %s » ajouté à ton stock !%s',
+            '%d copie%s recyclée%s — %d pack%s « %s » ajouté%s à ton stock !%s',
             $copies,
             $copies > 1 ? 's' : '',
             $copies > 1 ? 's' : '',
+            $packs,
+            $packs > 1 ? 's' : '',
             $booster->getDisplayName(),
-            $surplus > 0 ? \sprintf(' (%d point%s de surplus perdu%s)', $surplus, $surplus > 1 ? 's' : '', $surplus > 1 ? 's' : '') : '',
+            $packs > 1 ? 's' : '',
+            $lost > 0 ? \sprintf(' (%d point%s perdu%s)', $lost, $lost > 1 ? 's' : '', $lost > 1 ? 's' : '') : '',
         );
     }
 

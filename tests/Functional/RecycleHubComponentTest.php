@@ -101,7 +101,7 @@ final class RecycleHubComponentTest extends WebTestCase
 
         // 1 holo (sub-count cap) then 2 normal (keep-one total cap), 4 points
         $this->assertSame(['normal' => 2, 'holo' => 1], $component->component()->selection[$cardId]);
-        $this->assertStringContainsString('4 / 10 pts', (string) $component->render());
+        $this->assertStringContainsString('Encore 6 pts pour 1 booster', (string) $component->render());
     }
 
     public function testRemoveCopyDropsTheLineAtZero(): void
@@ -165,7 +165,8 @@ final class RecycleHubComponentTest extends WebTestCase
         $component->set('boosterId', (string) $scenario['booster']->getId());
         $component->call('recycle');
 
-        $this->assertStringContainsString('5 points de surplus perdus', (string) $component->component()->success);
+        $this->assertStringContainsString('1 pack « ', (string) $component->component()->success);
+        $this->assertStringContainsString('5 points perdus', (string) $component->component()->success);
     }
 
     public function testASelectionBelowTheCostIsRefused(): void
@@ -236,6 +237,184 @@ final class RecycleHubComponentTest extends WebTestCase
         $this->assertNull(
             $entityManager->getRepository(UserBooster::class)->findOneBy(['discordUser' => $user, 'booster' => $eventBooster]),
         );
+    }
+
+    public function testTwentyPointsGrantTwoCopiesOfTheChosenBooster(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        // 4 recyclable legendaries = 20 points = 2 tranches
+        $scenario = $this->createScenario($user, [['name' => 'Double dup', 'rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 5]]);
+        $cardId = (string) $scenario['cards'][0]->getId();
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        foreach (range(1, 4) as $ignored) {
+            $component->call('addCopy', ['cardId' => $cardId, 'kind' => 'normal']);
+        }
+        $component->set('boosterId', (string) $scenario['booster']->getId());
+
+        $crawler = $component->render()->crawler();
+        $this->assertStringContainsString('→ 2 boosters', $crawler->filter('[data-testid="recycle-outcome"]')->text());
+        $this->assertStringContainsString('Recycler contre 2 packs', $crawler->filter('[data-testid="recycle-confirm"]')->text());
+
+        $component->call('recycle');
+
+        $this->assertNull($component->component()->error);
+        $this->assertStringContainsString('2 packs « ', (string) $component->component()->success);
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $userBooster = $entityManager->getRepository(UserBooster::class)->findOneBy(['discordUser' => $user, 'booster' => $scenario['booster']]);
+        $this->assertNotNull($userBooster);
+        $this->assertSame(2, $userBooster->getQuantity());
+
+        $operations = $entityManager->getRepository(RecycleOperation::class)->findBy(['discordUser' => $user]);
+        $this->assertCount(1, $operations);
+        $this->assertSame(2, $operations[0]->getBoosterCount());
+    }
+
+    public function testTheLeftoverPointsAreAnnouncedBeforeConfirming(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        // 23 points: 3 legendaries (15) + 2 rares (6) + 2 commons (2)
+        $scenario = $this->createScenario($user, [
+            ['name' => 'Leftover legendary', 'rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 4],
+            ['name' => 'Leftover rare', 'rarity' => CardRarityEnum::RARE, 'quantity' => 3],
+            ['name' => 'Leftover common', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 3],
+        ]);
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        foreach ([[0, 3], [1, 2], [2, 2]] as [$index, $copies]) {
+            foreach (range(1, $copies) as $ignored) {
+                $component->call('addCopy', ['cardId' => (string) $scenario['cards'][$index]->getId(), 'kind' => 'normal']);
+            }
+        }
+
+        $crawler = $component->render()->crawler();
+        $this->assertStringContainsString('23', $crawler->filter('[data-testid="points-counter"]')->text());
+        $this->assertStringContainsString('→ 2 boosters, 3 pts perdus', $crawler->filter('[data-testid="recycle-outcome"]')->text());
+    }
+
+    public function testThePointsBarIsStickyAndHoldsThePackChoiceAndTheConfirmButton(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $scenario = $this->createScenario($user, [['name' => 'Sticky dup', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 3]]);
+
+        $crawler = $this->createLiveComponent(RecycleHub::class, client: $client)->render()->crawler();
+
+        $bar = $crawler->filter('[data-testid="recycle-bar"]');
+        $this->assertCount(1, $bar);
+        $this->assertStringContainsString('sticky', (string) $bar->attr('class'));
+        $this->assertCount(1, $bar->filter('[data-testid="points-counter"]'));
+        $this->assertCount(1, $bar->filter('select[data-model="boosterId"] option[value="' . $scenario['booster']->getId() . '"]'), 'The pack choice is a compact select inside the bar.');
+        $this->assertCount(1, $bar->filter('[data-testid="recycle-confirm"]'));
+    }
+
+    public function testEachTileHighlightsItsRecyclableCopiesAndThePageTheirTotal(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        // 4 copies incl. 1 holo: 3 recyclable, up to 3 normal / 1 holo; 2 copies all holo: 1 recyclable holo
+        $this->createScenario($user, [
+            ['name' => 'Badge mixed', 'rarity' => CardRarityEnum::RARE, 'quantity' => 4, 'holoQuantity' => 1],
+            ['name' => 'Badge holo only', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 2, 'holoQuantity' => 2],
+        ]);
+
+        $client->request('GET', '/recyclage');
+        self::assertResponseIsSuccessful();
+        $crawler = $client->getCrawler();
+
+        $badges = $crawler->filter('[data-testid="recyclable-badge"]')->each(static fn ($node): string => trim($node->text()));
+        $this->assertSame(['♻ 3 recyclables', '♻ 1 recyclable'], $badges, 'Rarest first: the rare then the common.');
+
+        $mixed = $crawler->filter('[data-testid="recycle-card"]')->eq(0);
+        $this->assertSame('0/3', $mixed->filter('[data-testid="normal-count"]')->text());
+        $this->assertSame('0/1', $mixed->filter('[data-testid="holo-count"]')->text());
+        $holoOnly = $crawler->filter('[data-testid="recycle-card"]')->eq(1);
+        $this->assertCount(0, $holoOnly->filter('[data-testid="normal-count"]'), 'No normal copy owned: no normal counter.');
+        $this->assertSame('0/1', $holoOnly->filter('[data-testid="holo-count"]')->text());
+
+        $total = $crawler->filter('[data-testid="recyclable-total"]')->text();
+        $this->assertStringContainsString('4', $total);
+        $this->assertStringContainsString('exemplaires recyclables', $total);
+        // best pick keeps the cheapest copy: 2 normal rares + 1 holo rare (6 + 4) + 1 holo common (2)
+        $this->assertStringContainsString('Jusqu\'à 12 pts', $total);
+    }
+
+    public function testTheCardsAreGroupedAndFilterableByUniverse(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $first = $this->createScenario($user, [['name' => 'Universe A dup', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 3]]);
+        $second = $this->createScenario($user, [['name' => 'Universe B dup', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 2]]);
+        $firstExtension = $first['booster']->getExtension();
+        $secondExtension = $second['booster']->getExtension();
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        $crawler = $component->render()->crawler();
+
+        // most recyclable universe first, one strip tile each plus « Tout »
+        $this->assertCount(2, $crawler->filter('[data-testid="recycle-universe"]'));
+        $this->assertStringContainsString($firstExtension->getName(), $crawler->filter('[data-testid="recycle-universe"]')->eq(0)->text());
+        $this->assertCount(2, $crawler->filter('[data-testid="strip-tile"]'));
+        $this->assertCount(1, $crawler->filter('[data-testid="strip-tile-all"][data-carousel-active]'));
+
+        $component->call('filterUniverse', ['slug' => $secondExtension->getSlug()]);
+        $crawler = $component->render()->crawler();
+
+        $this->assertCount(1, $crawler->filter('[data-testid="recycle-universe"]'));
+        $this->assertStringContainsString($second['cards'][0]->getName(), $crawler->filter('[data-testid="recycle-grid"]')->text());
+        $this->assertStringNotContainsString($first['cards'][0]->getName(), $crawler->filter('[data-testid="recycle-grid"]')->text());
+        $this->assertCount(1, $crawler->filter('[data-testid="strip-tile"][data-carousel-active]'));
+
+        $component->call('filterUniverse', ['slug' => '']);
+        $this->assertCount(2, $component->render()->crawler()->filter('[data-testid="recycle-universe"]'));
+    }
+
+    public function testTheUniverseFilterIsReadFromTheUrl(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $first = $this->createScenario($user, [['name' => 'Url A dup', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 2]]);
+        $second = $this->createScenario($user, [['name' => 'Url B dup', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 2]]);
+
+        $client->request('GET', '/recyclage?univers=' . $second['booster']->getExtension()->getSlug());
+
+        self::assertResponseIsSuccessful();
+        $grid = $client->getCrawler()->filter('[data-testid="recycle-grid"]');
+        $this->assertCount(1, $grid);
+        $this->assertStringContainsString($second['cards'][0]->getName(), $grid->text());
+        $this->assertStringNotContainsString($first['cards'][0]->getName(), $grid->text());
+    }
+
+    public function testTheSelectionSurvivesAUniverseSwitch(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $first = $this->createScenario($user, [['name' => 'Keep A dup', 'rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 2]]);
+        $second = $this->createScenario($user, [['name' => 'Keep B dup', 'rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 2]]);
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        $component->call('addCopy', ['cardId' => (string) $first['cards'][0]->getId(), 'kind' => 'normal']);
+        $component->call('filterUniverse', ['slug' => $second['booster']->getExtension()->getSlug()]);
+        $component->call('addCopy', ['cardId' => (string) $second['cards'][0]->getId(), 'kind' => 'normal']);
+
+        $this->assertCount(2, $component->component()->selection);
+        $this->assertStringContainsString('→ 1 booster', $component->render()->crawler()->filter('[data-testid="recycle-outcome"]')->text());
+    }
+
+    public function testTheCollectionNavEntryIsActiveOnTheRecyclePage(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER);
+
+        $client->request('GET', '/recyclage');
+
+        self::assertResponseIsSuccessful();
+        $nav = $client->getCrawler()->filter('header nav');
+        $this->assertStringContainsString('active', (string) $nav->filter('a[href="/collection"]')->attr('class'));
+        $this->assertStringNotContainsString('active', (string) $nav->filter('a[href="/boosters"]')->attr('class'));
     }
 
     public function testABoosterWithNothingToDrawIsNotOffered(): void
