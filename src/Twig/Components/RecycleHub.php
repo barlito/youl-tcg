@@ -80,17 +80,14 @@ final class RecycleHub extends AbstractController
     }
 
     /**
-     * Boosters offered in exchange: the claimable published ones — the same
-     * set the daily claim allows, enforced again by RecycleService.
+     * Boosters offered in exchange: the retrievable ones — the same set the
+     * daily claim and the streak rewards allow, enforced again by RecycleService.
      *
      * @return list<Booster>
      */
     public function getBoosters(): array
     {
-        return array_values(array_filter(
-            $this->boosterRepository->findPublished(),
-            $this->boosterAvailability->isClaimable(...),
-        ));
+        return $this->boosterAvailability->filterRetrievable($this->boosterRepository->findPublished());
     }
 
     public function getCost(): int

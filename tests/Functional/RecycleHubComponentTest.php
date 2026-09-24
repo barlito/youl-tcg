@@ -238,6 +238,33 @@ final class RecycleHubComponentTest extends WebTestCase
         );
     }
 
+    public function testABoosterWithNothingToDrawIsNotOffered(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $this->createScenario($user, [['name' => 'Empty pack dup', 'rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 3]]);
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $emptyExtension = new Extension()
+            ->setName('Recycle empty extension ' . uniqid())
+            ->setDescription('Test extension')
+            ->setStatus(ExtensionStatusEnum::PUBLISHED)
+        ;
+        $entityManager->persist($emptyExtension);
+        $emptyBooster = new Booster()
+            ->setName('Empty pack ' . uniqid())
+            ->setExtension($emptyExtension)
+            ->setRarityRates([['rarities' => ['common' => 100], 'holoChance' => 0]])
+        ;
+        $emptyBooster->setImageName('default_card.png');
+        $entityManager->persist($emptyBooster);
+        $entityManager->flush();
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+
+        $this->assertStringNotContainsString($emptyBooster->getName() ?? '', (string) $component->render(), 'A pack without drawable card is not offered.');
+    }
+
     /**
      * @param list<array{name: string, rarity: CardRarityEnum, quantity: int, holoQuantity?: int}> $ownedCards
      *
