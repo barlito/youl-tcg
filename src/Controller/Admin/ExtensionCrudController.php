@@ -12,6 +12,7 @@ use App\Entity\Card;
 use App\Entity\Extension;
 use App\Enum\Entity\ExtensionStatusEnum;
 use App\Repository\ExtensionRepository;
+use App\Service\Extension\ExtensionDepublicationGuard;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -33,6 +34,7 @@ class ExtensionCrudController extends AbstractGuardedCrudController
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly ExtensionRepository $extensionRepository,
+        private readonly ExtensionDepublicationGuard $depublicationGuard,
     ) {
     }
 
@@ -76,10 +78,19 @@ class ExtensionCrudController extends AbstractGuardedCrudController
         yield Field::new('id')->onlyOnDetail();
         yield Field::new('name')->setLabel('Nom');
         yield Field::new('description')->setLabel('Description');
-        yield ChoiceField::new('status')
+        $statusField = ChoiceField::new('status')
             ->setLabel('Statut')
             ->setChoices(ExtensionStatusEnum::cases())
         ;
+        $edited = $this->getContext()?->getEntity()->getInstance();
+        $depublicationBlock = $edited instanceof Extension && ExtensionStatusEnum::PUBLISHED === $edited->getStatus()
+            ? $this->depublicationGuard->blockReason($edited)
+            : null;
+        if (null !== $depublicationBlock) {
+            // disabled: a tampered POST is ignored, the NotDepublishedWhileOwned constraint backs it up
+            $statusField->setFormTypeOption('disabled', true)->setHelp(htmlspecialchars($depublicationBlock, \ENT_QUOTES));
+        }
+        yield $statusField;
         yield BooleanField::new('upcoming')
             ->setLabel('Prochain univers (teaser)')
             ->setHelp('Affiche l\'univers en tuile floutée « À suivre » sur l\'accueil et /univers, tant qu\'il est en brouillon (publié, il a déjà sa tuile). Un seul univers peut porter le flag : l\'activer ici le retire automatiquement des autres.')

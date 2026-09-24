@@ -103,12 +103,14 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - **Card**: Trading cards with multi-image support (main image, mask, foil)
   - Fields: name, description, status (DRAFT/PUBLISHED), rarity (CardRarityEnum: common/uncommon/rare/legendary — 4 tiers since the epic removal, grey/green/blue/orange glows), uniqueFlag, claimedBy, alwaysHolo (forces holo whatever the slot's holoChance), visualConfigOverride (JSON, per-card override of the extension's visualConfig)
   - **Uniques 1/1**: `uniqueFlag` + `claimedBy` (ManyToOne DiscordUser, ON DELETE SET NULL). The single holder is enforced by the atomic conditional UPDATE `CardRepository::claimUnique()` (`claimed_by IS NULL`), not by a DB constraint; `findDrawablePool` excludes claimed uniques
+  - An owned card (a holder with quantity > 0, or a drawn 1/1 `claimedBy`) can never go back PUBLISHED → DRAFT: `NotDepublishedWhileOwned` constraint + `CardDepublicationGuard` (edit form locks the status field, the batch draft action refuses owned cards one by one)
   - No "type" field: visual customization is the extension→card VisualConfig cascade (see below)
   - Uses VichUploaderBundle for file uploads
   - ManyToOne with Extension
 
 - **Extension**: Card sets/expansions
   - Fields: name, slug (Gedmo, updatable: renaming an extension changes its public URLs), description, status, imageName, logoName (`extension_logos` mapping, shown in the CSS card frame; falls back to the name as text), visualConfig (JSON, set-level card visual defaults — including the shared foilTexture library pick; NO extension-level foil/mask uploads: masks must match each card's artwork, so they are per-card only), upcoming (« next universe » teaser: at most ONE extension flagged — saving a flagged one from the admin clears the others; shows as a blurred tile on the homepage and /univers while the extension is still DRAFT — published ones already have their own tile)
+  - A universe whose cards players own (quantity > 0 or a drawn 1/1) can never go back PUBLISHED → DRAFT: same `NotDepublishedWhileOwned` constraint, via `ExtensionDepublicationGuard` (edit form locks the status field)
   - OneToMany with Card, Booster and ExtensionBanner (universe page hero banners, position-ordered carousel)
 
 - **Booster**: Booster packs containing cards

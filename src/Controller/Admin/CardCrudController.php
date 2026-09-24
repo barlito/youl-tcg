@@ -14,6 +14,7 @@ use App\Entity\RecycleOperationCard;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\UserCardRepository;
+use App\Service\Card\CardDepublicationGuard;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -48,6 +49,7 @@ class CardCrudController extends AbstractGuardedCrudController
         private readonly AssetMapperInterface $assetMapper,
         private readonly EntityManagerInterface $entityManager,
         private readonly UserCardRepository $userCardRepository,
+        private readonly CardDepublicationGuard $depublicationGuard,
     ) {
     }
 
@@ -142,10 +144,20 @@ class CardCrudController extends AbstractGuardedCrudController
         $updated = 0;
         foreach ($batchActionDto->getEntityIds() as $entityId) {
             $card = $this->entityManager->find(Card::class, $entityId);
-            if ($card instanceof Card && $status !== $card->getStatus()) {
-                $card->setStatus($status);
-                ++$updated;
+            if (!$card instanceof Card || $status === $card->getStatus()) {
+                continue;
             }
+
+            // owned cards are refused one by one, the others still go through
+            $reason = CardStatusEnum::DRAFT === $status ? $this->depublicationGuard->blockReason($card) : null;
+            if (null !== $reason) {
+                $this->addFlash('warning', \sprintf('« %s » : %s', $card->getName(), $reason));
+
+                continue;
+            }
+
+            $card->setStatus($status);
+            ++$updated;
         }
         $this->entityManager->flush();
 
@@ -254,10 +266,17 @@ class CardCrudController extends AbstractGuardedCrudController
         yield FormField::addFieldset('Carte');
         yield Field::new('name')->setLabel('Nom');
         yield Field::new('description')->setLabel('Description')->hideOnIndex();
-        yield ChoiceField::new('status')
+        $statusField = ChoiceField::new('status')
             ->setLabel('Statut')
             ->setChoices(CardStatusEnum::cases())
         ;
+        $editedCard = $this->editedCard();
+        $depublicationBlock = CardStatusEnum::PUBLISHED === $editedCard?->getStatus() ? $this->depublicationGuard->blockReason($editedCard) : null;
+        if (null !== $depublicationBlock) {
+            // disabled: a tampered POST is ignored, the NotDepublishedWhileOwned constraint backs it up
+            $statusField->setFormTypeOption('disabled', true)->setHelp(htmlspecialchars($depublicationBlock, \ENT_QUOTES));
+        }
+        yield $statusField;
         yield ChoiceField::new('rarity')
             ->setLabel('Rareté')
             ->setChoices(CardRarityEnum::cases())
@@ -267,7 +286,7 @@ class CardCrudController extends AbstractGuardedCrudController
             ->setLabel('Carte unique (1/1)')
             ->renderAsSwitch(false)
         ;
-        $lockReason = $this->editedCard()?->uniqueFlagLockReason();
+        $lockReason = $editedCard?->uniqueFlagLockReason();
         if (null !== $lockReason) {
             // disabled: a tampered POST is ignored, Card's own constraint backs it up
             $uniqueField->setFormTypeOption('disabled', true)->setHelp(htmlspecialchars($lockReason, \ENT_QUOTES));
