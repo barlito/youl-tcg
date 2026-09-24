@@ -12,6 +12,7 @@ use App\Entity\RecycleOperation;
 use App\Entity\RecycleOperationCard;
 use App\Entity\UserCard;
 use App\Enum\FeatureEnum;
+use App\Enum\Realtime\UserEventEnum;
 use App\Exception\Recycle\BoosterNotRecyclableException;
 use App\Exception\Recycle\InvalidRecycleSelectionException;
 use App\Exception\Recycle\NotEnoughCopiesException;
@@ -22,6 +23,7 @@ use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\UserInventoryService;
 use App\Service\Feature\FeatureFlags;
+use App\Service\Realtime\UserEventPublisher;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
@@ -66,6 +68,7 @@ final readonly class RecycleService
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
         private FeatureFlags $featureFlags,
+        private UserEventPublisher $userEventPublisher,
     ) {
     }
 
@@ -99,7 +102,7 @@ final readonly class RecycleService
 
         $boosterCount = self::boosterCountFor($points);
 
-        return $this->entityManager->wrapInTransaction(function () use ($discordUser, $selection, $booster, $points, $boosterCount): RecycleOperation {
+        $operation = $this->entityManager->wrapInTransaction(function () use ($discordUser, $selection, $booster, $points, $boosterCount): RecycleOperation {
             // booster row first, then the card rows: the same lock order as an opening
             $this->userInventoryService->creditBooster($discordUser, $booster, $boosterCount);
 
@@ -124,6 +127,11 @@ final readonly class RecycleService
 
             return $operation;
         });
+
+        // post-commit: a rolled back action never reaches the browser
+        $this->userEventPublisher->publish($discordUser, UserEventEnum::INVENTORY_CHANGED);
+
+        return $operation;
     }
 
     /**

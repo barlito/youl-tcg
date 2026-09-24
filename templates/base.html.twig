@@ -34,5 +34,13 @@
 {% block footer %}
     {{ include('parts/_footer.html.twig') }}
 {% endblock %}
+{# realtime: one Mercure subscription per page, redispatched as live-updates:* window events #}
+{% set liveUpdatesUrl = live_updates_url() %}
+{% if liveUpdatesUrl %}
+    <div hidden data-controller="live-updates" data-live-updates-url-value="{{ liveUpdatesUrl }}" data-testid="live-updates"></div>
+{% endif %}
+<div class="toast-stack" aria-live="polite"
+     data-controller="toast"
+     data-action="toast:show@window->toast#show live-updates:toast@window->toast#show"></div>
 </body>
 </html>

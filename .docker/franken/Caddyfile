@@ -25,6 +25,20 @@
 	root * /app/public
 	encode zstd br gzip
 
+	# Built-in Mercure hub (same origin as the app, served before php_server).
+	# One key for publishers (PHP) and subscribers (mercureAuthorization cookie):
+	# only the app signs JWTs. No anonymous subscribers, every update is private
+	# except the public broadcast topic, which carries no personal data.
+	mercure {
+		publisher_jwt {env.MERCURE_JWT_SECRET} HS256
+		subscriber_jwt {env.MERCURE_JWT_SECRET} HS256
+		cors_origins {$MERCURE_CORS_ORIGINS:https://ytcg.youlz.fr}
+		publish_origins {$MERCURE_CORS_ORIGINS:https://ytcg.youlz.fr}
+		transport bolt {
+			path /data/mercure.db
+		}
+	}
+
 	vulcain
 
 	{$CADDY_SERVER_EXTRA_DIRECTIVES}

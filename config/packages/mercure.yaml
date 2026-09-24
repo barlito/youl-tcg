@@ -1,0 +1,15 @@
+# Hub built into FrankenPHP (.docker/franken/Caddyfile, `mercure` directive).
+# PHP publishes through the in-container URL; browsers subscribe on the app's
+# own origin (/.well-known/mercure), authorized by the mercureAuthorization
+# cookie (App\Twig\RealtimeExtension).
+mercure:
+    # the cookie is reissued on every page load; 12h keeps an idle tab able
+    # to reconnect after a network drop
+    default_cookie_lifetime: 43200
+    hubs:
+        default:
+            url: '%env(MERCURE_URL)%'
+            public_url: '%env(MERCURE_PUBLIC_URL)%'
+            jwt:
+                secret: '%env(MERCURE_JWT_SECRET)%'
+                publish: '*'

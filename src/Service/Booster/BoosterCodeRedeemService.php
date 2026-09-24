@@ -8,8 +8,10 @@ use App\Dto\BoosterCodeRedemptionAttempt;
 use App\Entity\BoosterCode;
 use App\Entity\BoosterCodeRedemption;
 use App\Entity\DiscordUser;
+use App\Enum\Realtime\UserEventEnum;
 use App\Exception\Booster\BoosterCodeRefusedException;
 use App\Repository\BoosterCodeRepository;
+use App\Service\Realtime\UserEventPublisher;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -32,6 +34,7 @@ final readonly class BoosterCodeRedeemService
         private ValidatorInterface $validator,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private UserEventPublisher $userEventPublisher,
     ) {
     }
 
@@ -42,7 +45,7 @@ final readonly class BoosterCodeRedeemService
     {
         $code = BoosterCodeGenerator::normalize($rawCode);
 
-        return $this->entityManager->wrapInTransaction(function () use ($discordUser, $code): BoosterCodeRedemption {
+        $redemption = $this->entityManager->wrapInTransaction(function () use ($discordUser, $code): BoosterCodeRedemption {
             // Resolved AND validated inside the transaction: the row is read
             // with a write lock, so what the constraint checks (uses vs
             // maxUses, one redemption per player) still holds when the
@@ -71,5 +74,10 @@ final readonly class BoosterCodeRedeemService
 
             return $redemption;
         });
+
+        // post-commit: a rolled back action never reaches the browser
+        $this->userEventPublisher->publish($discordUser, UserEventEnum::INVENTORY_CHANGED);
+
+        return $redemption;
     }
 }

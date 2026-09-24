@@ -10,11 +10,13 @@ use App\Entity\Booster;
 use App\Entity\BoosterOpening;
 use App\Entity\BoosterOpeningCard;
 use App\Entity\DiscordUser;
+use App\Enum\Realtime\UserEventEnum;
 use App\Exception\Booster\EmptyRarityRatesException;
 use App\Exception\Booster\NoBoosterInInventoryException;
 use App\Exception\Booster\NoCardAvailableException;
 use App\Repository\CardRepository;
 use App\Service\Random\RandomService;
+use App\Service\Realtime\UserEventPublisher;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
@@ -33,6 +35,7 @@ final readonly class BoosterOpeningService
         private ClockInterface $clock,
         private CardRepository $cardRepository,
         private StreakRewardService $streakRewardService,
+        private UserEventPublisher $userEventPublisher,
     ) {
     }
 
@@ -80,6 +83,7 @@ final readonly class BoosterOpeningService
         // committed, and a grant hiccup must not roll the opening back. A
         // missed grant self-heals at the next opening of the same series.
         $this->streakRewardService->grantMilestones($discordUser);
+        $this->userEventPublisher->publish($discordUser, UserEventEnum::INVENTORY_CHANGED);
 
         return $result;
     }

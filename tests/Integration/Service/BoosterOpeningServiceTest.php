@@ -17,6 +17,7 @@ use App\Enum\Entity\ExtensionStatusEnum;
 use App\Exception\Booster\NoBoosterInInventoryException;
 use App\Exception\Booster\NoCardAvailableException;
 use App\Service\Booster\BoosterOpeningService;
+use App\Tests\Support\SpyHub;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -43,6 +44,13 @@ final class BoosterOpeningServiceTest extends KernelTestCase
 
         // the result also exposes the raw draw (slot order) for the reveal
         $this->assertCount(3, $result->drawnCards);
+
+        // announced post-commit on the opener's private topic
+        $updates = self::getContainer()->get(SpyHub::class)->getUpdates();
+        $this->assertCount(1, $updates);
+        $this->assertSame(['https://localhost/users/' . $scenario['user']->getDiscordId()], $updates[0]->getTopics());
+        $this->assertTrue($updates[0]->isPrivate());
+        $this->assertSame(['type' => 'inventory-changed', 'payload' => []], json_decode($updates[0]->getData(), true));
 
         $this->entityManager->clear();
 
@@ -135,6 +143,7 @@ final class BoosterOpeningServiceTest extends KernelTestCase
 
         $this->assertSame([], $this->entityManager->getRepository(UserCard::class)->findBy(['discordUser' => $scenario['user']]));
         $this->assertSame([], $this->entityManager->getRepository(BoosterOpening::class)->findBy(['discordUser' => $scenario['user']]));
+        $this->assertSame([], self::getContainer()->get(SpyHub::class)->getUpdates(), 'A failed opening must not be announced.');
     }
 
     public function testOpeningRollsBackWhenExtensionHasNoPublishedCard(): void
@@ -153,6 +162,7 @@ final class BoosterOpeningServiceTest extends KernelTestCase
         $this->assertNotNull($userBooster);
         $this->assertSame(1, $userBooster->getQuantity(), 'The booster must not be consumed when the draw fails.');
         $this->assertSame([], $this->entityManager->getRepository(BoosterOpening::class)->findBy(['discordUser' => $scenario['user']]));
+        $this->assertSame([], self::getContainer()->get(SpyHub::class)->getUpdates(), 'A rolled back opening must not be announced.');
     }
 
     public function testUniqueCardIsClaimedByFirstOpenerAndNeverDrawnAgain(): void
