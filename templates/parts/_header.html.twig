@@ -11,7 +11,7 @@
 
         <nav class="hidden items-center gap-7 font-display text-sm font-semibold uppercase tracking-[.1em] md:flex">
             {{ _self.nav_link('homepage', 'Accueil') }}
-            {{ _self.nav_link('collection', 'Collection') }}
+            {{ _self.nav_link('collection', 'Collection', ['recycle']) }}
             {{ _self.nav_link('universes', 'Univers') }}
             {{ _self.nav_link('boosters', 'Boosters') }}
             {{ _self.nav_link('leaderboard', 'Classement') }}
@@ -36,10 +36,14 @@
     </div>
 </header>
 
-{% macro nav_link(route, label) %}
-    {# starts with = les sous-pages allument aussi l'entrée (universes_show → Univers) #}
+{% macro nav_link(route, label, aliases = []) %}
+    {# starts with = les sous-pages allument aussi l'entrée (universes_show → Univers) ;
+       aliases = pages rattachées à l'entrée sans en partager le préfixe (recycle → Collection) #}
+    {% set current = app.request.get('_route')|default('') %}
+    {% set isActive = current starts with route or aliases|filter(alias => current starts with alias)|length > 0 %}
     <a href="{{ path(route) }}"
-       class="text-ink-muted hover:text-ink-strong {{ app.request.get('_route')|default('') starts with route ? 'active' : '' }}">{{ label }}</a>
+       class="text-ink-muted hover:text-ink-strong {{ isActive ? 'active' : '' }}"
+       {{ isActive ? 'aria-current="page"' }}>{{ label }}</a>
 {% endmacro %}
 
 {% macro nav_soon(label) %}

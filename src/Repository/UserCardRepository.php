@@ -123,6 +123,41 @@ class UserCardRepository extends ServiceEntityRepository
     }
 
     /**
+     * Inventory entries with at least one recyclable duplicate (quantity > 1:
+     * the last copy always stays), card and extension eagerly hydrated for the
+     * recycle page, sorted rarest first then by name.
+     *
+     * @return list<UserCard>
+     */
+    public function findRecyclableWithCards(DiscordUser $discordUser): array
+    {
+        /** @var list<UserCard> $cards */
+        $cards = $this->createQueryBuilder('uc')
+            ->join('uc.card', 'c')
+            ->addSelect('c')
+            ->join('c.extension', 'e')
+            ->addSelect('e')
+            ->andWhere('uc.discordUser = :user')
+            ->andWhere('uc.quantity > 1')
+            ->andWhere('c.status = :cardStatus')
+            ->andWhere('e.status = :extensionStatus')
+            ->setParameter('user', $discordUser)
+            ->setParameter('cardStatus', CardStatusEnum::PUBLISHED)
+            ->setParameter('extensionStatus', ExtensionStatusEnum::PUBLISHED)
+            ->getQuery()
+            ->getResult()
+        ;
+
+        usort(
+            $cards,
+            static fn (UserCard $a, UserCard $b): int => CardRarityEnum::compareRarestFirst($a->getCard()->getRarity(), $b->getCard()->getRarity())
+                ?: $a->getCard()->getName() <=> $b->getCard()->getName(),
+        );
+
+        return $cards;
+    }
+
+    /**
      * Collection aggregates for every collector at once (leaderboard): distinct
      * cards, total copies (holos included) and holo copies — a single grouped
      * query instead of one per player.
