@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Database:** PostgreSQL 18
 - **Web Server:** FrankenPHP (Caddy-based, non-root user `www`)
 - **Authentication:** JWT (cookie-based) + Discord OAuth2
-- **Admin Panel:** EasyAdminBundle 4.x
+- **Admin Panel:** EasyAdminBundle 5.x (pretty URLs: `/admin/card/{id}/edit`)
 - **Frontend interactivity:** Stimulus + symfony/ux-live-component (AssetMapper, no build step)
 - **Task Runner:** Castor + Makefile (uses barlito/php-make-rules submodule)
 - **Container Orchestration:** Docker Swarm (stack name: `ytcg`)
@@ -35,40 +35,43 @@ docker service logs ytcg_php -f
 
 **Database:**
 ```bash
-# Create database and run migrations
-make db.create
-make db.migration
+# Create the database if needed, then run migrations (dev)
+make doctrine.migrate
 
-# Run fixtures (requires hautelook/alice-bundle setup)
-make db.fixtures.load
+# Same against the test database — REQUIRED after every new migration, or the functional suite breaks
+make doctrine.migrate.ci
 
-# Create new migration
-make db.diff
+# Create new migration (drop lines for tables of unmerged branches still present in the dev DB)
+make doctrine.diff
+
+# Load fixtures — PURGES the database first, no confirmation: count what is there before running it
+make doctrine.load_fixtures      # dev  (fixtures/shared + fixtures/dev)
+make doctrine.load_fixtures.ci   # test (fixtures/shared + fixtures/test)
+
+# DESTRUCTIVE: drops and recreates the dev database
+make doctrine.reset_db
 ```
 
 **Code Quality:**
 ```bash
-# PHP CS Fixer (uses vendor/barlito/utils/config/.php-cs-fixer.dist.php)
-make cs-fix
+# Fix: php-cs-fixer + rector
+make fix_style
 
-# PHP CodeSniffer (uses vendor/barlito/utils/config/phpcs.xml.dist)
-make cs-check
-
-# Run all quality checks (composer validate, phpcs, cs-fixer, phpstan, rector)
-# Note: phpmd is disabled everywhere until pdepend supports PHP 8.4 syntax
-make quality
+# Check: composer validate + phpcs + cs-fixer dry-run + phpstan + rector dry-run
+# (`make quality` is an alias). phpmd is disabled until pdepend supports PHP 8.4 syntax
+make check_style
 ```
 
 **Testing:**
 ```bash
-# Run full test suite
-make test
+# Tailwind must be built before functional tests (base.html.twig needs var/tailwind/tailwind.built.css)
+make tailwind.build
+
+# Run full test suite (inside the php container)
+make phpunit
 
 # Run specific test file
-vendor/bin/phpunit tests/Path/To/SpecificTest.php
-
-# Run tests with coverage
-vendor/bin/phpunit --coverage-html coverage
+docker exec $(docker ps --filter name="ytcg_php" -q) bin/phpunit tests/Path/To/SpecificTest.php
 ```
 
 **JWT Setup:**
@@ -98,13 +101,14 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 **Core Entities:**
 - **Card**: Trading cards with multi-image support (main image, mask, foil)
-  - Fields: name, description, status (DRAFT/PUBLISHED), rarity (CardRarityEnum: common/uncommon/rare/legendary — 4 tiers since the epic removal, grey/green/blue/orange glows), uniqueFlag, alwaysHolo (forces holo whatever the slot's holoChance), visualConfigOverride (JSON, per-card override of the extension's visualConfig)
+  - Fields: name, description, status (DRAFT/PUBLISHED), rarity (CardRarityEnum: common/uncommon/rare/legendary — 4 tiers since the epic removal, grey/green/blue/orange glows), uniqueFlag, claimedBy, alwaysHolo (forces holo whatever the slot's holoChance), visualConfigOverride (JSON, per-card override of the extension's visualConfig)
+  - **Uniques 1/1**: `uniqueFlag` + `claimedBy` (ManyToOne DiscordUser, ON DELETE SET NULL). The single holder is enforced by the atomic conditional UPDATE `CardRepository::claimUnique()` (`claimed_by IS NULL`), not by a DB constraint; `findDrawablePool` excludes claimed uniques
   - No "type" field: visual customization is the extension→card VisualConfig cascade (see below)
   - Uses VichUploaderBundle for file uploads
   - ManyToOne with Extension
 
 - **Extension**: Card sets/expansions
-  - Fields: name, description, status, imageName, visualConfig (JSON, set-level card visual defaults — including the shared foilTexture library pick; NO extension-level foil/mask uploads: masks must match each card's artwork, so they are per-card only), upcoming (« next universe » teaser: at most ONE extension flagged — saving a flagged one from the admin clears the others; shows as a blurred tile on the homepage and /univers while the extension is still DRAFT — published ones already have their own tile)
+  - Fields: name, slug (Gedmo, updatable: renaming an extension changes its public URLs), description, status, imageName, logoName (`extension_logos` mapping, shown in the CSS card frame; falls back to the name as text), visualConfig (JSON, set-level card visual defaults — including the shared foilTexture library pick; NO extension-level foil/mask uploads: masks must match each card's artwork, so they are per-card only), upcoming (« next universe » teaser: at most ONE extension flagged — saving a flagged one from the admin clears the others; shows as a blurred tile on the homepage and /univers while the extension is still DRAFT — published ones already have their own tile)
   - OneToMany with Card, Booster and ExtensionBanner (universe page hero banners, position-ordered carousel)
 
 - **Booster**: Booster packs containing cards
@@ -120,12 +124,12 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
   - Discord OAuth2 integration for authentication
   - OneToMany with UserCard and UserBooster
 
-- **UserCard**: User card inventory (composite key: DiscordUser + Card, quantity + holoQuantity)
+- **UserCard**: User card inventory (composite key: DiscordUser + Card). `quantity` = ALL copies, holo included; `holoQuantity` is a SUBSET of it. Total copies = `quantity`, never `quantity + holoQuantity` (same rule on `BoosterOpeningCard`) — this mistake already caused 3 bugs
 - **UserBooster**: User unopened booster inventory (composite key: DiscordUser + Booster)
 
 **Audit Entities (booster opening):**
 - **BoosterClaim**: one row per daily free claim; the daily quota (2/day, reset midnight Europe/Paris) is a COUNT since midnight — no mutable counter anywhere
-- **BoosterOpening** + **BoosterOpeningCard**: opening history with the RNG seed (reproducible draws); duplicates aggregated per card (composite PK)
+- **BoosterOpening** + **BoosterOpeningCard**: opening history with the RNG seed; duplicates aggregated per card (composite PK). Replaying a seed only reproduces the draw if the drawable pool is unchanged (cards published/unpublished, uniques claimed since) — there is no pool snapshot
 
 **Redeem Codes (`BoosterCode` + `BoosterCodeRedemption`):**
 - **BoosterCode**: code (canonical, uppercase, dash-free — `BoosterCodeGenerator` builds 12 chars out of an I/O/0/1-free alphabet with `random_int`), booster, quantity, maxUses (null = unlimited), uses, expiresAt (stored UTC), disabled, batchLabel. A "unique" code is just `maxUses = 1`; batches are a shared free-form label, not an entity
@@ -143,13 +147,19 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 ### Booster Opening Flow (`src/Service/Booster/`)
 
 1. **BoosterClaimService::claim()** — asks the quota policy (`BoosterClaimQuotaInterface` / `DailyBoosterClaimQuota`) for remaining claims, credits `UserBooster` via UserInventoryService, persists a `BoosterClaim`. In dev only, the `UnlimitedBoosterClaimQuota` decorator (`#[When(env: 'dev')]`) lifts the limit unless `BOOSTER_DAILY_LIMIT_ENABLED=true` is set in `.env.dev` — prod code carries no bypass
-2. **BoosterOpeningService::open()** — one transaction: pessimistic-locked inventory debit, seeded `CardDrawer::draw()` (per-slot weighted rarity roll, uniform pick in the tier, fallback to the nearest tier with cards, holo roll), duplicate aggregation, `UserCard` credit, audit persistence
+2. **BoosterOpeningService::open()** — one transaction: pessimistic-locked inventory debit, seeded `CardDrawer::draw()` (per-slot weighted rarity roll, uniform pick in the tier, fallback to the nearest tier with cards, holo roll), duplicate aggregation, `UserCard` credit (`UserInventoryService::addCards()`), audit persistence
 3. **RandomService** (`src/Service/Random/`) — seedable `Random\Randomizer` wrapper; the seed is stored on `BoosterOpening`
-4. UI: `/boosters` is the opening hub (`BoosterHub` Live Component — claim, open, loot summary). The engine is fully tested at the service level.
+4. **BoosterAvailabilityService** — single source of truth for "can this booster be claimed / opened / drawn" (claimable, published extension, drawable pool). Every distribution channel must go through it rather than re-implementing the guards
+5. UI: `/boosters` is the hub (`BoosterHub` Live Component — claim, redeem code, streak reward); opening happens on the dedicated page `/boosters/{id}/open` (`BoosterOpening` Live Component + three.js pack `pack_opening_3d_controller.js`, 2D fallback when WebGL/GLTF is unavailable). An owner can open a booster even if its extension was unpublished since (accepted product rule)
+
+**Concurrency rules:** every write on inventory rows (`user_booster`, `user_card`) happens under a pessimistic lock (`FOR UPDATE`) inside the transaction, locks taken in a deterministic order (by card id) to avoid deadlocks. A plain find-modify-write on `user_card` is a lost update: two concurrent transactions read N, both write N+1. Refusals thrown inside `wrapInTransaction` close the EntityManager — never write after a caught refusal in the same request.
 
 **Common Traits:**
 - `IdUuidTrait` (from barlito/utils **>= 2.0.1 only**): UUID primary keys. Older versions typed `$id` as `?string` against the UuidType column, making Doctrine flag `id` as changed on every hydrated entity (each flush rewrote every loaded row and trashed updated_at) — fixed upstream in barlito/utils#13.
 - `TimestampableEntity` (Gedmo): createdAt/updatedAt timestamps
+- `HasVisualConfigTrait` (`src/Entity/Traits/`): shared VisualConfig accessors of Card and Extension
+
+**Time zones:** everything is stored in UTC; Europe/Paris is applied only at business boundaries (daily quota reset, streak days, admin display). Doctrine binds datetimes WITHOUT converting their time zone → convert to UTC at the repository boundary.
 
 ### Authentication Flow
 
@@ -165,33 +175,43 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 ### Controllers
 
 **Frontend (`src/Controller/`):**
-- **BaseController**: Homepage with 3 random published cards (cached daily)
-  - Routes: `/` (homepage), `/boosters` (opening hub), `/extensions` (301 → `/univers`)
+- **BaseController**: Homepage with 3 random published cards (cached daily, key `daycards`), ticker (packs opened, cards pulled), upcoming-universe teaser
+  - Routes: `/` (homepage), `/boosters` (hub), `/extensions` (301 → `/univers`)
   - Uses custom `CardRepository::findRandomCardId()` with RANDOM() DQL function
+- **BoosterController**: `/boosters/{id}/open` (route `booster_open`) — dedicated opening page, redirects to the hub when the player owns none
+- **CollectionController**: `/collection/{slug?}` (route `collection`) — the player's own profile + collection: completion strip (`CompletionStripBuilder`, `parts/_completion_strip.html.twig`), full published catalogue with missing cards face down, filters all/owned/missing. Legacy `?extension=<uuid>` → 301 to the slug. `/joueur/{own discordId}` redirects here
+- **OpeningHistoryController**: `/mes-ouvertures` (route `opening_history`) — paginated opening history + « Ma chance » luck stats (`OpeningLuckStatsProvider`)
+- **LogoutController**: `/logout`
 - **UniverseController**: `/univers` (index of published extensions with per-universe completion) + `/univers/{slug}` (pokédex page: banner carousel, full description, personal completion, set grid with unowned cards masked behind the card back, related boosters using the hub's claimable-or-owned visibility rule, unique 1/1 drop status without revealing the holder)
-- **LeaderboardController**: `/classement` (route `leaderboard`) + `/joueur/{discordId}` (route `leaderboard_player` — discordId, not username: usernames are not unique). `LeaderboardService` (`src/Service/Leaderboard/`) ranks every player by global completion from one grouped query per metric (never one query per player), deterministic tiebreaks (total copies → username → discordId). Uniques 1/1 are a COUNT only, never named. Profile masking rule: a card of the profile renders in clear ONLY if the visitor also owns it, otherwise the shared `parts/_masked_card.html.twig` card back (also used by the universe page) with zero name leak in the DOM — a 1/1 of another player is therefore always masked. `UserCard.quantity` already includes holo copies (`holoQuantity` is a subset): total copies = SUM(quantity), never quantity + holoQuantity
+- **LeaderboardController**: `/classement` (route `leaderboard`) + `/joueur/{discordId}/{slug?}` (route `leaderboard_player` — discordId, not username: usernames are not unique; your own id redirects to `/collection`). `LeaderboardService` (`src/Service/Leaderboard/`) ranks every player by global completion from one grouped query per metric (never one query per player), deterministic tiebreaks (total copies → username → discordId). Every public counter is computed on the PUBLISHED catalogue (card AND extension published), otherwise it diverges from its denominator
+- **Profile comparison** (`ProfileComparisonService`, `ProfileCardStateEnum`): the visited profile is crossed with the visitor's collection over the whole published catalogue — 4 states `common` / `profile-only` / `visitor-only` / `missing-both`. A card renders in clear ONLY if the visitor owns it too, otherwise the shared `parts/_masked_card.html.twig` card back (also used by the universe page and the collection) with zero name/artwork leak in the DOM. Exception by product decision: a 1/1 reveals WHO holds it (chip), never its name or artwork
 
 **Admin (`src/Controller/Admin/`):**
 - **DashboardController**: EasyAdmin dashboard entry
-- **CardCrudController**: Card management with custom ImageField (rarity/type choice fields)
-- **ExtensionCrudController**: Extension management
-- **BoosterCrudController**: Booster management (rarityRates edited as JSON via CodeEditorField, validated by the ValidRarityRates constraint)
+- **CardCrudController**: Card management with custom ImageField, live preview (`CardPreviewController`, `/admin/card-preview/{id}`), batch publish/draft actions
+- **ExtensionCrudController** / **ExtensionBannerCrudController**: Extension (upcoming flag uniqueness handled in persist/update) and universe banners
+- **BoosterCrudController**: Booster management — rarityRates edited as a form collection (`BoosterSlotType` + `RarityWeightsType`), validated by the ValidRarityRates constraint
+- **AbstractGuardedCrudController**: base for CRUDs whose deletion must be refused with an explicit message when rows still reference the entity (count references BEFORE trying: a failed flush closes the EntityManager). **AbstractReadOnlyCrudController**: base of the read-only economy screens (DiscordUser, BoosterClaim, BoosterOpening, BoosterCode, BoosterCodeRedemption)
+- Custom admin pages: `/admin/cards/batch` (bulk card import, PNG/JPEG/WebP), `/admin/booster-codes/batch` (+ `/export` CSV), `/admin/guide` (French admin handbook). Custom routes under `/admin` go through the EA dashboard, which injects its routeParams as request ATTRIBUTES (read them as controller arguments, not `$request->query`); any `linkToCrudAction` action needs `#[AdminRoute]`
+- An `AssociationField` pointing at a composite-key entity (UserCard, BoosterOpeningCard) 500s — use a virtual field + `setTemplatePath()`. EA filters target the Doctrine property (`uniqueFlag`), not the virtual field (`unique`)
 - Access: Requires ROLE_ADMIN
 
 ### Frontend Architecture
 
 **3D Card Rendering System:**
-- **CSS**: `assets/styles/cards/base.css` (advanced 3D CSS)
-  - Hardware-accelerated transforms with perspective
-  - Multi-layer effects: shine, glare, foil masks
-  - Type-specific glows (water, fire, grass, etc.)
+- **CSS**: `assets/styles/cards/` — `base.css` (3D core: perspective, shine/glare/foil layers), `holo.css` + `holo-presets.css` (holo recipes per rarity/preset, layers off outside `.interacting` for grid perf), `frame.css` (CSS card frame: name, extension logo, YOUL watermark, rarity icon — sized in `cqi` container units)
+  - Rarity glows via `--card-glow` set on `.card[data-rarity=…]`: an override must target `.card` itself, not an ancestor
+  - Selectors on dynamic classes / `[data-rarity]` live in plain CSS, never in a Tailwind `@layer` (purged)
 - **JavaScript (Stimulus controllers in `assets/controllers/`):**
-  - `card_controller.js`: real-time mouse-tracking 3D rotation (anime.js); attached via `data-controller="card"`, so dynamically rendered cards (Live Components) work too
+  - `card_controller.js`: lifecycle glue around `assets/lib/card_tilt.js` (pointer tracking with in-house springs, one style write per frame — no anime.js); attached via `data-controller="card"`, so dynamically rendered cards (Live Components) work too
+  - `booster_opening_controller.js` (reveal sequence, rarest-last climax) + `pack_opening_3d_controller.js` (three.js GLTF pack, `public/models/pack-wide.gltf`)
+- **Design system « Violet Arcade »**: tokens in `assets/styles/theme.css` (+ Tailwind palette), helpers `.btn-arcade`, `.eyebrow`, `.chip-mono`; rarity colors `--rarity-*`
 
 **Asset Pipeline:**
 - Uses Symfony AssetMapper (no Webpack/build step)
 - Importmap manages dependencies
-- Tailwind CSS for styling (carousels are the in-house `carousel` Stimulus controller)
+- Tailwind CSS for styling (carousels are the in-house `carousel` Stimulus controller). The CSS is COMPILED (symfonycasts/tailwind-bundle, binary pinned to v3.4.17): run `make tailwind.build` after any template/style change introducing utility classes, or the new classes simply don't exist
+- Switching branches empties `assets/vendor/` (gitignored) → `bin/console importmap:install`
 
 ### File Uploads
 
@@ -202,10 +222,13 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 **VichUploaderBundle Mappings (all under `/public/uploads/`, served at `/uploads/{mapping}/{filename}`):**
 - `cards`: Main card artwork
 - `masks`: Foil/holo masks
-- `foils`: Foil textures (per-card/extension uploads — the shared library uses the static `FoilTextureEnum` textures instead)
+- `foils`: Foil textures (per-card uploads only — the shared library uses the static `FoilTextureEnum` textures instead)
 - `boosters`: Booster images
 - `extensions`: Extension images
+- `extension_logos`: Extension logos (card frame)
 - `banners`: Universe page hero banners (ExtensionBanner)
+
+Only `/admin/cards/batch` validates the uploaded file type today; the CRUD upload fields have no `Assert\Image` yet (see security backlog).
 
 ### Custom Doctrine Features
 
@@ -223,10 +246,10 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - `JWT_PUBLIC_KEY`: Path to JWT public key
 - `JWT_PASSPHRASE`: JWT key passphrase
 - `JWT_COOKIE_DOMAIN`: Domain for JWT cookie
-- `OAUTH_DISCORD_CLIENT_ID`: Discord OAuth2 client ID
-- `OAUTH_DISCORD_CLIENT_SECRET`: Discord OAuth2 client secret
+- `OAUTH_DISCORD_CLIENT_ID` / `OAUTH_DISCORD_CLIENT_SECRET`: only required by the (unused) `knpu_oauth2_client` config — OAuth is handled by the external IdP
 - `REFRESH_TOKEN_URL`: Discord OAuth2 refresh endpoint
 - `LOGOUT_URL`: External logout redirect URL
+- `APP_VERSION`: displayed version (set at image build)
 
 **Docker Volumes:**
 - `ytcg_db_data`: PostgreSQL data persistence
@@ -240,8 +263,8 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 1. Create entity via `make:entity` or manually extend existing
 2. Add status enum if needed (follow CardStatusEnum pattern)
-3. Create migration: `make db.diff`
-4. Run migration: `make db.migration`
+3. Create migration: `make doctrine.diff`
+4. Run migration: `make doctrine.migrate` then `make doctrine.migrate.ci` (test DB)
 5. Add EasyAdmin CRUD controller in `src/Controller/Admin/`
 6. Register in DashboardController menu
 
@@ -262,10 +285,12 @@ All JWT listeners must:
 
 ### Testing Strategy
 
-- Unit tests in `tests/Unit/` (if applicable)
-- Functional tests in `tests/Functional/`
-- Test database uses SQLite memory for speed
-- PHPUnit configured in `phpunit.xml.dist`
+- Unit tests in `tests/Unit/`, service/repository tests against the real DB in `tests/Integration/` (KernelTestCase), HTTP + Live Component tests in `tests/Functional/`
+- The test database is **PostgreSQL** (`dbname_suffix: _test`), NOT SQLite: migrate it (`make doctrine.migrate.ci`) after every migration and reload its fixtures (`make doctrine.load_fixtures.ci`) before concluding a branch is green — CI always does both
+- Some functional tests depend on the CONTENT of `fixtures/test` (e.g. Bleach must stay a universe without published cards): editing it is a contract change
+- Tests only run inside the `ytcg_php` container mounted on the main checkout → no parallel work in git worktrees
+- PHPUnit 12 (`#[DataProvider]` attributes), configured in `phpunit.xml.dist`
+- A green local run proves nothing when `composer.lock` changed: the container's `vendor/` is not reinstalled — CI installs from scratch
 
 ### Code Quality Standards
 
@@ -274,12 +299,17 @@ All JWT listeners must:
 - Declare strict types: `declare(strict_types=1);`
 - Use typed properties and return types
 - Enum over constants for fixed value sets
+- Code comments in English (user-facing strings in French); no multi-line explanatory comment blocks — short one-liners stating a non-obvious constraint only
+- Dev-only behaviour = a `#[When(env: 'dev')]` decorator + a var in `.env.dev`, never a flag read by prod code. `#[When]` does not exclude routes: dev routes are declared under `when@dev` in `config/routes.yaml`
 
 ## Important Notes
 
 - **Never commit** JWT keys or .env files
 - **Never modify** roles manually in database; roles are managed by JWT sync
-- **Always run** `make quality` before committing
+- **Always run** `make quality` before committing. The pre-commit hook (`.claude/settings.json`) only fires when the Bash command STARTS with `git commit` — never chain `git add && git commit`
+- `config/reference.php` is regenerated by Symfony on composer runs: commit it only alongside a `composer.lock` change
+- Dependabot bumps can drift `symfony/*` to 8.x (it ignores `extra.symfony.require: 7.4.*`); fix with `composer update --with-all-dependencies` inside the container (Flex active)
+- Dev tooling: `app:dev:forge-jwt [discordId]` (dev only) forges an auth cookie for browser checks; `/dev/card-effects` and `/dev/card-frames` are visual playgrounds
 - **Use Castor** for project-specific tasks, **Make** for generic PHP tasks
 - **Docker Swarm** is used (not docker-compose), use `docker stack` or Make rules
 - **AssetMapper** handles frontend assets; no npm build needed
