@@ -83,6 +83,9 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkTo(BoosterOpeningCrudController::class, 'Ouvertures', 'fa fa-box-open');
         yield MenuItem::linkTo(BoosterClaimCrudController::class, 'Récupérations', 'fa fa-gift');
 
+        yield MenuItem::section('Réglages');
+        yield MenuItem::linkTo(FeatureFlagCrudController::class, 'Fonctionnalités', 'fa fa-toggle-on');
+
         yield MenuItem::section('Aide');
         yield MenuItem::linkToRoute('Guide admin', 'fa fa-book', 'admin_guide');
 

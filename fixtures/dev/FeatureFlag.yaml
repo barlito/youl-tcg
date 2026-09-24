@@ -1,0 +1,6 @@
+# Les deux fonctionnalités sont actives en local (la migration les crée à OFF).
+App\Entity\FeatureFlag:
+    feature_flag_trades:
+        __construct: ['<(App\Enum\FeatureEnum::TRADES)>', true]
+    feature_flag_recycling:
+        __construct: ['<(App\Enum\FeatureEnum::RECYCLING)>', true]
