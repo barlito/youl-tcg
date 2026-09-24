@@ -44,6 +44,9 @@ when@test:
         App\Service\Recycle\RecycleService:
             public: true
 
+        App\Service\Notification\NotificationService:
+            public: true
+
         # Records Mercure updates instead of reaching the hub
         App\Tests\Support\SpyHub:
             decorates: mercure.hub.default

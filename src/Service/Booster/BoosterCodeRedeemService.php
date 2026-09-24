@@ -8,9 +8,11 @@ use App\Dto\BoosterCodeRedemptionAttempt;
 use App\Entity\BoosterCode;
 use App\Entity\BoosterCodeRedemption;
 use App\Entity\DiscordUser;
+use App\Enum\Notification\NotificationTypeEnum;
 use App\Enum\Realtime\UserEventEnum;
 use App\Exception\Booster\BoosterCodeRefusedException;
 use App\Repository\BoosterCodeRepository;
+use App\Service\Notification\NotificationService;
 use App\Service\Realtime\UserEventPublisher;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -35,6 +37,7 @@ final readonly class BoosterCodeRedeemService
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
         private UserEventPublisher $userEventPublisher,
+        private NotificationService $notificationService,
     ) {
     }
 
@@ -77,6 +80,11 @@ final readonly class BoosterCodeRedeemService
 
         // post-commit: a rolled back action never reaches the browser
         $this->userEventPublisher->publish($discordUser, UserEventEnum::INVENTORY_CHANGED);
+        $this->notificationService->notify($discordUser, NotificationTypeEnum::BOOSTER_CREDITED, [
+            'boosterName' => $redemption->getBoosterCode()->getBooster()->getDisplayName(),
+            'quantity' => $redemption->getQuantity(),
+            'channel' => 'code',
+        ], alreadyRead: true);
 
         return $redemption;
     }

@@ -13,6 +13,9 @@ enum UserEventEnum: string
     /** Generic message shown as a toast (payload: message, optional link). */
     case TOAST = 'toast';
 
+    /** A notification center entry arrived (payload: id, icon, message, link, silent). */
+    case NOTIFICATION = 'notification';
+
     /** Boosters or cards changed: pages showing the inventory re-render. */
     case INVENTORY_CHANGED = 'inventory-changed';
 }

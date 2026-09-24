@@ -3,7 +3,8 @@ import { Controller } from '@hotwired/stimulus';
 /**
  * Generic toast stack, mounted once in the layout. Anything can show a toast
  * by dispatching `toast:show` on window with `{ message, link?, title? }`;
- * realtime `live-updates:toast` events are wired to the same action.
+ * realtime `live-updates:toast` / `live-updates:notification` events are
+ * wired to the same action (`silent` payloads are skipped).
  */
 export default class extends Controller {
     static values = {
@@ -11,8 +12,8 @@ export default class extends Controller {
     };
 
     show(event) {
-        const { message, title, link } = event.detail ?? {};
-        if (!message) {
+        const { message, title, link, silent } = event.detail ?? {};
+        if (!message || silent) {
             return;
         }
 

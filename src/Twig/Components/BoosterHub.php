@@ -104,7 +104,7 @@ final class BoosterHub extends AbstractController
      */
     public function getSecondsUntilReset(): int
     {
-        return max(0, $this->getNextResetTime()->getTimestamp() - time());
+        return $this->boosterClaimService->getSecondsUntilReset();
     }
 
     /**

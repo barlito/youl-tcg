@@ -8,11 +8,13 @@ use App\Entity\Booster;
 use App\Entity\BoosterOpening;
 use App\Entity\Card;
 use App\Entity\DiscordUser;
+use App\Entity\Notification;
 use App\Entity\StreakReward;
 use App\Entity\UserBooster;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Enum\Notification\NotificationTypeEnum;
 use App\Exception\Booster\BoosterNotClaimableException;
 use App\Exception\Booster\StreakRewardUnavailableException;
 use App\Repository\BoosterClaimRepository;
@@ -58,6 +60,12 @@ final class StreakRewardServiceTest extends KernelTestCase
         $this->rewardService->grantMilestones($scenario['user']);
 
         $this->assertCount(1, $this->rewardService->getPendingRewards($scenario['user']));
+
+        // notified on the real insert only, not on the ON CONFLICT no-op
+        $notifications = $this->notificationsOf($scenario['user'], NotificationTypeEnum::STREAK_REWARD_AVAILABLE);
+        $this->assertCount(1, $notifications);
+        $this->assertSame(['milestone' => 7], $notifications[0]->getPayload());
+        $this->assertNull($notifications[0]->getReadAt());
     }
 
     public function testAFourteenDayStreakGrantsBothMilestones(): void
@@ -140,6 +148,20 @@ final class StreakRewardServiceTest extends KernelTestCase
             self::getContainer()->get(BoosterClaimRepository::class)->countSince($scenario['user'], new \DateTimeImmutable('-1 day')),
             'A streak reward must not leave a BoosterClaim behind.',
         );
+
+        // the player picked it: kept in the history, already read (no badge, no toast)
+        $credited = $this->notificationsOf($scenario['user'], NotificationTypeEnum::BOOSTER_CREDITED);
+        $this->assertCount(1, $credited);
+        $this->assertSame('streak', $credited[0]->getPayload()['channel']);
+        $this->assertNotNull($credited[0]->getReadAt());
+    }
+
+    /**
+     * @return list<Notification>
+     */
+    private function notificationsOf(DiscordUser $user, NotificationTypeEnum $type): array
+    {
+        return $this->entityManager->getRepository(Notification::class)->findBy(['recipient' => $user, 'type' => $type]);
     }
 
     public function testARewardCannotBeSpentTwice(): void

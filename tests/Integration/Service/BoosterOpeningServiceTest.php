@@ -9,11 +9,13 @@ use App\Entity\BoosterOpening;
 use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
+use App\Entity\Notification;
 use App\Entity\UserBooster;
 use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Enum\Notification\NotificationTypeEnum;
 use App\Exception\Booster\NoBoosterInInventoryException;
 use App\Exception\Booster\NoCardAvailableException;
 use App\Service\Booster\BoosterOpeningService;
@@ -234,6 +236,22 @@ final class BoosterOpeningServiceTest extends KernelTestCase
             $this->entityManager->getRepository(UserCard::class)->findOneBy(['discordUser' => $bob, 'card' => $unique]),
             'A claimed 1/1 must never be drawn by another player.',
         );
+
+        // one broadcast, naming the puller and the universe — never the card
+        $announces = $this->entityManager->getRepository(Notification::class)->findBy(['type' => NotificationTypeEnum::UNIQUE_PULLED, 'recipient' => null]);
+        $announces = array_values(array_filter($announces, static fn (Notification $n): bool => $alice->getDiscordId() === $n->getPayload()['playerId']));
+        $this->assertCount(1, $announces);
+        $this->assertSame(['playerId' => $alice->getDiscordId(), 'playerName' => 'Alice', 'universe' => $extension->getName()], $announces[0]->getPayload());
+
+        $broadcasts = array_values(array_filter(
+            self::getContainer()->get(SpyHub::class)->getUpdates(),
+            static fn (\Symfony\Component\Mercure\Update $update): bool => ['https://localhost/broadcast'] === $update->getTopics(),
+        ));
+        $this->assertCount(1, $broadcasts);
+        $this->assertFalse($broadcasts[0]->isPrivate());
+        $this->assertStringContainsString('Alice a tiré une carte unique dans', $broadcasts[0]->getData());
+        $this->assertStringNotContainsString('One of one', $broadcasts[0]->getData());
+        $this->assertStringNotContainsString('default_card', $broadcasts[0]->getData());
     }
 
     public function testExtensionLeftWithOnlyClaimedUniquesIsNoLongerDrawable(): void

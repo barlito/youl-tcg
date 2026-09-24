@@ -68,6 +68,7 @@ final class BoosterCodeRedeemServiceTest extends TestCase
             $this->entityManager(),
             new MockClock('2026-08-08 12:00:00', 'UTC'),
             $this->userEventPublisher(),
+            $this->notificationService(),
         );
 
         $service->redeem($this->user(), ' abcd-efgh jklm ');
@@ -85,6 +86,7 @@ final class BoosterCodeRedeemServiceTest extends TestCase
             $this->entityManager(),
             new MockClock('2026-08-08 12:00:00', 'UTC'),
             $this->userEventPublisher(),
+            $this->notificationService(),
         );
 
         try {
@@ -143,6 +145,7 @@ final class BoosterCodeRedeemServiceTest extends TestCase
             $entityManager ?? $this->entityManager(),
             $clock ?? new MockClock('2026-08-08 12:00:00', 'UTC'),
             $this->userEventPublisher(),
+            $this->notificationService(),
         );
     }
 

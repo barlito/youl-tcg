@@ -10,11 +10,13 @@ use App\Entity\Booster;
 use App\Entity\BoosterOpening;
 use App\Entity\BoosterOpeningCard;
 use App\Entity\DiscordUser;
+use App\Enum\Notification\NotificationTypeEnum;
 use App\Enum\Realtime\UserEventEnum;
 use App\Exception\Booster\EmptyRarityRatesException;
 use App\Exception\Booster\NoBoosterInInventoryException;
 use App\Exception\Booster\NoCardAvailableException;
 use App\Repository\CardRepository;
+use App\Service\Notification\NotificationService;
 use App\Service\Random\RandomService;
 use App\Service\Realtime\UserEventPublisher;
 use Doctrine\ORM\EntityManagerInterface;
@@ -36,6 +38,7 @@ final readonly class BoosterOpeningService
         private CardRepository $cardRepository,
         private StreakRewardService $streakRewardService,
         private UserEventPublisher $userEventPublisher,
+        private NotificationService $notificationService,
     ) {
     }
 
@@ -84,8 +87,34 @@ final readonly class BoosterOpeningService
         // missed grant self-heals at the next opening of the same series.
         $this->streakRewardService->grantMilestones($discordUser);
         $this->userEventPublisher->publish($discordUser, UserEventEnum::INVENTORY_CHANGED);
+        $this->announceUniques($discordUser, $result);
 
         return $result;
+    }
+
+    /**
+     * Tells everyone a one-of-one was pulled: who and in which universe, never
+     * which card (its name and artwork stay a mystery to everyone else).
+     */
+    private function announceUniques(DiscordUser $discordUser, BoosterOpeningResult $result): void
+    {
+        $announced = [];
+
+        foreach ($result->drawnCards as $drawnCard) {
+            $card = $drawnCard->card;
+            $cardId = (string) $card->getId();
+
+            if (!$card->isUnique() || isset($announced[$cardId])) {
+                continue;
+            }
+
+            $announced[$cardId] = true;
+            $this->notificationService->notify(null, NotificationTypeEnum::UNIQUE_PULLED, [
+                'playerId' => $discordUser->getDiscordId(),
+                'playerName' => $discordUser->getUsername(),
+                'universe' => $card->getExtension()?->getName(),
+            ]);
+        }
     }
 
     /**

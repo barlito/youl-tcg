@@ -12,6 +12,7 @@ use App\Entity\RecycleOperation;
 use App\Entity\RecycleOperationCard;
 use App\Entity\UserCard;
 use App\Enum\FeatureEnum;
+use App\Enum\Notification\NotificationTypeEnum;
 use App\Enum\Realtime\UserEventEnum;
 use App\Exception\Recycle\BoosterNotRecyclableException;
 use App\Exception\Recycle\InvalidRecycleSelectionException;
@@ -23,6 +24,7 @@ use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\UserInventoryService;
 use App\Service\Feature\FeatureFlags;
+use App\Service\Notification\NotificationService;
 use App\Service\Realtime\UserEventPublisher;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -69,6 +71,7 @@ final readonly class RecycleService
         private ClockInterface $clock,
         private FeatureFlags $featureFlags,
         private UserEventPublisher $userEventPublisher,
+        private NotificationService $notificationService,
     ) {
     }
 
@@ -130,6 +133,11 @@ final readonly class RecycleService
 
         // post-commit: a rolled back action never reaches the browser
         $this->userEventPublisher->publish($discordUser, UserEventEnum::INVENTORY_CHANGED);
+        $this->notificationService->notify($discordUser, NotificationTypeEnum::BOOSTER_CREDITED, [
+            'boosterName' => $booster->getDisplayName(),
+            'quantity' => $boosterCount,
+            'channel' => 'recycle',
+        ], alreadyRead: true);
 
         return $operation;
     }

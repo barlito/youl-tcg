@@ -7,10 +7,12 @@ namespace App\Service\Booster;
 use App\Entity\Booster;
 use App\Entity\DiscordUser;
 use App\Entity\StreakReward;
+use App\Enum\Notification\NotificationTypeEnum;
 use App\Enum\Realtime\UserEventEnum;
 use App\Exception\Booster\BoosterNotClaimableException;
 use App\Exception\Booster\StreakRewardUnavailableException;
 use App\Repository\StreakRewardRepository;
+use App\Service\Notification\NotificationService;
 use App\Service\Realtime\UserEventPublisher;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -31,6 +33,7 @@ final readonly class StreakRewardService
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
         private UserEventPublisher $userEventPublisher,
+        private NotificationService $notificationService,
     ) {
     }
 
@@ -57,7 +60,10 @@ final readonly class StreakRewardService
         }
 
         foreach ($streak->reachedMilestones() as $milestone) {
-            $this->streakRewardRepository->insertIgnore($discordUser, $streak->seriesStartedOn, $milestone, $this->clock->now());
+            // only a real insert is news: a milestone already granted stays silent
+            if ($this->streakRewardRepository->insertIgnore($discordUser, $streak->seriesStartedOn, $milestone, $this->clock->now())) {
+                $this->notificationService->notify($discordUser, NotificationTypeEnum::STREAK_REWARD_AVAILABLE, ['milestone' => $milestone]);
+            }
         }
     }
 
@@ -96,6 +102,12 @@ final readonly class StreakRewardService
         });
 
         $this->userEventPublisher->publish($discordUser, UserEventEnum::INVENTORY_CHANGED);
+        // the player picked it themselves: history entry only (see NotificationService::notify)
+        $this->notificationService->notify($discordUser, NotificationTypeEnum::BOOSTER_CREDITED, [
+            'boosterName' => $booster->getDisplayName(),
+            'quantity' => 1,
+            'channel' => 'streak',
+        ], alreadyRead: true);
 
         return $reward;
     }

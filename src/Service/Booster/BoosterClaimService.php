@@ -43,6 +43,15 @@ final readonly class BoosterClaimService
     }
 
     /**
+     * Server-computed remaining seconds before the quota reset, so client
+     * countdowns never depend on the client clock.
+     */
+    public function getSecondsUntilReset(): int
+    {
+        return max(0, $this->getNextResetTime()->getTimestamp() - $this->clock->now()->getTimestamp());
+    }
+
+    /**
      * @throws DailyClaimLimitReachedException
      * @throws BoosterNotClaimableException
      */
