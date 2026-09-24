@@ -9,6 +9,7 @@ use App\Entity\Traits\HasVisualConfigTrait;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\CardRepository;
+use App\Validator\NotDepublishedWhileOwned;
 use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -19,6 +20,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 use Vich\UploaderBundle\Mapping\Attribute as Vich;
 
 #[Vich\Uploadable]
+#[NotDepublishedWhileOwned]
 #[ORM\Entity(repositoryClass: CardRepository::class)]
 #[ORM\Index(columns: ['extension_id', 'status'])]
 class Card implements \Stringable
