@@ -36,7 +36,7 @@
         "symfony/var-exporter": "^7.4",
         "symfony/yaml": "7.4.*",
         "symfonycasts/tailwind-bundle": "^1.0",
-        "vich/uploader-bundle": "^2.4",
+        "vich/uploader-bundle": "^3.0",
         "wohali/oauth2-discord-new": "^1.2"
     },
     "config": {
