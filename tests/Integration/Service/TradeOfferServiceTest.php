@@ -225,6 +225,73 @@ final class TradeOfferServiceTest extends KernelTestCase
         $this->assertNotNull($reloaded?->getResolvedAt());
     }
 
+    public function testTheSameCardMovingBothWaysKeepsBothMovements(): void
+    {
+        $alice = $this->createUser('alice');
+        $bob = $this->createUser('bob');
+        $card = $this->createCard('Both ways');
+        $this->giveCards($alice, $card, quantity: 3, holoQuantity: 1);
+        $this->giveCards($bob, $card, quantity: 2);
+
+        // Alice trades her holo for one of Bob's normal copies of the same card
+        $offer = $this->tradeOfferService->create(
+            $alice,
+            $bob,
+            [new TradeLineRequest($card, 0, 1)],
+            [new TradeLineRequest($card, 1)],
+        );
+
+        $this->tradeOfferService->accept($offer, $bob);
+        $this->entityManager->clear();
+
+        $this->assertInventory($alice, $card, quantity: 3, holoQuantity: 0);
+        $this->assertInventory($bob, $card, quantity: 2, holoQuantity: 1);
+    }
+
+    public function testCreateRefusesACardOutsideThePublishedCatalogue(): void
+    {
+        $alice = $this->createUser('alice');
+        $bob = $this->createUser('bob');
+        $draft = $this->createCard('Draft')->setStatus(CardStatusEnum::DRAFT);
+        $requested = $this->createCard('Requested');
+        $this->giveCards($alice, $draft, quantity: 2);
+        $this->giveCards($bob, $requested, quantity: 1);
+
+        $this->expectException(InvalidTradeOfferException::class);
+
+        $this->tradeOfferService->create($alice, $bob, [new TradeLineRequest($draft, 1)], [new TradeLineRequest($requested, 1)]);
+    }
+
+    public function testUnpublishedCardsAreNeitherEngageableNorRequestable(): void
+    {
+        $alice = $this->createUser('alice');
+        $published = $this->createCard('Published');
+        $draft = $this->createCard('Draft')->setStatus(CardStatusEnum::DRAFT);
+        $this->giveCards($alice, $published, quantity: 1);
+        $this->giveCards($alice, $draft, quantity: 1);
+
+        $this->assertSame([(string) $published->getId()], array_keys($this->tradeOfferService->getEngageableCopies($alice)));
+        $this->assertSame([(string) $published->getId()], array_keys($this->tradeOfferService->getRequestableCopies($alice)));
+    }
+
+    public function testAcceptInvalidatesAnOfferWhoseCardWasUnpublished(): void
+    {
+        $alice = $this->createUser('alice');
+        $bob = $this->createUser('bob');
+        $offer = $this->createSimpleOffer($alice, $bob);
+        $offer->getRequestedLines()[0]->getCard()->setStatus(CardStatusEnum::DRAFT);
+        $this->entityManager->flush();
+
+        try {
+            $this->tradeOfferService->accept($offer, $bob);
+            $this->fail('Expected TradeOfferInvalidatedException');
+        } catch (TradeOfferInvalidatedException) {
+        }
+
+        $this->entityManager->clear();
+        $this->assertSame(TradeOfferStatusEnum::INVALIDATED, $this->entityManager->find(TradeOffer::class, $offer->getId())?->getStatus());
+    }
+
     public function testOnlyTheReceiverMayAccept(): void
     {
         $alice = $this->createUser('alice');

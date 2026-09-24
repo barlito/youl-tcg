@@ -10,6 +10,8 @@ use App\Entity\DiscordUser;
 use App\Entity\TradeOffer;
 use App\Entity\TradeOfferLine;
 use App\Entity\UserCard;
+use App\Enum\Entity\CardStatusEnum;
+use App\Enum\Entity\ExtensionStatusEnum;
 use App\Enum\Trade\TradeOfferSideEnum;
 use App\Enum\Trade\TradeOfferStatusEnum;
 use App\Exception\Trade\InvalidTradeOfferException;
@@ -20,8 +22,6 @@ use App\Exception\Trade\TradeOfferUnacceptableException;
 use App\Repository\CardRepository;
 use App\Repository\TradeOfferRepository;
 use App\Repository\UserCardRepository;
-use App\Service\Booster\UserInventoryService;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
@@ -51,7 +51,6 @@ final readonly class TradeOfferService
         private TradeOfferRepository $tradeOfferRepository,
         private UserCardRepository $userCardRepository,
         private CardRepository $cardRepository,
-        private UserInventoryService $userInventoryService,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
     ) {
@@ -80,14 +79,22 @@ final readonly class TradeOfferService
             throw new InvalidTradeOfferException('Empty requested side.', 'Ton offre doit demander au moins une carte en retour.');
         }
 
+        foreach ([...$offered, ...$requested] as $line) {
+            if (!$this->isTradeable($line->card)) {
+                throw new InvalidTradeOfferException(
+                    \sprintf('Card %s is not published.', $line->card->getId()),
+                    \sprintf('« %s » ne fait pas partie du catalogue publié : elle ne s\'échange pas.', $line->card->getName()),
+                );
+            }
+        }
+
         return $this->entityManager->wrapInTransaction(function () use ($proposer, $receiver, $offered, $requested): TradeOffer {
-            // Locks serialise concurrent creations on the same rows: without
-            // them, two simultaneous offers could both pass the reservation
-            // check and engage the same copy twice.
-            $rows = $this->lockInventoryRows(array_map(
+            // same lock as openings and recycling: concurrent creations cannot
+            // both pass the reservation check and engage the same copy twice
+            $rows = $this->lockRows(array_map(
                 static fn (TradeLineRequest $line): array => [$proposer, $line->card],
                 $offered,
-            ));
+            ), createMissing: false);
 
             $reserved = $this->tradeOfferRepository->sumReservedQuantities($proposer);
 
@@ -138,15 +145,10 @@ final readonly class TradeOfferService
      */
     public function accept(TradeOffer $offer, DiscordUser $actor): void
     {
-        try {
-            // The invalidation path COMMITS a status change then reports a
-            // failure: the closure returns the exception instead of throwing
-            // it, because throwing would roll the INVALIDATED status back.
-            $refusal = $this->entityManager->wrapInTransaction(fn (): ?TradeException => $this->doAccept($offer, $actor));
-        } catch (UniqueConstraintViolationException) {
-            // concurrent insert of the same inventory row: everything rolled back
-            throw new TradeConflictException('Concurrent inventory row insert.', 'Un autre échange est passé en même temps. Rien n\'a bougé, réessaie.');
-        }
+        // The invalidation path COMMITS a status change then reports a
+        // failure: the closure returns the exception instead of throwing it,
+        // because throwing would roll the INVALIDATED status back.
+        $refusal = $this->entityManager->wrapInTransaction(fn (): ?TradeException => $this->doAccept($offer, $actor));
 
         if ($refusal instanceof TradeException) {
             throw $refusal;
@@ -214,7 +216,7 @@ final readonly class TradeOfferService
         $reserved = $this->tradeOfferRepository->sumReservedQuantities($user);
         $engageable = [];
 
-        foreach ($this->userCardRepository->findOwnedWithCards($user) as $row) {
+        foreach ($this->userCardRepository->findOwnedWithCards($user, publishedOnly: true) as $row) {
             $cardId = (string) $row->getCard()->getId();
             $reservedForCard = $reserved[$cardId] ?? ['normal' => 0, 'holo' => 0];
             $holo = $row->getHoloQuantity() - $reservedForCard['holo'];
@@ -239,7 +241,7 @@ final readonly class TradeOfferService
     {
         $requestable = [];
 
-        foreach ($this->userCardRepository->findOwnedWithCards($user) as $row) {
+        foreach ($this->userCardRepository->findOwnedWithCards($user, publishedOnly: true) as $row) {
             $normal = $row->getQuantity() - $row->getHoloQuantity();
 
             if ($normal > 0 || $row->getHoloQuantity() > 0) {
@@ -279,14 +281,26 @@ final readonly class TradeOfferService
         $receiver = $locked->getReceiver();
         $lines = array_values($locked->getLines()->toArray());
 
-        // Every row the trade touches (debits AND credits, both players) is
-        // locked, in one global deterministic order shared by all transactions.
+        foreach ($lines as $line) {
+            if (!$this->isTradeable($line->getCard())) {
+                $locked->resolve(TradeOfferStatusEnum::INVALIDATED, $this->clock->now());
+                $this->entityManager->flush();
+
+                return new TradeOfferInvalidatedException(
+                    \sprintf('Card %s is not published anymore.', $line->getCard()->getId()),
+                    'Une carte de cette offre a été retirée du catalogue : l\'offre vient d\'être invalidée.',
+                );
+            }
+        }
+
+        // every row the trade touches (debits AND credits, both players),
+        // missing taker rows created at 0
         $pairs = [];
         foreach ($lines as $line) {
             $pairs[] = [$locked->getGiverOf($line), $line->getCard()];
             $pairs[] = [$locked->getTakerOf($line), $line->getCard()];
         }
-        $rows = $this->lockInventoryRows($pairs);
+        $rows = $this->lockRows($pairs, createMissing: true);
 
         // Full re-validation under lock, proposer side first: the remaining
         // reservations of their OTHER pending offers still apply.
@@ -334,15 +348,12 @@ final readonly class TradeOfferService
             }
         }
 
-        // Both sides validated: debit the givers on the locked rows…
+        // Both sides validated: move the copies on the locked rows (no second
+        // lock pass: a refreshing re-lock would clobber the pending debits)…
         foreach ($lines as $line) {
-            $this->debit($rows[$this->rowKey($locked->getGiverOf($line), $line->getCard())] ?? throw new \LogicException('Validated row vanished.'), $line);
+            $this->debit($this->lockedRow($rows, $locked->getGiverOf($line), $line->getCard()), $line);
+            $this->credit($this->lockedRow($rows, $locked->getTakerOf($line), $line->getCard()), $line);
         }
-
-        // …credit the takers (addCards reuses the identity-mapped locked rows
-        // and creates the missing ones)…
-        $this->userInventoryService->addCards($receiver, array_map($this->toCredit(...), $locked->getOfferedLines()));
-        $this->userInventoryService->addCards($proposer, array_map($this->toCredit(...), $locked->getRequestedLines()));
 
         // …and move one-of-one claims in the SAME transaction. The conditional
         // UPDATE is the last-line guard: losing it means a concurrent writer
@@ -516,36 +527,50 @@ final readonly class TradeOfferService
     }
 
     /**
-     * Locks the given inventory rows with FOR UPDATE, deduplicated and in the
-     * GLOBAL deterministic order (discordId, cardId): every trade transaction
-     * acquires its row locks in the same sequence, so two crossed acceptances
-     * wait for each other instead of deadlocking. Missing rows (the taker does
-     * not own the card yet) are simply absent from the result.
+     * Locks the rows through the shared UserCardRepository lock, players in
+     * discordId order then cards in id order: the same per-player order as
+     * openings and recycling, and one global order between trades, so no
+     * combination of them can deadlock.
      *
      * @param list<array{DiscordUser, Card}> $pairs
      *
      * @return array<string, UserCard> "discordId|cardId" => locked, refreshed row
      */
-    private function lockInventoryRows(array $pairs): array
+    private function lockRows(array $pairs, bool $createMissing): array
     {
-        $unique = [];
+        $byUser = [];
         foreach ($pairs as [$user, $card]) {
-            $unique[$this->rowKey($user, $card)] = [$user, $card];
+            $byUser[$user->getDiscordId()]['user'] = $user;
+            $byUser[$user->getDiscordId()]['cards'][] = $card;
         }
-        ksort($unique);
+        ksort($byUser, \SORT_STRING);
 
         $rows = [];
-        foreach ($unique as $key => [$user, $card]) {
-            $row = $this->userCardRepository->findOneForUpdate($user, $card);
+        foreach ($byUser as ['user' => $user, 'cards' => $cards]) {
+            $locked = $createMissing
+                ? $this->userCardRepository->lockForCredit($user, $cards)
+                : $this->userCardRepository->lockForDebit($user, $cards);
 
-            if ($row instanceof UserCard) {
-                // the locked SELECT does not re-hydrate an already-loaded entity
-                $this->entityManager->refresh($row);
-                $rows[$key] = $row;
+            foreach ($locked as $row) {
+                $rows[$this->rowKey($user, $row->getCard())] = $row;
             }
         }
 
         return $rows;
+    }
+
+    /**
+     * @param array<string, UserCard> $rows
+     */
+    private function lockedRow(array $rows, DiscordUser $user, Card $card): UserCard
+    {
+        return $rows[$this->rowKey($user, $card)] ?? throw new \LogicException('Locked row vanished.');
+    }
+
+    private function isTradeable(Card $card): bool
+    {
+        return CardStatusEnum::PUBLISHED === $card->getStatus()
+            && ExtensionStatusEnum::PUBLISHED === $card->getExtension()?->getStatus();
     }
 
     /**
@@ -573,23 +598,28 @@ final readonly class TradeOfferService
         }
     }
 
+    private function credit(UserCard $row, TradeOfferLine $line): void
+    {
+        // quantity is the total (holos included), holoQuantity a subset of it
+        $row->setQuantity($row->getQuantity() + $line->getTotalQuantity());
+        $row->setHoloQuantity($row->getHoloQuantity() + $line->getHoloQuantity());
+    }
+
     private function toRequest(TradeOfferLine $line): TradeLineRequest
     {
         return new TradeLineRequest($line->getCard(), $line->getNormalQuantity(), $line->getHoloQuantity());
-    }
-
-    /**
-     * @return array{card: Card, quantity: int, holoQuantity: int}
-     */
-    private function toCredit(TradeOfferLine $line): array
-    {
-        return ['card' => $line->getCard(), 'quantity' => $line->getTotalQuantity(), 'holoQuantity' => $line->getHoloQuantity()];
     }
 
     private function isObviouslyInfeasible(TradeOffer $offer): bool
     {
         $offeredLines = $offer->getOfferedLines();
         $rows = $this->findRows($offer->getProposer(), array_map(static fn (TradeOfferLine $line): Card => $line->getCard(), $offeredLines));
+
+        foreach ($offer->getLines() as $line) {
+            if (!$this->isTradeable($line->getCard())) {
+                return true;
+            }
+        }
 
         foreach ($offeredLines as $line) {
             $row = $rows[$this->rowKey($offer->getProposer(), $line->getCard())] ?? null;
