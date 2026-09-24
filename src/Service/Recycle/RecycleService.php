@@ -22,9 +22,9 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
 /**
- * Trades duplicate copies for a claimable booster, as one atomic transaction:
- * lock the UserCard rows, re-validate the quantities under lock, debit the
- * copies, credit the booster and persist the audit trail.
+ * Trades duplicate copies for a retrievable booster, as one atomic transaction:
+ * credit the booster, lock the UserCard rows, re-validate the quantities under
+ * lock, debit the copies and persist the audit trail.
  *
  * Own distribution channel, like the codes: no BoosterClaim row, so the daily
  * quota is neither checked nor consumed. Points beyond the cost are lost by
@@ -57,33 +57,29 @@ final readonly class RecycleService
     public function recycle(DiscordUser $discordUser, array $selection, Booster $booster): RecycleOperation
     {
         $this->assertSelectionIsWellFormed($selection);
-        // Same server-side guards as the daily claim: recycling must not be a
-        // side door to event-only packs or unpublished extensions.
         $this->assertBoosterIsRecyclable($booster);
 
-        return $this->entityManager->wrapInTransaction(function () use ($discordUser, $selection, $booster): RecycleOperation {
-            $lockedRows = [];
-            foreach ($this->userCardRepository->findOwnedForUpdate($discordUser, array_map(static fn (RecycleSelectionLine $line): Card => $line->card, $selection)) as $userCard) {
-                // a row already in the identity map is NOT re-hydrated by the locked
-                // SELECT: re-read it so the checks below see the locked DB state
-                $this->entityManager->refresh($userCard);
-                $lockedRows[(string) $userCard->getCard()->getId()] = $userCard;
-            }
+        // points only depend on the selection and the scale, not on the owned
+        // quantities: checked before any lock
+        $points = array_sum(array_map(static fn (RecycleSelectionLine $line): int => $line->getPoints(), $selection));
+        if ($points < self::BOOSTER_COST) {
+            throw new NotEnoughRecyclePointsException(
+                \sprintf('Selection is worth %d points, %d required.', $points, self::BOOSTER_COST),
+                \sprintf('Il te faut au moins %d points pour recycler (sélection actuelle : %d).', self::BOOSTER_COST, $points),
+            );
+        }
 
-            $points = 0;
+        return $this->entityManager->wrapInTransaction(function () use ($discordUser, $selection, $booster, $points): RecycleOperation {
+            // booster row first, then the card rows: the same lock order as an opening
+            $this->userInventoryService->creditBooster($discordUser, $booster);
+
+            $lockedRows = $this->userCardRepository->lockForDebit(
+                $discordUser,
+                array_map(static fn (RecycleSelectionLine $line): Card => $line->card, $selection),
+            );
             foreach ($selection as $line) {
                 $this->debit($lockedRows[(string) $line->card->getId()] ?? null, $line);
-                $points += $line->getPoints();
             }
-
-            if ($points < self::BOOSTER_COST) {
-                throw new NotEnoughRecyclePointsException(
-                    \sprintf('Selection is worth %d points, %d required.', $points, self::BOOSTER_COST),
-                    \sprintf('Il te faut au moins %d points pour recycler (sélection actuelle : %d).', self::BOOSTER_COST, $points),
-                );
-            }
-
-            $this->userInventoryService->creditBooster($discordUser, $booster);
 
             $operation = new RecycleOperation($discordUser, $booster, $points, $this->clock->now());
             foreach ($selection as $line) {
@@ -128,19 +124,16 @@ final readonly class RecycleService
         }
     }
 
+    /**
+     * Same single check as a daily claim or a streak reward: recycling must not
+     * be a side door to event-only, unpublished or undrawable packs.
+     */
     private function assertBoosterIsRecyclable(Booster $booster): void
     {
-        if (!$this->boosterAvailability->isClaimable($booster)) {
+        if (!$this->boosterAvailability->isRetrievable($booster)) {
             throw new BoosterNotRecyclableException(
-                \sprintf('Booster "%s" is not claimable (event/code distribution only).', $booster->getDisplayName()),
-                'Ce pack ne peut pas être obtenu par recyclage — il se gagne en event ou via un code.',
-            );
-        }
-
-        if (!$this->boosterAvailability->hasPublishedExtension($booster)) {
-            throw new BoosterNotRecyclableException(
-                \sprintf('Booster "%s" belongs to an unpublished extension.', $booster->getDisplayName()),
-                'Ce pack n\'est pas disponible.',
+                \sprintf('Booster "%s" is not retrievable (not claimable, unpublished extension or nothing to draw).', $booster->getDisplayName()),
+                'Ce pack ne peut pas être obtenu par recyclage pour le moment.',
             );
         }
     }

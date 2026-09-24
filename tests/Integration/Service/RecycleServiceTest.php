@@ -366,6 +366,38 @@ final class RecycleServiceTest extends KernelTestCase
         );
     }
 
+    public function testRefusesABoosterWithNothingToDraw(): void
+    {
+        $scenario = $this->createScenario([['rarity' => CardRarityEnum::COMMON, 'quantity' => 12]]);
+
+        // published extension without any published card: claimable, yet unopenable
+        $emptyExtension = new Extension()
+            ->setName('Recycle empty extension ' . uniqid())
+            ->setDescription('Test extension')
+            ->setStatus(ExtensionStatusEnum::PUBLISHED)
+        ;
+        $this->entityManager->persist($emptyExtension);
+        $emptyBooster = new Booster()
+            ->setExtension($emptyExtension)
+            ->setRarityRates([['rarities' => ['common' => 100], 'holoChance' => 0]])
+        ;
+        $emptyBooster->setImageName('default_card.png');
+        $this->entityManager->persist($emptyBooster);
+        $this->entityManager->flush();
+
+        try {
+            $this->recycleService->recycle(
+                $scenario['user'],
+                [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 10, holoQuantity: 0)],
+                $emptyBooster,
+            );
+            $this->fail('Expected BoosterNotRecyclableException');
+        } catch (BoosterNotRecyclableException) {
+        }
+
+        $this->assertNothingChanged($scenario, expectedQuantities: [[12, 0]]);
+    }
+
     public function testAFailingLineRollsBackTheWholeOperation(): void
     {
         // line 1 is valid and debited in memory before line 2 blows up: the
