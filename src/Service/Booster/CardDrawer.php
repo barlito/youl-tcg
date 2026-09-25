@@ -191,25 +191,38 @@ final readonly class CardDrawer
      */
     private function resolveAvailableRarity(array $pool, CardRarityEnum $rolled): CardRarityEnum
     {
-        $ascending = CardRarityEnum::ascending();
-        $rolledIndex = (int) array_search($rolled, $ascending, true);
-
-        for ($index = $rolledIndex; $index >= 0; --$index) {
-            if (isset($pool[$ascending[$index]->value])) {
-                return $ascending[$index];
-            }
-        }
-        $counter = \count($ascending);
-
-        for ($index = $rolledIndex + 1; $index < $counter; ++$index) {
-            if (isset($pool[$ascending[$index]->value])) {
-                return $ascending[$index];
-            }
-        }
-
-        throw new NoCardAvailableException(
+        return self::nearestAvailableRarity($rolled, $pool) ?? throw new NoCardAvailableException(
             'No rarity tier with available cards found in the pool.',
             'Ce booster n\'a aucune carte à tirer pour le moment, réessaie plus tard.',
         );
+    }
+
+    /**
+     * The fallback rule of the draw, shared with the admin expected-rates
+     * projection: the rolled tier if available, else the closest one toward
+     * common, then toward legendary. Null when no tier is available.
+     *
+     * @param array<string, mixed> $availableTiers keyed by rarity value
+     */
+    public static function nearestAvailableRarity(CardRarityEnum $rolled, array $availableTiers): ?CardRarityEnum
+    {
+        $ascending = CardRarityEnum::ascending();
+        $rolledIndex = $rolled->rank();
+
+        for ($index = $rolledIndex; $index >= 0; --$index) {
+            if (isset($availableTiers[$ascending[$index]->value])) {
+                return $ascending[$index];
+            }
+        }
+
+        $counter = \count($ascending);
+
+        for ($index = $rolledIndex + 1; $index < $counter; ++$index) {
+            if (isset($availableTiers[$ascending[$index]->value])) {
+                return $ascending[$index];
+            }
+        }
+
+        return null;
     }
 }

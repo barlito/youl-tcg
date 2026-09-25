@@ -237,6 +237,28 @@
         </table>
         <div class="tip">Les dates de ces écrans sont affichées en heure de Paris, comme la remise à zéro du quota.</div>
 
+        <h3 id="tableau-de-bord">Le tableau de bord (page d'accueil de l'admin)</h3>
+        <p>
+            <strong>« Tableau de bord »</strong>, en haut du menu, résume l'économie. Les tuiles donnent
+            les chiffres globaux (joueurs, actifs 7 j / 30 j, packs ouverts, cartes tirées, 1/1 tirées,
+            boosters en attente d'ouverture) ; les graphiques couvrent la période choisie en haut à droite
+            (7, 30 ou 90 jours, aujourd'hui inclus, jours en heure de Paris).
+        </p>
+        <table>
+            <tr><th>Bloc</th><th>Ce qu'on y lit</th></tr>
+            <tr><td>Joueurs actifs</td><td>Un joueur est actif s'il a ouvert un pack <strong>ou</strong> récupéré son pack gratuit ce jour-là (un recyclage seul ne compte pas).</td></tr>
+            <tr><td>Boosters par canal</td><td>D'où viennent les boosters : claim quotidien (1 par récupération), codes (la quantité du code), récompenses de série (une fois le booster choisi), recyclage (boosters obtenus).</td></tr>
+            <tr><td>Recyclages par semaine</td><td>Opérations, points dépensés et boosters obtenus, semaine du lundi au dimanche.</td></tr>
+            <tr><td>Raretés tirées vs attendues</td><td>Part de chaque rareté (et des uniques 1/1, et des holos) parmi les cartes tirées, comparée aux taux configurés des boosters ouverts, pondérés par slot et par nombre d'ouvertures. L'écart est en points de %.</td></tr>
+        </table>
+        <div class="warn">
+            L'« attendu » est une approximation : il utilise les taux et le pool de cartes <strong>d'aujourd'hui</strong>
+            (un palier sans carte est redirigé vers le plus proche, comme au tirage), compte la chance d'unique
+            même quand toutes les 1/1 sont déjà tirées, et ignore les cartes « toujours holo ». Sur peu
+            d'ouvertures, des écarts de plusieurs points sont normaux.
+        </div>
+        <div class="tip">Les chiffres sont mis en cache 5 minutes : une ouverture toute fraîche peut mettre jusqu'à 5 min à apparaître.</div>
+
         <h2 id="fonctionnalites">13. Fonctionnalités : couper / rouvrir</h2>
         <p>
             Le menu <strong>Réglages → Fonctionnalités</strong> liste les fonctionnalités qu'on peut

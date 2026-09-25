@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Dto\Admin\EconomyDashboard;
+use App\Enum\Admin\BoosterChannelEnum;
+use App\Enum\Admin\EconomyPeriodEnum;
+use App\Service\Admin\EconomyChartFactory;
+use App\Service\Admin\EconomyStatsProvider;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
@@ -11,23 +16,57 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 
 // EA5 pretty URLs: the attribute registers /admin and every CRUD route
 #[AdminDashboard(routePath: '/admin', routeName: 'admin')]
 class DashboardController extends AbstractDashboardController
 {
+    private const int STATS_CACHE_TTL = 300;
+
     public function __construct(
         #[Autowire(env: 'APP_VERSION')]
         private readonly string $appVersion,
         private readonly AssetMapperInterface $assetMapper,
+        private readonly EconomyStatsProvider $economyStatsProvider,
+        private readonly EconomyChartFactory $economyChartFactory,
+        private readonly CacheInterface $cache,
+        private readonly RequestStack $requestStack,
     ) {
     }
 
+    /**
+     * Economy dashboard. Stats are cached a few minutes per period: the
+     * aggregates scan the whole opening history.
+     */
     #[\Override]
     public function index(): Response
     {
-        return $this->redirectToRoute('admin_card_index');
+        $period = EconomyPeriodEnum::fromQuery($this->requestStack->getCurrentRequest()?->query->get('period'));
+
+        $dashboard = $this->cache->get(
+            'admin_economy_dashboard_' . $period->value,
+            function (ItemInterface $item) use ($period): EconomyDashboard {
+                $item->expiresAfter(self::STATS_CACHE_TTL);
+
+                return $this->economyStatsProvider->getDashboard($period);
+            },
+        );
+
+        if (!$dashboard instanceof EconomyDashboard) {
+            throw new \LogicException('Unexpected economy dashboard cache payload.');
+        }
+
+        return $this->render('admin/dashboard.html.twig', [
+            'dashboard' => $dashboard,
+            'charts' => $this->economyChartFactory->build($dashboard),
+            'periods' => EconomyPeriodEnum::cases(),
+            'channels' => BoosterChannelEnum::cases(),
+            'cacheMinutes' => intdiv(self::STATS_CACHE_TTL, 60),
+        ]);
     }
 
     #[\Override]
@@ -70,6 +109,8 @@ class DashboardController extends AbstractDashboardController
     #[\Override]
     public function configureMenuItems(): iterable
     {
+        yield MenuItem::linkToDashboard('Tableau de bord', 'fa fa-chart-line');
+
         yield MenuItem::section('Contenu');
         yield MenuItem::linkTo(CardCrudController::class, 'Cartes', 'fas fa-wallet');
         yield MenuItem::linkToRoute('Ajout en masse', 'fa fa-images', 'admin_cards_batch');
