@@ -1,0 +1,85 @@
+{# Header bell: re-rendered by realtime notifications; the daily boosters
+   entry is computed on render, never stored #}
+{% set unread = this.unreadCount %}
+{% set remainingClaims = this.remainingClaims %}
+<div {{ attributes.defaults({
+    class: 'relative',
+    'data-testid': 'notification-bell',
+    'data-controller': 'notification-bell',
+    'data-action': 'live-updates:notification@window->live#$render click@window->notification-bell#clickOutside keydown.esc@window->notification-bell#close',
+    'data-notification-bell-open-value': open ? 'true' : 'false',
+    'data-notification-bell-remaining-value': remainingClaims,
+    'data-notification-bell-seconds-value': this.secondsUntilReset,
+    'data-notification-bell-period-value': this.claimPeriod,
+    'data-notification-bell-next-period-value': this.nextClaimPeriod,
+}) }}>
+    <button type="button"
+            class="relative flex h-9 w-9 items-center justify-center border border-hairline bg-surface text-ink-muted hover:border-primary hover:text-ink-strong {{ open ? 'border-primary text-ink-strong' }}"
+            data-action="live#action" data-live-action-param="toggle"
+            aria-haspopup="true" aria-expanded="{{ open ? 'true' : 'false' }}"
+            aria-label="Notifications{{ unread > 0 ? ' (' ~ unread ~ ' non lue' ~ (unread > 1 ? 's') ~ ')' }}"
+            data-testid="notification-bell-toggle">
+        <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true">
+            <path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4l2-2Z"/>
+            <path d="M10 21h4"/>
+        </svg>
+        {% if unread > 0 %}
+            <span class="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center bg-magenta px-1 font-mono text-[10px] font-bold leading-none text-black shadow-[0_0_12px_#ff3db088]"
+                  data-testid="notification-badge">{{ unread > 9 ? '9+' : unread }}</span>
+        {% elseif remainingClaims > 0 %}
+            <span class="absolute -right-1 -top-1 h-2 w-2 bg-live shadow-[0_0_8px_#5be584]" aria-hidden="true"></span>
+        {% endif %}
+    </button>
+
+    {% if open %}
+        <div class="fixed inset-x-4 top-[84px] z-50 border border-hairline bg-surface shadow-[0_20px_50px_#000c,0_0_30px_#a435f022] md:absolute md:inset-x-auto md:right-0 md:top-[calc(100%+10px)] md:w-[380px]"
+             role="dialog" aria-label="Notifications" data-testid="notification-panel">
+            <div class="flex items-center justify-between border-b border-hairline px-4 py-3">
+                <p class="eyebrow">Notifications</p>
+                {% if unread > 0 %}
+                    <button type="button" class="chip-mono text-ink-muted hover:text-primary"
+                            data-action="live#action" data-live-action-param="markAllRead"
+                            data-testid="notification-mark-all">Tout marquer comme lu</button>
+                {% endif %}
+            </div>
+
+            <ul class="max-h-[min(70vh,480px)] overflow-y-auto">
+                {% if remainingClaims > 0 %}
+                    <li>
+                        <a href="{{ path('boosters') }}" class="flex items-start gap-3 border-b border-hairline bg-live/5 px-4 py-3 hover:bg-live/10"
+                           data-testid="notification-daily-boosters">
+                            <span class="mt-0.5 w-4 shrink-0 text-center font-mono text-sm text-live" aria-hidden="true">✦</span>
+                            <span class="flex-1 text-sm text-ink-strong">Tes boosters du jour sont disponibles</span>
+                            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 bg-live" aria-hidden="true"></span>
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for notification in this.notifications %}
+                    <li>
+                        <button type="button"
+                                class="flex w-full items-start gap-3 border-b border-hairline px-4 py-3 text-left hover:bg-primary/10 {{ notification.unread ? 'bg-primary/5' }}"
+                                data-action="live#action" data-live-action-param="openNotification"
+                                data-live-id-param="{{ notification.id }}"
+                                data-testid="notification-item"{{ notification.unread ? ' data-unread' }}>
+                            <span class="mt-0.5 w-4 shrink-0 text-center font-mono text-sm {{ notification.unread ? 'text-magenta' : 'text-ink-dim' }}" aria-hidden="true">{{ notification.icon }}</span>
+                            <span class="flex flex-1 flex-col gap-1">
+                                <span class="text-sm {{ notification.unread ? 'text-ink-strong' : 'text-ink-muted' }}">{{ notification.text }}</span>
+                                {% if notification.createdAt %}
+                                    <span class="chip-mono text-ink-dim">{{ notification.createdAt|date('d/m · H:i', 'Europe/Paris') }}</span>
+                                {% endif %}
+                            </span>
+                            {% if notification.unread %}
+                                <span class="mt-1.5 h-1.5 w-1.5 shrink-0 bg-magenta" aria-hidden="true"></span>
+                            {% endif %}
+                        </button>
+                    </li>
+                {% else %}
+                    {% if remainingClaims == 0 %}
+                        <li class="px-4 py-8 text-center text-sm text-ink-dim" data-testid="notification-empty">Rien de neuf pour l'instant.</li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+</div>

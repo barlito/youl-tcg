@@ -21,12 +21,12 @@ final class RealtimeSubscriptionTest extends WebTestCase
 
         $url = (string) $crawler->filter('[data-testid="live-updates"]')->attr('data-live-updates-url-value');
         $this->assertSame(
-            'https://localhost/.well-known/mercure?topic=' . rawurlencode('https://localhost/users/195659530363731968'),
+            'https://localhost/.well-known/mercure?topic=' . rawurlencode('https://localhost/users/195659530363731968') . '&topic=' . rawurlencode('https://localhost/broadcast'),
             $url,
         );
 
         $claims = $this->mercureClaims($this->authorizationCookie($client->getResponse()->headers->getCookies()));
-        // the JWT only unlocks this player's private topic, and never publishing
+        // the JWT only unlocks this player's private topic (the broadcast is public), and never publishing
         $this->assertSame(['https://localhost/users/195659530363731968'], $claims['subscribe']);
         $this->assertArrayNotHasKey('publish', array_filter($claims));
     }

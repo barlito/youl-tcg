@@ -62,8 +62,10 @@ class StreakRewardRepository extends ServiceEntityRepository
      * index swallows duplicates — concurrent openings both reaching the same
      * milestone insert once, and a thrown unique violation (which would close
      * the EntityManager mid-request) never happens.
+     *
+     * @return bool true when the reward was actually inserted (not a duplicate)
      */
-    public function insertIgnore(DiscordUser $discordUser, string $seriesStartedOn, int $milestone, \DateTimeImmutable $awardedAt): void
+    public function insertIgnore(DiscordUser $discordUser, string $seriesStartedOn, int $milestone, \DateTimeImmutable $awardedAt): bool
     {
         $sql = <<<'SQL'
             INSERT INTO streak_reward (id, discord_user_id, series_started_on, milestone, awarded_at, chosen_booster_id, chosen_at, created_at, updated_at)
@@ -71,7 +73,7 @@ class StreakRewardRepository extends ServiceEntityRepository
             ON CONFLICT (discord_user_id, series_started_on, milestone) DO NOTHING
             SQL;
 
-        $this->getEntityManager()->getConnection()->executeStatement($sql, [
+        return 1 === (int) $this->getEntityManager()->getConnection()->executeStatement($sql, [
             'id' => Uuid::v7()->toRfc4122(),
             'discordUserId' => $discordUser->getDiscordId(),
             'seriesStartedOn' => $seriesStartedOn,

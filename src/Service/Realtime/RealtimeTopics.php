@@ -27,6 +27,14 @@ final readonly class RealtimeTopics
     }
 
     /**
+     * Public topic every player listens to: carries no personal data.
+     */
+    public function broadcast(): string
+    {
+        return $this->origin() . '/broadcast';
+    }
+
+    /**
      * Private topics the player's subscription JWT is allowed to receive.
      *
      * @return list<string>
@@ -43,7 +51,7 @@ final readonly class RealtimeTopics
      */
     public function subscriptionsFor(DiscordUser $discordUser): array
     {
-        return $this->privateTopicsFor($discordUser);
+        return [...$this->privateTopicsFor($discordUser), $this->broadcast()];
     }
 
     private function origin(): string

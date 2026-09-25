@@ -200,6 +200,15 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - **Toasts**: `toast_controller.js` in the layout; dispatch `toast:show` on window with `{message, title?, link?}` (internal links only). `live-updates:toast` is wired to it
 - Tests: `App\Tests\Support\SpyHub` decorates the hub in test (records updates, never hits the network). Dev check: `bin/console app:dev:notify <discordId> [message] [--link=/…]`
 
+### Notification center (`src/Service/Notification/`)
+
+- **Notification** entity: `recipient` (nullable — null = broadcast to every player), `type` (`NotificationTypeEnum`), `payload` (JSON, scalars only), `createdAt`, `readAt` (personal entries only). Broadcast read state = `DiscordUser.notificationsSeenAt` (falls back to the player's sign-up: no backlog of older broadcasts). Unread = personal `readAt IS NULL` + broadcasts `createdAt > seenSince`
+- Never store text/HTML: `NotificationRenderer` renders text + link from type + payload; links come from route names only (internal by construction)
+- `NotificationService::notify(?DiscordUser, type, payload, alreadyRead)`: persist, then push `notification` (private topic, or the PUBLIC `/broadcast` topic — no personal data there). Post-commit only; best effort (failure logged)
+- Emitted: `UNIQUE_PULLED` (broadcast from `BoosterOpeningService`, names the player + universe, NEVER the card), `STREAK_REWARD_AVAILABLE` (only when `StreakRewardRepository::insertIgnore` really inserted), `BOOSTER_CREDITED` for code / streak choice / recycle — all three are the player's own action in the same request, so they are stored `alreadyRead` + `silent` (history only, no badge, no toast); a future credit NOT triggered by the player (admin grant, trade) must pass `alreadyRead: false`. TRADE_* / ANNOUNCEMENT / BOOSTER_CODE are reserved, not emitted yet
+- UI: `NotificationBell` live component in the header (badge, last 15, "tout marquer comme lu", entry click = mark read + redirect), re-rendered on `live-updates:notification`, toasts via `toast_controller`. "Daily boosters available" is NOT stored: computed on render from the claim quota, toasted client-side once per Paris day (`notification_bell_controller.js`, timer from `BoosterClaimService::getSecondsUntilReset()`)
+- Dev: `app:dev:notify <discordId> --notification=unique|streak|credited`
+
 ### Controllers
 
 **Frontend (`src/Controller/`):**

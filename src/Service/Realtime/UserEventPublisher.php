@@ -29,11 +29,29 @@ final readonly class UserEventPublisher
      */
     public function publish(DiscordUser $discordUser, UserEventEnum $type, array $payload = []): void
     {
+        $this->send($this->topics->forUser($discordUser), true, $type, $payload);
+    }
+
+    /**
+     * Public update to every connected player: never put personal data in it.
+     *
+     * @param array<string, mixed> $payload
+     */
+    public function publishBroadcast(UserEventEnum $type, array $payload = []): void
+    {
+        $this->send($this->topics->broadcast(), false, $type, $payload);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function send(string $topic, bool $private, UserEventEnum $type, array $payload): void
+    {
         try {
             $this->hub->publish(new Update(
-                $this->topics->forUser($discordUser),
-                json_encode(['type' => $type->value, 'payload' => $payload], \JSON_THROW_ON_ERROR),
-                private: true,
+                $topic,
+                json_encode(['type' => $type->value, 'payload' => $payload], \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES),
+                private: $private,
             ));
         } catch (\Throwable $exception) {
             $this->logger->warning('Realtime event "{type}" not published: {message}', [

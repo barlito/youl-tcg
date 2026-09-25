@@ -31,6 +31,12 @@ class DiscordUser implements UserInterface, \Stringable
     private array $roles = [];
 
     /**
+     * Last "mark all as read": broadcasts created after it are unread.
+     */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $notificationsSeenAt = null;
+
+    /**
      * @var Collection<int, UserCard>
      */
     #[ORM\OneToMany(targetEntity: UserCard::class, mappedBy: 'discordUser')]
@@ -149,6 +155,32 @@ class DiscordUser implements UserInterface, \Stringable
         }
 
         return $this;
+    }
+
+    public function getNotificationsSeenAt(): ?\DateTimeImmutable
+    {
+        return $this->notificationsSeenAt;
+    }
+
+    public function setNotificationsSeenAt(?\DateTimeImmutable $notificationsSeenAt): static
+    {
+        $this->notificationsSeenAt = $notificationsSeenAt;
+
+        return $this;
+    }
+
+    /**
+     * Broadcasts newer than this are unread. A player who never marked
+     * anything as read starts from their sign-up: the backlog of broadcasts
+     * sent before they joined is not theirs to catch up on.
+     */
+    public function getNotificationsSeenSince(): \DateTimeImmutable
+    {
+        if ($this->notificationsSeenAt instanceof \DateTimeImmutable) {
+            return $this->notificationsSeenAt;
+        }
+
+        return \DateTimeImmutable::createFromInterface($this->getCreatedAt() ?? new \DateTimeImmutable('@0'));
     }
 
     /**
