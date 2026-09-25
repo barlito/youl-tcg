@@ -7,6 +7,7 @@ namespace App\Tests\Functional;
 use App\Entity\Booster;
 use App\Entity\BoosterCode;
 use App\Entity\Card;
+use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\UserBooster;
 use App\Enum\Entity\CardRarityEnum;
@@ -193,6 +194,34 @@ final class BoosterCodeRedeemComponentTest extends WebTestCase
         }
 
         $component->set('code', 'ZZZZ-ZZZZ-ZZZZ')->call('redeemCode');
+
+        $this->assertStringStartsWith('Trop de tentatives.', (string) $component->component()->codeError);
+    }
+
+    public function testACodeReservedForAnotherPlayerAnswersAndCostsLikeAnUnknownOne(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        [, $code] = $this->createCode();
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $recipient = new DiscordUser()->setDiscordId('reserved-' . uniqid())->setUsername('Recipient');
+        $entityManager->persist($recipient);
+        $code->setAssignedTo($recipient);
+        $entityManager->flush();
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+
+        $component->set('code', 'ZZZZ-ZZZZ-ZZZZ')->call('redeemCode');
+        $unknownAnswer = $component->component()->codeError;
+
+        foreach (range(2, 10) as $ignored) {
+            $component->set('code', $code->getCode())->call('redeemCode');
+            $this->assertSame($unknownAnswer, $component->component()->codeError);
+            $this->assertNull($component->component()->codeSuccess);
+        }
+
+        $component->set('code', $code->getCode())->call('redeemCode');
 
         $this->assertStringStartsWith('Trop de tentatives.', (string) $component->component()->codeError);
     }

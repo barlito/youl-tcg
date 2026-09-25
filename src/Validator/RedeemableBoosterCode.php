@@ -14,8 +14,8 @@ use Symfony\Component\Validator\Constraint;
 final class RedeemableBoosterCode extends Constraint
 {
     /**
-     * Unknown and revoked share one message: telling them apart only helps
-     * someone probing codes.
+     * Unknown, revoked and reserved for another player share one message:
+     * telling them apart only helps someone probing codes.
      */
     public string $unknownMessage = 'Ce code n\'existe pas ou n\'est plus valide.';
 

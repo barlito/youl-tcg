@@ -45,7 +45,9 @@ final class RedeemableBoosterCodeValidator extends ConstraintValidator
 
         $boosterCode = $value->boosterCode;
 
-        if (!$boosterCode instanceof BoosterCode || $boosterCode->isDisabled()) {
+        // A code reserved for another player is indistinguishable from an
+        // unknown one: a third party learns nothing about its existence.
+        if (!$boosterCode instanceof BoosterCode || $boosterCode->isDisabled() || $boosterCode->isReservedForAnotherThan($value->discordUser)) {
             $this->refuse($constraint->unknownMessage, BoosterCodeRefusalEnum::UNKNOWN);
 
             return;
