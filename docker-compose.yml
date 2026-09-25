@@ -11,6 +11,9 @@ services:
         environment:
             SERVER_NAME: ":80"
             TZ: Europe/Paris
+            # Read by Caddy (built-in Mercure hub); must match .env.dev
+            MERCURE_JWT_SECRET: dev-mercure-secret-change-me-at-least-256-bits-long
+            MERCURE_CORS_ORIGINS: https://ytcg.local.barlito.fr
         volumes:
             - ./:/app
             - ./.docker/franken/Caddyfile:/etc/caddy/Caddyfile

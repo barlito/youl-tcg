@@ -44,6 +44,12 @@ when@test:
         App\Service\Recycle\RecycleService:
             public: true
 
+        # Records Mercure updates instead of reaching the hub
+        App\Tests\Support\SpyHub:
+            decorates: mercure.hub.default
+            arguments: ['@.inner']
+            public: true
+
         # Functional tests reset a player's code-attempt budget before running:
         # the limiter state is cached on disk and would otherwise carry over
         # from one test (and one run) to the next.

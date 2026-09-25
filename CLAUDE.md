@@ -17,6 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Frontend interactivity:** Stimulus + symfony/ux-live-component (AssetMapper, no build step)
 - **Task Runner:** Castor + Makefile (uses barlito/php-make-rules submodule)
 - **Container Orchestration:** Docker Swarm (stack name: `ytcg`)
+- **Realtime:** Mercure hub built into FrankenPHP (Caddyfile `mercure` directive) + symfony/mercure-bundle
 - **Reverse Proxy:** Traefik (external traefik_traefik_proxy network, TLS terminated by Traefik)
 
 ### Common Commands
@@ -190,6 +191,15 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 **Important:** User creation happens automatically via JwtInvalid listener. Never manually create DiscordUser entities in code.
 
+### Realtime (Mercure, `src/Service/Realtime/`)
+
+- Hub = FrankenPHP's built-in Mercure (`.docker/franken/Caddyfile`), same origin under `/.well-known/mercure`, bolt transport in `/data/mercure.db`, no anonymous subscribers. One secret (`MERCURE_JWT_SECRET`) signs publisher and subscriber JWTs; Caddy reads it from the real env (compose), never from `.env*`
+- Topics are IRIs rooted on the hub's public origin (`RealtimeTopics`): `/users/{discordId}` = private per-player topic
+- **Publishing**: `UserEventPublisher::publish(DiscordUser, UserEventEnum, payload)` → private update `{type, payload}`. Always call it AFTER the transaction committed (never inside `wrapInTransaction`); failures are logged, never rethrown. PHP publishes over HTTP (`MERCURE_URL`, in-container), so CLI works too; http_client timeouts are capped (framework.yaml)
+- **Subscribing**: the layout calls `live_updates_url()` (`RealtimeExtension`), which sets the `mercureAuthorization` cookie granting ONLY the player's own topic(s). `live_updates_controller.js` opens one EventSource and redispatches each message as a `live-updates:<type>` window event — Live Components listen with `data-action="live-updates:<type>@window->live#$render"` (BoosterHub re-renders on `inventory-changed`)
+- **Toasts**: `toast_controller.js` in the layout; dispatch `toast:show` on window with `{message, title?, link?}` (internal links only). `live-updates:toast` is wired to it
+- Tests: `App\Tests\Support\SpyHub` decorates the hub in test (records updates, never hits the network). Dev check: `bin/console app:dev:notify <discordId> [message] [--link=/…]`
+
 ### Controllers
 
 **Frontend (`src/Controller/`):**
@@ -265,6 +275,7 @@ Only `/admin/cards/batch` validates the uploaded file type today; the CRUD uploa
 - `JWT_PASSPHRASE`: JWT key passphrase
 - `JWT_COOKIE_DOMAIN`: Domain for JWT cookie
 - `OAUTH_DISCORD_CLIENT_ID` / `OAUTH_DISCORD_CLIENT_SECRET`: only required by the (unused) `knpu_oauth2_client` config — OAuth is handled by the external IdP
+- `MERCURE_URL` (in-container publish URL), `MERCURE_PUBLIC_URL` (browser URL, prod value in `.env`), `MERCURE_JWT_SECRET` (secret, also read by Caddy)
 - `REFRESH_TOKEN_URL`: Discord OAuth2 refresh endpoint
 - `LOGOUT_URL`: External logout redirect URL
 - `APP_VERSION`: displayed version (set at image build)

@@ -7,9 +7,11 @@ namespace App\Service\Booster;
 use App\Entity\Booster;
 use App\Entity\DiscordUser;
 use App\Entity\StreakReward;
+use App\Enum\Realtime\UserEventEnum;
 use App\Exception\Booster\BoosterNotClaimableException;
 use App\Exception\Booster\StreakRewardUnavailableException;
 use App\Repository\StreakRewardRepository;
+use App\Service\Realtime\UserEventPublisher;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
@@ -28,6 +30,7 @@ final readonly class StreakRewardService
         private UserInventoryService $userInventoryService,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private UserEventPublisher $userEventPublisher,
     ) {
     }
 
@@ -68,7 +71,7 @@ final readonly class StreakRewardService
      */
     public function chooseBooster(DiscordUser $discordUser, string $rewardId, Booster $booster): StreakReward
     {
-        return $this->entityManager->wrapInTransaction(function () use ($discordUser, $rewardId, $booster): StreakReward {
+        $reward = $this->entityManager->wrapInTransaction(function () use ($discordUser, $rewardId, $booster): StreakReward {
             $reward = $this->streakRewardRepository->findOneForUpdate($rewardId, $discordUser);
 
             if (!$reward instanceof StreakReward || $reward->isChosen()) {
@@ -91,5 +94,9 @@ final readonly class StreakRewardService
 
             return $reward;
         });
+
+        $this->userEventPublisher->publish($discordUser, UserEventEnum::INVENTORY_CHANGED);
+
+        return $reward;
     }
 }

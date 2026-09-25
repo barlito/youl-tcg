@@ -1,4 +1,5 @@
-<div {{ attributes }}>
+{# another tab (or channel) changed the inventory: re-render in place #}
+<div {{ attributes.defaults({'data-action': 'live-updates:inventory-changed@window->live#$render'}) }}>
     <main>
         {# ----------------------------------------------------- Hero / quota #}
         <section class="relative border-b border-hairline px-6 py-10 lg:px-12">

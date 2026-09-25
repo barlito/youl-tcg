@@ -14,6 +14,7 @@ use App\Exception\Booster\BoosterCodeRefusedException;
 use App\Repository\BoosterCodeRepository;
 use App\Service\Booster\BoosterCodeRedeemService;
 use App\Service\Booster\UserInventoryService;
+use App\Tests\Support\RealtimeTestTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -29,6 +30,8 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  */
 final class BoosterCodeRedeemServiceTest extends TestCase
 {
+    use RealtimeTestTrait;
+
     private const string CODE = 'ABCDEFGHJKLM';
 
     public function testRedeemCreditsTheInventoryAndAuditsTheRedemption(): void
@@ -64,6 +67,7 @@ final class BoosterCodeRedeemServiceTest extends TestCase
             $this->validatorReturning(new ConstraintViolationList()),
             $this->entityManager(),
             new MockClock('2026-08-08 12:00:00', 'UTC'),
+            $this->userEventPublisher(),
         );
 
         $service->redeem($this->user(), ' abcd-efgh jklm ');
@@ -80,6 +84,7 @@ final class BoosterCodeRedeemServiceTest extends TestCase
             $this->validatorReturning($this->violation('Saisis un code pour continuer.', null)),
             $this->entityManager(),
             new MockClock('2026-08-08 12:00:00', 'UTC'),
+            $this->userEventPublisher(),
         );
 
         try {
@@ -137,6 +142,7 @@ final class BoosterCodeRedeemServiceTest extends TestCase
             $this->validatorReturning($violations ?? new ConstraintViolationList()),
             $entityManager ?? $this->entityManager(),
             $clock ?? new MockClock('2026-08-08 12:00:00', 'UTC'),
+            $this->userEventPublisher(),
         );
     }
 

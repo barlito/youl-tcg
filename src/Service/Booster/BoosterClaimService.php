@@ -7,8 +7,10 @@ namespace App\Service\Booster;
 use App\Entity\Booster;
 use App\Entity\BoosterClaim;
 use App\Entity\DiscordUser;
+use App\Enum\Realtime\UserEventEnum;
 use App\Exception\Booster\BoosterNotClaimableException;
 use App\Exception\Booster\DailyClaimLimitReachedException;
+use App\Service\Realtime\UserEventPublisher;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -26,6 +28,7 @@ final readonly class BoosterClaimService
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
         private BoosterAvailabilityService $boosterAvailability,
+        private UserEventPublisher $userEventPublisher,
     ) {
     }
 
@@ -54,7 +57,7 @@ final readonly class BoosterClaimService
             );
         }
 
-        return $this->entityManager->wrapInTransaction(function () use ($discordUser, $booster): BoosterClaim {
+        $claim = $this->entityManager->wrapInTransaction(function () use ($discordUser, $booster): BoosterClaim {
             // The quota is a COUNT then an INSERT (check-then-act): lock the
             // user row so concurrent claims of the same user serialize instead
             // of both passing the check and overshooting the daily limit.
@@ -75,5 +78,10 @@ final readonly class BoosterClaimService
 
             return $claim;
         });
+
+        // post-commit: a rolled back action never reaches the browser
+        $this->userEventPublisher->publish($discordUser, UserEventEnum::INVENTORY_CHANGED);
+
+        return $claim;
     }
 }

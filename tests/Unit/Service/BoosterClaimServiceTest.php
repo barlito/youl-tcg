@@ -15,14 +15,19 @@ use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\BoosterClaimQuotaInterface;
 use App\Service\Booster\BoosterClaimService;
 use App\Service\Booster\UserInventoryService;
+use App\Tests\Support\RealtimeTestTrait;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
+use Symfony\Component\Mercure\HubInterface;
+use Symfony\Component\Mercure\Update;
 use Symfony\Component\Uid\Uuid;
 
 final class BoosterClaimServiceTest extends TestCase
 {
+    use RealtimeTestTrait;
+
     private const string EXTENSION_ID = '0198f3a2-6c1e-7d4b-9a3f-2b8c5d7e9f10';
 
     public function testClaimCreditsTheInventoryAndPersistsAnAuditRow(): void
@@ -43,7 +48,12 @@ final class BoosterClaimServiceTest extends TestCase
         $entityManager->expects($this->once())->method('persist');
         $entityManager->expects($this->once())->method('flush');
 
-        $service = new BoosterClaimService($this->quotaWithRemaining(2), $inventory, $entityManager, $clock, $this->availability());
+        $hub = $this->createMock(HubInterface::class);
+        $hub->expects($this->once())->method('publish')->with($this->callback(
+            static fn (Update $update): bool => ['https://localhost/users/188967649332428800'] === $update->getTopics() && $update->isPrivate(),
+        ));
+
+        $service = new BoosterClaimService($this->quotaWithRemaining(2), $inventory, $entityManager, $clock, $this->availability(), $this->userEventPublisher($hub));
 
         $claim = $service->claim($user, $booster);
 
@@ -54,6 +64,10 @@ final class BoosterClaimServiceTest extends TestCase
 
     public function testClaimThrowsOnceTheQuotaIsExhausted(): void
     {
+        // the transaction fails: nothing may be announced to the browser
+        $hub = $this->createMock(HubInterface::class);
+        $hub->expects($this->never())->method('publish');
+
         $inventory = $this->createMock(UserInventoryService::class);
         $inventory->expects($this->never())->method('creditBooster');
 
@@ -66,6 +80,7 @@ final class BoosterClaimServiceTest extends TestCase
             $entityManager,
             new MockClock('2026-06-10 12:00:00', 'UTC'),
             $this->availability(),
+            $this->userEventPublisher($hub),
         );
 
         $this->expectException(DailyClaimLimitReachedException::class);
@@ -84,6 +99,7 @@ final class BoosterClaimServiceTest extends TestCase
             $this->createStub(EntityManagerInterface::class),
             new MockClock('2026-06-10 12:00:00', 'UTC'),
             $this->availability(),
+            $this->userEventPublisher(),
         );
 
         $this->expectException(BoosterNotClaimableException::class);
@@ -106,6 +122,7 @@ final class BoosterClaimServiceTest extends TestCase
             $this->createStub(EntityManagerInterface::class),
             new MockClock('2026-06-10 12:00:00', 'UTC'),
             $this->availability(),
+            $this->userEventPublisher(),
         );
 
         try {
@@ -130,6 +147,7 @@ final class BoosterClaimServiceTest extends TestCase
             $entityManager,
             new MockClock('2026-06-10 12:00:00', 'UTC'),
             $this->availability(drawable: false),
+            $this->userEventPublisher(),
         );
 
         $this->expectException(BoosterNotClaimableException::class);
@@ -150,6 +168,7 @@ final class BoosterClaimServiceTest extends TestCase
             $this->createStub(EntityManagerInterface::class),
             new MockClock('2026-06-10 12:00:00', 'UTC'),
             $this->availability(),
+            $this->userEventPublisher(),
         );
 
         $this->assertSame(1, $service->getRemainingClaims(new DiscordUser()));

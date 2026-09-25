@@ -11,6 +11,13 @@ framework:
     # Note that the session will be started ONLY if you read or write from it.
     session: true
 
+    # Only consumer: the Mercure publisher. Realtime is best effort, a slow
+    # hub must not hold the business request for the 60s default.
+    http_client:
+        default_options:
+            timeout: 2
+            max_duration: 3
+
     #esi: true
     #fragments: true
 

@@ -15,6 +15,10 @@ services:
             JWT_PUBLIC_KEY: "${JWT_PUBLIC_KEY:?JWT_PUBLIC_KEY is required}"
             JWT_SECRET_KEY: "${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}"
             JWT_PASSPHRASE: "${JWT_PASSPHRASE:?JWT_PASSPHRASE is required}"
+            # Signs Mercure publisher + subscriber JWTs; read by both Caddy
+            # (built-in hub) and Symfony
+            MERCURE_JWT_SECRET: "${MERCURE_JWT_SECRET:?MERCURE_JWT_SECRET is required}"
+            MERCURE_CORS_ORIGINS: https://ytcg.youlz.fr
             TZ: Europe/Paris
         tty: true
         deploy:
