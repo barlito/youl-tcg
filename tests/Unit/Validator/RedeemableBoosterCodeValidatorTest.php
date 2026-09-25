@@ -27,6 +27,10 @@ final class RedeemableBoosterCodeValidatorTest extends ConstraintValidatorTestCa
 {
     private const string EXTENSION_ID = '0197c0de-0000-7000-8000-000000000001';
 
+    private const string PLAYER_ID = '188967649332428800';
+
+    private const string OTHER_PLAYER_ID = '288967649332428801';
+
     private bool $alreadyRedeemed = false;
 
     private bool $drawable = true;
@@ -51,6 +55,44 @@ final class RedeemableBoosterCodeValidatorTest extends ConstraintValidatorTestCa
     public function testARevokedCodeIsRefusedLikeAnUnknownOne(): void
     {
         $this->validator->validate($this->attempt($this->code()->setDisabled(true)), new RedeemableBoosterCode());
+
+        $this->buildViolation('Ce code n\'existe pas ou n\'est plus valide.')
+            ->setCode(BoosterCodeRefusalEnum::UNKNOWN->value)
+            ->assertRaised()
+        ;
+    }
+
+    public function testACodeAssignedToThePlayerIsRedeemable(): void
+    {
+        $code = $this->code()->setMaxUses(1)->setAssignedTo(new DiscordUser()->setDiscordId(self::PLAYER_ID));
+
+        $this->validator->validate($this->attempt($code), new RedeemableBoosterCode());
+
+        $this->assertNoViolation();
+    }
+
+    public function testACodeAssignedToAnotherPlayerIsRefusedLikeAnUnknownOne(): void
+    {
+        $code = $this->code()->setMaxUses(1)->setAssignedTo(new DiscordUser()->setDiscordId(self::OTHER_PLAYER_ID));
+
+        $this->validator->validate($this->attempt($code), new RedeemableBoosterCode());
+
+        $this->buildViolation('Ce code n\'existe pas ou n\'est plus valide.')
+            ->setCode(BoosterCodeRefusalEnum::UNKNOWN->value)
+            ->assertRaised()
+        ;
+    }
+
+    public function testAnExpiredCodeAssignedToAnotherPlayerDoesNotRevealItExpired(): void
+    {
+        $code = $this->code()
+            ->setMaxUses(1)
+            ->setAssignedTo(new DiscordUser()->setDiscordId(self::OTHER_PLAYER_ID))
+            ->setExpiresAt(new \DateTimeImmutable('2026-01-01 00:00:00', new \DateTimeZone('UTC')))
+        ;
+        $code->incrementUses();
+
+        $this->validator->validate($this->attempt($code), new RedeemableBoosterCode());
 
         $this->buildViolation('Ce code n\'existe pas ou n\'est plus valide.')
             ->setCode(BoosterCodeRefusalEnum::UNKNOWN->value)
@@ -172,7 +214,7 @@ final class RedeemableBoosterCodeValidatorTest extends ConstraintValidatorTestCa
     {
         return new BoosterCodeRedemptionAttempt(
             'ABCDEFGHJKLM',
-            new DiscordUser()->setDiscordId('188967649332428800'),
+            new DiscordUser()->setDiscordId(self::PLAYER_ID),
             $boosterCode,
         );
     }

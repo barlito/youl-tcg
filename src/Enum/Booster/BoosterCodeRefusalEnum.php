@@ -15,7 +15,7 @@ enum BoosterCodeRefusalEnum: string
     /** Blank or malformed input — never reached the lookup. */
     case INVALID_INPUT = 'invalid_input';
 
-    /** Unknown or revoked: one reason on purpose, see the constraint messages. */
+    /** Unknown, revoked or reserved for another player: one reason on purpose, see the constraint messages. */
     case UNKNOWN = 'unknown';
 
     case EXPIRED = 'expired';

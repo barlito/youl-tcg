@@ -234,6 +234,7 @@ final class BoosterHub extends AbstractController
         try {
             $redemption = $this->boosterCodeRedeemService->redeem($user, $this->code);
         } catch (BoosterCodeRefusedException $exception) {
+            // UNKNOWN also covers codes reserved for another player
             if (BoosterCodeRefusalEnum::UNKNOWN === $exception->getReason()) {
                 $limiter->consume();
             }

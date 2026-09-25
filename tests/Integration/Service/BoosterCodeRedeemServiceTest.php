@@ -127,6 +127,56 @@ final class BoosterCodeRedeemServiceTest extends KernelTestCase
         }
     }
 
+    public function testACodeAssignedToAPlayerWorksForThatPlayer(): void
+    {
+        $scenario = $this->createScenario();
+        $scenario['code']->setAssignedTo($scenario['user']);
+        $this->entityManager->flush();
+
+        $this->redeemService->redeem($scenario['user'], $scenario['code']->getCode());
+
+        $this->entityManager->clear();
+
+        $code = $this->entityManager->getRepository(BoosterCode::class)->find($scenario['code']->getId());
+        $this->assertSame(1, $code?->getUses());
+    }
+
+    public function testACodeAssignedToAPlayerIsUnknownForAnyoneElse(): void
+    {
+        $scenario = $this->createScenario();
+        $scenario['code']->setAssignedTo($scenario['user']);
+        $intruder = $this->createUser();
+        $this->entityManager->flush();
+
+        $reserved = $this->refusal($intruder, $scenario['code']->getCode());
+        $unknown = $this->refusal($intruder, 'ZZZZZZZZZZZZ');
+
+        $this->assertSame(BoosterCodeRefusalEnum::UNKNOWN, $reserved->getReason());
+        $this->assertSame($unknown->getReason(), $reserved->getReason());
+        $this->assertSame($unknown->getUserMessage(), $reserved->getUserMessage());
+
+        $this->entityManager->clear();
+
+        $code = $this->entityManager->getRepository(BoosterCode::class)->find($scenario['code']->getId());
+        $this->assertSame(0, $code?->getUses(), 'The recipient must still be able to redeem it.');
+        $this->assertSame([], $this->entityManager->getRepository(UserBooster::class)->findBy(['discordUser' => $intruder->getDiscordId()]));
+    }
+
+    public function testAnUnassignedCodeWorksForAnyPlayer(): void
+    {
+        $scenario = $this->createScenario(maxUses: null);
+        $other = $this->createUser();
+        $this->entityManager->flush();
+
+        $this->redeemService->redeem($scenario['user'], $scenario['code']->getCode());
+        $this->redeemService->redeem($other, $scenario['code']->getCode());
+
+        $this->entityManager->clear();
+
+        $code = $this->entityManager->getRepository(BoosterCode::class)->find($scenario['code']->getId());
+        $this->assertSame(2, $code?->getUses());
+    }
+
     public function testACodeOfAnUnpublishedExtensionKeepsItsUses(): void
     {
         $scenario = $this->createScenario(published: false);
@@ -143,6 +193,17 @@ final class BoosterCodeRedeemServiceTest extends KernelTestCase
         $code = $this->entityManager->getRepository(BoosterCode::class)->find($scenario['code']->getId());
         $this->assertSame(0, $code?->getUses(), 'A code handed out before release must still work on release day.');
         $this->assertSame([], $this->entityManager->getRepository(UserBooster::class)->findBy(['discordUser' => $scenario['user']]));
+    }
+
+    private function refusal(DiscordUser $user, string $code): BoosterCodeRefusedException
+    {
+        try {
+            $this->redeemService->redeem($user, $code);
+        } catch (BoosterCodeRefusedException $exception) {
+            return $exception;
+        }
+
+        $this->fail('Expected BoosterCodeRefusedException.');
     }
 
     /**

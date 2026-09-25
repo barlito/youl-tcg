@@ -72,7 +72,7 @@ class BoosterCode implements \Stringable
 
     /**
      * Player a single-use code was sent to (notification): nobody else is
-     * ever notified of it. Informational, redemption does not check it.
+     * ever notified of it, and nobody else can redeem it.
      */
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(referencedColumnName: 'discord_id', nullable: true, onDelete: 'SET NULL')]
@@ -225,6 +225,11 @@ class BoosterCode implements \Stringable
         $this->assignedTo = $assignedTo;
 
         return $this;
+    }
+
+    public function isReservedForAnotherThan(DiscordUser $discordUser): bool
+    {
+        return $this->assignedTo instanceof DiscordUser && $this->assignedTo->getDiscordId() !== $discordUser->getDiscordId();
     }
 
     public function isSingleUse(): bool
