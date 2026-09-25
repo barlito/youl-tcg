@@ -35,7 +35,7 @@
 		cors_origins {$MERCURE_CORS_ORIGINS:https://ytcg.youlz.fr}
 		publish_origins {$MERCURE_CORS_ORIGINS:https://ytcg.youlz.fr}
 		transport bolt {
-			path /data/mercure.db
+			path /app/var/mercure.db
 		}
 	}
 
