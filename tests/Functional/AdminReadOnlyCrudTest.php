@@ -9,6 +9,7 @@ use App\Controller\Admin\BoosterCodeCrudController;
 use App\Controller\Admin\BoosterCodeRedemptionCrudController;
 use App\Controller\Admin\BoosterOpeningCrudController;
 use App\Controller\Admin\DiscordUserCrudController;
+use App\Controller\Admin\TradeOfferCrudController;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -32,6 +33,7 @@ final class AdminReadOnlyCrudTest extends WebTestCase
         yield 'recuperations' => [BoosterClaimCrudController::class];
         yield 'codes' => [BoosterCodeCrudController::class];
         yield 'utilisations-de-codes' => [BoosterCodeRedemptionCrudController::class];
+        yield 'echanges' => [TradeOfferCrudController::class];
     }
 
     /**
@@ -105,6 +107,7 @@ final class AdminReadOnlyCrudTest extends WebTestCase
             BoosterClaimCrudController::class => '/admin/booster-claim',
             BoosterCodeCrudController::class => '/admin/booster-code',
             BoosterCodeRedemptionCrudController::class => '/admin/booster-code-redemption',
+            TradeOfferCrudController::class => '/admin/trade-offer',
             default => throw new \LogicException('Unknown CRUD ' . $controllerFqcn),
         };
 

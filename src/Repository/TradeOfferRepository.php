@@ -12,6 +12,7 @@ use App\Enum\Trade\TradeOfferStatusEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\QueryBuilder;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -145,21 +146,40 @@ class TradeOfferRepository extends ServiceEntityRepository
     }
 
     /**
-     * Resolved offers the user took part in, whatever the side, latest first.
+     * One page of the resolved offers the user took part in, whatever the
+     * side, latest first. The Paginator keeps the page size in OFFERS: a plain
+     * setMaxResults() over the fetch-joined lines would count rows.
      *
      * @return list<TradeOffer>
      */
-    public function findHistoryFor(DiscordUser $user, int $limit = 20): array
+    public function findHistoryPageFor(DiscordUser $user, int $page, int $perPage): array
     {
-        return array_values($this->withLines()
+        $query = $this->withLines()
             ->andWhere('tradeOffer.proposer = :user OR tradeOffer.receiver = :user')
             ->andWhere('tradeOffer.status != :pending')
             ->setParameter('user', $user)
             ->setParameter('pending', TradeOfferStatusEnum::PENDING->value)
             ->orderBy('tradeOffer.resolvedAt', 'DESC')
-            ->setMaxResults($limit)
+            ->addOrderBy('tradeOffer.id', 'DESC')
+            ->setFirstResult(max(0, $page - 1) * $perPage)
+            ->setMaxResults($perPage)
             ->getQuery()
-            ->getResult());
+        ;
+
+        return array_values(iterator_to_array(new Paginator($query, fetchJoinCollection: true)));
+    }
+
+    public function countHistoryFor(DiscordUser $user): int
+    {
+        return (int) $this->createQueryBuilder('tradeOffer')
+            ->select('COUNT(tradeOffer.id)')
+            ->andWhere('tradeOffer.proposer = :user OR tradeOffer.receiver = :user')
+            ->andWhere('tradeOffer.status != :pending')
+            ->setParameter('user', $user)
+            ->setParameter('pending', TradeOfferStatusEnum::PENDING->value)
+            ->getQuery()
+            ->getSingleScalarResult()
+        ;
     }
 
     /**

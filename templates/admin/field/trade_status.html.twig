@@ -1,0 +1,4 @@
+{% set status = field.formattedValue %}
+{% if status %}
+    <twig:ea:Badge variant="{{ status.badge }}">{{ status.label }}</twig:ea:Badge>
+{% endif %}

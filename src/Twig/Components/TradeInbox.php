@@ -10,6 +10,7 @@ use App\Entity\DiscordUser;
 use App\Entity\TradeOffer;
 use App\Entity\TradeOfferLine;
 use App\Enum\FeatureEnum;
+use App\Enum\Trade\TradeOfferStatusEnum;
 use App\Exception\Trade\TradeException;
 use App\Repository\TradeOfferRepository;
 use App\Repository\UserCardRepository;
@@ -20,13 +21,17 @@ use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 #[RequiresFeature(FeatureEnum::TRADES)]
 #[AsLiveComponent]
 final class TradeInbox extends AbstractController
 {
+    use ComponentToolsTrait;
     use DefaultActionTrait;
+
+    public const int HISTORY_PER_PAGE = 20;
 
     #[LiveProp]
     public ?string $error = null;
@@ -38,6 +43,10 @@ final class TradeInbox extends AbstractController
     #[LiveProp]
     public ?string $confirming = null;
 
+    /** 1-based page of the history, clamped at render time. */
+    #[LiveProp]
+    public int $historyPage = 1;
+
     /**
      * Cards the reader owns, hence may see. Memoized: one query per render,
      * never one per offer.
@@ -45,6 +54,16 @@ final class TradeInbox extends AbstractController
      * @var array<string, true>|null
      */
     private ?array $owned = null;
+
+    /**
+     * Cards the reader owns or once held: the visibility set of the resolved
+     * offers that moved nothing.
+     *
+     * @var array<string, true>|null
+     */
+    private ?array $everOwned = null;
+
+    private ?int $historyCount = null;
 
     public function __construct(
         private readonly TradeOfferRepository $tradeOfferRepository,
@@ -95,7 +114,45 @@ final class TradeInbox extends AbstractController
      */
     public function getHistory(): array
     {
-        return $this->tradeOfferRepository->findHistoryFor($this->getDiscordUser());
+        return $this->tradeOfferRepository->findHistoryPageFor($this->getDiscordUser(), $this->getCurrentHistoryPage(), self::HISTORY_PER_PAGE);
+    }
+
+    public function getHistoryPageCount(): int
+    {
+        $this->historyCount ??= $this->tradeOfferRepository->countHistoryFor($this->getDiscordUser());
+
+        return max(1, (int) ceil($this->historyCount / self::HISTORY_PER_PAGE));
+    }
+
+    public function getCurrentHistoryPage(): int
+    {
+        return min(max(1, $this->historyPage), $this->getHistoryPageCount());
+    }
+
+    /**
+     * What the reader gave (or would have given) in a resolved offer.
+     *
+     * @return list<TradeLineView>
+     */
+    public function historyGivenView(TradeOffer $offer): array
+    {
+        return $this->historyView($offer, given: true);
+    }
+
+    /**
+     * What the reader received (or would have received) in a resolved offer.
+     *
+     * @return list<TradeLineView>
+     */
+    public function historyReceivedView(TradeOffer $offer): array
+    {
+        return $this->historyView($offer, given: false);
+    }
+
+    #[LiveAction]
+    public function goToHistoryPage(#[LiveArg] int $page): void
+    {
+        $this->historyPage = max(1, $page);
     }
 
     #[LiveAction]
@@ -166,6 +223,42 @@ final class TradeInbox extends AbstractController
     }
 
     /**
+     * Masking of the history: an ACCEPTED offer moved every card through the
+     * reader's hands, so all of it shows. Any other outcome moved nothing, and
+     * propose-then-cancel must not become a way to peek at cards: only the
+     * cards the reader owns or once held show there.
+     *
+     * @return list<TradeLineView>
+     */
+    private function historyView(TradeOffer $offer, bool $given): array
+    {
+        $reader = $this->getDiscordUser()->getDiscordId();
+        $lines = array_values(array_filter(
+            $offer->getLines()->toArray(),
+            static fn (TradeOfferLine $line): bool => $given === ($offer->getGiverOf($line)->getDiscordId() === $reader),
+        ));
+        $everOwned = TradeOfferStatusEnum::ACCEPTED === $offer->getStatus() ? null : $this->everOwnedCardIds();
+
+        return array_map(
+            static fn (TradeOfferLine $line): TradeLineView => new TradeLineView(
+                null === $everOwned || isset($everOwned[(string) $line->getCard()->getId()]) ? $line->getCard() : null,
+                $line->getCard()->getRarity(),
+                $line->getTotalQuantity(),
+                $line->getHoloQuantity(),
+            ),
+            $lines,
+        );
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    private function everOwnedCardIds(): array
+    {
+        return $this->everOwned ??= $this->userCardRepository->findEverOwnedCardIds($this->getDiscordUser());
+    }
+
+    /**
      * @return array<string, true>
      */
     private function ownedCardIds(): array
@@ -202,6 +295,9 @@ final class TradeInbox extends AbstractController
         } catch (TradeException $exception) {
             $this->error = $exception->getUserMessage();
         }
+
+        // local echo for the header badge, even without a realtime connection
+        $this->dispatchBrowserEvent('trades:changed');
     }
 
     private function getDiscordUser(): DiscordUser
