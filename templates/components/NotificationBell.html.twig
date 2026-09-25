@@ -65,6 +65,10 @@
                             <span class="mt-0.5 w-4 shrink-0 text-center font-mono text-sm {{ notification.unread ? 'text-magenta' : 'text-ink-dim' }}" aria-hidden="true">{{ notification.icon }}</span>
                             <span class="flex flex-1 flex-col gap-1">
                                 <span class="text-sm {{ notification.unread ? 'text-ink-strong' : 'text-ink-muted' }}">{{ notification.text }}</span>
+                                {% if notification.body %}
+                                    {# plain text, auto-escaped: line breaks kept by CSS, never |raw #}
+                                    <span class="line-clamp-4 whitespace-pre-line break-words text-xs text-ink-muted" data-testid="notification-body">{{ notification.body }}</span>
+                                {% endif %}
                                 {% if notification.createdAt %}
                                     <span class="chip-mono text-ink-dim">{{ notification.createdAt|date('d/m · H:i', 'Europe/Paris') }}</span>
                                 {% endif %}

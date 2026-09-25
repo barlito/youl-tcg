@@ -57,9 +57,13 @@ class DashboardController extends AbstractDashboardController
         $copyJs = $this->assetMapper->getAsset('scripts/admin/copy-to-clipboard.js')
             ?? throw new \LogicException('Asset "scripts/admin/copy-to-clipboard.js" not found in the asset map.');
 
+        $targetJs = $this->assetMapper->getAsset('scripts/admin/recipient-target.js')
+            ?? throw new \LogicException('Asset "scripts/admin/recipient-target.js" not found in the asset map.');
+
         return parent::configureAssets()
             ->addCssFile($adminCss->publicPath)
             ->addJsFile($copyJs->publicPath)
+            ->addJsFile($targetJs->publicPath)
         ;
     }
 
@@ -77,6 +81,10 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToRoute('Générer des codes', 'fa fa-ticket', 'admin_booster_codes_batch');
         yield MenuItem::linkTo(BoosterCodeCrudController::class, 'Codes', 'fa fa-key');
         yield MenuItem::linkTo(BoosterCodeRedemptionCrudController::class, 'Utilisations de codes', 'fa fa-check-double');
+
+        yield MenuItem::section('Communication');
+        yield MenuItem::linkToRoute('Annonces', 'fa fa-bullhorn', 'admin_announcements');
+        yield MenuItem::linkTo(AnnouncementCrudController::class, 'Historique des envois', 'fa fa-clock-rotate-left');
 
         yield MenuItem::section('Économie (lecture seule)');
         yield MenuItem::linkTo(DiscordUserCrudController::class, 'Joueurs', 'fa fa-users');

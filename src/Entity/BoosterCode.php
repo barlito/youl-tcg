@@ -70,6 +70,14 @@ class BoosterCode implements \Stringable
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $batchLabel = null;
 
+    /**
+     * Player a single-use code was sent to (notification): nobody else is
+     * ever notified of it. Informational, redemption does not check it.
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(referencedColumnName: 'discord_id', nullable: true, onDelete: 'SET NULL')]
+    private ?DiscordUser $assignedTo = null;
+
     public function __toString(): string
     {
         return $this->getFormattedCode();
@@ -205,6 +213,23 @@ class BoosterCode implements \Stringable
         $this->batchLabel = null !== $batchLabel && '' !== trim($batchLabel) ? trim($batchLabel) : null;
 
         return $this;
+    }
+
+    public function getAssignedTo(): ?DiscordUser
+    {
+        return $this->assignedTo;
+    }
+
+    public function setAssignedTo(?DiscordUser $assignedTo): static
+    {
+        $this->assignedTo = $assignedTo;
+
+        return $this;
+    }
+
+    public function isSingleUse(): bool
+    {
+        return 1 === $this->maxUses;
     }
 
     public function isRedeemable(\DateTimeImmutable $now): bool

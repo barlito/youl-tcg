@@ -11,6 +11,7 @@ use App\Repository\BoosterOpeningRepository;
 use App\Repository\CardRepository;
 use App\Repository\ExtensionRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -83,8 +84,11 @@ class BaseController extends AbstractController
     }
 
     #[Route('/boosters', name: 'boosters')]
-    public function boosters(): Response
+    public function boosters(Request $request): Response
     {
-        return $this->render('pages/boosters.html.twig');
+        // ?code= comes from a booster code notification: pre-filled, not redeemed
+        return $this->render('pages/boosters.html.twig', [
+            'code' => $request->query->getString('code'),
+        ]);
     }
 }

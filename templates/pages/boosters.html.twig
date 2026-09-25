@@ -5,5 +5,5 @@
 {% endblock %}
 
 {% block body %}
-    {{ component('BoosterHub') }}
+    {{ component('BoosterHub', {code: code|default('')}) }}
 {% endblock %}

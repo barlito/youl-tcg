@@ -61,13 +61,14 @@ final readonly class NotificationService
             return null;
         }
 
-        [$icon, $text, $link] = $this->renderer->describe($type, $payload);
+        $content = $this->renderer->describe($type, $payload);
+        // with a body (announcements), the text becomes the toast heading
         $event = [
             'id' => $notification->getId(),
-            'icon' => $icon,
-            'title' => 'Notification',
-            'message' => $text,
-            'link' => $link,
+            'icon' => $content->icon,
+            'title' => null !== $content->body ? $content->text : 'Notification',
+            'message' => $content->body ?? $content->text,
+            'link' => $content->link,
             'silent' => $alreadyRead,
         ];
 

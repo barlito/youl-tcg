@@ -130,7 +130,7 @@ final class AdminBoosterCodeBatchTest extends WebTestCase
         ]);
         $client->submit($form);
 
-        self::assertResponseIsSuccessful();
+        self::assertResponseStatusCodeSame(422);
         $this->assertSame([], self::getContainer()->get(BoosterCodeRepository::class)->findByBatch($batchLabel));
     }
 

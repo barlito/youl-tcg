@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace App\Service\Notification;
 
+use App\Dto\NotificationContent;
 use App\Dto\NotificationView;
 use App\Entity\DiscordUser;
 use App\Entity\Notification;
 use App\Enum\Notification\NotificationTypeEnum;
+use App\Service\Booster\BoosterCodeGenerator;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * Turns a stored notification (type + payload) into text and an internal
- * link. Links are always generated from route names: a payload can never
- * point a player outside the app.
+ * link. Links are generated from route names, or (announcements) re-checked
+ * as internal paths: a payload can never point a player outside the app.
  */
 final readonly class NotificationRenderer
 {
@@ -24,48 +26,97 @@ final readonly class NotificationRenderer
 
     public function render(Notification $notification, DiscordUser $viewer): NotificationView
     {
-        [$icon, $text, $link] = $this->describe($notification->getType(), $notification->getPayload());
+        $content = $this->describe($notification->getType(), $notification->getPayload());
 
         return new NotificationView(
             $notification->getId(),
-            $icon,
-            $text,
-            $link,
+            $content->icon,
+            $content->text,
+            $content->link,
             $notification->getCreatedAt(),
             $notification->isUnreadFor($viewer),
+            $content->body,
         );
     }
 
     /**
      * @param array<string, scalar|null> $payload
-     *
-     * @return array{0: string, 1: string, 2: string} icon, text, link
      */
-    public function describe(NotificationTypeEnum $type, array $payload): array
+    public function describe(NotificationTypeEnum $type, array $payload): NotificationContent
     {
         return match ($type) {
             // the card itself is never named: only who and in which universe
-            NotificationTypeEnum::UNIQUE_PULLED => [
+            NotificationTypeEnum::UNIQUE_PULLED => new NotificationContent(
                 '◆',
                 \sprintf('%s a tiré une carte unique dans %s', $this->string($payload, 'playerName', 'Un joueur'), $this->string($payload, 'universe', 'un univers')),
                 $this->playerLink($payload),
-            ],
-            NotificationTypeEnum::STREAK_REWARD_AVAILABLE => [
+            ),
+            NotificationTypeEnum::STREAK_REWARD_AVAILABLE => new NotificationContent(
                 '▲',
                 \sprintf('Palier de série %d jours atteint : choisis ton pack bonus', $this->int($payload, 'milestone')),
                 $this->urlGenerator->generate('boosters'),
-            ],
-            NotificationTypeEnum::BOOSTER_CREDITED => [
+            ),
+            NotificationTypeEnum::BOOSTER_CREDITED => new NotificationContent(
                 '+',
                 $this->boosterCreditedText($payload),
                 $this->urlGenerator->generate('boosters'),
-            ],
-            NotificationTypeEnum::TRADE_RECEIVED => ['⇄', 'Tu as reçu une offre d\'échange', $this->urlGenerator->generate('homepage')],
-            NotificationTypeEnum::TRADE_ACCEPTED => ['⇄', 'Ton offre d\'échange a été acceptée', $this->urlGenerator->generate('homepage')],
-            NotificationTypeEnum::TRADE_REFUSED => ['⇄', 'Ton offre d\'échange a été refusée', $this->urlGenerator->generate('homepage')],
-            NotificationTypeEnum::ANNOUNCEMENT => ['!', $this->string($payload, 'title', 'Annonce'), $this->urlGenerator->generate('homepage')],
-            NotificationTypeEnum::BOOSTER_CODE => ['#', 'Un code booster t\'attend', $this->urlGenerator->generate('boosters')],
+            ),
+            NotificationTypeEnum::TRADE_RECEIVED => new NotificationContent('⇄', 'Tu as reçu une offre d\'échange', $this->urlGenerator->generate('homepage')),
+            NotificationTypeEnum::TRADE_ACCEPTED => new NotificationContent('⇄', 'Ton offre d\'échange a été acceptée', $this->urlGenerator->generate('homepage')),
+            NotificationTypeEnum::TRADE_REFUSED => new NotificationContent('⇄', 'Ton offre d\'échange a été refusée', $this->urlGenerator->generate('homepage')),
+            NotificationTypeEnum::ANNOUNCEMENT => new NotificationContent(
+                '!',
+                $this->string($payload, 'title', 'Annonce'),
+                $this->announcementLink($payload),
+                $this->nullableString($payload, 'message'),
+            ),
+            NotificationTypeEnum::BOOSTER_CODE => new NotificationContent(
+                '#',
+                $this->boosterCodeText($payload),
+                $this->boosterCodeLink($payload),
+                $this->nullableString($payload, 'message'),
+            ),
         };
+    }
+
+    /**
+     * @param array<string, scalar|null> $payload
+     */
+    private function boosterCodeText(array $payload): string
+    {
+        $quantity = max(1, $this->int($payload, 'quantity'));
+
+        return \sprintf(
+            '🎁 Un code booster t\'attend : %d pack%s « %s »',
+            $quantity,
+            $quantity > 1 ? 's' : '',
+            $this->string($payload, 'boosterName', 'booster'),
+        );
+    }
+
+    /**
+     * The hub with the code pre-filled. Re-normalized here: whatever the
+     * payload holds, the query string only ever carries code characters.
+     *
+     * @param array<string, scalar|null> $payload
+     */
+    private function boosterCodeLink(array $payload): string
+    {
+        $code = BoosterCodeGenerator::normalize($this->string($payload, 'code', ''));
+
+        return $this->urlGenerator->generate('boosters', '' !== $code ? ['code' => $code] : []);
+    }
+
+    /**
+     * Checked again at render time: only an internal path is ever followed.
+     *
+     * @param array<string, scalar|null> $payload
+     */
+    private function announcementLink(array $payload): ?string
+    {
+        $link = $this->string($payload, 'link', '');
+
+        return InternalLinkPolicy::isInternalPath($link) ? $link : null;
     }
 
     /**
@@ -111,6 +162,16 @@ final readonly class NotificationRenderer
         $value = $payload[$key] ?? null;
 
         return \is_string($value) && '' !== $value ? $value : $default;
+    }
+
+    /**
+     * @param array<string, scalar|null> $payload
+     */
+    private function nullableString(array $payload, string $key): ?string
+    {
+        $value = $this->string($payload, $key, '');
+
+        return '' !== $value ? $value : null;
     }
 
     /**

@@ -22,6 +22,20 @@
             <div class="mb-3">{{ form_row(form.quantity) }}</div>
             <div class="mb-3">{{ form_row(form.maxUses) }}</div>
             <div class="mb-3">{{ form_row(form.expiresAt) }}</div>
+
+            <fieldset class="mb-3 border rounded p-3" data-recipient-target data-testid="batch-notify">
+                <legend class="h6 w-auto px-1">🔔 Notification</legend>
+                <p class="small text-muted mb-2">
+                    Envoie le code dans la cloche des joueurs, avec un lien vers le hub où il est déjà saisi.
+                    <strong>Usage unique + sélection</strong> : un code par joueur, chacun ne reçoit que le sien
+                    (le « Nombre de codes » est alors ignoré). <strong>Usages multiples</strong> : génère un seul
+                    code, tous les destinataires reçoivent le même. Un code à usage unique ne s'envoie jamais à tous.
+                </p>
+                {{ form_row(form.notifyTarget.mode) }}
+                {{ form_row(form.notifyTarget.recipients) }}
+                {{ form_row(form.notifyMessage) }}
+            </fieldset>
+
             <button type="submit" class="btn btn-primary">Générer les codes</button>
         {{ form_end(form) }}
 

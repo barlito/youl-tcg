@@ -15,6 +15,7 @@ use App\Repository\BoosterRepository;
 use App\Repository\UserBoosterRepository;
 use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\BoosterClaimService;
+use App\Service\Booster\BoosterCodeGenerator;
 use App\Service\Booster\BoosterCodeRedeemService;
 use App\Service\Booster\OpeningStreakService;
 use App\Service\Booster\StreakRewardService;
@@ -37,6 +38,10 @@ final class BoosterHub extends AbstractController
 
     #[LiveProp(writable: true)]
     public string $code = '';
+
+    /** The code came from a notification link (?code=): highlight the field. */
+    #[LiveProp]
+    public bool $codePrefilled = false;
 
     #[LiveProp]
     public ?string $codeError = null;
@@ -72,6 +77,21 @@ final class BoosterHub extends AbstractController
         private readonly OpeningStreakService $openingStreakService,
         private readonly StreakRewardService $streakRewardService,
     ) {
+    }
+
+    /**
+     * Pre-fills "J'ai un code" from a notification link (/boosters?code=...).
+     * Normalized like a typed code and never submitted: the player validates
+     * it, through the same rate-limited action.
+     */
+    public function mount(?string $code = null): void
+    {
+        $normalized = BoosterCodeGenerator::normalize((string) $code);
+
+        if ('' !== $normalized) {
+            $this->code = implode('-', str_split($normalized, 4));
+            $this->codePrefilled = true;
+        }
     }
 
     /**
@@ -191,6 +211,7 @@ final class BoosterHub extends AbstractController
     {
         $this->codeError = null;
         $this->codeSuccess = null;
+        $this->codePrefilled = false;
 
         $user = $this->getDiscordUser();
         $limiter = $this->boosterCodeRedeemLimiter->create($user->getDiscordId());
