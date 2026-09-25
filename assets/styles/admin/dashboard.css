@@ -29,6 +29,7 @@
 .eco-card .eco-meta { margin-bottom: .75rem; }
 
 .eco-chart { position: relative; height: 260px; }
+.eco-tiles--inline { margin-bottom: 1rem; }
 
 .eco-table { width: 100%; margin-top: 1rem; border-collapse: collapse; font-size: .85rem; }
 .eco-table th,

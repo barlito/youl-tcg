@@ -8,12 +8,14 @@ use App\Dto\Admin\EconomyDashboard;
 use App\Dto\Admin\EconomyKpis;
 use App\Dto\Admin\RarityComparison;
 use App\Dto\Admin\RarityComparisonRow;
+use App\Dto\Admin\TradeActivity;
 use App\Dto\Admin\WeeklyRecycleStats;
 use App\Entity\Booster;
 use App\Enum\Admin\BoosterChannelEnum;
 use App\Enum\Admin\EconomyPeriodEnum;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
+use App\Enum\Trade\TradeOfferStatusEnum;
 use App\Service\Booster\CardDrawer;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
@@ -32,13 +34,18 @@ final readonly class EconomyStatsProvider
     public const string UNIQUE_BUCKET = 'unique';
 
     /**
-     * What makes a player « active »: table => timestamp column (the player
-     * column is always discord_user_id). Extension point: add
-     * 'trade_offer' => '<its timestamp>' here once trades land.
+     * What makes a player « active »: each source is a player column and a
+     * timestamp column of a table, optionally filtered by a static condition.
+     * Invalidated trade offers are not an activity (nobody acted).
+     *
+     * @var list<array{table: string, player: string, at: string, condition?: string}>
      */
     private const array ACTIVITY_SOURCES = [
-        'booster_opening' => 'opened_at',
-        'booster_claim' => 'claimed_at',
+        ['table' => 'booster_opening', 'player' => 'discord_user_id', 'at' => 'opened_at'],
+        ['table' => 'booster_claim', 'player' => 'discord_user_id', 'at' => 'claimed_at'],
+        ['table' => 'trade_offer', 'player' => 'proposer_id', 'at' => 'created_at'],
+        ['table' => 'trade_offer', 'player' => 'receiver_id', 'at' => 'resolved_at', 'condition' => "status IN ('accepted', 'refused')"],
+        ['table' => 'trade_offer', 'player' => 'proposer_id', 'at' => 'resolved_at', 'condition' => "status = 'cancelled'"],
     ];
 
     private const string UTC_FORMAT = 'Y-m-d H:i:s';
@@ -65,6 +72,7 @@ final readonly class EconomyStatsProvider
             $this->countBoostersPerChannel($days, $since),
             $this->aggregateWeeklyRecycles($start, $since),
             $this->compareRarities($since),
+            $this->countTradesPerDay($days, $since),
         );
     }
 
@@ -197,6 +205,49 @@ final readonly class EconomyStatsProvider
         }
 
         return $perChannel;
+    }
+
+    /**
+     * @param list<string> $days
+     */
+    private function countTradesPerDay(array $days, string $since): TradeActivity
+    {
+        $sql = \sprintf(
+            <<<'SQL'
+                SELECT kind, day, COUNT(*) AS total FROM (
+                    SELECT 'created' AS kind, %s AS day FROM trade_offer WHERE created_at >= :since
+                    UNION ALL
+                    SELECT status, %s FROM trade_offer WHERE status IN (:accepted, :refused) AND resolved_at >= :since
+                ) trades
+                GROUP BY kind, day
+                SQL,
+            $this->dayExpression('created_at'),
+            $this->dayExpression('resolved_at'),
+        );
+
+        $perKind = array_fill_keys(['created', TradeOfferStatusEnum::ACCEPTED->value, TradeOfferStatusEnum::REFUSED->value], array_fill_keys($days, 0));
+
+        $rows = $this->connection->fetchAllAssociative($sql, [
+            'timezone' => self::TIMEZONE,
+            'since' => $since,
+            'accepted' => TradeOfferStatusEnum::ACCEPTED->value,
+            'refused' => TradeOfferStatusEnum::REFUSED->value,
+        ]);
+
+        foreach ($rows as $row) {
+            $kind = $this->string($row, 'kind');
+            $day = $this->string($row, 'day');
+
+            if (isset($perKind[$kind][$day])) {
+                $perKind[$kind][$day] = $this->int($row, 'total');
+            }
+        }
+
+        return new TradeActivity(
+            $perKind['created'],
+            $perKind[TradeOfferStatusEnum::ACCEPTED->value],
+            $perKind[TradeOfferStatusEnum::REFUSED->value],
+        );
     }
 
     /**
@@ -413,8 +464,15 @@ final readonly class EconomyStatsProvider
     {
         $parts = [];
 
-        foreach (self::ACTIVITY_SOURCES as $table => $column) {
-            $parts[] = \sprintf('SELECT discord_user_id AS user_id, %2$s AS happened_at FROM %1$s WHERE %2$s >= %3$s', $table, $column, $sincePlaceholder);
+        foreach (self::ACTIVITY_SOURCES as $source) {
+            $parts[] = \sprintf(
+                'SELECT %1$s AS user_id, %2$s AS happened_at FROM %3$s WHERE %2$s >= %4$s%5$s',
+                $source['player'],
+                $source['at'],
+                $source['table'],
+                $sincePlaceholder,
+                isset($source['condition']) ? ' AND ' . $source['condition'] : '',
+            );
         }
 
         return implode(' UNION ALL ', $parts);
