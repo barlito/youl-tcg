@@ -61,9 +61,21 @@ final readonly class NotificationRenderer
                 $this->boosterCreditedText($payload),
                 $this->urlGenerator->generate('boosters'),
             ),
-            NotificationTypeEnum::TRADE_RECEIVED => new NotificationContent('⇄', 'Tu as reçu une offre d\'échange', $this->urlGenerator->generate('homepage')),
-            NotificationTypeEnum::TRADE_ACCEPTED => new NotificationContent('⇄', 'Ton offre d\'échange a été acceptée', $this->urlGenerator->generate('homepage')),
-            NotificationTypeEnum::TRADE_REFUSED => new NotificationContent('⇄', 'Ton offre d\'échange a été refusée', $this->urlGenerator->generate('homepage')),
+            NotificationTypeEnum::TRADE_RECEIVED => new NotificationContent(
+                '⇄',
+                \sprintf('%s te propose un échange', $this->string($payload, 'playerName', 'Un joueur')),
+                $this->urlGenerator->generate('trades'),
+            ),
+            NotificationTypeEnum::TRADE_ACCEPTED => new NotificationContent(
+                '✓',
+                \sprintf('%s a accepté ton échange', $this->string($payload, 'playerName', 'Un joueur')),
+                $this->urlGenerator->generate('trades'),
+            ),
+            NotificationTypeEnum::TRADE_REFUSED => new NotificationContent(
+                '✕',
+                \sprintf('%s a refusé ton échange', $this->string($payload, 'playerName', 'Un joueur')),
+                $this->urlGenerator->generate('trades'),
+            ),
             NotificationTypeEnum::ANNOUNCEMENT => new NotificationContent(
                 '!',
                 $this->string($payload, 'title', 'Annonce'),

@@ -11,6 +11,7 @@ use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Enum\Trade\TradeOfferStatusEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\LockMode;
@@ -130,6 +131,33 @@ class UserCardRepository extends ServiceEntityRepository
         ;
 
         return array_map(static fn (array $row): string => (string) $row['cardId'], $rows);
+    }
+
+    /**
+     * Cards the user owns now OR provably held at some point: drawn in one of
+     * their openings, or moved by one of their ACCEPTED trades (given or
+     * taken). A zero-quantity user_card row proves nothing (an aborted trade
+     * acceptance may create one), so it is ignored.
+     *
+     * @return array<string, true> card id => known
+     */
+    public function findEverOwnedCardIds(DiscordUser $discordUser): array
+    {
+        /** @var list<string> $cardIds */
+        $cardIds = $this->getEntityManager()->getConnection()->fetchFirstColumn(
+            'SELECT card_id FROM user_card WHERE discord_user_id = :user AND (quantity > 0 OR holo_quantity > 0)
+             UNION
+             SELECT opening_card.card_id FROM booster_opening_card opening_card
+                 JOIN booster_opening opening ON opening.id = opening_card.booster_opening_id
+                 WHERE opening.discord_user_id = :user
+             UNION
+             SELECT line.card_id FROM trade_offer_line line
+                 JOIN trade_offer offer ON offer.id = line.trade_offer_id
+                 WHERE offer.status = :accepted AND (offer.proposer_id = :user OR offer.receiver_id = :user)',
+            ['user' => $discordUser->getDiscordId(), 'accepted' => TradeOfferStatusEnum::ACCEPTED->value],
+        );
+
+        return array_fill_keys(array_map(strval(...), $cardIds), true);
     }
 
     /**

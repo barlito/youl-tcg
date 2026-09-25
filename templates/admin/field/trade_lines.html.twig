@@ -1,0 +1,42 @@
+{# Cards of a trade offer: a copy count per side on the listing, every line
+   in clear on the detail page (audit view: no masking for admins). #}
+{% set data = field.formattedValue %}
+
+{% if data.compact %}
+    <span class="trade-lines-summary text-nowrap">
+        {{ data.offeredCount }} offerte{{ data.offeredCount > 1 ? 's' }}
+        <span class="text-muted">⇄</span>
+        {{ data.requestedCount }} demandée{{ data.requestedCount > 1 ? 's' }}
+    </span>
+{% else %}
+    <div class="trade-lines">
+        {% for side in data.sides %}
+            <p class="fw-semibold mb-1 {{ not loop.first ? 'mt-3' }}">{{ side.label }}</p>
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">Carte</th>
+                        <th scope="col">Rareté</th>
+                        <th scope="col">Normales</th>
+                        <th scope="col">Holo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for card in side.cards %}
+                        <tr>
+                            <td>
+                                <a href="{{ card.url }}">{{ card.name }}</a>
+                                {% if card.unique %}
+                                    <span class="badge bg-warning text-dark" title="Carte unique : un seul exemplaire existe">1/1</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ rarity_label(card.rarity) }}</td>
+                            <td>{{ card.normal > 0 ? card.normal : '—' }}</td>
+                            <td>{{ card.holo > 0 ? '✨ ' ~ card.holo : '—' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
+    </div>
+{% endif %}

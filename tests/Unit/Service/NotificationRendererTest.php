@@ -49,6 +49,22 @@ final class NotificationRendererTest extends TestCase
         $this->assertNull($this->renderer()->describe(NotificationTypeEnum::ANNOUNCEMENT, ['title' => 'x', 'message' => 'y', 'link' => null])->link);
     }
 
+    public function testTradeNotificationsNameTheOtherPlayerAndLeadToTheTradesPage(): void
+    {
+        $payload = ['playerName' => 'Benj', 'playerId' => '232457563910832129'];
+
+        $received = $this->renderer()->describe(NotificationTypeEnum::TRADE_RECEIVED, $payload);
+        $this->assertSame(['⇄', 'Benj te propose un échange', '/trades'], [$received->icon, $received->text, $received->link]);
+
+        $accepted = $this->renderer()->describe(NotificationTypeEnum::TRADE_ACCEPTED, $payload);
+        $this->assertSame(['✓', 'Benj a accepté ton échange', '/trades'], [$accepted->icon, $accepted->text, $accepted->link]);
+
+        $refused = $this->renderer()->describe(NotificationTypeEnum::TRADE_REFUSED, $payload);
+        $this->assertSame(['✕', 'Benj a refusé ton échange', '/trades'], [$refused->icon, $refused->text, $refused->link]);
+
+        $this->assertSame('Un joueur te propose un échange', $this->renderer()->describe(NotificationTypeEnum::TRADE_RECEIVED, [])->text);
+    }
+
     private function renderer(): NotificationRenderer
     {
         $urlGenerator = $this->createStub(UrlGeneratorInterface::class);

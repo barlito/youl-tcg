@@ -1,4 +1,5 @@
-<div {{ attributes }}>
+{# re-rendered live whenever an offer of the reader moves (other player, other tab) #}
+<div {{ attributes.defaults({'data-action': 'live-updates:trades-changed@window->live#$render'}) }}>
     {% set received = this.received %}
     {% set sent = this.sent %}
     {% set history = this.history %}
@@ -132,26 +133,66 @@
 
         {# ------------------------------------------------------ Historique #}
         {% if history is not empty %}
+            {% set pageCount = this.historyPageCount %}
+            {% set page = this.currentHistoryPage %}
             <section class="border-t border-hairline px-6 py-10 lg:px-12">
                 <div class="mx-auto max-w-7xl">
-                    <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">Historique</h2>
-                    <div class="mt-4 divide-y divide-hairline border border-hairline" data-testid="trade-history">
+                    <div class="flex flex-wrap items-baseline justify-between gap-2">
+                        <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">Historique</h2>
+                        {% if pageCount > 1 %}
+                            <span class="chip-mono text-ink-dim" data-testid="history-page">Page {{ page }} / {{ pageCount }}</span>
+                        {% endif %}
+                    </div>
+                    {# keyed by page: a page change swaps the list instead of morphing opened entries into others #}
+                    <div id="trade-history-page-{{ page }}" class="mt-4 divide-y divide-hairline border border-hairline" data-testid="trade-history">
                         {% for offer in history %}
                             {% set isMine = offer.proposer.discordId == app.user.discordId %}
-                            <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-                                <span class="chip-mono text-ink-muted">
-                                    {{ offer.resolvedAt ? offer.resolvedAt|date('d/m/Y', 'Europe/Paris') : '' }}
-                                    · {{ isMine ? 'offre à ' ~ offer.receiver.username : 'offre de ' ~ offer.proposer.username }}
-                                </span>
-                                {{ _self.status(offer.status) }}
-                            </div>
+                            {% set accepted = offer.status.value == 'accepted' %}
+                            <details id="history-{{ offer.id }}" class="group" data-testid="history-entry">
+                                <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-surface [&::-webkit-details-marker]:hidden">
+                                    <span class="flex min-w-0 items-center gap-2">
+                                        <span class="font-mono text-xs text-primary transition-transform group-open:rotate-90" aria-hidden="true">▸</span>
+                                        <span class="chip-mono truncate text-ink-muted">
+                                            {{ offer.resolvedAt ? offer.resolvedAt|date('d/m/Y H:i', 'Europe/Paris') : '' }}
+                                            · {{ isMine ? 'offre à ' ~ offer.receiver.username : 'offre de ' ~ offer.proposer.username }}
+                                        </span>
+                                    </span>
+                                    {{ _self.status(offer.status) }}
+                                </summary>
+                                <div class="border-t border-hairline bg-surface/40" data-testid="history-detail">
+                                    {{ _self.offer_body(
+                                        this.historyGivenView(offer), accepted ? 'Tu as donné' : 'Tu aurais donné',
+                                        this.historyReceivedView(offer), accepted ? 'Tu as reçu' : 'Tu aurais reçu',
+                                        'h-' ~ offer.id
+                                    ) }}
+                                </div>
+                            </details>
                         {% endfor %}
                     </div>
+                    {% if pageCount > 1 %}
+                        <nav class="mt-4 flex items-center justify-between gap-3" aria-label="Pagination de l'historique" data-testid="history-pagination">
+                            {{ _self.page_button(page - 1, '◂ Plus récents', page <= 1, 'history-prev') }}
+                            {{ _self.page_button(page + 1, 'Plus anciens ▸', page >= pageCount, 'history-next') }}
+                        </nav>
+                    {% endif %}
                 </div>
             </section>
         {% endif %}
     </main>
 </div>
+
+{% macro page_button(target, label, disabled, testid) %}
+    <button type="button"
+            data-action="live#action"
+            data-live-action-param="goToHistoryPage"
+            data-live-page-param="{{ target }}"
+            data-loading="addAttribute(disabled) addClass(opacity-50)"
+            data-testid="{{ testid }}"
+            {{ disabled ? 'disabled' }}
+            class="border border-hairline px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-muted transition-colors enabled:hover:border-primary enabled:hover:text-primary disabled:opacity-30">
+        {{ label }}
+    </button>
+{% endmacro %}
 
 {% macro heading(title, count) %}
     <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">

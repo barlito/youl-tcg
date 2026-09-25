@@ -57,6 +57,7 @@ final readonly class TradeOfferService
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
         private FeatureFlags $featureFlags,
+        private TradeEventAnnouncer $announcer,
     ) {
     }
 
@@ -95,7 +96,7 @@ final readonly class TradeOfferService
             }
         }
 
-        return $this->entityManager->wrapInTransaction(function () use ($proposer, $receiver, $offered, $requested): TradeOffer {
+        $offer = $this->entityManager->wrapInTransaction(function () use ($proposer, $receiver, $offered, $requested): TradeOffer {
             // same lock as openings and recycling: concurrent creations cannot
             // both pass the reservation check and engage the same copy twice
             $rows = $this->lockRows(array_map(
@@ -145,6 +146,11 @@ final readonly class TradeOfferService
 
             return $offer;
         });
+
+        // post-commit: a rolled back offer is never announced
+        $this->announcer->created($offer);
+
+        return $offer;
     }
 
     /**
@@ -158,6 +164,13 @@ final readonly class TradeOfferService
         // failure: the closure returns the exception instead of throwing it,
         // because throwing would roll the INVALIDATED status back.
         $refusal = $this->entityManager->wrapInTransaction(fn (): ?TradeException => $this->doAccept($offer, $actor));
+
+        // post-commit; only an acceptance or an invalidation changed the offer
+        if (!$refusal instanceof TradeException) {
+            $this->announcer->resolved($offer, TradeOfferStatusEnum::ACCEPTED);
+        } elseif ($refusal instanceof TradeOfferInvalidatedException) {
+            $this->announcer->resolved($offer, TradeOfferStatusEnum::INVALIDATED);
+        }
 
         if ($refusal instanceof TradeException) {
             throw $refusal;
@@ -217,6 +230,7 @@ final readonly class TradeOfferService
             }
             if ($this->tradeOfferRepository->markInvalidatedIfPending($offer, $this->clock->now())) {
                 $this->entityManager->refresh($offer);
+                $this->announcer->resolved($offer, TradeOfferStatusEnum::INVALIDATED);
                 $invalidated = true;
             }
         }
@@ -437,6 +451,8 @@ final readonly class TradeOfferService
         if ($refusal instanceof TradeException) {
             throw $refusal;
         }
+
+        $this->announcer->resolved($offer, $status);
     }
 
     /**

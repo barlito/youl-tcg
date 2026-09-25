@@ -15,8 +15,10 @@
             {{ _self.nav_link('universes', 'Univers') }}
             {{ _self.nav_link('boosters', 'Boosters') }}
             {{ _self.nav_link('leaderboard', 'Classement') }}
-            {% if feature_enabled('trades') %}
-                {{ _self.nav_trades(pending_trade_offers()) }}
+            {% if feature_enabled('trades') and app.user %}
+                {{ component('TradesNavLink', { active: app.request.get('_route')|default('') starts with 'trades' }) }}
+            {% elseif feature_enabled('trades') %}
+                <a href="{{ path('trades') }}" class="text-ink-muted hover:text-ink-strong">Échanges</a>
             {% else %}
                 {{ _self.nav_soon('Échanges') }}
             {% endif %}
@@ -49,17 +51,6 @@
     <a href="{{ path(route) }}"
        class="text-ink-muted hover:text-ink-strong {{ isActive ? 'active' : '' }}"
        {{ isActive ? 'aria-current="page"' }}>{{ label }}</a>
-{% endmacro %}
-
-{% macro nav_trades(pending) %}
-    <a href="{{ path('trades') }}"
-       class="flex items-center gap-1.5 text-ink-muted hover:text-ink-strong {{ app.request.get('_route')|default('') starts with 'trades' ? 'active' : '' }}">
-        Échanges
-        {% if pending > 0 %}
-            <span class="flex h-4 min-w-4 items-center justify-center bg-primary px-1 font-mono text-[10px] font-bold text-black"
-                  data-testid="pending-trades-badge">{{ pending }}</span>
-        {% endif %}
-    </a>
 {% endmacro %}
 
 {% macro nav_soon(label) %}

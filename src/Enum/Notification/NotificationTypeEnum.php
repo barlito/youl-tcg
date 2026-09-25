@@ -20,10 +20,15 @@ enum NotificationTypeEnum: string
     /** Boosters landed in the inventory outside the daily claim. */
     case BOOSTER_CREDITED = 'booster_credited';
 
-    // Reserved for later phases (not emitted yet)
+    /** A player sent the recipient a trade offer (payload: playerName, playerId). */
     case TRADE_RECEIVED = 'trade_received';
+
+    /** The recipient's offer was accepted (payload: playerName, playerId). */
     case TRADE_ACCEPTED = 'trade_accepted';
+
+    /** The recipient's offer was refused (payload: playerName, playerId). */
     case TRADE_REFUSED = 'trade_refused';
+
     case ANNOUNCEMENT = 'announcement';
     case BOOSTER_CODE = 'booster_code';
 }

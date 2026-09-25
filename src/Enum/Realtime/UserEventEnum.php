@@ -18,4 +18,7 @@ enum UserEventEnum: string
 
     /** Boosters or cards changed: pages showing the inventory re-render. */
     case INVENTORY_CHANGED = 'inventory-changed';
+
+    /** A trade offer involving the player changed (payload: offerId, status): trade screens re-render. */
+    case TRADES_CHANGED = 'trades-changed';
 }
