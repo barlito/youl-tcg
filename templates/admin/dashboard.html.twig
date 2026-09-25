@@ -44,7 +44,7 @@
 
         <section class="eco-tiles" aria-label="Indicateurs clés">
             {{ _self.tile('players', 'Joueurs inscrits', kpis.registeredPlayers|number_format(0, ',', ' ')) }}
-            {{ _self.tile('active', 'Joueurs actifs', kpis.activePlayers7Days|number_format(0, ',', ' ') ~ ' / ' ~ kpis.activePlayers30Days|number_format(0, ',', ' '), '7 j / 30 j · ouverture ou claim') }}
+            {{ _self.tile('active', 'Joueurs actifs', kpis.activePlayers7Days|number_format(0, ',', ' ') ~ ' / ' ~ kpis.activePlayers30Days|number_format(0, ',', ' '), '7 j / 30 j · ouverture, claim ou échange') }}
             {{ _self.tile('openings', 'Packs ouverts', kpis.openingsToday|number_format(0, ',', ' '), 'aujourd\'hui · ' ~ kpis.openings7Days|number_format(0, ',', ' ') ~ ' sur 7 j · ' ~ kpis.openingsTotal|number_format(0, ',', ' ') ~ ' au total') }}
             {{ _self.tile('cards', 'Cartes tirées', kpis.cardsDrawn|number_format(0, ',', ' '), 'dont ' ~ kpis.holosDrawn|number_format(0, ',', ' ') ~ ' holo') }}
             {{ _self.tile('uniques', 'Uniques 1/1 tirées', kpis.uniquesDrawn|number_format(0, ',', ' ') ~ ' / ' ~ kpis.uniquesTotal|number_format(0, ',', ' '), 'tirées / publiées') }}
@@ -74,6 +74,20 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </section>
+
+            <section class="eco-card eco-card--wide" data-testid="trades">
+                {% set trades = dashboard.trades %}
+                {% set acceptanceRate = trades.acceptanceRate %}
+                <h2>Échanges par jour</h2>
+                <p class="eco-meta">Une offre compte le jour de sa création, une réponse le jour où elle est acceptée ou refusée. Taux d'acceptation = acceptées / (acceptées + refusées) sur la période ; les offres annulées ou invalidées n'ont pas de réponse.</p>
+                <div class="eco-tiles eco-tiles--inline">
+                    {{ _self.tile('trades-created', 'Offres créées', trades.created|number_format(0, ',', ' ')) }}
+                    {{ _self.tile('trades-accepted', 'Acceptées', trades.accepted|number_format(0, ',', ' ')) }}
+                    {{ _self.tile('trades-refused', 'Refusées', trades.refused|number_format(0, ',', ' ')) }}
+                    {{ _self.tile('trades-rate', 'Taux d\'acceptation', acceptanceRate is null ? '—' : acceptanceRate|number_format(1, ',', ' ') ~ ' %', acceptanceRate is null ? 'aucune réponse sur la période' : null) }}
+                </div>
+                <div class="eco-chart">{{ render_chart(charts.trades, {'aria-label': 'Offres d\'échange créées, acceptées et refusées par jour', role: 'img'}) }}</div>
             </section>
 
             <section class="eco-card eco-card--wide" data-testid="recycles">

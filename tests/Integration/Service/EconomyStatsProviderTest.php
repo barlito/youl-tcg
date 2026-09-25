@@ -17,12 +17,14 @@ use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\RecycleOperation;
 use App\Entity\StreakReward;
+use App\Entity\TradeOffer;
 use App\Entity\UserBooster;
 use App\Enum\Admin\BoosterChannelEnum;
 use App\Enum\Admin\EconomyPeriodEnum;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Enum\Trade\TradeOfferStatusEnum;
 use App\Service\Admin\EconomyStatsProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -199,6 +201,48 @@ final class EconomyStatsProviderTest extends KernelTestCase
         $this->assertSame(2.86, $comparison->holo->gap());
     }
 
+    public function testTradeActionsMakeAPlayerActive(): void
+    {
+        $this->createTrades();
+
+        $kpis = $this->provider->getKpis();
+        $this->assertSame(5, $kpis->activePlayers7Days, 'erin only traded, dave traded after his 10/03 claim');
+        $this->assertSame(5, $kpis->activePlayers30Days);
+
+        $this->assertSame([
+            '2026-03-23' => 1,
+            '2026-03-24' => 2,
+            '2026-03-25' => 1,
+            '2026-03-26' => 1,
+            '2026-03-27' => 0,
+            '2026-03-28' => 2,
+            '2026-03-29' => 2,
+        ], $this->provider->getDashboard(EconomyPeriodEnum::WEEK)->activePlayersPerDay);
+    }
+
+    public function testTradesPerDay(): void
+    {
+        $this->createTrades();
+
+        $trades = $this->provider->getDashboard(EconomyPeriodEnum::WEEK)->trades;
+
+        $this->assertSame(['2026-03-23' => 0, '2026-03-24' => 1, '2026-03-25' => 0, '2026-03-26' => 1, '2026-03-27' => 0, '2026-03-28' => 1, '2026-03-29' => 1], $trades->createdPerDay);
+        $this->assertSame(1, $trades->acceptedPerDay['2026-03-24']);
+        $this->assertSame(1, $trades->refusedPerDay['2026-03-28'], '27/03 23:30 UTC is 28/03 00:30 in Paris');
+        $this->assertSame(4, $trades->created(), 'the 20/03 offer is out of the period');
+        $this->assertSame(1, $trades->accepted());
+        $this->assertSame(1, $trades->refused());
+        $this->assertSame(50.0, $trades->acceptanceRate(), 'cancelled and invalidated offers got no answer');
+    }
+
+    public function testAcceptanceRateIsUndefinedWithoutAnswer(): void
+    {
+        $trades = $this->provider->getDashboard(EconomyPeriodEnum::WEEK)->trades;
+
+        $this->assertSame(0, $trades->created());
+        $this->assertNull($trades->acceptanceRate());
+    }
+
     public function testPeriodOutOfRangeFallsBackToDefault(): void
     {
         $this->assertSame(EconomyPeriodEnum::WEEK, EconomyPeriodEnum::fromQuery('7'));
@@ -284,6 +328,38 @@ final class EconomyStatsProviderTest extends KernelTestCase
         $this->entityManager->persist(new UserBooster()->setDiscordUser($this->users['bob'])->setBooster($this->boosters['b'])->setQuantity(2));
 
         $this->entityManager->flush();
+    }
+
+    /**
+     * erin only ever acts through trades. In the 7-day period: an offer
+     * accepted by dave (24/03), one refused by alice (28/03 Paris), one
+     * cancelled by dave, its proposer (28/03), one still pending; bob's offer
+     * of 20/03 got invalidated on 25/03 — nobody acted.
+     */
+    private function createTrades(): void
+    {
+        $this->users['erin'] = new DiscordUser()->setDiscordId('eco-erin')->setUsername('erin');
+        $this->entityManager->persist($this->users['erin']);
+
+        $this->createTrade('erin', 'dave', '2026-03-24 10:00:00', TradeOfferStatusEnum::ACCEPTED, '2026-03-24 18:00:00');
+        $this->createTrade('erin', 'alice', '2026-03-26 10:00:00', TradeOfferStatusEnum::REFUSED, '2026-03-27 23:30:00');
+        $this->createTrade('dave', 'erin', '2026-03-28 09:00:00', TradeOfferStatusEnum::CANCELLED, '2026-03-28 12:00:00');
+        $this->createTrade('bob', 'erin', '2026-03-20 10:00:00', TradeOfferStatusEnum::INVALIDATED, '2026-03-25 10:00:00');
+        $this->createTrade('alice', 'erin', '2026-03-29 07:00:00');
+
+        $this->entityManager->flush();
+    }
+
+    private function createTrade(string $proposer, string $receiver, string $createdAtUtc, ?TradeOfferStatusEnum $status = null, ?string $resolvedAtUtc = null): void
+    {
+        $offer = new TradeOffer()->setProposer($this->users[$proposer])->setReceiver($this->users[$receiver]);
+        $offer->setCreatedAt(new \DateTime($createdAtUtc, new \DateTimeZone('UTC')));
+
+        if (null !== $status && null !== $resolvedAtUtc) {
+            $offer->resolve($status, $this->utc($resolvedAtUtc));
+        }
+
+        $this->entityManager->persist($offer);
     }
 
     private function createCard(string $key, Extension $extension, CardRarityEnum $rarity, bool $unique = false, CardStatusEnum $status = CardStatusEnum::PUBLISHED): Card

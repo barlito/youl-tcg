@@ -18,6 +18,8 @@ use Symfony\UX\Chartjs\Model\Chart;
  */
 final readonly class EconomyChartFactory
 {
+    private const array LINE = ['tension' => 0.25, 'pointRadius' => 0, 'pointHoverRadius' => 5, 'fill' => false];
+
     public function __construct(
         private ChartBuilderInterface $chartBuilder,
     ) {
@@ -35,7 +37,7 @@ final readonly class EconomyChartFactory
                 ['label' => 'Packs ouverts', 'data' => array_values($dashboard->openingsPerDay), 'seriesSlot' => 0],
             ]),
             'activePlayers' => $this->chart(Chart::TYPE_LINE, $dayLabels, [
-                ['label' => 'Joueurs actifs', 'data' => array_values($dashboard->activePlayersPerDay), 'seriesSlot' => 0, 'tension' => 0.25, 'pointRadius' => 0, 'pointHoverRadius' => 5, 'fill' => false],
+                ['label' => 'Joueurs actifs', 'data' => array_values($dashboard->activePlayersPerDay), 'seriesSlot' => 0, ...self::LINE],
             ]),
             'channels' => $this->chart(Chart::TYPE_BAR, $dayLabels, array_map(
                 static fn (BoosterChannelEnum $channel, int $slot): array => [
@@ -46,6 +48,11 @@ final readonly class EconomyChartFactory
                 BoosterChannelEnum::cases(),
                 array_keys(BoosterChannelEnum::cases()),
             ), stacked: true),
+            'trades' => $this->chart(Chart::TYPE_LINE, $dayLabels, [
+                ['label' => 'Offres créées', 'data' => array_values($dashboard->trades->createdPerDay), 'seriesSlot' => 0, ...self::LINE],
+                ['label' => 'Acceptées', 'data' => array_values($dashboard->trades->acceptedPerDay), 'seriesSlot' => 2, ...self::LINE],
+                ['label' => 'Refusées', 'data' => array_values($dashboard->trades->refusedPerDay), 'seriesSlot' => 1, ...self::LINE],
+            ]),
             'recycles' => $this->chart(
                 Chart::TYPE_BAR,
                 array_map(fn (WeeklyRecycleStats $week): string => 'sem. du ' . $this->formatDay($week->weekStart), $dashboard->weeklyRecycles),

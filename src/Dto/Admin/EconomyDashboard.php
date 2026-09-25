@@ -29,6 +29,7 @@ final readonly class EconomyDashboard
         public array $boostersPerChannel,
         public array $weeklyRecycles,
         public RarityComparison $rarityComparison,
+        public TradeActivity $trades,
     ) {
     }
 
