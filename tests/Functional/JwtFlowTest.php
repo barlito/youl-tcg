@@ -7,6 +7,7 @@ namespace App\Tests\Functional;
 use App\Entity\DiscordUser;
 use App\Repository\DiscordUserRepository;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Cookie;
@@ -57,6 +58,34 @@ final class JwtFlowTest extends WebTestCase
         self::assertResponseRedirects($this->refreshUrl('http://localhost/boosters'));
     }
 
+    public function testExpiredTokenOnLiveComponentSendsThePlayerBackToThePage(): void
+    {
+        $this->requestNotificationBellWithExpiredToken('/collection?filtre=owned');
+
+        self::assertResponseStatusCodeSame(204);
+        self::assertResponseHeaderSame('X-Live-Redirect', '1');
+        self::assertResponseHeaderSame('Location', $this->refreshUrl('http://localhost/collection?filtre=owned'));
+    }
+
+    /**
+     * @return iterable<string, array{?string}>
+     */
+    public static function unusablePageUrls(): iterable
+    {
+        yield 'missing' => [null];
+        yield 'other host' => ['https://evil.example/'];
+        yield 'protocol-relative' => ['//evil.example/'];
+        yield 'component endpoint' => ['/_components/NotificationBell'];
+    }
+
+    #[DataProvider('unusablePageUrls')]
+    public function testExpiredTokenOnLiveComponentFallsBackToTheHomepage(?string $pageUrl): void
+    {
+        $this->requestNotificationBellWithExpiredToken($pageUrl);
+
+        self::assertResponseHeaderSame('Location', $this->refreshUrl('http://localhost/'));
+    }
+
     public function testUnknownUserIsAutoCreatedThenRequestIsReplayed(): void
     {
         $ghost = new DiscordUser()
@@ -93,6 +122,19 @@ final class JwtFlowTest extends WebTestCase
 
         self::assertResponseRedirects($this->refreshUrl('http://localhost/boosters'));
         $this->assertNull($this->userRepository()->find(self::GHOST_DISCORD_ID));
+    }
+
+    private function requestNotificationBellWithExpiredToken(?string $pageUrl): void
+    {
+        $token = $this->tokenManager()->createFromPayload($this->existingUser(), ['exp' => time() - 3600]);
+        $this->client->getCookieJar()->set(new Cookie('jwt', $token));
+
+        $headers = ['HTTP_ACCEPT' => 'application/vnd.live-component+html', 'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest'];
+        if (null !== $pageUrl) {
+            $headers['HTTP_X_LIVE_URL'] = $pageUrl;
+        }
+
+        $this->client->request('GET', '/_components/NotificationBell', ['props' => '{}'], [], $headers);
     }
 
     private function existingUser(): DiscordUser
