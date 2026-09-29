@@ -24,7 +24,7 @@ final readonly class NotificationRenderer
     ) {
     }
 
-    public function render(Notification $notification, DiscordUser $viewer): NotificationView
+    public function render(Notification $notification, DiscordUser $viewer, bool $openedByViewer = false): NotificationView
     {
         $content = $this->describe($notification->getType(), $notification->getPayload());
 
@@ -34,7 +34,7 @@ final readonly class NotificationRenderer
             $content->text,
             $content->link,
             $notification->getCreatedAt(),
-            $notification->isUnreadFor($viewer),
+            $notification->isUnreadFor($viewer, $openedByViewer),
             $content->body,
         );
     }

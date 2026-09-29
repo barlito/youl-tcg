@@ -7,7 +7,6 @@ namespace App\Twig\Components;
 use App\Dto\NotificationView;
 use App\Entity\DiscordUser;
 use App\Entity\Notification;
-use App\Repository\NotificationRepository;
 use App\Service\Booster\BoosterClaimService;
 use App\Service\Notification\NotificationRenderer;
 use App\Service\Notification\NotificationService;
@@ -34,8 +33,15 @@ final class NotificationBell extends AbstractController
     #[LiveProp]
     public bool $open = false;
 
+    /**
+     * Linkless entries marked read by this very opening: still highlighted
+     * in this render, so the player sees what was new.
+     *
+     * @var list<string>
+     */
+    public array $justRead = [];
+
     public function __construct(
-        private readonly NotificationRepository $notificationRepository,
         private readonly NotificationRenderer $renderer,
         private readonly NotificationService $notificationService,
         private readonly BoosterClaimService $boosterClaimService,
@@ -53,11 +59,11 @@ final class NotificationBell extends AbstractController
      */
     public function getNotifications(): array
     {
-        $viewer = $this->getDiscordUser();
-
         return array_map(
-            fn (Notification $notification): NotificationView => $this->renderer->render($notification, $viewer),
-            $this->notificationRepository->findLatestFor($viewer, self::LIMIT),
+            fn (NotificationView $view): NotificationView => \in_array($view->id, $this->justRead, true)
+                ? new NotificationView($view->id, $view->icon, $view->text, $view->link, $view->createdAt, true, $view->body)
+                : $view,
+            $this->notificationService->latest($this->getDiscordUser(), self::LIMIT),
         );
     }
 
@@ -93,6 +99,10 @@ final class NotificationBell extends AbstractController
     public function toggle(): void
     {
         $this->open = !$this->open;
+
+        if ($this->open) {
+            $this->justRead = $this->notificationService->markLinklessRead($this->getDiscordUser(), self::LIMIT);
+        }
     }
 
     #[LiveAction]

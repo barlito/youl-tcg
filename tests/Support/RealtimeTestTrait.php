@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Support;
 
+use App\Repository\NotificationBroadcastReadRepository;
 use App\Repository\NotificationRepository;
 use App\Service\Notification\NotificationRenderer;
 use App\Service\Notification\NotificationService;
@@ -35,6 +36,7 @@ trait RealtimeTestTrait
 
         return new NotificationService(
             $this->createStub(NotificationRepository::class),
+            $this->createStub(NotificationBroadcastReadRepository::class),
             new NotificationRenderer($urlGenerator),
             $this->userEventPublisher($hub),
             $this->createStub(EntityManagerInterface::class),

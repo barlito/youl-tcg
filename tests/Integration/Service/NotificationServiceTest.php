@@ -6,6 +6,7 @@ namespace App\Tests\Integration\Service;
 
 use App\Entity\DiscordUser;
 use App\Entity\Notification;
+use App\Entity\NotificationBroadcastRead;
 use App\Enum\Notification\NotificationTypeEnum;
 use App\Service\Notification\NotificationService;
 use App\Tests\Support\SpyHub;
@@ -143,9 +144,57 @@ final class NotificationServiceTest extends KernelTestCase
         $this->assertNotNull($mine->getReadAt());
     }
 
-    private function store(?DiscordUser $recipient, string $createdAt, bool $read = false): Notification
+    public function testOpeningABroadcastMarksItReadForThatPlayerOnly(): void
     {
-        $notification = new Notification($recipient, NotificationTypeEnum::STREAK_REWARD_AVAILABLE, ['milestone' => 7], new \DateTimeImmutable($createdAt));
+        $user = $this->createUser(seenAt: new \DateTimeImmutable('-1 day'));
+        $other = $this->createUser(seenAt: new \DateTimeImmutable('-1 day'));
+        $broadcast = $this->store(null, '-1 minute');
+
+        $this->assertSame($broadcast, $this->service->open($user, (string) $broadcast->getId()));
+        // a second tab opening it again must not fail on the unique key
+        $this->service->open($user, (string) $broadcast->getId());
+
+        $this->assertSame(0, $this->service->countUnread($user));
+        $this->assertFalse($this->service->latest($user, 15)[0]->unread);
+        $this->assertSame(1, $this->service->countUnread($other), 'Another player\'s state is untouched.');
+        $this->assertTrue($this->service->latest($other, 15)[0]->unread);
+    }
+
+    public function testMarkAllReadPurgesTheOpenedBroadcastRows(): void
+    {
+        $user = $this->createUser(seenAt: new \DateTimeImmutable('-1 day'));
+        $broadcast = $this->store(null, '-1 minute');
+        $this->service->open($user, (string) $broadcast->getId());
+
+        $this->service->markAllRead($user);
+
+        $this->assertSame(0, $this->entityManager->getRepository(NotificationBroadcastRead::class)->count(['discordUser' => $user]));
+        $this->assertSame(0, $this->service->countUnread($user));
+    }
+
+    public function testOnlyUnreadLinklessEntriesAreMarkedReadOnOpening(): void
+    {
+        $user = $this->createUser(seenAt: new \DateTimeImmutable('-1 day'));
+        $withLink = $this->store($user, '-4 minutes');
+        $personalText = $this->store($user, '-3 minutes', type: NotificationTypeEnum::ANNOUNCEMENT, payload: ['title' => 'Maintenance', 'message' => 'Ce soir']);
+        $broadcastText = $this->store(null, '-2 minutes', type: NotificationTypeEnum::ANNOUNCEMENT, payload: ['title' => 'Bienvenue']);
+        $this->store(null, '-1 minute', type: NotificationTypeEnum::ANNOUNCEMENT, payload: ['title' => 'Nouvel univers', 'link' => '/univers']);
+
+        $marked = $this->service->markLinklessRead($user, 15);
+
+        $this->assertEqualsCanonicalizing([(string) $personalText->getId(), (string) $broadcastText->getId()], $marked);
+        $this->assertNotNull($personalText->getReadAt());
+        $this->assertNull($withLink->getReadAt());
+        $this->assertSame(2, $this->service->countUnread($user), 'Entries with a link wait for a click.');
+        $this->assertSame([], $this->service->markLinklessRead($user, 15), 'Already read: nothing left to mark.');
+    }
+
+    /**
+     * @param array<string, scalar|null> $payload
+     */
+    private function store(?DiscordUser $recipient, string $createdAt, bool $read = false, NotificationTypeEnum $type = NotificationTypeEnum::STREAK_REWARD_AVAILABLE, array $payload = ['milestone' => 7]): Notification
+    {
+        $notification = new Notification($recipient, $type, $payload, new \DateTimeImmutable($createdAt));
         if ($read) {
             $notification->markRead(new \DateTimeImmutable());
         }
