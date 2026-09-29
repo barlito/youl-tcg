@@ -6,6 +6,7 @@ namespace App\EventListener;
 
 use App\Entity\DiscordUser;
 use App\Service\Security\RefreshTokenRedirector;
+use App\Service\Security\TokenRoleMapper;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Event\JWTInvalidEvent;
 use Lexik\Bundle\JWTAuthenticationBundle\Events;
@@ -26,6 +27,7 @@ readonly class JwtInvalid
         private TokenExtractorInterface $tokenExtractor,
         private JWTTokenManagerInterface $jwtManager,
         private RefreshTokenRedirector $refreshTokenRedirector,
+        private TokenRoleMapper $tokenRoleMapper,
         private LoggerInterface $logger,
     ) {
     }
@@ -56,7 +58,7 @@ readonly class JwtInvalid
         $user = new DiscordUser()
             ->setDiscordId($userData['discordId'])
             ->setUsername($userData['username'])
-            ->setRoles($userData['roles'])
+            ->setRoles($this->tokenRoleMapper->fromToken($userData['roles']))
         ;
         $this->entityManager->persist($user);
         $this->entityManager->flush();
