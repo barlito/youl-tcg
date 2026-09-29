@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Repository\DiscordUserRepository;
+use App\Service\Security\TokenRoleMapper;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -25,6 +26,7 @@ class ForgeJwtCommand extends Command
     public function __construct(
         private readonly DiscordUserRepository $userRepository,
         private readonly JWTTokenManagerInterface $jwtManager,
+        private readonly TokenRoleMapper $tokenRoleMapper,
     ) {
         parent::__construct();
     }
@@ -45,7 +47,7 @@ class ForgeJwtCommand extends Command
             return Command::FAILURE;
         }
 
-        $output->writeln($this->jwtManager->create($user));
+        $output->writeln($this->jwtManager->createFromPayload($user, ['roles' => $this->tokenRoleMapper->toToken($user->getRoles())]));
 
         return Command::SUCCESS;
     }

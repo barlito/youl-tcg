@@ -190,7 +190,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 2. **JwtNotFound** listener redirects to external Discord OAuth2 flow
 3. OAuth2 provider returns JWT token (set as cookie)
 4. **JwtInvalid** listener auto-creates DiscordUser if not exists (pulls from JWT payload)
-5. **JwtAuthenticated** listener syncs roles from JWT to database on each request
+5. **JwtAuthenticated** listener syncs roles from JWT to database on each request, **filtered by app prefix** through `TokenRoleMapper` (`src/Service/Security/`): only `ROLE_YTCG_*` token roles are kept, prefix stripped (`ROLE_YTCG_ADMIN` → `ROLE_ADMIN`). They are managed from the youl-coin admin (« Joueurs » screen); the coin's own `ROLE_ADMIN` has NO effect here. `JwtInvalid` (player creation), `app:dev:forge-jwt` and `JwtAuthTrait` use the same mapper (`toToken()` for forged tokens)
 6. JWT token stored in cookie (lifetime: 900s, secure, httpOnly, samesite: lax)
 
 **Important:** User creation happens automatically via JwtInvalid listener. Never manually create DiscordUser entities in code.

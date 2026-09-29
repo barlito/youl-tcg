@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\EventListener;
 
 use App\Entity\DiscordUser;
+use App\Service\Security\TokenRoleMapper;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Event\JWTAuthenticatedEvent;
 use Lexik\Bundle\JWTAuthenticationBundle\Events;
@@ -15,6 +16,7 @@ readonly class JwtAuthenticated
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
+        private TokenRoleMapper $tokenRoleMapper,
     ) {
     }
 
@@ -27,13 +29,13 @@ readonly class JwtAuthenticated
             return;
         }
 
-        $tokenRoles = $payload['roles'] ?? [];
+        $roles = $this->tokenRoleMapper->fromToken($payload['roles'] ?? []);
 
         // Compare canonical sets: getRoles() always appends ROLE_USER, so a
         // raw comparison against a token without it (or ordered differently)
         // mismatches forever — flushing an UPDATE on every single request.
-        if ($this->normalize($tokenRoles) !== $this->normalize($user->getRoles())) {
-            $user->setRoles($tokenRoles);
+        if ($this->normalize($roles) !== $this->normalize($user->getRoles())) {
+            $user->setRoles($roles);
             $this->entityManager->persist($user);
             $this->entityManager->flush();
         }
