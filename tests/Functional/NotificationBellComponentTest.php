@@ -81,6 +81,42 @@ final class NotificationBellComponentTest extends WebTestCase
         $this->assertNotNull($this->reload($notification)->getReadAt());
     }
 
+    public function testOpeningABroadcastMarksItReadAndFollowsItsLink(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::JUJU);
+        $broadcast = $this->store(null, NotificationTypeEnum::UNIQUE_PULLED, ['playerId' => self::BARLITO, 'playerName' => 'Barlito', 'universe' => 'Cosmos']);
+
+        $component = $this->createLiveComponent(NotificationBell::class, client: $client);
+        $component->call('openNotification', ['id' => (string) $broadcast->getId()]);
+
+        $this->assertResponseRedirects('/joueur/' . self::BARLITO);
+        $crawler = $component->render()->crawler();
+        $this->assertCount(0, $crawler->filter('[data-testid="notification-badge"]'));
+    }
+
+    public function testOpeningTheDropdownMarksPlainTextEntriesRead(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::JUJU);
+        $withLink = $this->store($user, NotificationTypeEnum::STREAK_REWARD_AVAILABLE, ['milestone' => 7]);
+        $plainText = $this->store(null, NotificationTypeEnum::ANNOUNCEMENT, ['title' => 'Maintenance ce soir']);
+
+        $component = $this->createLiveComponent(NotificationBell::class, client: $client);
+        $crawler = $component->call('toggle')->render()->crawler();
+
+        // still highlighted while the player reads it, but no longer counted
+        $this->assertCount(2, $crawler->filter('[data-testid="notification-item"][data-unread]'));
+        $this->assertSame('1', trim($crawler->filter('[data-testid="notification-badge"]')->text()));
+        $this->assertNull($this->reload($withLink)->getReadAt());
+
+        $crawler = $component->call('toggle')->call('toggle')->render()->crawler();
+        $unread = $crawler->filter('[data-testid="notification-item"][data-unread]');
+        $this->assertCount(1, $unread);
+        $this->assertStringContainsString('Palier de série 7 jours atteint', $unread->text());
+        $this->assertStringNotContainsString((string) $plainText->getId(), $unread->outerHtml());
+    }
+
     public function testAPlayerCannotSeeNorOpenSomeoneElsesNotification(): void
     {
         $client = static::createClient();

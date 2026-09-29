@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\DiscordUser;
 use App\Entity\Notification;
+use App\Entity\NotificationBroadcastRead;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
@@ -41,7 +42,7 @@ class NotificationRepository extends ServiceEntityRepository
     {
         return (int) $this->createQueryBuilder('notification')
             ->select('COUNT(notification.id)')
-            ->andWhere('(notification.recipient = :viewer AND notification.readAt IS NULL) OR (notification.recipient IS NULL AND notification.createdAt > :seenSince)')
+            ->andWhere('(notification.recipient = :viewer AND notification.readAt IS NULL) OR (notification.recipient IS NULL AND notification.createdAt > :seenSince AND NOT EXISTS (SELECT 1 FROM ' . NotificationBroadcastRead::class . ' opened WHERE opened.notification = notification AND opened.discordUser = :viewer))')
             ->setParameter('viewer', $discordUser)
             ->setParameter('seenSince', $this->utc($discordUser->getNotificationsSeenSince()))
             ->getQuery()

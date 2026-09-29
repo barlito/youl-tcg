@@ -13,8 +13,8 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * A notification center entry. A null recipient is a broadcast to every
  * player: its read state is per player, derived from
- * DiscordUser::$notificationsSeenAt (no row per player). Personal entries
- * carry their own readAt.
+ * DiscordUser::$notificationsSeenAt plus the NotificationBroadcastRead rows
+ * of the broadcasts opened one by one. Personal entries carry their own readAt.
  */
 #[ORM\Entity(repositoryClass: NotificationRepository::class)]
 // also serves broadcasts (recipient_id IS NULL): PG btrees index NULLs
@@ -84,14 +84,15 @@ class Notification
 
     /**
      * Unread for $viewer: personal entries by readAt, broadcasts against the
-     * viewer's last "mark all as read" (or their sign-up when never done).
+     * viewer's last "mark all as read" (or their sign-up when never done)
+     * unless the viewer opened this one.
      */
-    public function isUnreadFor(DiscordUser $viewer): bool
+    public function isUnreadFor(DiscordUser $viewer, bool $openedByViewer = false): bool
     {
         if (!$this->isBroadcast()) {
             return !$this->readAt instanceof \DateTimeImmutable;
         }
 
-        return $this->createdAt > $viewer->getNotificationsSeenSince();
+        return !$openedByViewer && $this->createdAt > $viewer->getNotificationsSeenSince();
     }
 }
