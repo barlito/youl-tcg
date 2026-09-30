@@ -15,17 +15,21 @@ use App\Enum\FeatureEnum;
 use App\Enum\Notification\NotificationTypeEnum;
 use App\Enum\Realtime\UserEventEnum;
 use App\Exception\Recycle\BoosterNotRecyclableException;
+use App\Exception\Recycle\DailyRecycleLimitReachedException;
 use App\Exception\Recycle\InvalidRecycleSelectionException;
 use App\Exception\Recycle\NotEnoughCopiesException;
 use App\Exception\Recycle\NotEnoughRecyclePointsException;
 use App\Exception\Recycle\RecyclingClosedException;
+use App\Repository\RecycleOperationRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterAvailabilityService;
+use App\Service\Booster\BoosterClaimQuotaInterface;
 use App\Service\Booster\UserInventoryService;
 use App\Service\Feature\FeatureFlags;
 use App\Service\Notification\NotificationService;
 use App\Service\Realtime\UserEventPublisher;
 use App\Service\Trade\EngagedCopies;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
@@ -65,6 +69,8 @@ final readonly class RecycleService
     public function __construct(
         private UserCardRepository $userCardRepository,
         private EngagedCopies $engagedCopies,
+        private RecycleOperationRepository $recycleOperationRepository,
+        private BoosterClaimQuotaInterface $dailyReset,
         private UserInventoryService $userInventoryService,
         private BoosterAvailabilityService $boosterAvailability,
         private EntityManagerInterface $entityManager,
@@ -75,10 +81,21 @@ final readonly class RecycleService
     ) {
     }
 
+    public function hasRecycledToday(DiscordUser $discordUser): bool
+    {
+        return $this->recycleOperationRepository->existsSince($discordUser, $this->startOfToday());
+    }
+
+    public function getSecondsUntilReset(): int
+    {
+        return max(0, $this->dailyReset->getNextResetTime()->getTimestamp() - $this->clock->now()->getTimestamp());
+    }
+
     /**
      * @param list<RecycleSelectionLine> $selection
      *
      * @throws RecyclingClosedException
+     * @throws DailyRecycleLimitReachedException
      * @throws InvalidRecycleSelectionException
      * @throws BoosterNotRecyclableException
      * @throws NotEnoughCopiesException
@@ -106,6 +123,15 @@ final readonly class RecycleService
         $boosterCount = self::boosterCountFor($points);
 
         $operation = $this->entityManager->wrapInTransaction(function () use ($discordUser, $selection, $booster, $points, $boosterCount): RecycleOperation {
+            // player row first (as a claim), so concurrent recyclings serialize before the COUNT
+            $this->entityManager->find(DiscordUser::class, $discordUser->getDiscordId(), LockMode::PESSIMISTIC_WRITE);
+            if ($this->hasRecycledToday($discordUser)) {
+                throw new DailyRecycleLimitReachedException(
+                    'Already recycled today, one operation per Paris day.',
+                    'Tu as déjà recyclé aujourd\'hui, reviens après minuit.',
+                );
+            }
+
             // booster row first, then the card rows: the same lock order as an opening
             $this->userInventoryService->creditBooster($discordUser, $booster, $boosterCount);
 
@@ -140,6 +166,12 @@ final readonly class RecycleService
         ], alreadyRead: true);
 
         return $operation;
+    }
+
+    // Midnight Europe/Paris that opened the current day
+    private function startOfToday(): \DateTimeImmutable
+    {
+        return $this->dailyReset->getNextResetTime()->modify('-1 day');
     }
 
     /**

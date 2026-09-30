@@ -199,6 +199,38 @@ final class RecycleHubComponentTest extends WebTestCase
         $this->assertSame(10, $operations[0]->getPoints());
     }
 
+    public function testASecondRecyclingTheSameDayIsRefusedAndTheButtonIsDisabled(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $scenario = $this->createScenario($user, [['name' => 'Daily dup', 'rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 6]]);
+        $cardId = (string) $scenario['cards'][0]->getId();
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        $crawler = $component->render()->crawler();
+        $this->assertCount(0, $crawler->filter('[data-testid="recycle-daily-done"]'));
+
+        $component->set('boosterId', (string) $scenario['booster']->getId());
+        foreach ([1, 2] as $round) {
+            $component->call('addCopy', ['cardId' => $cardId, 'kind' => 'normal']);
+            $component->call('addCopy', ['cardId' => $cardId, 'kind' => 'normal']);
+            $component->call('recycle');
+
+            if (1 === $round) {
+                $this->assertNull($component->component()->error);
+            }
+        }
+
+        $this->assertSame('Tu as déjà recyclé aujourd\'hui, reviens après minuit.', $component->component()->error);
+
+        $crawler = $component->render()->crawler();
+        $this->assertCount(1, $crawler->filter('[data-testid="recycle-daily-done"]'));
+        $this->assertNotNull($crawler->filter('[data-testid="recycle-confirm"]')->attr('disabled'));
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $this->assertCount(1, $entityManager->getRepository(RecycleOperation::class)->findBy(['discordUser' => $user]));
+    }
+
     public function testTheSurplusIsAnnouncedInTheSuccessMessage(): void
     {
         $client = static::createClient();
