@@ -74,6 +74,20 @@ final class MarketPurchaseServiceTest extends KernelTestCase
         $this->assertSame('/api/wallets/' . CoinMockResponses::BANK_WALLET_ID, $payout['body']['walletFrom']);
         $this->assertSame(CoinMockResponses::TRANSACTION_ID, $purchase->getPaymentTransactionId());
         $this->assertSame(CoinMockResponses::TRANSACTION_ID, $purchase->getPayoutTransactionId());
+        $this->assertSame($this->card->getName() . ' · vendue par Seller', $payment['body']['description']);
+        $this->assertSame($this->card->getName() . ' · achetée par Buyer (commission 5 YLC)', $payout['body']['description']);
+    }
+
+    public function testAHoloSaleSaysSoInTheDescriptions(): void
+    {
+        $card = $this->createCard('Holo described');
+        $this->giveCards($this->seller, $card, 1, 1);
+
+        $this->service->purchase($this->buyer, $this->createListing($this->seller, $card, true, 30), 'jwt');
+
+        [$payment, $payout] = $this->postedTransactions();
+        $this->assertSame($card->getName() . ' holo · vendue par Seller', $payment['body']['description']);
+        $this->assertSame($card->getName() . ' holo · achetée par Buyer (commission 1,5 YLC)', $payout['body']['description']);
     }
 
     public function testNumericDiscordIdsWorkLikeAnyOther(): void
@@ -446,6 +460,7 @@ final class MarketPurchaseServiceTest extends KernelTestCase
         $this->assertSame('market_refund', $refund['body']['type']);
         $this->assertSame('ytcg:market-refund:' . $purchase->getId(), $refund['body']['externalIdentifier']);
         $this->assertSame('10000000000', $refund['body']['amount']);
+        $this->assertSame($this->card->getName() . ' · achat annulé', $refund['body']['description']);
         $this->assertSame('/api/wallets/' . CoinMockResponses::USER_WALLET_ID, $refund['body']['walletTo']);
         $this->assertCount(2, $this->postedTransactions(), 'No payout when the card did not move.');
         $this->assertSame(CoinMockResponses::TRANSACTION_ID, $purchase->getRefundTransactionId());
