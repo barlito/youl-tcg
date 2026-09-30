@@ -67,7 +67,7 @@ final class YoulCoinClientTest extends TestCase
         $sent = [];
         $client = $this->client(static function (string $method, string $url, array $options) use (&$sent): MockResponse {
             if ('POST' === $method) {
-                $sent = [$url, json_decode($options['body'], true), $options['normalized_headers']['x-player-token'][0] ?? null];
+                $sent = [$url, json_decode($options['body'], true), $options['normalized_headers']['x-player-token'][0] ?? null, $options['normalized_headers']['content-type'][0] ?? null];
 
                 return new MockResponse('{"id":"tx-1"}', ['http_code' => 201]);
             }
@@ -80,7 +80,7 @@ final class YoulCoinClientTest extends TestCase
         $this->assertSame(CoinPaymentStatusEnum::PAID, $payment->status);
         $this->assertSame('tx-1', $payment->transactionId);
         $this->assertSame(
-            ['http://coin/api/transactions', ['amount' => '1000000000', 'walletFrom' => '/api/wallets/USER', 'walletTo' => '/api/wallets/BANK', 'type' => 'purchase', 'externalIdentifier' => 'ytcg:booster-purchase:abc'], 'X-Player-Token: player-jwt'],
+            ['http://coin/api/transactions', ['amount' => '1000000000', 'walletFrom' => '/api/wallets/USER', 'walletTo' => '/api/wallets/BANK', 'type' => 'purchase', 'externalIdentifier' => 'ytcg:booster-purchase:abc'], 'X-Player-Token: player-jwt', 'Content-Type: application/ld+json'],
             $sent,
         );
     }
