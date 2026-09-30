@@ -115,6 +115,43 @@ class UserCardRepository extends ServiceEntityRepository
     /**
      * @param list<string> $extensionIds
      *
+     * @return array<string, array<string, int>> discord id => extension id => distinct owned published non-unique cards
+     */
+    public function countOwnedNonUniqueByPlayerAndExtension(array $extensionIds, ?string $discordId = null): array
+    {
+        $queryBuilder = $this->createQueryBuilder('uc')
+            ->select('IDENTITY(uc.discordUser) AS discordId', 'IDENTITY(c.extension) AS extensionId', 'COUNT(DISTINCT c.id) AS ownedCount')
+            ->join('uc.card', 'c')
+            ->join('c.extension', 'e')
+            ->andWhere('uc.quantity > 0')
+            ->andWhere('c.extension IN (:extensionIds)')
+            ->andWhere('c.status = :cardStatus')
+            ->andWhere('e.status = :extensionStatus')
+            ->andWhere('c.uniqueFlag = false')
+            ->setParameter('extensionIds', $extensionIds)
+            ->setParameter('cardStatus', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->setParameter('extensionStatus', ExtensionStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->groupBy('uc.discordUser', 'c.extension')
+        ;
+
+        if (null !== $discordId) {
+            $queryBuilder->andWhere('uc.discordUser = :discordId')->setParameter('discordId', $discordId);
+        }
+
+        /** @var list<array{discordId: string, extensionId: string, ownedCount: string|int}> $rows */
+        $rows = $queryBuilder->getQuery()->getResult();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(string) $row['discordId']][(string) $row['extensionId']] = (int) $row['ownedCount'];
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @param list<string> $extensionIds
+     *
      * @return array<string, int> extension id => distinct owned published non-unique cards
      */
     public function countOwnedNonUniqueByExtension(DiscordUser $discordUser, array $extensionIds): array
