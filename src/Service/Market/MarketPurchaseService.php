@@ -65,6 +65,12 @@ final readonly class MarketPurchaseService
         return CoinAmount::fromMinor((string) ($purchase->getPrice() * 10 ** CoinAmount::SCALE - (int) $purchase->getFeeMinor()));
     }
 
+    // built from the stored entities; the coin ignores the description when replaying an identifier, so a later rename is harmless
+    private function cardLabel(MarketPurchase $purchase): string
+    {
+        return $purchase->getListing()->getCard()->getName() . ($purchase->getListing()->isHolo() ? ' holo' : '');
+    }
+
     /** @throws MarketPurchaseRefusedException */
     public function purchase(DiscordUser $buyer, MarketListing $listing, string $playerToken): MarketPurchase
     {
@@ -124,6 +130,7 @@ final readonly class MarketPurchaseService
             CoinTransactionTypeEnum::MARKET_PAYMENT,
             $started->getPaymentIdentifier(),
             $playerToken,
+            \sprintf('%s · vendue par %s', $this->cardLabel($started), $started->getSeller()->getUsername()),
         );
 
         switch ($payment->status) {
@@ -340,6 +347,7 @@ final readonly class MarketPurchaseService
             $amount,
             CoinTransactionTypeEnum::MARKET_PAYOUT,
             $purchase->getPayoutIdentifier(),
+            \sprintf('%s · achetée par %s (commission %s YLC)', $this->cardLabel($purchase), $purchase->getBuyer()->getUsername(), CoinAmount::fromMinor($purchase->getFeeMinor())->format()),
         ));
 
         if (CoinPaymentStatusEnum::PAID === $payment->status) {
@@ -363,6 +371,7 @@ final readonly class MarketPurchaseService
             CoinAmount::fromCoins($purchase->getPrice()),
             CoinTransactionTypeEnum::MARKET_REFUND,
             $purchase->getRefundIdentifier(),
+            \sprintf('%s · achat annulé', $this->cardLabel($purchase)),
         ));
 
         if (CoinPaymentStatusEnum::PAID === $payment->status) {

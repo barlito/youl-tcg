@@ -69,7 +69,7 @@ final class UniverseCompletionRewardTest extends KernelTestCase
 
         $post = $this->postedTransactions();
         $this->assertCount(1, $post);
-        $this->assertSame(['amount' => '50000000000', 'walletFrom' => '/api/wallets/' . CoinMockResponses::BANK_WALLET_ID, 'walletTo' => '/api/wallets/' . CoinMockResponses::USER_WALLET_ID, 'type' => 'reward', 'externalIdentifier' => 'ytcg:universe-reward:' . $reward->getId()], $post[0]['body']);
+        $this->assertSame(['amount' => '50000000000', 'walletFrom' => '/api/wallets/' . CoinMockResponses::BANK_WALLET_ID, 'walletTo' => '/api/wallets/' . CoinMockResponses::USER_WALLET_ID, 'type' => 'reward', 'externalIdentifier' => 'ytcg:universe-reward:' . $reward->getId(), 'description' => 'Univers ' . $this->extension->getName() . ' complété'], $post[0]['body']);
         $this->assertArrayNotHasKey('x-player-token', $post[0]['headers']);
 
         $notifications = $this->notifications();

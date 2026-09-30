@@ -80,6 +80,7 @@ final readonly class BoosterPurchaseService
             CoinTransactionTypeEnum::PURCHASE,
             $purchase->getExternalIdentifier(),
             $playerToken,
+            $purchase->getBooster()->getDisplayName(),
         );
 
         switch ($payment->status) {

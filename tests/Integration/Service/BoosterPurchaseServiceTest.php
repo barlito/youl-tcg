@@ -71,7 +71,7 @@ final class BoosterPurchaseServiceTest extends KernelTestCase
         $this->assertSame(1, $this->ownedQuantity());
 
         $post = $this->postedTransaction();
-        $this->assertSame(['amount' => '1000000000', 'walletFrom' => '/api/wallets/' . CoinMockResponses::USER_WALLET_ID, 'walletTo' => '/api/wallets/' . CoinMockResponses::BANK_WALLET_ID, 'type' => 'purchase', 'externalIdentifier' => 'ytcg:booster-purchase:' . $purchase->getId()], $post['body']);
+        $this->assertSame(['amount' => '1000000000', 'walletFrom' => '/api/wallets/' . CoinMockResponses::USER_WALLET_ID, 'walletTo' => '/api/wallets/' . CoinMockResponses::BANK_WALLET_ID, 'type' => 'purchase', 'externalIdentifier' => 'ytcg:booster-purchase:' . $purchase->getId(), 'description' => $this->booster->getDisplayName()], $post['body']);
         $this->assertContains('X-Player-Token: player-jwt', $post['headers']);
         $this->assertSame('inventory-changed', self::getContainer()->get(SpyHub::class)->getEvents()[0]['type']);
     }

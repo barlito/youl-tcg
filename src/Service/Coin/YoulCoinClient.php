@@ -14,6 +14,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 final readonly class YoulCoinClient
 {
+    private const int DESCRIPTION_MAX_LENGTH = 140;
     private const int BANK_WALLET_TTL = 86400;
     private const int BANK_WALLET_UNAVAILABLE_TTL = 10;
 
@@ -67,17 +68,17 @@ final readonly class YoulCoinClient
         }
     }
 
-    public function debitToBank(string $discordId, CoinAmount $amount, CoinTransactionTypeEnum $type, string $externalIdentifier, string $playerToken): CoinPayment
+    public function debitToBank(string $discordId, CoinAmount $amount, CoinTransactionTypeEnum $type, string $externalIdentifier, string $playerToken, ?string $description = null): CoinPayment
     {
-        return $this->transfer($discordId, true, $amount, $type, $externalIdentifier, $playerToken);
+        return $this->transfer($discordId, true, $amount, $type, $externalIdentifier, $playerToken, $description);
     }
 
-    public function creditFromBank(string $discordId, CoinAmount $amount, CoinTransactionTypeEnum $type, string $externalIdentifier): CoinPayment
+    public function creditFromBank(string $discordId, CoinAmount $amount, CoinTransactionTypeEnum $type, string $externalIdentifier, ?string $description = null): CoinPayment
     {
-        return $this->transfer($discordId, false, $amount, $type, $externalIdentifier, null);
+        return $this->transfer($discordId, false, $amount, $type, $externalIdentifier, null, $description);
     }
 
-    private function transfer(string $discordId, bool $toBank, CoinAmount $amount, CoinTransactionTypeEnum $type, string $externalIdentifier, ?string $playerToken): CoinPayment
+    private function transfer(string $discordId, bool $toBank, CoinAmount $amount, CoinTransactionTypeEnum $type, string $externalIdentifier, ?string $playerToken, ?string $description): CoinPayment
     {
         $playerWalletId = $this->fetchWalletId($this->userWalletPath($discordId));
         $bankWalletId = $this->getBankWalletId();
@@ -97,7 +98,7 @@ final readonly class YoulCoinClient
                     'walletTo' => '/api/wallets/' . $to,
                     'type' => $type->value,
                     'externalIdentifier' => $externalIdentifier,
-                ],
+                ] + (null === $description || '' === trim($description) ? [] : ['description' => $this->truncate(trim($description))]),
             ]);
             $status = $response->getStatusCode();
 
@@ -160,6 +161,15 @@ final readonly class YoulCoinClient
 
             return null;
         }
+    }
+
+    private function truncate(string $description): string
+    {
+        if (mb_strlen($description) <= self::DESCRIPTION_MAX_LENGTH) {
+            return $description;
+        }
+
+        return rtrim(mb_substr($description, 0, self::DESCRIPTION_MAX_LENGTH - 1)) . '…';
     }
 
     private function userWalletPath(string $discordId): string

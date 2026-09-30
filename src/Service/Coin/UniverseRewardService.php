@@ -42,6 +42,7 @@ final readonly class UniverseRewardService
             CoinAmount::fromCoins($reward->getAmount()),
             CoinTransactionTypeEnum::REWARD,
             $reward->getExternalIdentifier(),
+            \sprintf('Univers %s complété', $reward->getExtension()->getName()),
         );
 
         if (CoinPaymentStatusEnum::PAID === $payment->status) {

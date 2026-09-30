@@ -132,6 +132,71 @@ final class YoulCoinClientTest extends TestCase
         );
     }
 
+    public function testTheDescriptionIsSentWhenGivenAndOmittedOtherwise(): void
+    {
+        $bodies = [];
+        $client = $this->client(static function (string $method, string $url, array $options) use (&$bodies): MockResponse {
+            if ('POST' === $method) {
+                $bodies[] = json_decode($options['body'], true);
+
+                return new MockResponse('{"id":"tx"}', ['http_code' => 201, 'response_headers' => ['content-type: application/ld+json']]);
+            }
+
+            return new MockResponse(str_contains($url, '/bank/') ? '{"id":"BANK"}' : '{"id":"USER"}');
+        });
+
+        $client->creditFromBank('1', CoinAmount::fromCoins(1), CoinTransactionTypeEnum::REWARD, 'a', '  Univers KDA complété ');
+        $client->debitToBank('1', CoinAmount::fromCoins(1), CoinTransactionTypeEnum::PURCHASE, 'b', 't', 'Pack Cyberpunk 2077');
+        $client->creditFromBank('1', CoinAmount::fromCoins(1), CoinTransactionTypeEnum::REWARD, 'c');
+        $client->creditFromBank('1', CoinAmount::fromCoins(1), CoinTransactionTypeEnum::REWARD, 'd', '   ');
+
+        $this->assertSame('Univers KDA complété', $bodies[0]['description']);
+        $this->assertSame('Pack Cyberpunk 2077', $bodies[1]['description']);
+        $this->assertArrayNotHasKey('description', $bodies[2]);
+        $this->assertArrayNotHasKey('description', $bodies[3]);
+    }
+
+    public function testA140CharacterDescriptionIsKeptAndTheContentTypeStaysJsonLd(): void
+    {
+        $body = [];
+        $contentType = null;
+        $client = $this->client(static function (string $method, string $url, array $options) use (&$body, &$contentType): MockResponse {
+            if ('POST' === $method) {
+                $body = json_decode($options['body'], true);
+                $contentType = $options['normalized_headers']['content-type'][0] ?? null;
+
+                return new MockResponse('{"id":"tx"}', ['http_code' => 201]);
+            }
+
+            return new MockResponse(str_contains($url, '/bank/') ? '{"id":"BANK"}' : '{"id":"USER"}');
+        });
+
+        $exact = str_repeat('é', 140);
+        $client->creditFromBank('1', CoinAmount::fromCoins(1), CoinTransactionTypeEnum::REWARD, 'b', $exact);
+
+        $this->assertSame($exact, $body['description']);
+        $this->assertSame('Content-Type: application/ld+json', $contentType);
+    }
+
+    public function testTheTruncatedDescriptionHasExactly140Characters(): void
+    {
+        $body = [];
+        $client = $this->client(static function (string $method, string $url, array $options) use (&$body): MockResponse {
+            if ('POST' === $method) {
+                $body = json_decode($options['body'], true);
+
+                return new MockResponse('{"id":"tx"}', ['http_code' => 201]);
+            }
+
+            return new MockResponse(str_contains($url, '/bank/') ? '{"id":"BANK"}' : '{"id":"USER"}');
+        });
+
+        $client->creditFromBank('1', CoinAmount::fromCoins(1), CoinTransactionTypeEnum::REWARD, 'a', str_repeat('é', 200));
+
+        $this->assertSame(140, mb_strlen($body['description']));
+        $this->assertStringEndsWith('…', $body['description']);
+    }
+
     public function testTheBankWalletIdIsCached(): void
     {
         $bankReads = 0;
