@@ -46,6 +46,14 @@ final readonly class EngagedCopies
      */
     public function engagedCardIds(DiscordUser $owner): array
     {
-        return $this->tradeOfferRepository->findEngagedCardIds($owner) + array_fill_keys(array_keys($this->marketListingRepository->sumReservedQuantities($owner)), true);
+        return $this->tradeOfferRepository->findEngagedCardIds($owner) + $this->listedCardIds($owner);
+    }
+
+    /**
+     * @return array<string, true> card id => at least one copy in an engaged listing
+     */
+    public function listedCardIds(DiscordUser $owner): array
+    {
+        return array_fill_keys(array_map(strval(...), array_keys($this->marketListingRepository->sumReservedQuantities($owner))), true);
     }
 }

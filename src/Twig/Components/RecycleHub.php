@@ -86,6 +86,11 @@ final class RecycleHub extends AbstractController
      */
     private ?array $engaged = null;
 
+    /**
+     * @var array<string, true>|null card ids with a copy in an engaged market listing
+     */
+    private ?array $listed = null;
+
     public function __construct(
         private readonly UserCardRepository $userCardRepository,
         private readonly BoosterRepository $boosterRepository,
@@ -208,6 +213,16 @@ final class RecycleHub extends AbstractController
         $this->engaged ??= $this->engagedCopies->engagedCardIds($this->getDiscordUser());
 
         return isset($this->engaged[(string) $row->getCard()->getId()]);
+    }
+
+    /**
+     * Listed on the market: locked like an engaged card, with its own wording.
+     */
+    public function isListed(UserCard $row): bool
+    {
+        $this->listed ??= $this->engagedCopies->listedCardIds($this->getDiscordUser());
+
+        return isset($this->listed[(string) $row->getCard()->getId()]);
     }
 
     /**
@@ -424,6 +439,7 @@ final class RecycleHub extends AbstractController
         $this->selection = [];
         $this->rows = null; // the memoized inventory is stale after the debit
         $this->engaged = null;
+        $this->listed = null;
         $this->success = \sprintf(
             '%d copie%s recyclée%s — %d pack%s « %s » ajouté%s à ton stock !%s',
             $copies,

@@ -37,4 +37,29 @@ class MarketPurchaseRepository extends ServiceEntityRepository
 
         return $queryBuilder->getQuery()->getResult();
     }
+
+    /**
+     * The player's latest purchases and sales, whatever the outcome, newest first.
+     *
+     * @return list<MarketPurchase>
+     */
+    public function findRecentFor(DiscordUser $discordUser, int $limit): array
+    {
+        return array_values($this->createQueryBuilder('purchase')
+            ->join('purchase.listing', 'listing')
+            ->addSelect('listing')
+            ->join('listing.card', 'card')
+            ->addSelect('card')
+            ->join('purchase.buyer', 'buyer')
+            ->addSelect('buyer')
+            ->join('purchase.seller', 'seller')
+            ->addSelect('seller')
+            ->andWhere('purchase.buyer = :user OR purchase.seller = :user')
+            ->setParameter('user', $discordUser)
+            ->orderBy('purchase.requestedAt', 'DESC')
+            ->addOrderBy('purchase.id', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult());
+    }
 }

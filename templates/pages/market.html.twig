@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+    YOUL TCG — Marché
+{% endblock %}
+
+{% block body %}
+    <main>
+        <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
+            <div class="glow-ambient" aria-hidden="true"></div>
+            <div class="relative mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <p class="eyebrow">05 / Marché</p>
+                    <h1 class="mt-2 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
+                        Marché
+                    </h1>
+                    <p class="mt-2 max-w-lg text-sm text-ink-muted">
+                        Les cartes que les autres joueurs mettent en vente, payées en Youl Coin.
+                        Une commission de la banque est prélevée sur chaque vente.
+                    </p>
+                </div>
+                <a href="{{ path('market_my_shop') }}" class="btn-arcade shrink-0 self-start md:self-auto" data-testid="my-shop-link">Ma boutique ▸</a>
+            </div>
+        </section>
+
+        {{ component('MarketBoard') }}
+    </main>
+{% endblock %}

@@ -157,7 +157,7 @@
             {% if entry.card %}
                 {{ include('components/CardComponent.html.twig', {
                     card: entry.card,
-                    holo: picked.holo > 0 or entry.normal == 0,
+                    holo: picked.holo > 0 or (entry.normal == 0 and entry.holo > 0),
                     interactive: false,
                     lazy: true,
                     id: 'trade-' ~ side ~ '-' ~ entry.token,
@@ -176,6 +176,9 @@
         </p>
 
         <div class="mt-2 flex flex-col gap-1.5 border-t border-hairline pt-2">
+            {% if entry.listed > 0 %}
+                <p class="chip-mono text-soon" data-testid="tile-listed">¤ en vente ×{{ entry.listed }}{{ entry.normal + entry.holo == 0 ? ' · verrouillée' }}</p>
+            {% endif %}
             {% for finish in ['normal', 'holo'] %}
                 {% set available = entry[finish] %}
                 {% if available > 0 %}

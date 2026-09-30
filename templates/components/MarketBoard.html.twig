@@ -1,0 +1,177 @@
+{# re-rendered live whenever a listing is created, repriced, withdrawn or sold (public broadcast) #}
+<div {{ attributes.defaults({'data-action': 'live-updates:market-changed@window->live#$render', 'data-testid': sellerId ? 'player-shop' : 'market-board'}) }}>
+    {% set listings = this.listings %}
+    {% set total = this.total %}
+    {% set pageCount = this.pageCount %}
+    {% set currentPage = this.currentPage %}
+    {% set shop = sellerId is not null %}
+
+    {% if shop and total == 0 and not error and not success %}
+        {# une boutique vide n'affiche rien : le composant reste monté pour apparaître dès la première annonce #}
+    {% else %}
+        <section class="{{ shop ? 'mb-12' : 'px-6 pb-24 pt-8 lg:px-12' }}">
+            <div class="{{ shop ? '' : 'mx-auto max-w-7xl' }}">
+                {% if shop %}
+                    <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
+                        Boutique <span class="text-primary">{{ '%02d'|format(total) }}</span>
+                    </h2>
+                {% else %}
+                    {{ _self.filters(this) }}
+                {% endif %}
+
+                {% if error %}
+                    <div class="mt-4 border border-magenta/50 bg-magenta/10 px-4 py-3 font-mono text-xs text-magenta" data-testid="market-error">⚠ {{ error }}</div>
+                {% elseif success %}
+                    <div class="mt-4 border border-live/50 bg-live/10 px-4 py-3 font-mono text-xs text-live" data-testid="market-success">✦ {{ success }}</div>
+                {% endif %}
+
+                {% if listings is empty %}
+                    <div class="mt-6 border border-dashed border-hairline px-8 py-16 text-center text-ink-dim" data-testid="market-empty">
+                        <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Rien en vente.</p>
+                        <p class="mt-3 text-sm">
+                            {% if total == 0 and (universe or rarity or finish) %}
+                                Aucune annonce ne correspond à ces filtres.
+                            {% else %}
+                                Aucune carte n'est proposée par les autres joueurs pour le moment.
+                            {% endif %}
+                        </p>
+                    </div>
+                {% else %}
+                    <div class="mt-6 grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3 xl:grid-cols-4" data-testid="market-grid">
+                        {% for listing in listings %}
+                            {% set card = listing.card %}
+                            {% set block = this.buyBlock(listing) %}
+                            {% set isConfirming = confirming == (listing.id ~ '') %}
+                            <article class="relative flex flex-col border bg-surface p-3 {{ isConfirming ? 'border-primary/80 shadow-[0_0_16px_#a435f044]' : 'border-hairline' }}"
+                                     data-testid="market-listing">
+                                {% if listing.holo %}
+                                    <span class="chip-mono absolute -right-1.5 -top-1.5 z-10 bg-gradient-to-r from-primary to-magenta px-1.5 py-0.5 font-bold text-black">✦ Holo</span>
+                                {% endif %}
+                                <div class="mx-auto w-full max-w-[13rem]">
+                                    {{ include('components/CardComponent.html.twig', {
+                                        card: card,
+                                        holo: listing.holo,
+                                        interactive: false,
+                                        lazy: true,
+                                        id: 'market-' ~ listing.id,
+                                    }, with_context = false) }}
+                                </div>
+                                <p class="mt-3 truncate font-display text-xs font-bold uppercase leading-tight text-ink-strong" title="{{ card.name }}">{{ card.name }}</p>
+                                <p class="chip-mono mt-0.5 truncate" style="color: var(--rarity-{{ card.rarity.value }});">
+                                    {{ card.rarity.label }} · <span class="text-ink-dim">{{ card.extension.name }}</span>
+                                </p>
+                                {% if not shop %}
+                                    <p class="chip-mono mt-1 truncate text-ink-dim">
+                                        par <a href="{{ path('leaderboard_player', { discordId: listing.seller.discordId }) }}" class="text-ink-muted hover:text-primary">{{ listing.seller.username }}</a>
+                                    </p>
+                                {% endif %}
+                                <p class="mt-2 font-display text-lg font-bold text-primary" data-testid="listing-price">{{ coin_amount(listing.price) }} <span class="text-xs">YLC</span></p>
+
+                                <div class="mt-3 flex flex-col gap-2 border-t border-hairline pt-3">
+                                    {% if block %}
+                                        <button type="button" disabled data-testid="listing-buy"
+                                                class="cursor-not-allowed border border-hairline px-3 py-2 font-mono text-[11px] uppercase tracking-[.1em] text-ink-dim">
+                                            {{ block }}
+                                        </button>
+                                    {% elseif isConfirming %}
+                                        <p class="text-xs text-ink-muted" data-testid="buy-confirmation">
+                                            {{ coin_amount(listing.price) }} YLC seront débités de ton solde, sans retour possible.
+                                        </p>
+                                        <div class="flex gap-2">
+                                            <button type="button" data-action="live#action" data-live-action-param="buy" data-live-listing-id-param="{{ listing.id }}"
+                                                    data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="listing-confirm"
+                                                    class="flex-1 border border-primary bg-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-black">
+                                                Confirmer
+                                            </button>
+                                            <button type="button" data-action="live#action" data-live-action-param="abortBuy" data-testid="listing-abort"
+                                                    class="border border-hairline px-3 py-2 font-mono text-[11px] uppercase tracking-[.1em] text-ink-dim hover:text-ink-strong">
+                                                Annuler
+                                            </button>
+                                        </div>
+                                    {% else %}
+                                        <button type="button" data-action="live#action" data-live-action-param="askBuy" data-live-listing-id-param="{{ listing.id }}"
+                                                data-testid="listing-buy"
+                                                class="border border-primary bg-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary">
+                                            Acheter
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+
+                    {% if pageCount > 1 %}
+                        <nav class="mt-10 flex items-center justify-center gap-4" aria-label="Pagination" data-testid="market-pagination">
+                            {{ _self.page_button(currentPage - 1, '◂ Précédent', currentPage <= 1, 'market-prev') }}
+                            <span class="chip-mono text-ink-muted">Page {{ currentPage }} / {{ pageCount }}</span>
+                            {{ _self.page_button(currentPage + 1, 'Suivant ▸', currentPage >= pageCount, 'market-next') }}
+                        </nav>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </section>
+    {% endif %}
+</div>
+
+{% macro page_button(target, label, disabled, testid) %}
+    <button type="button"
+            data-action="live#action"
+            data-live-action-param="goToPage"
+            data-live-page-param="{{ target }}"
+            data-loading="addAttribute(disabled) addClass(opacity-50)"
+            data-testid="{{ testid }}"
+            {{ disabled ? 'disabled' }}
+            class="border border-hairline px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-muted transition-colors enabled:hover:border-primary enabled:hover:text-primary disabled:opacity-30">
+        {{ label }}
+    </button>
+{% endmacro %}
+
+{% macro filters(board) %}
+    <div class="flex flex-col gap-4" data-testid="market-filters">
+        <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrer par univers">
+            <button type="button" class="filter-chip {{ board.universe ? '' : 'is-active' }}"
+                    data-action="live#action" data-live-action-param="filterUniverse" data-live-slug-param=""
+                    data-testid="universe-chip-all">
+                Tous les univers
+            </button>
+            {% for extension in board.universeChips %}
+                <button type="button" class="filter-chip {{ board.universe == extension.slug ? 'is-active' }}"
+                        data-action="live#action" data-live-action-param="filterUniverse" data-live-slug-param="{{ extension.slug }}"
+                        data-testid="universe-chip">
+                    {{ extension.name }}
+                </button>
+            {% endfor %}
+        </div>
+        <div class="flex flex-wrap items-end gap-4">
+            <label class="flex flex-col gap-1">
+                <span class="chip-mono text-ink-dim">Rareté</span>
+                <select data-model="rarity" class="border border-hairline bg-surface px-3 py-2 font-mono text-xs text-ink" data-testid="filter-rarity">
+                    <option value="">Toutes</option>
+                    {% for rarity in board.rarities %}
+                        <option value="{{ rarity.value }}" {{ board.rarity == rarity.value ? 'selected' }}>{{ rarity.label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="flex flex-col gap-1">
+                <span class="chip-mono text-ink-dim">Finition</span>
+                <select data-model="finish" class="border border-hairline bg-surface px-3 py-2 font-mono text-xs text-ink" data-testid="filter-finish">
+                    <option value="">Toutes</option>
+                    <option value="normal" {{ board.finish == 'normal' ? 'selected' }}>Normale</option>
+                    <option value="holo" {{ board.finish == 'holo' ? 'selected' }}>Holo</option>
+                </select>
+            </label>
+            <label class="flex flex-col gap-1">
+                <span class="chip-mono text-ink-dim">Tri</span>
+                <select data-model="sort" class="border border-hairline bg-surface px-3 py-2 font-mono text-xs text-ink" data-testid="filter-sort">
+                    {% for value, label in { date_desc: 'Plus récentes', date_asc: 'Plus anciennes', price_asc: 'Prix croissant', price_desc: 'Prix décroissant' } %}
+                        <option value="{{ value }}" {{ board.activeSort == value ? 'selected' }}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            {% if board.universe or board.rarity or board.finish %}
+                <button type="button" data-action="live#action" data-live-action-param="resetFilters" data-testid="reset-filters"
+                        class="chip-mono text-ink-dim hover:text-primary">Réinitialiser ✕</button>
+            {% endif %}
+        </div>
+    </div>
+{% endmacro %}

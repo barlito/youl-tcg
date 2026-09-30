@@ -1,0 +1,191 @@
+{# re-rendered live: a sale, a withdrawal or any inventory change refreshes the shop #}
+<div {{ attributes.defaults({'data-action': 'live-updates:market-changed@window->live#$render live-updates:inventory-changed@window->live#$render', 'data-testid': 'my-shop'}) }}>
+    {% set listings = this.listings %}
+    {% set sellable = this.sellable %}
+    {% set history = this.history %}
+    <main>
+        <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
+            <div class="glow-ambient" aria-hidden="true"></div>
+            <div class="relative mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <p class="eyebrow">05 / Marché</p>
+                    <h1 class="mt-2 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">Ma boutique</h1>
+                    <p class="mt-2 max-w-lg text-sm text-ink-muted">
+                        Mets jusqu'à {{ this.maxListings }} cartes en vente à ton prix. Une carte en vente est réservée :
+                        elle ne peut être ni échangée ni recyclée. Tu reçois le prix moins la commission de la banque.
+                    </p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="chip-mono border border-primary bg-black px-3 py-2 font-bold text-primary" data-testid="quota">
+                        {{ listings|length }}/{{ this.maxListings }} annonces
+                    </span>
+                    <a href="{{ path('market') }}" class="btn-ghost">◂ Le marché</a>
+                </div>
+            </div>
+        </section>
+
+        {% if error or success %}
+            <div class="mx-auto mt-6 max-w-7xl px-6 lg:px-12">
+                {% if error %}
+                    <div class="border border-magenta/50 bg-magenta/10 px-4 py-3 font-mono text-xs text-magenta" data-testid="shop-error">⚠ {{ error }}</div>
+                {% else %}
+                    <div class="border border-live/50 bg-live/10 px-4 py-3 font-mono text-xs text-live" data-testid="shop-success">✦ {{ success }}</div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {# ------------------------------------------------ Mes annonces #}
+        <section class="px-6 py-10 lg:px-12">
+            <div class="mx-auto max-w-7xl">
+                <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">En vente <span class="text-primary">{{ '%02d'|format(listings|length) }}</span></h2>
+
+                {% if listings is empty %}
+                    <div class="mt-4 border border-dashed border-hairline px-8 py-12 text-center text-ink-dim" data-testid="no-listings">
+                        <p class="text-sm">Aucune annonce. Choisis une carte ci-dessous pour la mettre en vente.</p>
+                    </div>
+                {% else %}
+                    <div class="mt-4 grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3" data-testid="my-listings">
+                        {% for listing in listings %}
+                            {% set card = listing.card %}
+                            {% set busy = listing.status.value == 'reserved_for_purchase' %}
+                            <article class="relative flex flex-col border border-hairline bg-surface p-3" data-testid="my-listing">
+                                {% if listing.holo %}
+                                    <span class="chip-mono absolute -right-1.5 -top-1.5 z-10 bg-gradient-to-r from-primary to-magenta px-1.5 py-0.5 font-bold text-black">✦ Holo</span>
+                                {% endif %}
+                                <div class="mx-auto w-full max-w-[13rem]">
+                                    {{ include('components/CardComponent.html.twig', {
+                                        card: card, holo: listing.holo, interactive: false, lazy: true, id: 'shop-' ~ listing.id,
+                                    }, with_context = false) }}
+                                </div>
+                                <p class="mt-3 truncate font-display text-xs font-bold uppercase leading-tight text-ink-strong" title="{{ card.name }}">{{ card.name }}</p>
+                                <p class="chip-mono mt-0.5" style="color: var(--rarity-{{ card.rarity.value }});">{{ card.rarity.label }}</p>
+
+                                {% if editingId == (listing.id ~ '') %}
+                                    <div class="mt-3 flex flex-col gap-2 border-t border-hairline pt-3">
+                                        <label class="chip-mono text-ink-dim" for="edit-price-{{ listing.id }}">Nouveau prix (YLC)</label>
+                                        <input id="edit-price-{{ listing.id }}" type="text" inputmode="numeric" data-model="editPrice" value="{{ editPrice }}"
+                                               data-testid="edit-price"
+                                               class="border border-hairline bg-bg px-3 py-2 font-mono text-sm text-ink">
+                                        <div class="flex gap-2">
+                                            <button type="button" data-action="live#action" data-live-action-param="savePrice" data-live-listing-id-param="{{ listing.id }}"
+                                                    data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="save-price"
+                                                    class="flex-1 border border-primary bg-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-black">Enregistrer</button>
+                                            <button type="button" data-action="live#action" data-live-action-param="cancelEdit"
+                                                    class="border border-hairline px-3 py-2 font-mono text-[11px] uppercase tracking-[.1em] text-ink-dim hover:text-ink-strong">Annuler</button>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <p class="mt-2 font-display text-lg font-bold text-primary" data-testid="my-listing-price">{{ coin_amount(listing.price) }} <span class="text-xs">YLC</span></p>
+                                    {% if busy %}
+                                        <p class="chip-mono mt-1 text-soon" data-testid="listing-busy">⏳ Achat en cours de vérification</p>
+                                    {% endif %}
+                                    <div class="mt-3 flex gap-2 border-t border-hairline pt-3">
+                                        <button type="button" data-action="live#action" data-live-action-param="startEdit" data-live-listing-id-param="{{ listing.id }}"
+                                                data-testid="edit-listing" {{ busy ? 'disabled' }}
+                                                class="flex-1 border border-hairline px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-muted transition-colors enabled:hover:border-primary enabled:hover:text-primary disabled:opacity-30">Prix</button>
+                                        <button type="button" data-action="live#action" data-live-action-param="withdraw" data-live-listing-id-param="{{ listing.id }}"
+                                                data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="withdraw-listing" {{ busy ? 'disabled' }}
+                                                class="flex-1 border border-hairline px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-muted transition-colors enabled:hover:border-magenta enabled:hover:text-magenta disabled:opacity-30">Retirer</button>
+                                    </div>
+                                {% endif %}
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        {# ------------------------------------------- Mettre en vente #}
+        <section class="border-t border-hairline px-6 py-10 lg:px-12">
+            <div class="mx-auto max-w-7xl">
+                <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">Mettre en vente</h2>
+
+                {% if not this.canPublish %}
+                    <p class="mt-3 text-sm text-ink-muted" data-testid="quota-reached">Tu as atteint la limite de {{ this.maxListings }} annonces : retires-en une pour en publier une autre.</p>
+                {% elseif this.sellableCount == 0 %}
+                    <div class="mt-4 border border-dashed border-hairline px-8 py-12 text-center text-ink-dim" data-testid="nothing-sellable">
+                        <p class="text-sm">Aucune carte disponible : les copies engagées dans un échange ou déjà en vente ne comptent pas.</p>
+                    </div>
+                {% else %}
+                    <label class="mt-4 flex max-w-sm flex-col gap-1">
+                        <span class="chip-mono text-ink-dim">Chercher une carte</span>
+                        <input type="search" data-model="debounce(250)|search" value="{{ search }}" data-testid="sell-search" placeholder="Nom de la carte"
+                               class="border border-hairline bg-surface px-3 py-2 font-mono text-sm text-ink">
+                    </label>
+
+                    <ul class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3" data-testid="sellable-list">
+                        {% for copy in sellable %}
+                            {% for finish in ['normal', 'holo'] %}
+                                {% set available = copy[finish] %}
+                                {% if available > 0 %}
+                                    {% set key = copy.card.id ~ '|' ~ finish %}
+                                    <li class="border bg-surface px-4 py-3 {{ selling == key ? 'border-primary/80' : 'border-hairline' }}" data-testid="sellable">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <div class="min-w-0">
+                                                <p class="truncate font-display text-sm font-bold uppercase text-ink-strong" title="{{ copy.card.name }}">{{ copy.card.name }}</p>
+                                                <p class="chip-mono" style="color: var(--rarity-{{ copy.card.rarity.value }});">
+                                                    {{ copy.card.rarity.label }} · <span class="{{ finish == 'holo' ? 'text-magenta' : 'text-ink-muted' }}">{{ finish == 'holo' ? '✦ Holo' : 'Normale' }}</span> · ×{{ available }}
+                                                </p>
+                                            </div>
+                                            {% if selling != key %}
+                                                <button type="button" data-action="live#action" data-live-action-param="startSelling"
+                                                        data-live-card-id-param="{{ copy.card.id }}" data-live-finish-param="{{ finish }}"
+                                                        data-testid="sell-copy"
+                                                        class="shrink-0 border border-primary bg-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary">Vendre</button>
+                                            {% endif %}
+                                        </div>
+                                        {% if selling == key %}
+                                            <div class="mt-3 flex flex-col gap-2 border-t border-hairline pt-3">
+                                                <label class="chip-mono text-ink-dim" for="sell-price">Prix (YLC, entier)</label>
+                                                <input id="sell-price" type="text" inputmode="numeric" data-model="sellPrice" value="{{ sellPrice }}" data-testid="sell-price"
+                                                       class="border border-hairline bg-bg px-3 py-2 font-mono text-sm text-ink">
+                                                <div class="flex gap-2">
+                                                    <button type="button" data-action="live#action" data-live-action-param="publish"
+                                                            data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="publish-listing"
+                                                            class="flex-1 border border-primary bg-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-black">Mettre en vente</button>
+                                                    <button type="button" data-action="live#action" data-live-action-param="cancelSelling"
+                                                            class="border border-hairline px-3 py-2 font-mono text-[11px] uppercase tracking-[.1em] text-ink-dim hover:text-ink-strong">Annuler</button>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                    {% if this.sellableCount > sellable|length and search == '' %}
+                        <p class="chip-mono mt-3 text-ink-dim">Affine ta recherche pour voir les {{ this.sellableCount - sellable|length }} autres cartes.</p>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </section>
+
+        {# ------------------------------------------------ Historique #}
+        <section class="border-t border-hairline px-6 pb-24 pt-10 lg:px-12">
+            <div class="mx-auto max-w-7xl">
+                <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">Historique</h2>
+
+                {% if history is empty %}
+                    <p class="mt-3 text-sm text-ink-dim" data-testid="no-history">Aucune vente ni aucun achat pour l'instant.</p>
+                {% else %}
+                    <ul class="mt-4 flex flex-col gap-2" data-testid="shop-history">
+                        {% for purchase in history %}
+                            {% set sold = this.isSeller(purchase) %}
+                            <li class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border border-hairline bg-surface px-4 py-3 text-sm" data-testid="history-entry">
+                                <span class="min-w-0 truncate">
+                                    <span class="chip-mono {{ sold ? 'text-live' : 'text-primary' }}">{{ sold ? 'Vendue' : 'Achetée' }}</span>
+                                    <span class="font-display font-bold uppercase text-ink-strong">{{ purchase.listing.card.name }}</span>{% if purchase.listing.holo %} <span class="text-magenta">✦</span>{% endif %}
+                                    <span class="text-ink-muted">{{ sold ? 'à ' ~ purchase.buyer.username : 'à ' ~ purchase.seller.username }}</span>
+                                </span>
+                                <span class="chip-mono text-ink-muted">
+                                    {{ coin_amount(purchase.price) }} YLC{% if sold and purchase.status.value == 'completed' %} (reçus : {{ this.netPayout(purchase) }}){% endif %}
+                                    · {{ purchase.status.label }} · {{ purchase.requestedAt|date('d/m/Y H:i', 'Europe/Paris') }}
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+</div>
