@@ -7,6 +7,7 @@ namespace App\Service\Trade;
 use App\Dto\TradeLineRequest;
 use App\Entity\Card;
 use App\Entity\DiscordUser;
+use App\Entity\Extension;
 use App\Entity\TradeOffer;
 use App\Entity\TradeOfferLine;
 use App\Entity\UserCard;
@@ -24,6 +25,7 @@ use App\Exception\Trade\TradesClosedException;
 use App\Repository\CardRepository;
 use App\Repository\TradeOfferRepository;
 use App\Repository\UserCardRepository;
+use App\Service\Coin\UniverseCompletionChecker;
 use App\Service\Feature\FeatureFlags;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -58,6 +60,7 @@ final readonly class TradeOfferService
         private ClockInterface $clock,
         private FeatureFlags $featureFlags,
         private TradeEventAnnouncer $announcer,
+        private UniverseCompletionChecker $completionChecker,
     ) {
     }
 
@@ -168,12 +171,23 @@ final readonly class TradeOfferService
         // post-commit; only an acceptance or an invalidation changed the offer
         if (!$refusal instanceof TradeException) {
             $this->announcer->resolved($offer, TradeOfferStatusEnum::ACCEPTED);
+            $this->checkCompletions($offer);
         } elseif ($refusal instanceof TradeOfferInvalidatedException) {
             $this->announcer->resolved($offer, TradeOfferStatusEnum::INVALIDATED);
         }
 
         if ($refusal instanceof TradeException) {
             throw $refusal;
+        }
+    }
+
+    private function checkCompletions(TradeOffer $offer): void
+    {
+        foreach ([$offer->getProposer(), $offer->getReceiver()] as $taker) {
+            $this->completionChecker->checkAfterCredit($taker, array_filter(array_map(
+                static fn (TradeOfferLine $line): ?Extension => $line->getCard()->getExtension(),
+                array_filter($offer->getLines()->toArray(), static fn (TradeOfferLine $line): bool => $offer->getTakerOf($line) === $taker),
+            )));
         }
     }
 

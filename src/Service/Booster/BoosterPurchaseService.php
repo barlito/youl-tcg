@@ -8,6 +8,7 @@ use App\Entity\Booster;
 use App\Entity\BoosterPurchase;
 use App\Entity\DiscordUser;
 use App\Enum\Coin\CoinPaymentStatusEnum;
+use App\Enum\Coin\CoinTransactionTypeEnum;
 use App\Enum\Realtime\UserEventEnum;
 use App\Exception\Booster\BoosterPurchaseRefusedException;
 use App\Repository\BoosterPurchaseRepository;
@@ -76,6 +77,7 @@ final readonly class BoosterPurchaseService
         $payment = $this->coin->debitToBank(
             $discordUser->getDiscordId(),
             CoinAmount::fromCoins($purchase->getPrice()),
+            CoinTransactionTypeEnum::PURCHASE,
             $purchase->getExternalIdentifier(),
             $playerToken,
         );

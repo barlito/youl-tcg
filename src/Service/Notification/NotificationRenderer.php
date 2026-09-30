@@ -10,6 +10,7 @@ use App\Entity\DiscordUser;
 use App\Entity\Notification;
 use App\Enum\Notification\NotificationTypeEnum;
 use App\Service\Booster\BoosterCodeGenerator;
+use App\Service\Coin\CoinAmount;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
@@ -75,6 +76,11 @@ final readonly class NotificationRenderer
                 '✕',
                 \sprintf('%s a refusé ton échange', $this->string($payload, 'playerName', 'Un joueur')),
                 $this->urlGenerator->generate('trades'),
+            ),
+            NotificationTypeEnum::UNIVERSE_COMPLETED => new NotificationContent(
+                '★',
+                \sprintf('Univers %s complété : +%s YLC', $this->string($payload, 'universe', 'un univers'), CoinAmount::fromCoins($this->int($payload, 'amount'))->format()),
+                $this->universeLink($payload),
             ),
             NotificationTypeEnum::ANNOUNCEMENT => new NotificationContent(
                 '!',
@@ -152,6 +158,18 @@ final readonly class NotificationRenderer
             $quantity > 1 ? 's' : '',
             $channel,
         );
+    }
+
+    /**
+     * @param array<string, scalar|null> $payload
+     */
+    private function universeLink(array $payload): string
+    {
+        $slug = $this->string($payload, 'slug', '');
+
+        return 1 === preg_match('/^[a-z0-9-]+$/', $slug)
+            ? $this->urlGenerator->generate('universes_show', ['slug' => $slug])
+            : $this->urlGenerator->generate('universes');
     }
 
     /**
