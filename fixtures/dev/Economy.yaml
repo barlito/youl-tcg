@@ -1,0 +1,69 @@
+# Économie Youl Coin de démo : un marché garni (annonces des autres joueurs à
+# acheter, une annonce de Barlito dans Ma boutique), un historique de ventes,
+# d'achats de boosters et de récompenses d'univers pour le tableau de bord.
+# Rien n'est daté d'aujourd'hui : l'achat de booster du jour reste disponible.
+# Les ids de transaction coin sont fictifs.
+App\Entity\MarketListing:
+    listing_collectionneur_ahri_alt:
+        __construct: ['@discord_user_collectionneur', '@card_ahri_alt_kda', false, 120]
+    listing_collectionneur_akali_alt:
+        __construct: ['@discord_user_collectionneur', '@card_akali_alt_kda', false, 90]
+    listing_collectionneur_joueuse_de_mort:
+        __construct: ['@discord_user_collectionneur', '@card_babou_linette_la_joueuse_de_mort', false, 25]
+    listing_juju_la_chrome:
+        __construct: ['@discord_user_juju', '@card_babou_linette_la_chrome', false, 30]
+    listing_juju_benj_evo_magic:
+        __construct: ['@discord_user_juju', '@card_benj_evo_magic', false, 45]
+    # holo
+    listing_benj_babou_alt_sot_holo:
+        __construct: ['@discord_user_benj', '@card_babou_linette_1_alt_sot', true, 250]
+    # dernier exemplaire de Farph
+    listing_farph_babou_psyche:
+        __construct: ['@discord_user_farph', '@card_babou_linette_psyche', false, 8]
+    listing_barlito_ahri_alt:
+        __construct: ['@discord_user_barlito', '@card_ahri_alt_kda', false, 150]
+    listing_barlito_akali_withdrawn:
+        __construct: ['@discord_user_barlito', '@card_akali_kda', false, 12]
+        __calls:
+            - close: ['<(App\Enum\Market\MarketListingStatusEnum::WITHDRAWN)>', '<(new DateTimeImmutable("-4 days"))>']
+    listing_collectionneur_akali_sold:
+        __construct: ['@discord_user_collectionneur', '@card_akali_kda', false, 40]
+        __calls:
+            - close: ['<(App\Enum\Market\MarketListingStatusEnum::SOLD)>', '<(new DateTimeImmutable("-2 days"))>']
+    listing_barlito_ahlototh_sold:
+        __construct: ['@discord_user_barlito', '@card_ahlototh_the_sightless', false, 60]
+        __calls:
+            - close: ['<(App\Enum\Market\MarketListingStatusEnum::SOLD)>', '<(new DateTimeImmutable("-5 days"))>']
+
+# commission 5 % en unités mineures : prix × 10^8 × 5 / 100
+App\Entity\MarketPurchase:
+    purchase_barlito_akali:
+        __construct: ['@listing_collectionneur_akali_sold', '@discord_user_barlito', '@discord_user_collectionneur', 40, '200000000', '<(new DateTimeImmutable("-2 days"))>']
+        __calls:
+            - markCardTransferred: ['<uuid()>']
+            - complete: ['<uuid()>', '<(new DateTimeImmutable("-2 days"))>']
+    purchase_juju_ahlototh:
+        __construct: ['@listing_barlito_ahlototh_sold', '@discord_user_juju', '@discord_user_barlito', 60, '300000000', '<(new DateTimeImmutable("-5 days"))>']
+        __calls:
+            - markCardTransferred: ['<uuid()>']
+            - complete: ['<uuid()>', '<(new DateTimeImmutable("-5 days"))>']
+
+App\Entity\BoosterPurchase:
+    booster_purchase_barlito_1:
+        __construct: ['@discord_user_barlito', '@booster_cyberpunk', 10, '<(new DateTimeImmutable("-3 days"))>']
+        __calls:
+            - complete: ['<uuid()>', '<(new DateTimeImmutable("-3 days"))>']
+    booster_purchase_juju_1:
+        __construct: ['@discord_user_juju', '@booster_cyberpunk', 10, '<(new DateTimeImmutable("-1 day"))>']
+        __calls:
+            - complete: ['<uuid()>', '<(new DateTimeImmutable("-1 day"))>']
+    booster_purchase_farph_1:
+        __construct: ['@discord_user_farph', '@booster_cyberpunk', 10, '<(new DateTimeImmutable("-6 days"))>']
+        __calls:
+            - complete: ['<uuid()>', '<(new DateTimeImmutable("-6 days"))>']
+
+App\Entity\UniverseCompletionReward:
+    universe_reward_collectionneur_kda:
+        __construct: ['@discord_user_collectionneur', '@extension_kda', 500, '<(new DateTimeImmutable("-4 days"))>']
+        __calls:
+            - markPaid: ['<uuid()>', '<(new DateTimeImmutable("-4 days"))>']
