@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Service\Coin;
 
 use App\Enum\Coin\CoinPaymentStatusEnum;
+use App\Enum\Coin\CoinTransactionTypeEnum;
 use App\Service\Coin\CoinAmount;
 use App\Service\Coin\YoulCoinClient;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -74,12 +75,34 @@ final class YoulCoinClientTest extends TestCase
             return new MockResponse(str_contains($url, '/bank/') ? '{"id":"BANK"}' : '{"id":"USER"}');
         });
 
-        $payment = $client->debitToBank('123', CoinAmount::fromCoins(10), 'ytcg:booster-purchase:abc', 'player-jwt');
+        $payment = $client->debitToBank('123', CoinAmount::fromCoins(10), CoinTransactionTypeEnum::PURCHASE, 'ytcg:booster-purchase:abc', 'player-jwt');
 
         $this->assertSame(CoinPaymentStatusEnum::PAID, $payment->status);
         $this->assertSame('tx-1', $payment->transactionId);
         $this->assertSame(
             ['http://coin/api/transactions', ['amount' => '1000000000', 'walletFrom' => '/api/wallets/USER', 'walletTo' => '/api/wallets/BANK', 'type' => 'purchase', 'externalIdentifier' => 'ytcg:booster-purchase:abc'], 'X-Player-Token: player-jwt'],
+            $sent,
+        );
+    }
+
+    public function testCreditGoesFromTheBankToThePlayerWithoutPlayerToken(): void
+    {
+        $sent = [];
+        $client = $this->client(static function (string $method, string $url, array $options) use (&$sent): MockResponse {
+            if ('POST' === $method) {
+                $sent = [json_decode($options['body'], true), isset($options['normalized_headers']['x-player-token'])];
+
+                return new MockResponse('{"id":"tx-2"}', ['http_code' => 201]);
+            }
+
+            return new MockResponse(str_contains($url, '/bank/') ? '{"id":"BANK"}' : '{"id":"USER"}');
+        });
+
+        $payment = $client->creditFromBank('123', CoinAmount::fromCoins(500), CoinTransactionTypeEnum::REWARD, 'ytcg:universe-reward:abc');
+
+        $this->assertSame('tx-2', $payment->transactionId);
+        $this->assertSame(
+            [['amount' => '50000000000', 'walletFrom' => '/api/wallets/BANK', 'walletTo' => '/api/wallets/USER', 'type' => 'reward', 'externalIdentifier' => 'ytcg:universe-reward:abc'], false],
             $sent,
         );
     }
@@ -93,8 +116,8 @@ final class YoulCoinClientTest extends TestCase
             return 'POST' === $method ? new MockResponse('{"id":"tx"}', ['http_code' => 201]) : new MockResponse('{"id":"W"}');
         });
 
-        $client->debitToBank('1', CoinAmount::fromCoins(1), 'a', 't');
-        $client->debitToBank('1', CoinAmount::fromCoins(1), 'b', 't');
+        $client->debitToBank('1', CoinAmount::fromCoins(1), CoinTransactionTypeEnum::PURCHASE, 'a', 't');
+        $client->debitToBank('1', CoinAmount::fromCoins(1), CoinTransactionTypeEnum::PURCHASE, 'b', 't');
 
         $this->assertSame(1, $bankReads);
     }
@@ -116,7 +139,7 @@ final class YoulCoinClientTest extends TestCase
     {
         $client = $this->client(static fn (string $method): MockResponse => 'POST' === $method ? new MockResponse('{}', ['http_code' => $status]) : new MockResponse('{"id":"W"}'));
 
-        $payment = $client->debitToBank('1', CoinAmount::fromCoins(1), 'a', 't');
+        $payment = $client->debitToBank('1', CoinAmount::fromCoins(1), CoinTransactionTypeEnum::PURCHASE, 'a', 't');
 
         $this->assertSame($expected, $payment->status);
     }
@@ -125,7 +148,7 @@ final class YoulCoinClientTest extends TestCase
     {
         $client = $this->client(static fn (string $method): MockResponse => 'POST' === $method ? new MockResponse('', ['error' => 'timeout']) : new MockResponse('{"id":"W"}'));
 
-        $this->assertSame(CoinPaymentStatusEnum::UNCERTAIN, $client->debitToBank('1', CoinAmount::fromCoins(1), 'a', 't')->status);
+        $this->assertSame(CoinPaymentStatusEnum::UNCERTAIN, $client->debitToBank('1', CoinAmount::fromCoins(1), CoinTransactionTypeEnum::PURCHASE, 'a', 't')->status);
     }
 
     public function testDebitWithoutReachableWalletsSendsNothing(): void
@@ -137,7 +160,7 @@ final class YoulCoinClientTest extends TestCase
             return new MockResponse('', ['http_code' => 404]);
         });
 
-        $this->assertSame(CoinPaymentStatusEnum::UNAVAILABLE, $client->debitToBank('1', CoinAmount::fromCoins(1), 'a', 't')->status);
+        $this->assertSame(CoinPaymentStatusEnum::UNAVAILABLE, $client->debitToBank('1', CoinAmount::fromCoins(1), CoinTransactionTypeEnum::PURCHASE, 'a', 't')->status);
         $this->assertFalse($posted);
     }
 

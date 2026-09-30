@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Coin;
 
+use App\Enum\Coin\CoinTransactionTypeEnum;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -46,22 +47,35 @@ final readonly class YoulCoinClient
         }
     }
 
-    public function debitToBank(string $discordId, CoinAmount $amount, string $externalIdentifier, string $playerToken): CoinPayment
+    public function debitToBank(string $discordId, CoinAmount $amount, CoinTransactionTypeEnum $type, string $externalIdentifier, string $playerToken): CoinPayment
     {
-        $walletIds = [$this->fetchWalletId($this->userWalletPath($discordId)), $this->getBankWalletId()];
+        return $this->transfer($discordId, true, $amount, $type, $externalIdentifier, $playerToken);
+    }
 
-        if (\in_array(null, $walletIds, true)) {
+    public function creditFromBank(string $discordId, CoinAmount $amount, CoinTransactionTypeEnum $type, string $externalIdentifier): CoinPayment
+    {
+        return $this->transfer($discordId, false, $amount, $type, $externalIdentifier, null);
+    }
+
+    private function transfer(string $discordId, bool $toBank, CoinAmount $amount, CoinTransactionTypeEnum $type, string $externalIdentifier, ?string $playerToken): CoinPayment
+    {
+        $playerWalletId = $this->fetchWalletId($this->userWalletPath($discordId));
+        $bankWalletId = $this->getBankWalletId();
+
+        if (null === $playerWalletId || null === $bankWalletId) {
             return CoinPayment::unavailable();
         }
 
+        [$from, $to] = $toBank ? [$playerWalletId, $bankWalletId] : [$bankWalletId, $playerWalletId];
+
         try {
             $response = $this->httpClient->request('POST', '/api/transactions', [
-                'headers' => ['Accept' => 'application/ld+json', 'X-Player-Token' => $playerToken],
+                'headers' => ['Accept' => 'application/ld+json'] + (null === $playerToken ? [] : ['X-Player-Token' => $playerToken]),
                 'json' => [
                     'amount' => $amount->minor,
-                    'walletFrom' => '/api/wallets/' . $walletIds[0],
-                    'walletTo' => '/api/wallets/' . $walletIds[1],
-                    'type' => 'purchase',
+                    'walletFrom' => '/api/wallets/' . $from,
+                    'walletTo' => '/api/wallets/' . $to,
+                    'type' => $type->value,
                     'externalIdentifier' => $externalIdentifier,
                 ],
             ]);
