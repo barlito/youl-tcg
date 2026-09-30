@@ -35,8 +35,10 @@ jobs:
       - name: Cache Composer Dependencies
         uses: actions/cache@v6
         with:
-          path: ~/.composer/files
+          # ~/.composer is mounted into the php container, whose download cache is ~/.composer/cache/files
+          path: ~/.composer/cache/files
           key: composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-
 
       - name: Deploy stack
         run: USER_ID=$(id -u) GROUP_ID=$(id -g) make deploy.ci github_token=${{ secrets.GITHUB_TOKEN }}
