@@ -56,7 +56,7 @@ final readonly class YoulCoinClient
 
         try {
             $response = $this->httpClient->request('POST', '/api/transactions', [
-                'headers' => ['Accept' => 'application/ld+json', 'X-Player-Token' => $playerToken],
+                'headers' => ['Accept' => 'application/ld+json', 'Content-Type' => 'application/ld+json', 'X-Player-Token' => $playerToken],
                 'json' => [
                     'amount' => $amount->minor,
                     'walletFrom' => '/api/wallets/' . $walletIds[0],
