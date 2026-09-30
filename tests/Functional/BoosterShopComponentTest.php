@@ -64,6 +64,24 @@ final class BoosterShopComponentTest extends WebTestCase
         $this->assertNull($crawler->filter('[data-testid="shop-buy"]')->attr('disabled'));
     }
 
+    public function testTheBuyButtonLivesOnThePackTile(): void
+    {
+        $crawler = $this->hub()->render()->crawler();
+
+        $this->assertCount(1, $crawler->filter('[data-testid="boosters-grid"] [data-testid="shop-item"]'));
+    }
+
+    public function testAPackOnSaleButNotClaimableStillShowsUpToBeBought(): void
+    {
+        static::getContainer()->get(EntityManagerInterface::class)->getRepository(Booster::class)->find($this->boosterId)->setClaimable(false);
+        static::getContainer()->get(EntityManagerInterface::class)->flush();
+
+        $crawler = $this->hub()->render()->crawler();
+
+        $this->assertCount(1, $crawler->filter('[data-testid="boosters-grid"] [data-testid="shop-only"]'));
+        $this->assertSame('Acheter', trim($crawler->filter('[data-testid="shop-buy"]')->text()));
+    }
+
     public function testBuyingNeedsASecondConfirmingClick(): void
     {
         $hub = $this->hub();

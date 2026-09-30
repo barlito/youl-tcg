@@ -128,10 +128,15 @@ final class BoosterHub extends AbstractController
      */
     public function getBoosters(): array
     {
-        return $this->boosterAvailability->filterVisible(
-            $this->boosterRepository->findPublished(),
-            $this->getInventory(),
-        );
+        $published = $this->boosterRepository->findPublished();
+        $visible = $this->boosterAvailability->filterVisible($published, $this->getInventory());
+        $onSale = $this->getShopBoosterIds();
+
+        // a pack on sale is shown even when neither claimable nor owned: it is bought from its tile
+        return array_values(array_filter(
+            $published,
+            static fn (Booster $booster): bool => \in_array($booster, $visible, true) || isset($onSale[(string) $booster->getId()]),
+        ));
     }
 
     public function getRemainingClaims(): int
@@ -368,6 +373,19 @@ final class BoosterHub extends AbstractController
     public function getShopBoosters(): array
     {
         return $this->boosterAvailability->filterPurchasable($this->boosterRepository->findPublished());
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    public function getShopBoosterIds(): array
+    {
+        $ids = [];
+        foreach ($this->getShopBoosters() as $booster) {
+            $ids[(string) $booster->getId()] = true;
+        }
+
+        return $ids;
     }
 
     public function getRemainingPurchases(): int
