@@ -49,7 +49,7 @@ final readonly class UniverseCompletionChecker
 
             foreach ($unique as $id => $extension) {
                 if (($totals[$id] ?? 0) > 0 && ($owned[$id] ?? 0) >= $totals[$id]) {
-                    $this->reward($discordUser, $extension);
+                    $this->rewardCompleted($discordUser, $extension);
                 }
             }
         } catch (\Throwable $exception) {
@@ -57,14 +57,21 @@ final readonly class UniverseCompletionChecker
         }
     }
 
-    private function reward(DiscordUser $discordUser, Extension $extension): void
+    public function rewardAmount(Extension $extension): int
     {
-        $amount = $extension->getCompletionRewardCoins() ?? $this->settingsRepository->get()->getDefaultUniverseRewardCoins();
+        return $extension->getCompletionRewardCoins() ?? $this->settingsRepository->get()->getDefaultUniverseRewardCoins();
+    }
+
+    // null: already rewarded once, for good
+    public function rewardCompleted(DiscordUser $discordUser, Extension $extension): ?UniverseCompletionReward
+    {
+        $amount = $this->rewardAmount($extension);
         $reward = $this->rewardRepository->insertIgnore($discordUser, $extension, $amount, $this->clock->now());
 
-        // null: already rewarded once, for good
         if ($reward instanceof UniverseCompletionReward && $amount > 0) {
             $this->rewardService->pay($reward);
         }
+
+        return $reward;
     }
 }
