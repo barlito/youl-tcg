@@ -72,6 +72,16 @@ final readonly class MarketPurchaseService
             throw new MarketPurchaseRefusedException('Own listing.', 'Tu ne peux pas acheter ta propre annonce.');
         }
 
+        $sellerWallet = $this->coin->hasWallet($listing->getSeller()->getDiscordId());
+
+        if (null === $sellerWallet) {
+            throw new MarketPurchaseRefusedException('Coin unavailable.', 'Youl Coin est indisponible, réessaie dans un instant.');
+        }
+
+        if (!$sellerWallet) {
+            throw new MarketPurchaseRefusedException('Seller has no coin wallet.', 'Ce vendeur ne peut pas encore recevoir de Youl Coin : achat impossible pour le moment.');
+        }
+
         // committed pending BEFORE the debit; the closure returns its refusal, throwing would close the EntityManager
         $started = $this->entityManager->wrapInTransaction(function () use ($buyer, $listing): MarketPurchase | MarketPurchaseRefusedException {
             $locked = $this->listingRepository->findOneForUpdate((string) $listing->getId());

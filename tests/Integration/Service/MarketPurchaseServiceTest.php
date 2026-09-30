@@ -226,16 +226,40 @@ final class MarketPurchaseServiceTest extends KernelTestCase
         $this->assertSame([], $this->entityManager->getRepository(MarketPurchase::class)->findAll());
     }
 
+    public function testASellerWithoutCoinWalletCannotBePurchasedFrom(): void
+    {
+        $listing = $this->list(10);
+        $this->coin->override('GET', '/api/user/' . $this->seller->getDiscordId() . '/wallet', static fn (): MockResponse => new MockResponse('', ['http_code' => 404]));
+
+        $this->assertRefusal(fn () => $this->service->purchase($this->buyer, $listing, 'jwt'), 'ne peut pas encore recevoir de Youl Coin');
+
+        $this->assertSame([], $this->postedTransactions());
+        $this->assertSame([], $this->entityManager->getRepository(MarketPurchase::class)->findAll());
+        $this->assertSame(MarketListingStatusEnum::ACTIVE, $listing->getStatus());
+        $this->assertSame([2, 0], $this->owned($this->seller, $this->card));
+    }
+
+    public function testAnUnreachableCoinRefusesBeforeCheckingTheSellerWalletCreatesAnything(): void
+    {
+        $listing = $this->list(10);
+        $this->coin->override('GET', '/api/user/' . $this->seller->getDiscordId() . '/wallet', static fn (): MockResponse => new MockResponse('', ['http_code' => 503]));
+
+        $this->assertRefusal(fn () => $this->service->purchase($this->buyer, $listing, 'jwt'), 'indisponible');
+
+        $this->assertSame([], $this->postedTransactions());
+        $this->assertSame([], $this->entityManager->getRepository(MarketPurchase::class)->findAll());
+    }
+
     public function testASoldListingIsUnavailableToTheNextBuyer(): void
     {
         $listing = $this->list(10);
         $second = $this->createUser('second');
         $this->service->purchase($this->buyer, $listing, 'jwt');
-        $requests = \count($this->coin->requests);
+        $transactions = \count($this->postedTransactions());
 
         $this->assertRefusal(fn () => $this->service->purchase($second, $listing, 'jwt'), 'plus disponible');
 
-        $this->assertCount($requests, $this->coin->requests);
+        $this->assertCount($transactions, $this->postedTransactions());
         $this->assertSame([1, 0], $this->owned($this->buyer, $this->card));
         $this->assertSame([0, 0], $this->owned($second, $this->card));
     }
