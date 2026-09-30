@@ -47,6 +47,33 @@ class CardRepository extends ServiceEntityRepository
     }
 
     /**
+     * @param list<string> $extensionIds
+     *
+     * @return array<string, int> extension id => published non-unique cards
+     */
+    public function countPublishedNonUniqueByExtension(array $extensionIds): array
+    {
+        /** @var list<array{extensionId: string, cardCount: string|int}> $rows */
+        $rows = $this->createQueryBuilder('c')
+            ->select('IDENTITY(c.extension) AS extensionId', 'COUNT(c.id) AS cardCount')
+            ->join('c.extension', 'e')
+            ->andWhere('c.extension IN (:extensionIds)')
+            ->andWhere('c.status = :cardStatus')
+            ->andWhere('e.status = :extensionStatus')
+            // a 1/1 has a single holder: counting it would make the universe uncompletable for everyone else
+            ->andWhere('c.uniqueFlag = false')
+            ->setParameter('extensionIds', $extensionIds)
+            ->setParameter('cardStatus', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->setParameter('extensionStatus', ExtensionStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->groupBy('c.extension')
+            ->getQuery()
+            ->getResult()
+        ;
+
+        return array_column(array_map(static fn (array $row): array => [(string) $row['extensionId'], (int) $row['cardCount']], $rows), 1, 0);
+    }
+
+    /**
      * Published cards of an extension — the "set contents" shown in the opening
      * aside. Ordering by rarity is handled in the component (CardRarityEnum rank).
      *

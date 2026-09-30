@@ -10,12 +10,14 @@ use App\Entity\Booster;
 use App\Entity\BoosterOpening;
 use App\Entity\BoosterOpeningCard;
 use App\Entity\DiscordUser;
+use App\Entity\Extension;
 use App\Enum\Notification\NotificationTypeEnum;
 use App\Enum\Realtime\UserEventEnum;
 use App\Exception\Booster\EmptyRarityRatesException;
 use App\Exception\Booster\NoBoosterInInventoryException;
 use App\Exception\Booster\NoCardAvailableException;
 use App\Repository\CardRepository;
+use App\Service\Coin\UniverseCompletionChecker;
 use App\Service\Notification\NotificationService;
 use App\Service\Random\RandomService;
 use App\Service\Realtime\UserEventPublisher;
@@ -39,6 +41,7 @@ final readonly class BoosterOpeningService
         private StreakRewardService $streakRewardService,
         private UserEventPublisher $userEventPublisher,
         private NotificationService $notificationService,
+        private UniverseCompletionChecker $completionChecker,
     ) {
     }
 
@@ -88,6 +91,10 @@ final readonly class BoosterOpeningService
         $this->streakRewardService->grantMilestones($discordUser);
         $this->userEventPublisher->publish($discordUser, UserEventEnum::INVENTORY_CHANGED);
         $this->announceUniques($discordUser, $result);
+        $this->completionChecker->checkAfterCredit($discordUser, array_filter(array_map(
+            static fn (DrawnCard $drawnCard): ?Extension => $drawnCard->card->getExtension(),
+            $result->drawnCards,
+        )));
 
         return $result;
     }

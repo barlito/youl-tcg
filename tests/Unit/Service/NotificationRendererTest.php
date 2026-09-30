@@ -49,6 +49,15 @@ final class NotificationRendererTest extends TestCase
         $this->assertNull($this->renderer()->describe(NotificationTypeEnum::ANNOUNCEMENT, ['title' => 'x', 'message' => 'y', 'link' => null])->link);
     }
 
+    public function testUniverseCompletedShowsTheRewardAndLinksToTheUniverse(): void
+    {
+        $content = $this->renderer()->describe(NotificationTypeEnum::UNIVERSE_COMPLETED, ['universe' => 'Cosmos', 'slug' => 'cosmos', 'amount' => 1500]);
+
+        $this->assertSame("Univers Cosmos complété : +1\u{202F}500 YLC", $content->text);
+        $this->assertSame('/universes_show?slug=cosmos', $content->link);
+        $this->assertSame('/universes', $this->renderer()->describe(NotificationTypeEnum::UNIVERSE_COMPLETED, ['slug' => '../x'])->link);
+    }
+
     public function testTradeNotificationsNameTheOtherPlayerAndLeadToTheTradesPage(): void
     {
         $payload = ['playerName' => 'Benj', 'playerId' => '232457563910832129'];

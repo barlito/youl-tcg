@@ -1,0 +1,70 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Service\Coin;
+
+use App\Entity\DiscordUser;
+use App\Entity\Extension;
+use App\Entity\UniverseCompletionReward;
+use App\Repository\CardRepository;
+use App\Repository\CoinSettingsRepository;
+use App\Repository\UniverseCompletionRewardRepository;
+use App\Repository\UserCardRepository;
+use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
+
+final readonly class UniverseCompletionChecker
+{
+    public function __construct(
+        private CardRepository $cardRepository,
+        private UserCardRepository $userCardRepository,
+        private UniverseCompletionRewardRepository $rewardRepository,
+        private CoinSettingsRepository $settingsRepository,
+        private UniverseRewardService $rewardService,
+        private ClockInterface $clock,
+        private LoggerInterface $logger,
+    ) {
+    }
+
+    /**
+     * @param iterable<Extension> $extensions
+     */
+    public function checkAfterCredit(DiscordUser $discordUser, iterable $extensions): void
+    {
+        // single entry point of every card-crediting channel: call it AFTER the commit, best effort
+        try {
+            $unique = [];
+            foreach ($extensions as $extension) {
+                $unique[(string) $extension->getId()] = $extension;
+            }
+
+            if ([] === $unique) {
+                return;
+            }
+
+            $ids = array_keys($unique);
+            $totals = $this->cardRepository->countPublishedNonUniqueByExtension($ids);
+            $owned = $this->userCardRepository->countOwnedNonUniqueByExtension($discordUser, $ids);
+
+            foreach ($unique as $id => $extension) {
+                if (($totals[$id] ?? 0) > 0 && ($owned[$id] ?? 0) >= $totals[$id]) {
+                    $this->reward($discordUser, $extension);
+                }
+            }
+        } catch (\Throwable $exception) {
+            $this->logger->error('Universe completion check failed: {message}', ['message' => $exception->getMessage(), 'exception' => $exception]);
+        }
+    }
+
+    private function reward(DiscordUser $discordUser, Extension $extension): void
+    {
+        $amount = $extension->getCompletionRewardCoins() ?? $this->settingsRepository->get()->getDefaultUniverseRewardCoins();
+        $reward = $this->rewardRepository->insertIgnore($discordUser, $extension, $amount, $this->clock->now());
+
+        // null: already rewarded once, for good
+        if ($reward instanceof UniverseCompletionReward && $amount > 0) {
+            $this->rewardService->pay($reward);
+        }
+    }
+}

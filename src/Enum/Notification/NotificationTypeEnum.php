@@ -29,6 +29,9 @@ enum NotificationTypeEnum: string
     /** The recipient's offer was refused (payload: playerName, playerId). */
     case TRADE_REFUSED = 'trade_refused';
 
+    /** A universe was completed and rewarded (payload: universe, slug, amount in coins). */
+    case UNIVERSE_COMPLETED = 'universe_completed';
+
     case ANNOUNCEMENT = 'announcement';
     case BOOSTER_CODE = 'booster_code';
 }

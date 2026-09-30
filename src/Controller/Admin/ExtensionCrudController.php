@@ -10,6 +10,7 @@ use App\Admin\VisualConfigFields;
 use App\Entity\Booster;
 use App\Entity\Card;
 use App\Entity\Extension;
+use App\Entity\UniverseCompletionReward;
 use App\Enum\Entity\ExtensionStatusEnum;
 use App\Repository\ExtensionRepository;
 use App\Service\Extension\ExtensionDepublicationGuard;
@@ -23,6 +24,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 
 /**
  * @extends AbstractGuardedCrudController<Extension>
@@ -95,6 +97,10 @@ class ExtensionCrudController extends AbstractGuardedCrudController
             ->setLabel('Prochain univers (teaser)')
             ->setHelp('Affiche l\'univers en tuile floutée « À suivre » sur l\'accueil et /univers, tant qu\'il est en brouillon (publié, il a déjà sa tuile). Un seul univers peut porter le flag : l\'activer ici le retire automatiquement des autres.')
         ;
+        yield IntegerField::new('completionRewardCoins')
+            ->setLabel('Récompense de complétion (coins)')
+            ->setHelp('Coins versés une fois par joueur qui possède toutes les cartes publiées de l\'univers (cartes 1/1 exclues). Vide : valeur par défaut des réglages coin. 0 : pas de récompense.')
+        ;
         yield ImageField::new('imageName')
             ->setLabel('Image')
             ->setBasePath('/uploads/extensions')
@@ -148,6 +154,7 @@ class ExtensionCrudController extends AbstractGuardedCrudController
         return $this->describeBlockers([
             '%d carte(s) lui appartiennent' => $this->entityManager->getRepository(Card::class)->count(['extension' => $entity]),
             '%d booster(s) lui appartiennent' => $this->entityManager->getRepository(Booster::class)->count(['extension' => $entity]),
+            '%d récompense(s) de complétion figurent dans l\'historique' => $this->entityManager->getRepository(UniverseCompletionReward::class)->count(['extension' => $entity]),
         ]);
     }
 }

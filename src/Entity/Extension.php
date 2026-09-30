@@ -45,6 +45,10 @@ class Extension implements \Stringable
     #[ORM\Column(type: 'text')]
     private string $description;
 
+    #[Assert\PositiveOrZero]
+    #[ORM\Column(nullable: true)]
+    private ?int $completionRewardCoins = null;
+
     #[ORM\Column(options: ['default' => ExtensionStatusEnum::DRAFT])]
     private ExtensionStatusEnum $status = ExtensionStatusEnum::DRAFT;
 
@@ -211,6 +215,18 @@ class Extension implements \Stringable
     public function getLogoName(): ?string
     {
         return $this->logoName;
+    }
+
+    public function getCompletionRewardCoins(): ?int
+    {
+        return $this->completionRewardCoins;
+    }
+
+    public function setCompletionRewardCoins(?int $completionRewardCoins): static
+    {
+        $this->completionRewardCoins = $completionRewardCoins;
+
+        return $this;
     }
 
     public function isUpcoming(): bool

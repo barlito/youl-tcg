@@ -113,6 +113,36 @@ class UserCardRepository extends ServiceEntityRepository
     }
 
     /**
+     * @param list<string> $extensionIds
+     *
+     * @return array<string, int> extension id => distinct owned published non-unique cards
+     */
+    public function countOwnedNonUniqueByExtension(DiscordUser $discordUser, array $extensionIds): array
+    {
+        /** @var list<array{extensionId: string, ownedCount: string|int}> $rows */
+        $rows = $this->createQueryBuilder('uc')
+            ->select('IDENTITY(c.extension) AS extensionId', 'COUNT(DISTINCT c.id) AS ownedCount')
+            ->join('uc.card', 'c')
+            ->join('c.extension', 'e')
+            ->andWhere('uc.discordUser = :user')
+            ->andWhere('uc.quantity > 0')
+            ->andWhere('c.extension IN (:extensionIds)')
+            ->andWhere('c.status = :cardStatus')
+            ->andWhere('e.status = :extensionStatus')
+            ->andWhere('c.uniqueFlag = false')
+            ->setParameter('user', $discordUser)
+            ->setParameter('extensionIds', $extensionIds)
+            ->setParameter('cardStatus', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->setParameter('extensionStatus', ExtensionStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->groupBy('c.extension')
+            ->getQuery()
+            ->getResult()
+        ;
+
+        return array_column(array_map(static fn (array $row): array => [(string) $row['extensionId'], (int) $row['ownedCount']], $rows), 1, 0);
+    }
+
+    /**
      * Ids of the distinct cards the user owns (any quantity), used to flag
      * freshly obtained cards after a booster opening.
      *
