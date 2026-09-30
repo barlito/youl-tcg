@@ -13,6 +13,7 @@ class CoinSettings implements \Stringable
 {
     public const int ID = 1;
     public const int DEFAULT_UNIVERSE_REWARD_COINS = 500;
+    public const int DEFAULT_MARKET_FEE_PERCENT = 5;
 
     #[ORM\Id]
     #[ORM\Column]
@@ -21,6 +22,10 @@ class CoinSettings implements \Stringable
     #[Assert\PositiveOrZero]
     #[ORM\Column(options: ['default' => self::DEFAULT_UNIVERSE_REWARD_COINS])]
     private int $defaultUniverseRewardCoins = self::DEFAULT_UNIVERSE_REWARD_COINS;
+
+    #[Assert\Range(min: 0, max: 100)]
+    #[ORM\Column(options: ['default' => self::DEFAULT_MARKET_FEE_PERCENT])]
+    private int $marketFeePercent = self::DEFAULT_MARKET_FEE_PERCENT;
 
     public function __toString(): string
     {
@@ -40,6 +45,18 @@ class CoinSettings implements \Stringable
     public function setDefaultUniverseRewardCoins(int $defaultUniverseRewardCoins): static
     {
         $this->defaultUniverseRewardCoins = $defaultUniverseRewardCoins;
+
+        return $this;
+    }
+
+    public function getMarketFeePercent(): int
+    {
+        return $this->marketFeePercent;
+    }
+
+    public function setMarketFeePercent(int $marketFeePercent): static
+    {
+        $this->marketFeePercent = $marketFeePercent;
 
         return $this;
     }

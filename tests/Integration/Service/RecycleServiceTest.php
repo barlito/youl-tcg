@@ -9,6 +9,7 @@ use App\Entity\Booster;
 use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
+use App\Entity\MarketListing;
 use App\Entity\RecycleOperation;
 use App\Entity\TradeOffer;
 use App\Entity\TradeOfferLine;
@@ -357,6 +358,26 @@ final class RecycleServiceTest extends KernelTestCase
             $this->fail('Expected NotEnoughCopiesException');
         } catch (NotEnoughCopiesException $exception) {
             $this->assertStringContainsString('engagée dans une offre d\'échange en attente', $exception->getUserMessage());
+        }
+
+        $this->assertNothingChanged($scenario, expectedQuantities: [[12, 0]]);
+    }
+
+    public function testACardListedOnTheMarketIsNotRecyclableAtAll(): void
+    {
+        $scenario = $this->createScenario([['rarity' => CardRarityEnum::UNCOMMON, 'quantity' => 12]]);
+        $this->entityManager->persist(new MarketListing($scenario['user'], $scenario['cards'][0], false, 10));
+        $this->entityManager->flush();
+
+        try {
+            $this->recycleService->recycle(
+                $scenario['user'],
+                [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 5, holoQuantity: 0)],
+                $scenario['booster'],
+            );
+            $this->fail('Expected NotEnoughCopiesException');
+        } catch (NotEnoughCopiesException $exception) {
+            $this->assertStringContainsString('en vente sur le marché', $exception->getUserMessage());
         }
 
         $this->assertNothingChanged($scenario, expectedQuantities: [[12, 0]]);

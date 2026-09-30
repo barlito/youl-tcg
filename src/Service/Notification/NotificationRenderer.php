@@ -82,6 +82,16 @@ final readonly class NotificationRenderer
                 \sprintf('Univers %s complété : +%s YLC', $this->string($payload, 'universe', 'un univers'), CoinAmount::fromCoins($this->int($payload, 'amount'))->format()),
                 $this->universeLink($payload),
             ),
+            NotificationTypeEnum::MARKET_SOLD => new NotificationContent(
+                '$',
+                \sprintf(
+                    '%s a acheté %s pour %s YLC',
+                    $this->string($payload, 'buyerName', 'Un joueur'),
+                    $this->string($payload, 'cardName', 'une carte'),
+                    CoinAmount::fromCoins($this->int($payload, 'price'))->format(),
+                ),
+                null,
+            ),
             NotificationTypeEnum::ANNOUNCEMENT => new NotificationContent(
                 '!',
                 $this->string($payload, 'title', 'Annonce'),
