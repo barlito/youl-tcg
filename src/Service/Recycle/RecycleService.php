@@ -42,9 +42,6 @@ use Psr\Clock\ClockInterface;
  * quota is neither checked nor consumed. Every full tranche of BOOSTER_COST
  * points is worth one copy of the single chosen booster; the remainder is lost
  * by design (no balance, no currency) — the UI says so before confirming.
- *
- * One operation per player and Europe/Paris day, counted on the RecycleOperation
- * audit rows (no mutable counter) under a lock on the player row.
  */
 final readonly class RecycleService
 {
@@ -171,9 +168,7 @@ final readonly class RecycleService
         return $operation;
     }
 
-    /**
-     * Midnight Europe/Paris that opened the current day: the window ending at the next reset.
-     */
+    // Midnight Europe/Paris that opened the current day
     private function startOfToday(): \DateTimeImmutable
     {
         return $this->dailyReset->getNextResetTime()->modify('-1 day');
