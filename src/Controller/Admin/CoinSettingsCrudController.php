@@ -46,5 +46,9 @@ class CoinSettingsCrudController extends AbstractCrudController
             ->setLabel('Récompense de complétion par défaut (coins)')
             ->setHelp('Versée aux joueurs qui complètent un univers dont le montant n\'est pas défini sur l\'univers lui-même. 0 : aucune récompense.')
         ;
+        yield IntegerField::new('marketFeePercent')
+            ->setLabel('Commission du marché (%)')
+            ->setHelp('Prélevée par la banque sur chaque vente entre joueurs (arrondie vers le bas) : le vendeur reçoit le prix moins la commission. 0 : aucune commission.')
+        ;
     }
 }

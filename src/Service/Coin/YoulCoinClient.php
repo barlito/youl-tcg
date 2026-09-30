@@ -47,6 +47,26 @@ final readonly class YoulCoinClient
         }
     }
 
+    // Null = the coin is unavailable
+    public function hasWallet(string $discordId): ?bool
+    {
+        try {
+            $status = $this->httpClient->request('GET', $this->userWalletPath($discordId), [
+                'headers' => ['Accept' => 'application/ld+json'],
+            ])->getStatusCode();
+
+            if (404 === $status) {
+                return false;
+            }
+
+            return 200 === $status ? true : null;
+        } catch (ExceptionInterface $exception) {
+            $this->logUnavailable($exception);
+
+            return null;
+        }
+    }
+
     public function debitToBank(string $discordId, CoinAmount $amount, CoinTransactionTypeEnum $type, string $externalIdentifier, string $playerToken): CoinPayment
     {
         return $this->transfer($discordId, true, $amount, $type, $externalIdentifier, $playerToken);

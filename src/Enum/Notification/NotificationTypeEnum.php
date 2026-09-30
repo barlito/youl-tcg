@@ -32,6 +32,8 @@ enum NotificationTypeEnum: string
     /** A universe was completed and rewarded (payload: universe, slug, amount in coins). */
     case UNIVERSE_COMPLETED = 'universe_completed';
 
+    case MARKET_SOLD = 'market_sold';
+
     case ANNOUNCEMENT = 'announcement';
     case BOOSTER_CODE = 'booster_code';
 }

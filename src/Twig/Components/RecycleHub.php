@@ -16,10 +16,10 @@ use App\Enum\FeatureEnum;
 use App\Exception\Recycle\RecycleException;
 use App\Repository\BoosterRepository;
 use App\Repository\CardRepository;
-use App\Repository\TradeOfferRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Recycle\RecycleService;
+use App\Service\Trade\EngagedCopies;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Uid\Uuid;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -84,7 +84,7 @@ final class RecycleHub extends AbstractController
     private ?array $boosters = null;
 
     /**
-     * @var array<string, true>|null card ids engaged in pending trade offers
+     * @var array<string, true>|null card ids engaged in pending trade offers or market listings
      */
     private ?array $engaged = null;
 
@@ -94,7 +94,7 @@ final class RecycleHub extends AbstractController
         private readonly CardRepository $cardRepository,
         private readonly BoosterAvailabilityService $boosterAvailability,
         private readonly RecycleService $recycleService,
-        private readonly TradeOfferRepository $tradeOfferRepository,
+        private readonly EngagedCopies $engagedCopies,
     ) {
     }
 
@@ -207,7 +207,7 @@ final class RecycleHub extends AbstractController
      */
     public function isEngaged(UserCard $row): bool
     {
-        $this->engaged ??= $this->tradeOfferRepository->findEngagedCardIds($this->getDiscordUser());
+        $this->engaged ??= $this->engagedCopies->engagedCardIds($this->getDiscordUser());
 
         return isset($this->engaged[(string) $row->getCard()->getId()]);
     }

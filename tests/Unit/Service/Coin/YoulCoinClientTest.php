@@ -39,6 +39,31 @@ final class YoulCoinClientTest extends TestCase
         $this->assertSame('0', $client->getBalance('123')?->format());
     }
 
+    #[DataProvider('walletStatuses')]
+    public function testHasWalletDistinguishesMissingFromUnavailable(int $status, ?bool $expected): void
+    {
+        $client = $this->client(static fn (): MockResponse => new MockResponse('{"id":"w"}', ['http_code' => $status]));
+
+        $this->assertSame($expected, $client->hasWallet('123'));
+    }
+
+    /** @return iterable<string, array{int, ?bool}> */
+    public static function walletStatuses(): iterable
+    {
+        yield 'wallet found' => [200, true];
+        yield 'wallet missing' => [404, false];
+        yield 'coin down' => [503, null];
+    }
+
+    public function testHasWalletIsNullOnTransportFailure(): void
+    {
+        $client = $this->client(static function (): never {
+            throw new TransportException('timeout');
+        });
+
+        $this->assertNull($client->hasWallet('123'));
+    }
+
     public function testServerErrorMeansUnavailable(): void
     {
         $client = $this->client(static fn (): MockResponse => new MockResponse('', ['http_code' => 503]));

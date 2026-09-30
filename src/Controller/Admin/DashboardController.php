@@ -134,6 +134,8 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkTo(BoosterPurchaseCrudController::class, 'Achats de boosters', 'fa fa-coins');
         yield MenuItem::linkTo(UniverseCompletionRewardCrudController::class, 'Récompenses d\'univers', 'fa fa-trophy');
         yield MenuItem::linkTo(TradeOfferCrudController::class, 'Échanges', 'fa fa-right-left');
+        yield MenuItem::linkTo(MarketListingCrudController::class, 'Annonces', 'fa fa-tags');
+        yield MenuItem::linkTo(MarketPurchaseCrudController::class, 'Ventes du marché', 'fa fa-store');
 
         yield MenuItem::section('Réglages');
         yield MenuItem::linkTo(FeatureFlagCrudController::class, 'Fonctionnalités', 'fa fa-toggle-on');

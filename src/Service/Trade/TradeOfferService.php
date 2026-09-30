@@ -61,6 +61,7 @@ final readonly class TradeOfferService
         private FeatureFlags $featureFlags,
         private TradeEventAnnouncer $announcer,
         private UniverseCompletionChecker $completionChecker,
+        private EngagedCopies $engagedCopies,
     ) {
     }
 
@@ -107,7 +108,7 @@ final readonly class TradeOfferService
                 $offered,
             ), createMissing: false);
 
-            $reserved = $this->tradeOfferRepository->sumReservedQuantities($proposer);
+            $reserved = $this->engagedCopies->reservedQuantities($proposer);
 
             foreach ($offered as $line) {
                 $this->assertGiverCanCover(
@@ -261,7 +262,7 @@ final readonly class TradeOfferService
      */
     public function getEngageableCopies(DiscordUser $user): array
     {
-        $reserved = $this->tradeOfferRepository->sumReservedQuantities($user);
+        $reserved = $this->engagedCopies->reservedQuantities($user);
         $engageable = [];
 
         foreach ($this->userCardRepository->findOwnedWithCards($user, publishedOnly: true) as $row) {
@@ -352,7 +353,7 @@ final readonly class TradeOfferService
 
         // Full re-validation under lock, proposer side first: the remaining
         // reservations of their OTHER pending offers still apply.
-        $reservedByProposer = $this->tradeOfferRepository->sumReservedQuantities($proposer, $locked);
+        $reservedByProposer = $this->engagedCopies->reservedQuantities($proposer, $locked);
 
         foreach ($locked->getOfferedLines() as $line) {
             try {
@@ -377,7 +378,7 @@ final readonly class TradeOfferService
         // Receiver side: their own OUTGOING pending offers reserve their
         // copies too — accepting must never break a promise they made
         // elsewhere. On failure the offer simply stays pending.
-        $reservedByReceiver = $this->tradeOfferRepository->sumReservedQuantities($receiver);
+        $reservedByReceiver = $this->engagedCopies->reservedQuantities($receiver);
 
         foreach ($locked->getRequestedLines() as $line) {
             try {
@@ -534,8 +535,8 @@ final readonly class TradeOfferService
             || $ownedHolo - $reservedForCard['holo'] < $line->holoQuantity
         ) {
             throw $refusalFactory(
-                \sprintf('Card %s: copies already engaged in another pending offer.', $cardId),
-                \sprintf('Des exemplaires de « %s » sont déjà engagés dans une autre offre en attente.', $line->card->getName()),
+                \sprintf('Card %s: copies already engaged in another pending offer or listing.', $cardId),
+                \sprintf('Des exemplaires de « %s » sont déjà engagés dans une autre offre en attente ou en vente sur le marché.', $line->card->getName()),
             );
         }
 

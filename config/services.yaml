@@ -44,6 +44,15 @@ when@test:
         App\Service\Recycle\RecycleService:
             public: true
 
+        App\Service\Market\MarketListingService:
+            public: true
+
+        App\Service\Market\MarketPurchaseService:
+            public: true
+
+        App\Service\Trade\EngagedCopies:
+            public: true
+
         App\Service\Notification\NotificationService:
             public: true
 

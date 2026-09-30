@@ -21,7 +21,6 @@ use App\Exception\Recycle\NotEnoughCopiesException;
 use App\Exception\Recycle\NotEnoughRecyclePointsException;
 use App\Exception\Recycle\RecyclingClosedException;
 use App\Repository\RecycleOperationRepository;
-use App\Repository\TradeOfferRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\BoosterClaimQuotaInterface;
@@ -29,6 +28,7 @@ use App\Service\Booster\UserInventoryService;
 use App\Service\Feature\FeatureFlags;
 use App\Service\Notification\NotificationService;
 use App\Service\Realtime\UserEventPublisher;
+use App\Service\Trade\EngagedCopies;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -68,9 +68,9 @@ final readonly class RecycleService
 
     public function __construct(
         private UserCardRepository $userCardRepository,
+        private EngagedCopies $engagedCopies,
         private RecycleOperationRepository $recycleOperationRepository,
         private BoosterClaimQuotaInterface $dailyReset,
-        private TradeOfferRepository $tradeOfferRepository,
         private UserInventoryService $userInventoryService,
         private BoosterAvailabilityService $boosterAvailability,
         private EntityManagerInterface $entityManager,
@@ -140,7 +140,7 @@ final readonly class RecycleService
                 array_map(static fn (RecycleSelectionLine $line): Card => $line->card, $selection),
             );
             // read under the row locks: an offer created meanwhile has committed
-            $engaged = $this->tradeOfferRepository->findEngagedCardIds($discordUser);
+            $engaged = $this->engagedCopies->engagedCardIds($discordUser);
             foreach ($selection as $line) {
                 $cardId = (string) $line->card->getId();
                 $this->debit($lockedRows[$cardId] ?? null, $line, isset($engaged[$cardId]));
@@ -240,8 +240,8 @@ final readonly class RecycleService
 
         if ($engaged) {
             throw new NotEnoughCopiesException(
-                \sprintf('Card "%s" is engaged in a pending trade offer.', $cardName),
-                \sprintf('« %s » est engagée dans une offre d\'échange en attente que tu as proposée : elle ne peut pas être recyclée tant que l\'offre n\'est pas acceptée, refusée ou annulée.', $cardName),
+                \sprintf('Card "%s" is engaged in a pending trade offer or a market listing.', $cardName),
+                \sprintf('« %s » est engagée dans une offre d\'échange en attente ou en vente sur le marché : elle ne peut pas être recyclée tant que l\'offre n\'est pas conclue ou l\'annonce retirée.', $cardName),
             );
         }
 
