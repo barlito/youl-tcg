@@ -79,6 +79,10 @@ class MarketListingRepository extends ServiceEntityRepository
     public function findEngagedBySeller(DiscordUser $seller): array
     {
         return array_values($this->createQueryBuilder('listing')
+            ->join('listing.card', 'card')
+            ->addSelect('card')
+            ->join('card.extension', 'extension')
+            ->addSelect('extension')
             ->andWhere('listing.seller = :seller')
             ->andWhere('listing.status IN (:statuses)')
             ->setParameter('seller', $seller)

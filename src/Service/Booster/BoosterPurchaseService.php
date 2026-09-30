@@ -105,14 +105,24 @@ final readonly class BoosterPurchaseService
 
     public function getPendingPurchase(DiscordUser $discordUser): ?BoosterPurchase
     {
-        $this->reconcilePending($discordUser);
-
-        return $this->purchaseRepository->findPending($discordUser)[0] ?? null;
+        return $this->reconcile($this->purchaseRepository->findPending($discordUser))[0] ?? null;
     }
 
     public function reconcilePending(?DiscordUser $discordUser = null): void
     {
-        foreach ($this->purchaseRepository->findPending($discordUser) as $purchase) {
+        $this->reconcile($this->purchaseRepository->findPending($discordUser));
+    }
+
+    /**
+     * @param list<BoosterPurchase> $pendings
+     *
+     * @return list<BoosterPurchase> the purchases still pending afterwards
+     */
+    private function reconcile(array $pendings): array
+    {
+        $stillPending = [];
+
+        foreach ($pendings as $purchase) {
             $found = $this->coin->findTransaction($purchase->getExternalIdentifier());
 
             if (CoinPaymentStatusEnum::PAID === $found->status) {
@@ -120,7 +130,13 @@ final readonly class BoosterPurchaseService
             } elseif (CoinPaymentStatusEnum::NOT_FOUND === $found->status && $this->isAbandoned($purchase)) {
                 $this->fail($purchase, 'No coin transaction found after the reconciliation delay.');
             }
+
+            if ($purchase->isPending()) {
+                $stillPending[] = $purchase;
+            }
         }
+
+        return $stillPending;
     }
 
     private function isAbandoned(BoosterPurchase $purchase): bool

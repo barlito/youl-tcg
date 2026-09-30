@@ -22,6 +22,12 @@ class MarketPurchaseRepository extends ServiceEntityRepository
     public function findUnsettled(?DiscordUser $discordUser = null): array
     {
         $queryBuilder = $this->createQueryBuilder('purchase')
+            ->join('purchase.listing', 'listing')
+            ->addSelect('listing')
+            ->join('listing.card', 'card')
+            ->addSelect('card')
+            ->join('card.extension', 'extension')
+            ->addSelect('extension')
             ->andWhere('purchase.status IN (:statuses)')
             ->setParameter('statuses', array_values(array_filter(MarketPurchaseStatusEnum::cases(), static fn (MarketPurchaseStatusEnum $status): bool => $status->isUnsettled())))
             ->orderBy('purchase.requestedAt', 'ASC')

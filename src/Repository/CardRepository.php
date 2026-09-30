@@ -163,6 +163,30 @@ class CardRepository extends ServiceEntityRepository
     }
 
     /**
+     * @return array<string, list<string>> extension id => rarity values
+     */
+    public function findDrawableRaritiesByExtension(): array
+    {
+        /** @var list<array{extensionId: mixed, rarity: CardRarityEnum|string}> $rows */
+        $rows = $this->createQueryBuilder('c')
+            ->select('IDENTITY(c.extension) AS extensionId', 'c.rarity AS rarity')
+            ->andWhere('c.status = :status')
+            ->andWhere('c.uniqueFlag = false')
+            ->setParameter('status', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->groupBy('c.extension', 'c.rarity')
+            ->getQuery()
+            ->getResult()
+        ;
+
+        $rarities = [];
+        foreach ($rows as $row) {
+            $rarities[(string) $row['extensionId']][] = $row['rarity'] instanceof CardRarityEnum ? $row['rarity']->value : $row['rarity'];
+        }
+
+        return $rarities;
+    }
+
+    /**
      * Atomically claims a one-of-one unique card for a user: a single
      * conditional UPDATE that only succeeds while the card is still unclaimed.
      * Two concurrent openings serialise on the row, so exactly one wins.

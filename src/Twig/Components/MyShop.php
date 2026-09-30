@@ -56,6 +56,9 @@ final class MyShop extends AbstractController
 
     private bool $reconciled = false;
 
+    /** @var list<MarketListing>|null */
+    private ?array $listings = null;
+
     public function __construct(
         private readonly MarketListingRepository $listingRepository,
         private readonly MarketPurchaseRepository $purchaseRepository,
@@ -70,7 +73,7 @@ final class MyShop extends AbstractController
     {
         $this->reconcileOnce();
 
-        return $this->listingRepository->findEngagedBySeller($this->getDiscordUser());
+        return $this->listings ??= $this->listingRepository->findEngagedBySeller($this->getDiscordUser());
     }
 
     public function getMaxListings(): int
@@ -210,6 +213,8 @@ final class MyShop extends AbstractController
 
     private function run(\Closure $action, string $success): void
     {
+        $this->listings = null;
+
         try {
             $action();
             $this->success = $success;

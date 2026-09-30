@@ -7,8 +7,13 @@ namespace App\Controller\Admin;
 use App\Entity\MarketPurchase;
 use App\Enum\Market\MarketPurchaseStatusEnum;
 use App\Service\Coin\CoinAmount;
+use Doctrine\ORM\QueryBuilder;
+use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
+use EasyCorp\Bundle\EasyAdminBundle\Collection\FilterCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
@@ -36,6 +41,19 @@ class MarketPurchaseCrudController extends AbstractReadOnlyCrudController
             ->setSearchFields(['buyer.username', 'buyer.discordId', 'seller.username', 'seller.discordId', 'listing.card.name', 'paymentTransactionId', 'payoutTransactionId'])
             ->setTimezone('Europe/Paris')
             ->setHelp(Crud::PAGE_INDEX, 'Achats entre joueurs en Youl Coin, commission de la banque incluse. Tout statut autre que « Terminée », « Échouée » et « Remboursée » attend une réponse du coin : la commande app:coin:reconcile-market le résout.')
+        ;
+    }
+
+    #[\Override]
+    public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
+    {
+        // aliases prefixed on purpose: EasyAdmin names its search/sort joins after the property
+        return parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters)
+            ->addSelect('purchaseListing', 'purchaseCard', 'purchaseBuyer', 'purchaseSeller')
+            ->leftJoin('entity.listing', 'purchaseListing')
+            ->leftJoin('purchaseListing.card', 'purchaseCard')
+            ->leftJoin('entity.buyer', 'purchaseBuyer')
+            ->leftJoin('entity.seller', 'purchaseSeller')
         ;
     }
 

@@ -52,10 +52,15 @@ class TradeController extends AbstractController
             throw $this->createNotFoundException('Unknown trade counterpart.');
         }
 
+        $engageable = $tradeOfferService->getEngageableCopies($user);
+        $requestable = $tradeOfferService->getRequestableCopies($counterpart);
+
         return $this->render('pages/trade_compose.html.twig', [
             'counterpart' => $counterpart,
-            'hasSomethingToOffer' => [] !== $tradeOfferService->getEngageableCopies($user),
-            'counterpartHasCards' => [] !== $tradeOfferService->getRequestableCopies($counterpart),
+            'hasSomethingToOffer' => [] !== $engageable,
+            'counterpartHasCards' => [] !== $requestable,
+            'engageable' => $engageable,
+            'requestable' => $requestable,
         ]);
     }
 }

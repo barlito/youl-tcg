@@ -198,7 +198,8 @@ final class BoosterOpening extends AbstractController
 
     public function getOwnedCount(): int
     {
-        $userBooster = $this->userBoosterRepository->findOneBy([
+        // find() on the composite key reuses the row the page controller already loaded
+        $userBooster = $this->userBoosterRepository->find([
             'discordUser' => $this->getDiscordUser(),
             'booster' => $this->getBooster(),
         ]);

@@ -41,7 +41,7 @@ class OpeningHistoryController extends AbstractController
             'total' => $total,
             'page' => $page,
             'lastPage' => $lastPage,
-            'stats' => $openingLuckStatsProvider->getStats($user),
+            'stats' => $openingLuckStatsProvider->getStats($user, $total),
         ]);
     }
 }

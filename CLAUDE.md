@@ -382,6 +382,7 @@ All JWT listeners must:
 
 - Unit tests in `tests/Unit/`, service/repository tests against the real DB in `tests/Integration/` (KernelTestCase), HTTP + Live Component tests in `tests/Functional/`
 - The test database is **PostgreSQL** (`dbname_suffix: _test`), NOT SQLite: migrate it (`make doctrine.migrate.ci`) after every migration and reload its fixtures (`make doctrine.load_fixtures.ci`) before concluding a branch is green — CI always does both
+- `tests/Functional/QueryCountTest.php` bounds the SQL queries of the hot pages and Live Component renders (profiler `db` collector, generous bounds: it catches an N+1 or a getter re-run per template call). Live Component getters read more than once by a template are memoized in a private array reset by every mutating action (`BoosterHub::memoize()`); admin lists fetch-join what their columns read (`createIndexQueryBuilder`, prefixed aliases) and never call entity getters that lazy-load collections
 - Some functional tests depend on the CONTENT of `fixtures/test` (e.g. Bleach must stay a universe without published cards): editing it is a contract change
 - Tests only run inside the `ytcg_php` container mounted on the main checkout → no parallel work in git worktrees
 - PHPUnit 12 (`#[DataProvider]` attributes), configured in `phpunit.xml.dist`

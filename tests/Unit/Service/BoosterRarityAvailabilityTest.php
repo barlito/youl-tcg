@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Service;
 
 use App\Entity\Booster;
-use App\Entity\Card;
 use App\Entity\Extension;
 use App\Enum\Entity\CardRarityEnum;
 use App\Repository\CardRepository;
@@ -14,12 +13,14 @@ use PHPUnit\Framework\TestCase;
 
 final class BoosterRarityAvailabilityTest extends TestCase
 {
+    private const string EXTENSION_ID = '01a0f395-ab36-7e83-9765-f32130d17225';
+
     public function testWeightedRaritiesWithoutAnyDrawableCardAreReported(): void
     {
         $availability = new BoosterRarityAvailability($this->cardRepository(CardRarityEnum::COMMON, CardRarityEnum::RARE));
 
         $booster = new Booster()
-            ->setExtension(new Extension()->setName('Bleach'))
+            ->setExtension($this->extension())
             ->setRarityRates([
                 ['rarities' => ['common' => 70, 'legendary' => 30], 'holoChance' => 0],
                 ['rarities' => ['rare' => 50, 'uncommon' => 50], 'holoChance' => 10],
@@ -37,51 +38,30 @@ final class BoosterRarityAvailabilityTest extends TestCase
         $availability = new BoosterRarityAvailability($this->cardRepository(CardRarityEnum::COMMON, CardRarityEnum::LEGENDARY));
 
         $booster = new Booster()
-            ->setExtension(new Extension()->setName('Bleach'))
+            ->setExtension($this->extension())
             ->setRarityRates([['rarities' => ['common' => 90, 'legendary' => 10], 'holoChance' => 0]])
         ;
 
         $this->assertSame([], $availability->findUnavailableRarities($booster));
     }
 
-    public function testATierHoldingOnlyAUniqueIsReportedAsUnavailable(): void
-    {
-        // uniques never come out of the rarity roll: weighting legendary while
-        // the only legendary is a 1/1 is the same misconfiguration as an empty tier
-        $cardRepository = $this->createStub(CardRepository::class);
-        $cardRepository->method('findDrawablePool')->willReturn([
-            new Card()->setRarity(CardRarityEnum::COMMON),
-            new Card()->setRarity(CardRarityEnum::LEGENDARY)->setUnique(true),
-        ]);
-
-        $booster = new Booster()
-            ->setExtension(new Extension()->setName('Bleach'))
-            ->setRarityRates([['rarities' => ['common' => 90, 'legendary' => 10], 'holoChance' => 0]])
-        ;
-
-        $this->assertSame(
-            [CardRarityEnum::LEGENDARY],
-            new BoosterRarityAvailability($cardRepository)->findUnavailableRarities($booster),
-        );
-    }
-
     public function testABoosterWithoutExtensionIsNotChecked(): void
     {
         $cardRepository = $this->createMock(CardRepository::class);
-        $cardRepository->expects($this->never())->method('findDrawablePool');
+        $cardRepository->expects($this->never())->method('findDrawableRaritiesByExtension');
 
         $booster = new Booster()->setRarityRates([['rarities' => ['legendary' => 1], 'holoChance' => 0]]);
 
         $this->assertSame([], new BoosterRarityAvailability($cardRepository)->findUnavailableRarities($booster));
     }
 
-    public function testTheDrawablePoolIsQueriedOncePerExtension(): void
+    public function testTheDrawableRaritiesAreQueriedOnce(): void
     {
-        $extension = new Extension()->setName('Bleach');
+        $extension = $this->extension();
         $cardRepository = $this->createMock(CardRepository::class);
         $cardRepository->expects($this->once())
-            ->method('findDrawablePool')
-            ->willReturn([new Card()->setRarity(CardRarityEnum::COMMON)])
+            ->method('findDrawableRaritiesByExtension')
+            ->willReturn([self::EXTENSION_ID => ['common']])
         ;
 
         $availability = new BoosterRarityAvailability($cardRepository);
@@ -96,14 +76,16 @@ final class BoosterRarityAvailabilityTest extends TestCase
 
     private function cardRepository(CardRarityEnum ...$drawableRarities): CardRepository
     {
-        $cards = array_map(
-            static fn (CardRarityEnum $rarity): Card => new Card()->setRarity($rarity),
-            $drawableRarities,
-        );
-
         $cardRepository = $this->createStub(CardRepository::class);
-        $cardRepository->method('findDrawablePool')->willReturn($cards);
+        $cardRepository->method('findDrawableRaritiesByExtension')->willReturn([
+            self::EXTENSION_ID => array_map(static fn (CardRarityEnum $rarity): string => $rarity->value, $drawableRarities),
+        ]);
 
         return $cardRepository;
+    }
+
+    private function extension(): Extension
+    {
+        return new Extension()->setName('Bleach')->setId(self::EXTENSION_ID);
     }
 }
