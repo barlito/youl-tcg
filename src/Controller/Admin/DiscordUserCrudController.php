@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\DiscordUser;
+use App\Repository\DiscordUserRepository;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ArrayField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
@@ -16,6 +17,13 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
  */
 class DiscordUserCrudController extends AbstractReadOnlyCrudController
 {
+    /** @var array<string, array{distinct: int, copies: int, boosters: int}>|null */
+    private ?array $totals = null;
+
+    public function __construct(private readonly DiscordUserRepository $discordUserRepository)
+    {
+    }
+
     public static function getEntityFqcn(): string
     {
         return DiscordUser::class;
@@ -48,16 +56,37 @@ class DiscordUserCrudController extends AbstractReadOnlyCrudController
         yield IntegerField::new('distinctCardCount')
             ->setLabel('Cartes distinctes')
             ->setHelp('Entrées du catalogue débloquées par le joueur.')
+            ->setValue(0)
+            ->setSortable(false)
+            ->formatValue(fn (mixed $value, mixed $entity): int => $this->totalOf($entity, 'distinct'))
         ;
         yield IntegerField::new('cardCopyCount')
             ->setLabel('Exemplaires')
             ->setHelp('Total des exemplaires possédés, holos compris.')
+            ->setValue(0)
+            ->setSortable(false)
+            ->formatValue(fn (mixed $value, mixed $entity): int => $this->totalOf($entity, 'copies'))
         ;
         yield IntegerField::new('boosterCopyCount')
             ->setLabel('Boosters non ouverts')
+            ->setValue(0)
+            ->setSortable(false)
+            ->formatValue(fn (mixed $value, mixed $entity): int => $this->totalOf($entity, 'boosters'))
         ;
         yield DateTimeField::new('createdAt')->setLabel('Première connexion');
         yield ArrayField::new('roles')->setLabel('Rôles')->onlyOnDetail();
         yield DateTimeField::new('updatedAt')->setLabel('Dernière mise à jour')->onlyOnDetail();
+    }
+
+    // a preset value stops EasyAdmin from reading the entity getters, which lazy-load both collections per row
+    private function totalOf(mixed $entity, string $key): int
+    {
+        if (!$entity instanceof DiscordUser) {
+            return 0;
+        }
+
+        $this->totals ??= $this->discordUserRepository->findInventoryTotals();
+
+        return $this->totals[$entity->getDiscordId()][$key] ?? 0;
     }
 }

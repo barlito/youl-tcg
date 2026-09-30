@@ -210,16 +210,22 @@ final class RecycleHub extends AbstractController
      */
     public function isEngaged(UserCard $row): bool
     {
-        $this->engaged ??= $this->engagedCopies->engagedCardIds($this->getDiscordUser());
+        $this->engaged ??= $this->engagedCopies->engagedCardIds($this->getDiscordUser(), $this->listedCardIds());
 
         return isset($this->engaged[(string) $row->getCard()->getId()]);
     }
 
     public function isListed(UserCard $row): bool
     {
-        $this->listed ??= $this->engagedCopies->listedCardIds($this->getDiscordUser());
+        return isset($this->listedCardIds()[(string) $row->getCard()->getId()]);
+    }
 
-        return isset($this->listed[(string) $row->getCard()->getId()]);
+    /**
+     * @return array<string, true>
+     */
+    private function listedCardIds(): array
+    {
+        return $this->listed ??= $this->engagedCopies->listedCardIds($this->getDiscordUser());
     }
 
     /**

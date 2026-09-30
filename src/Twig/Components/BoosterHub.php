@@ -74,21 +74,8 @@ final class BoosterHub extends AbstractController
     #[LiveProp]
     public ?string $purchaseSuccess = null;
 
-    private ?BoosterPurchase $pendingPurchase = null;
-
-    private bool $pendingPurchaseLoaded = false;
-
-    private ?CoinAmount $balance = null;
-
-    private bool $balanceLoaded = false;
-
-    /**
-     * Inventory is read twice per render (hero total + packs grid): memoize
-     * the query for the lifetime of the (per-request) component instance.
-     *
-     * @var array<string, int>|null
-     */
-    private ?array $inventory = null;
+    /** @var array<string, mixed> */
+    private array $memo = [];
 
     public function __construct(
         private readonly BoosterRepository $boosterRepository,
@@ -128,7 +115,15 @@ final class BoosterHub extends AbstractController
      */
     public function getBoosters(): array
     {
-        $published = $this->boosterRepository->findPublished();
+        return $this->memoize('boosters', $this->loadBoosters(...));
+    }
+
+    /**
+     * @return list<Booster>
+     */
+    private function loadBoosters(): array
+    {
+        $published = $this->getPublishedBoosters();
         $visible = $this->boosterAvailability->filterVisible($published, $this->getInventory());
         $onSale = $this->getShopBoosterIds();
 
@@ -141,7 +136,7 @@ final class BoosterHub extends AbstractController
 
     public function getRemainingClaims(): int
     {
-        return $this->boosterClaimService->getRemainingClaims($this->getDiscordUser());
+        return $this->memoize('remainingClaims', fn (): int => $this->boosterClaimService->getRemainingClaims($this->getDiscordUser()));
     }
 
     public function getNextResetTime(): \DateTimeImmutable
@@ -167,7 +162,7 @@ final class BoosterHub extends AbstractController
      */
     public function getDrawableBoosterIds(): array
     {
-        return $this->boosterAvailability->drawableBoosterIds($this->getBoosters());
+        return $this->memoize('drawable', fn (): array => array_intersect_key($this->getPublishedDrawableIds(), $this->idMap($this->getBoosters())));
     }
 
     /**
@@ -177,7 +172,7 @@ final class BoosterHub extends AbstractController
      */
     public function getRetrievableBoosterIds(): array
     {
-        return $this->boosterAvailability->retrievableBoosterIds($this->getBoosters());
+        return $this->memoize('retrievable', fn (): array => $this->boosterAvailability->retrievableBoosterIds($this->getBoosters(), $this->getPublishedDrawableIds()));
     }
 
     /**
@@ -185,17 +180,15 @@ final class BoosterHub extends AbstractController
      */
     public function getInventory(): array
     {
-        if (null !== $this->inventory) {
-            return $this->inventory;
-        }
+        return $this->memoize('inventory', function (): array {
+            $inventory = [];
 
-        $inventory = [];
+            foreach ($this->userBoosterRepository->findBy(['discordUser' => $this->getDiscordUser()]) as $userBooster) {
+                $inventory[(string) $userBooster->getBooster()->getId()] = $userBooster->getQuantity();
+            }
 
-        foreach ($this->userBoosterRepository->findBy(['discordUser' => $this->getDiscordUser()]) as $userBooster) {
-            $inventory[(string) $userBooster->getBooster()->getId()] = $userBooster->getQuantity();
-        }
-
-        return $this->inventory = $inventory;
+            return $inventory;
+        });
     }
 
     /**
@@ -221,7 +214,7 @@ final class BoosterHub extends AbstractController
 
         try {
             $this->boosterClaimService->claim($this->getDiscordUser(), $booster);
-            $this->inventory = null; // the memoized inventory is stale after a claim
+            $this->memo = []; // memoized reads are stale after a claim
         } catch (BoosterException $exception) {
             $this->error = $exception->getUserMessage();
         }
@@ -275,7 +268,7 @@ final class BoosterHub extends AbstractController
             return;
         }
 
-        $this->inventory = null; // the memoized inventory is stale after a redemption
+        $this->memo = []; // memoized reads are stale after a redemption
         $this->code = '';
         $this->codeSuccess = \sprintf(
             '%d pack%s « %s » ajouté%s à ton stock !',
@@ -288,7 +281,7 @@ final class BoosterHub extends AbstractController
 
     public function getStreak(): OpeningStreak
     {
-        return $this->openingStreakService->getStreak($this->getDiscordUser());
+        return $this->memoize('streak', fn (): OpeningStreak => $this->openingStreakService->getStreak($this->getDiscordUser()));
     }
 
     /**
@@ -299,7 +292,7 @@ final class BoosterHub extends AbstractController
      */
     public function getPendingStreakRewards(): array
     {
-        return $this->streakRewardService->getPendingRewards($this->getDiscordUser());
+        return $this->memoize('pendingRewards', fn (): array => $this->streakRewardService->getPendingRewards($this->getDiscordUser()));
     }
 
     /**
@@ -310,7 +303,7 @@ final class BoosterHub extends AbstractController
      */
     public function getStreakRewardChoices(): array
     {
-        return $this->boosterAvailability->filterRetrievable($this->boosterRepository->findPublished());
+        return $this->memoize('rewardChoices', fn (): array => $this->boosterAvailability->filterRetrievable($this->getPublishedBoosters(), $this->getPublishedDrawableIds()));
     }
 
     /**
@@ -346,7 +339,7 @@ final class BoosterHub extends AbstractController
             return;
         }
 
-        $this->inventory = null; // the memoized inventory is stale after the credit
+        $this->memo = []; // memoized reads are stale after the credit
         $this->streakRewardBoosterId = '';
         $this->streakSuccess = \sprintf(
             'Palier %d jours : un pack « %s » ajouté à ton stock !',
@@ -372,7 +365,7 @@ final class BoosterHub extends AbstractController
      */
     public function getShopBoosters(): array
     {
-        return $this->boosterAvailability->filterPurchasable($this->boosterRepository->findPublished());
+        return $this->memoize('shopBoosters', fn (): array => $this->boosterAvailability->filterPurchasable($this->getPublishedBoosters(), $this->getPublishedDrawableIds()));
     }
 
     /**
@@ -380,37 +373,29 @@ final class BoosterHub extends AbstractController
      */
     public function getShopBoosterIds(): array
     {
-        $ids = [];
-        foreach ($this->getShopBoosters() as $booster) {
-            $ids[(string) $booster->getId()] = true;
-        }
+        return $this->memoize('shopIds', function (): array {
+            $ids = [];
+            foreach ($this->getShopBoosters() as $booster) {
+                $ids[(string) $booster->getId()] = true;
+            }
 
-        return $ids;
+            return $ids;
+        });
     }
 
     public function getRemainingPurchases(): int
     {
-        return $this->boosterPurchaseService->getRemainingPurchases($this->getDiscordUser());
+        return $this->memoize('remainingPurchases', fn (): int => $this->boosterPurchaseService->getRemainingPurchases($this->getDiscordUser()));
     }
 
     public function getPendingPurchase(): ?BoosterPurchase
     {
-        if (!$this->pendingPurchaseLoaded) {
-            $this->pendingPurchase = $this->boosterPurchaseService->getPendingPurchase($this->getDiscordUser());
-            $this->pendingPurchaseLoaded = true;
-        }
-
-        return $this->pendingPurchase;
+        return $this->memoize('pendingPurchase', fn (): ?BoosterPurchase => $this->boosterPurchaseService->getPendingPurchase($this->getDiscordUser()));
     }
 
     public function getBalance(): ?CoinAmount
     {
-        if (!$this->balanceLoaded) {
-            $this->balance = $this->walletBalances->get($this->getDiscordUser()->getDiscordId());
-            $this->balanceLoaded = true;
-        }
-
-        return $this->balance;
+        return $this->memoize('balance', fn (): ?CoinAmount => $this->walletBalances->get($this->getDiscordUser()->getDiscordId()));
     }
 
     public function getPurchaseBlock(Booster $booster): ?string
@@ -474,10 +459,7 @@ final class BoosterHub extends AbstractController
             return;
         }
 
-        // inventory and balance memoized before the purchase are stale
-        $this->inventory = null;
-        $this->balanceLoaded = false;
-        $this->pendingPurchaseLoaded = false;
+        $this->memo = []; // inventory, balance and quota read before the purchase are stale
 
         if (!$purchase->isPending()) {
             $this->purchaseSuccess = \sprintf('Un pack « %s » a été ajouté à ton stock !', $booster->getDisplayName());
@@ -495,6 +477,48 @@ final class BoosterHub extends AbstractController
         }
 
         return $this->boosterRepository->find($boosterId);
+    }
+
+    /**
+     * @return list<Booster>
+     */
+    private function getPublishedBoosters(): array
+    {
+        return $this->memoize('published', fn (): array => $this->boosterRepository->findPublished());
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    private function getPublishedDrawableIds(): array
+    {
+        return $this->memoize('publishedDrawable', fn (): array => $this->boosterAvailability->drawableBoosterIds($this->getPublishedBoosters()));
+    }
+
+    /**
+     * @param list<Booster> $boosters
+     *
+     * @return array<string, true>
+     */
+    private function idMap(array $boosters): array
+    {
+        return array_fill_keys(array_map(static fn (Booster $booster): string => (string) $booster->getId(), $boosters), true);
+    }
+
+    /**
+     * @template T
+     *
+     * @param \Closure(): T $load
+     *
+     * @return T
+     */
+    private function memoize(string $key, \Closure $load): mixed
+    {
+        if (!\array_key_exists($key, $this->memo)) {
+            $this->memo[$key] = $load();
+        }
+
+        return $this->memo[$key];
     }
 
     private function getDiscordUser(): DiscordUser

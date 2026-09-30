@@ -32,10 +32,14 @@ final readonly class EngagedCopies
         return $reserved;
     }
 
-    /** @return array<string, true> */
-    public function engagedCardIds(DiscordUser $owner): array
+    /**
+     * @param array<string, true>|null $listedCardIds already read by the caller
+     *
+     * @return array<string, true>
+     */
+    public function engagedCardIds(DiscordUser $owner, ?array $listedCardIds = null): array
     {
-        return $this->tradeOfferRepository->findEngagedCardIds($owner) + $this->listedCardIds($owner);
+        return $this->tradeOfferRepository->findEngagedCardIds($owner) + ($listedCardIds ?? $this->listedCardIds($owner));
     }
 
     /** @return array<string, true> */

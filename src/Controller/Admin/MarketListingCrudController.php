@@ -6,8 +6,13 @@ namespace App\Controller\Admin;
 
 use App\Entity\MarketListing;
 use App\Enum\Market\MarketListingStatusEnum;
+use Doctrine\ORM\QueryBuilder;
+use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
+use EasyCorp\Bundle\EasyAdminBundle\Collection\FilterCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
@@ -38,6 +43,17 @@ class MarketListingCrudController extends AbstractReadOnlyCrudController
             ->setSearchFields(['seller.username', 'seller.discordId', 'card.name'])
             ->setTimezone('Europe/Paris')
             ->setHelp(Crud::PAGE_INDEX, 'Cartes mises en vente par les joueurs (3 annonces actives au plus par joueur). « Achat en cours » : un paiement est en train d\'être confirmé auprès du coin.')
+        ;
+    }
+
+    #[\Override]
+    public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
+    {
+        // aliases prefixed on purpose: EasyAdmin names its search/sort joins after the property
+        return parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters)
+            ->addSelect('listingSeller', 'listingCard')
+            ->leftJoin('entity.seller', 'listingSeller')
+            ->leftJoin('entity.card', 'listingCard')
         ;
     }
 

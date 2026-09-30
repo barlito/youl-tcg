@@ -105,17 +105,18 @@ final readonly class BoosterAvailabilityService
     }
 
     /**
-     * @param list<Booster> $boosters
+     * @param list<Booster>            $boosters
+     * @param array<string, true>|null $drawableIds booster id => true, when already computed for a superset of $boosters
      *
      * @return list<Booster>
      */
-    public function filterPurchasable(array $boosters): array
+    public function filterPurchasable(array $boosters, ?array $drawableIds = null): array
     {
         $onSale = array_filter(
             $boosters,
             fn (Booster $booster): bool => $booster->isPurchasable() && null !== $booster->getPurchasePrice() && $this->hasPublishedExtension($booster),
         );
-        $drawable = $this->drawableBoosterIds(array_values($onSale));
+        $drawable = $drawableIds ?? $this->drawableBoosterIds(array_values($onSale));
 
         return array_values(array_filter(
             $onSale,
@@ -126,28 +127,34 @@ final readonly class BoosterAvailabilityService
     /**
      * Batch variant of isRetrievable: one query for a whole booster list.
      *
-     * @param list<Booster> $boosters
+     * @param list<Booster>            $boosters
+     * @param array<string, true>|null $drawableIds booster id => true, when already computed for a superset of $boosters
      *
      * @return array<string, true> booster id => true
      */
-    public function retrievableBoosterIds(array $boosters): array
+    public function retrievableBoosterIds(array $boosters, ?array $drawableIds = null): array
     {
         $claimable = array_filter(
             $boosters,
             fn (Booster $booster): bool => $this->isClaimable($booster) && $this->hasPublishedExtension($booster),
         );
 
+        if (null !== $drawableIds) {
+            return array_intersect_key($drawableIds, array_flip(array_map(static fn (Booster $booster): string => (string) $booster->getId(), $claimable)));
+        }
+
         return $this->drawableBoosterIds(array_values($claimable));
     }
 
     /**
-     * @param list<Booster> $boosters
+     * @param list<Booster>            $boosters
+     * @param array<string, true>|null $drawableIds booster id => true, when already computed for a superset of $boosters
      *
      * @return list<Booster>
      */
-    public function filterRetrievable(array $boosters): array
+    public function filterRetrievable(array $boosters, ?array $drawableIds = null): array
     {
-        $retrievable = $this->retrievableBoosterIds($boosters);
+        $retrievable = $this->retrievableBoosterIds($boosters, $drawableIds);
 
         return array_values(array_filter(
             $boosters,

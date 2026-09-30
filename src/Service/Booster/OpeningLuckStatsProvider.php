@@ -28,9 +28,9 @@ final readonly class OpeningLuckStatsProvider
     ) {
     }
 
-    public function getStats(DiscordUser $user): OpeningLuckStats
+    public function getStats(DiscordUser $user, ?int $openingCount = null): OpeningLuckStats
     {
-        $openingCount = $this->boosterOpeningRepository->countByUser($user);
+        $openingCount ??= $this->boosterOpeningRepository->countByUser($user);
 
         if (0 === $openingCount) {
             return new OpeningLuckStats(0, 0, 0, 0.0, [], [], [], null);

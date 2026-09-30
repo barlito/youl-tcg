@@ -20,8 +20,8 @@ use App\Repository\CardRepository;
  */
 final class BoosterRarityAvailability
 {
-    /** @var array<string, list<string>> */
-    private array $drawableRaritiesByExtension = [];
+    /** @var array<string, list<string>>|null */
+    private ?array $drawableRaritiesByExtension = null;
 
     public function __construct(private readonly CardRepository $cardRepository)
     {
@@ -65,22 +65,8 @@ final class BoosterRarityAvailability
      */
     private function drawableRarities(Extension $extension): array
     {
-        $key = $extension->getId() ?? 'oid:' . spl_object_id($extension);
+        $this->drawableRaritiesByExtension ??= $this->cardRepository->findDrawableRaritiesByExtension();
 
-        if (!isset($this->drawableRaritiesByExtension[$key])) {
-            $rarities = [];
-
-            foreach ($this->cardRepository->findDrawablePool($extension) as $card) {
-                // uniques are drawn by their own chance, never by the rarity
-                // roll: a tier holding nothing but a 1/1 is unavailable
-                if (!$card->isUnique()) {
-                    $rarities[$card->getRarity()->value] = true;
-                }
-            }
-
-            $this->drawableRaritiesByExtension[$key] = array_keys($rarities);
-        }
-
-        return $this->drawableRaritiesByExtension[$key];
+        return $this->drawableRaritiesByExtension[(string) $extension->getId()] ?? [];
     }
 }

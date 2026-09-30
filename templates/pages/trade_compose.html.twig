@@ -31,7 +31,7 @@
                 </div>
             </section>
         {% else %}
-            {{ component('TradeComposer', { counterpartId: counterpart.discordId }) }}
+            {{ component('TradeComposer', { counterpartId: counterpart.discordId, initialOffered: engageable, initialRequested: requestable }) }}
         {% endif %}
     </main>
 {% endblock %}

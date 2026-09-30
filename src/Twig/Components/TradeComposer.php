@@ -77,6 +77,17 @@ final class TradeComposer extends AbstractController
     #[LiveProp]
     public string $tab = 'offered';
 
+    // already read by the page controller, first render only (not a LiveProp)
+    /**
+     * @var array<string, array{card: Card, normal: int, holo: int}>|null
+     */
+    public ?array $initialOffered = null;
+
+    /**
+     * @var array<string, array{card: Card, normal: int, holo: int}>|null
+     */
+    public ?array $initialRequested = null;
+
     /**
      * @var array<string, array<string, Entry>> side => token => entry
      */
@@ -354,8 +365,8 @@ final class TradeComposer extends AbstractController
 
         $isMine = TradeOfferSideEnum::OFFERED === $side;
         $copies = $isMine
-            ? $this->tradeOfferService->getEngageableCopies($this->getDiscordUser())
-            : $this->tradeOfferService->getRequestableCopies($this->getCounterpart());
+            ? $this->initialOffered ?? $this->tradeOfferService->getEngageableCopies($this->getDiscordUser())
+            : $this->initialRequested ?? $this->tradeOfferService->getRequestableCopies($this->getCounterpart());
         $known = $isMine ? null : array_fill_keys($this->userCardRepository->findOwnedCardIds($this->getDiscordUser()), true);
         $listed = $isMine ? $this->listedCopies() : [];
 
