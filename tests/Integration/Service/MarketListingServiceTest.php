@@ -15,8 +15,10 @@ use App\Service\Market\MarketListingService;
 use App\Service\Trade\EngagedCopies;
 use App\Service\Trade\TradeOfferService;
 use App\Tests\FeatureFlagTrait;
+use App\Tests\Support\CoinMockResponses;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\HttpClient\Response\MockResponse;
 
 final class MarketListingServiceTest extends KernelTestCase
 {
@@ -45,6 +47,27 @@ final class MarketListingServiceTest extends KernelTestCase
         $this->assertSame(25, $listing->getPrice());
         $this->assertFalse($listing->isHolo());
         $this->assertSame(['normal' => 1, 'holo' => 0], self::getContainer()->get(EngagedCopies::class)->reservedQuantities($seller)[(string) $card->getId()]);
+    }
+
+    public function testASellerWithoutCoinWalletCannotList(): void
+    {
+        $seller = $this->createUser('seller');
+        $card = $this->createCard('Listed');
+        $this->giveCards($seller, $card, 1);
+        self::getContainer()->get(CoinMockResponses::class)->override('GET', '/api/user/' . $seller->getDiscordId() . '/wallet', static fn (): MockResponse => new MockResponse('', ['http_code' => 404]));
+
+        $this->assertRefusal(fn () => $this->service->create($seller, $card, false, 5), 'connecte-toi une fois sur Youl Coin');
+        $this->assertSame([], $this->entityManager->getRepository(MarketListing::class)->findAll());
+    }
+
+    public function testAnUnreachableCoinRefusesTheListing(): void
+    {
+        $seller = $this->createUser('seller');
+        $card = $this->createCard('Listed');
+        $this->giveCards($seller, $card, 1);
+        self::getContainer()->get(CoinMockResponses::class)->override('GET', '/api/user/' . $seller->getDiscordId() . '/wallet', static fn (): MockResponse => new MockResponse('', ['http_code' => 503]));
+
+        $this->assertRefusal(fn () => $this->service->create($seller, $card, false, 5), 'indisponible');
     }
 
     public function testTheLastCopyCanBeListed(): void

@@ -49,12 +49,20 @@ App\Entity\UserCard:
         discordUser: '@discord_user_collectionneur'
         card: '@card_ahri_alt_kda'
         quantity: 4
+    user_card_veli_ahri_alt_kda:
+        discordUser: '@discord_user_veli'
+        card: '@card_ahri_alt_kda'
+        quantity: 2
     user_card_barlito_akali_alt_kda:
         discordUser: '@discord_user_barlito'
         card: '@card_akali_alt_kda'
         quantity: 2
     user_card_collectionneur_akali_alt_kda:
         discordUser: '@discord_user_collectionneur'
+        card: '@card_akali_alt_kda'
+        quantity: 2
+    user_card_weeby_akali_alt_kda:
+        discordUser: '@discord_user_weeby'
         card: '@card_akali_alt_kda'
         quantity: 2
     user_card_barlito_akali_kda:
@@ -136,6 +144,10 @@ App\Entity\UserCard:
         discordUser: '@discord_user_collectionneur'
         card: '@card_babou_linette_la_joueuse_de_mort'
         quantity: 4
+    user_card_farph_babou_linette_la_joueuse_de_mort:
+        discordUser: '@discord_user_farph'
+        card: '@card_babou_linette_la_joueuse_de_mort'
+        quantity: 2
     user_card_farph_babou_linette_psyche:
         discordUser: '@discord_user_farph'
         card: '@card_babou_linette_psyche'
