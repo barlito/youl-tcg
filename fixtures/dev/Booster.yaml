@@ -6,6 +6,8 @@ App\Entity\Booster:
         name: 'Pack Cyberpunk 2077'
         extension: '@extension_cyberpunk'
         imageName: 'booster-cyberpunk-6a500e183f587285639600.png'
+        purchasable: true
+        purchasePrice: 10
         rarityRates:
             - { rarities: { common: 100 }, holoChance: 5 }
             - { rarities: { common: 100 }, holoChance: 5 }

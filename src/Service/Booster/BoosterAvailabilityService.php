@@ -99,6 +99,30 @@ final readonly class BoosterAvailabilityService
         return $this->isClaimable($booster) && $this->isDistributable($booster);
     }
 
+    public function isPurchasable(Booster $booster): bool
+    {
+        return $booster->isPurchasable() && null !== $booster->getPurchasePrice() && $this->isDistributable($booster);
+    }
+
+    /**
+     * @param list<Booster> $boosters
+     *
+     * @return list<Booster>
+     */
+    public function filterPurchasable(array $boosters): array
+    {
+        $onSale = array_filter(
+            $boosters,
+            fn (Booster $booster): bool => $booster->isPurchasable() && null !== $booster->getPurchasePrice() && $this->hasPublishedExtension($booster),
+        );
+        $drawable = $this->drawableBoosterIds(array_values($onSale));
+
+        return array_values(array_filter(
+            $onSale,
+            static fn (Booster $booster): bool => isset($drawable[(string) $booster->getId()]),
+        ));
+    }
+
     /**
      * Batch variant of isRetrievable: one query for a whole booster list.
      *

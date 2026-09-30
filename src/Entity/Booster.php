@@ -12,6 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 use Vich\UploaderBundle\Mapping\Attribute as Vich;
 
 #[Vich\Uploadable]
@@ -42,6 +43,13 @@ class Booster implements \Stringable
      */
     #[ORM\Column(options: ['default' => true])]
     private bool $claimable = true;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $purchasable = false;
+
+    #[Assert\Positive]
+    #[ORM\Column(nullable: true)]
+    private ?int $purchasePrice = null;
 
     /**
      * One slot per card the booster yields. Each slot carries its own rarity
@@ -104,6 +112,38 @@ class Booster implements \Stringable
         $this->claimable = $claimable;
 
         return $this;
+    }
+
+    public function isPurchasable(): bool
+    {
+        return $this->purchasable;
+    }
+
+    public function setPurchasable(bool $purchasable): static
+    {
+        $this->purchasable = $purchasable;
+
+        return $this;
+    }
+
+    public function getPurchasePrice(): ?int
+    {
+        return $this->purchasePrice;
+    }
+
+    public function setPurchasePrice(?int $purchasePrice): static
+    {
+        $this->purchasePrice = $purchasePrice;
+
+        return $this;
+    }
+
+    #[Assert\Callback]
+    public function validatePurchasePrice(ExecutionContextInterface $context): void
+    {
+        if ($this->purchasable && null === $this->purchasePrice) {
+            $context->buildViolation('Un booster achetable doit avoir un prix.')->atPath('purchasePrice')->addViolation();
+        }
     }
 
     /**

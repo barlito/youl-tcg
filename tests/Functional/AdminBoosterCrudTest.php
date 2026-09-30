@@ -128,6 +128,45 @@ final class AdminBoosterCrudTest extends WebTestCase
         $this->assertSame([['rarities' => ['common' => 100], 'holoChance' => 0]], $saved->getRarityRates());
     }
 
+    public function testTheShopFieldsAreStoredAndAPriceIsRequiredWhenPurchasable(): void
+    {
+        $client = self::createClient();
+        $this->authenticateClient($client);
+
+        $booster = $this->createBooster([['rarities' => ['common' => 100], 'holoChance' => 0]]);
+        $boosterId = $booster->getId();
+
+        $crawler = $client->request('GET', self::CRUD_URL . '/' . $boosterId . '/edit');
+        $form = $crawler->filter('form#edit-Booster-form')->form();
+        $this->assertCount(1, $crawler->filter('input[name="Booster[purchasable]"]'));
+        $this->assertCount(1, $crawler->filter('input[name="Booster[purchasePrice]"]'));
+
+        $values = $form->getPhpValues();
+        $values['Booster']['purchasable'] = '1';
+        $values['Booster']['purchasePrice'] = '';
+        $crawler = $client->request('POST', $form->getUri(), $values);
+
+        $this->assertStringContainsString('doit avoir un prix', $crawler->filter('body')->text());
+        $this->assertFalse($this->reload($boosterId)->isPurchasable());
+
+        $values['Booster']['purchasePrice'] = '25';
+        $client->request('POST', $form->getUri(), $values);
+
+        $saved = $this->reload($boosterId);
+        $this->assertTrue($saved->isPurchasable());
+        $this->assertSame(25, $saved->getPurchasePrice());
+    }
+
+    private function reload(mixed $boosterId): Booster
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+        $saved = $entityManager->getRepository(Booster::class)->find($boosterId);
+        \assert($saved instanceof Booster);
+
+        return $saved;
+    }
+
     public function testDetailPageShowsTheResultingDropRates(): void
     {
         $client = self::createClient();

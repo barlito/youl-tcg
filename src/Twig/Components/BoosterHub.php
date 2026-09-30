@@ -6,6 +6,7 @@ namespace App\Twig\Components;
 
 use App\Dto\OpeningStreak;
 use App\Entity\Booster;
+use App\Entity\BoosterPurchase;
 use App\Entity\DiscordUser;
 use App\Entity\StreakReward;
 use App\Enum\Booster\BoosterCodeRefusalEnum;
@@ -17,9 +18,13 @@ use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\BoosterClaimService;
 use App\Service\Booster\BoosterCodeGenerator;
 use App\Service\Booster\BoosterCodeRedeemService;
+use App\Service\Booster\BoosterPurchaseService;
 use App\Service\Booster\OpeningStreakService;
 use App\Service\Booster\StreakRewardService;
+use App\Service\Coin\CoinAmount;
+use App\Service\Coin\WalletBalances;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Uid\Uuid;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -59,6 +64,24 @@ final class BoosterHub extends AbstractController
     #[LiveProp(writable: true)]
     public string $streakRewardBoosterId = '';
 
+    /** Booster awaiting the second click of the purchase confirmation. */
+    #[LiveProp]
+    public ?string $confirmingPurchaseBoosterId = null;
+
+    #[LiveProp]
+    public ?string $purchaseError = null;
+
+    #[LiveProp]
+    public ?string $purchaseSuccess = null;
+
+    private ?BoosterPurchase $pendingPurchase = null;
+
+    private bool $pendingPurchaseLoaded = false;
+
+    private ?CoinAmount $balance = null;
+
+    private bool $balanceLoaded = false;
+
     /**
      * Inventory is read twice per render (hero total + packs grid): memoize
      * the query for the lifetime of the (per-request) component instance.
@@ -76,6 +99,9 @@ final class BoosterHub extends AbstractController
         private readonly RateLimiterFactoryInterface $boosterCodeRedeemLimiter,
         private readonly OpeningStreakService $openingStreakService,
         private readonly StreakRewardService $streakRewardService,
+        private readonly BoosterPurchaseService $boosterPurchaseService,
+        private readonly WalletBalances $walletBalances,
+        private readonly RequestStack $requestStack,
     ) {
     }
 
@@ -102,10 +128,15 @@ final class BoosterHub extends AbstractController
      */
     public function getBoosters(): array
     {
-        return $this->boosterAvailability->filterVisible(
-            $this->boosterRepository->findPublished(),
-            $this->getInventory(),
-        );
+        $published = $this->boosterRepository->findPublished();
+        $visible = $this->boosterAvailability->filterVisible($published, $this->getInventory());
+        $onSale = $this->getShopBoosterIds();
+
+        // a pack on sale is shown even when neither claimable nor owned: it is bought from its tile
+        return array_values(array_filter(
+            $published,
+            static fn (Booster $booster): bool => \in_array($booster, $visible, true) || isset($onSale[(string) $booster->getId()]),
+        ));
     }
 
     public function getRemainingClaims(): int
@@ -333,6 +364,123 @@ final class BoosterHub extends AbstractController
                 $remaining,
                 $remaining > 1 ? 's' : '',
             );
+        }
+    }
+
+    /**
+     * @return list<Booster>
+     */
+    public function getShopBoosters(): array
+    {
+        return $this->boosterAvailability->filterPurchasable($this->boosterRepository->findPublished());
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    public function getShopBoosterIds(): array
+    {
+        $ids = [];
+        foreach ($this->getShopBoosters() as $booster) {
+            $ids[(string) $booster->getId()] = true;
+        }
+
+        return $ids;
+    }
+
+    public function getRemainingPurchases(): int
+    {
+        return $this->boosterPurchaseService->getRemainingPurchases($this->getDiscordUser());
+    }
+
+    public function getPendingPurchase(): ?BoosterPurchase
+    {
+        if (!$this->pendingPurchaseLoaded) {
+            $this->pendingPurchase = $this->boosterPurchaseService->getPendingPurchase($this->getDiscordUser());
+            $this->pendingPurchaseLoaded = true;
+        }
+
+        return $this->pendingPurchase;
+    }
+
+    public function getBalance(): ?CoinAmount
+    {
+        if (!$this->balanceLoaded) {
+            $this->balance = $this->walletBalances->get($this->getDiscordUser()->getDiscordId());
+            $this->balanceLoaded = true;
+        }
+
+        return $this->balance;
+    }
+
+    public function getPurchaseBlock(Booster $booster): ?string
+    {
+        $balance = $this->getBalance();
+
+        return match (true) {
+            $this->getPendingPurchase() instanceof BoosterPurchase => 'Paiement en cours de vérification',
+            $this->getRemainingPurchases() < 1 => 'Déjà acheté aujourd\'hui',
+            !$balance instanceof CoinAmount => 'Youl Coin indisponible',
+            $balance->isLessThan(CoinAmount::fromCoins((int) $booster->getPurchasePrice())) => 'Solde insuffisant',
+            default => null,
+        };
+    }
+
+    #[LiveAction]
+    public function askPurchase(#[LiveArg] string $boosterId): void
+    {
+        $this->purchaseError = null;
+        $this->purchaseSuccess = null;
+
+        $booster = $this->findBooster($boosterId);
+
+        if (!$booster instanceof Booster || !$this->boosterAvailability->isPurchasable($booster)) {
+            $this->purchaseError = 'Ce pack n\'est pas en vente pour le moment.';
+
+            return;
+        }
+
+        $this->confirmingPurchaseBoosterId = $this->getPurchaseBlock($booster) ? null : $boosterId;
+    }
+
+    #[LiveAction]
+    public function cancelPurchase(): void
+    {
+        $this->confirmingPurchaseBoosterId = null;
+    }
+
+    #[LiveAction]
+    public function confirmPurchase(#[LiveArg] string $boosterId): void
+    {
+        $this->purchaseError = null;
+        $this->purchaseSuccess = null;
+
+        $confirmed = $this->confirmingPurchaseBoosterId === $boosterId;
+        $this->confirmingPurchaseBoosterId = null;
+        $booster = $this->findBooster($boosterId);
+        $playerToken = $this->requestStack->getCurrentRequest()?->cookies->get('jwt');
+
+        if (!$confirmed || !$booster instanceof Booster || !\is_string($playerToken)) {
+            $this->purchaseError = 'Achat impossible, recharge la page et réessaie.';
+
+            return;
+        }
+
+        try {
+            $purchase = $this->boosterPurchaseService->purchase($this->getDiscordUser(), $booster, $playerToken);
+        } catch (BoosterException $exception) {
+            $this->purchaseError = $exception->getUserMessage();
+
+            return;
+        }
+
+        // inventory and balance memoized before the purchase are stale
+        $this->inventory = null;
+        $this->balanceLoaded = false;
+        $this->pendingPurchaseLoaded = false;
+
+        if (!$purchase->isPending()) {
+            $this->purchaseSuccess = \sprintf('Un pack « %s » a été ajouté à ton stock !', $booster->getDisplayName());
         }
     }
 
