@@ -51,6 +51,26 @@ class UniverseCompletionRewardRepository extends ServiceEntityRepository
     }
 
     /**
+     * @return array<string, true> "discordId|extensionId" keys
+     */
+    public function findRewardedPairs(): array
+    {
+        /** @var list<array{discordId: string, extensionId: string}> $rows */
+        $rows = $this->createQueryBuilder('reward')
+            ->select('IDENTITY(reward.discordUser) AS discordId', 'IDENTITY(reward.extension) AS extensionId')
+            ->getQuery()
+            ->getResult()
+        ;
+
+        $pairs = [];
+        foreach ($rows as $row) {
+            $pairs[$row['discordId'] . '|' . $row['extensionId']] = true;
+        }
+
+        return $pairs;
+    }
+
+    /**
      * @return list<UniverseCompletionReward>
      */
     public function findToPay(?DiscordUser $discordUser = null, ?\DateTimeImmutable $completedBefore = null, bool $includeFailed = false): array
