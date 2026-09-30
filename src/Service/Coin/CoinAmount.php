@@ -22,6 +22,25 @@ final readonly class CoinAmount
         return new self('' === ltrim($minor, '0') ? '0' : $minor);
     }
 
+    public static function fromCoins(int $coins): self
+    {
+        return self::fromMinor($coins . str_repeat('0', self::SCALE));
+    }
+
+    public function isLessThan(self $other): bool
+    {
+        $negative = str_starts_with($this->minor, '-');
+
+        if ($negative !== str_starts_with($other->minor, '-')) {
+            return $negative;
+        }
+
+        $length = \strlen($this->minor) <=> \strlen($other->minor);
+        $comparison = 0 !== $length ? $length : strcmp($this->minor, $other->minor);
+
+        return ($negative ? -$comparison : $comparison) < 0;
+    }
+
     /** French display: thin space thousands separator, decimal comma, no useless decimals. */
     public function format(): string
     {

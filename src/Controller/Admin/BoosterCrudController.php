@@ -9,6 +9,7 @@ use App\Entity\Booster;
 use App\Entity\BoosterClaim;
 use App\Entity\BoosterCode;
 use App\Entity\BoosterOpening;
+use App\Entity\BoosterPurchase;
 use App\Entity\RecycleOperation;
 use App\Entity\StreakReward;
 use App\Enum\Entity\CardRarityEnum;
@@ -111,6 +112,15 @@ class BoosterCrudController extends AbstractGuardedCrudController
             ->setLabel('Récupérable')
             ->setHelp('Décoché : distribution par événement ou par code uniquement — le pack n\'est plus récupérable gratuitement sur le hub, mais reste ouvrable par ceux qui le possèdent.')
             ->renderAsSwitch(false)
+        ;
+        yield BooleanField::new('purchasable')
+            ->setLabel('Achetable')
+            ->setHelp('Coché : vendu dans la boutique du hub contre des coins (un achat par joueur et par jour, tous packs confondus). Le prix est alors obligatoire.')
+            ->renderAsSwitch(false)
+        ;
+        yield IntegerField::new('purchasePrice')
+            ->setLabel('Prix (coins)')
+            ->setHelp('Nombre entier de coins, requis pour un pack achetable.')
         ;
         yield IntegerField::new('cardCount')
             ->setLabel('Cartes')
@@ -254,6 +264,7 @@ class BoosterCrudController extends AbstractGuardedCrudController
             '%d ouverture(s) figurent dans l\'historique' => $this->entityManager->getRepository(BoosterOpening::class)->count(['booster' => $entity]),
             '%d récupération(s) quotidienne(s) figurent dans l\'historique' => $this->entityManager->getRepository(BoosterClaim::class)->count(['booster' => $entity]),
             '%d code(s) le distribuent' => $this->entityManager->getRepository(BoosterCode::class)->count(['booster' => $entity]),
+            '%d achat(s) figurent dans l\'historique' => $this->entityManager->getRepository(BoosterPurchase::class)->count(['booster' => $entity]),
             '%d récompense(s) de streak l\'ont attribué' => $this->entityManager->getRepository(StreakReward::class)->count(['chosenBooster' => $entity]),
             '%d recyclage(s) l\'ont attribué' => $this->entityManager->getRepository(RecycleOperation::class)->count(['booster' => $entity]),
         ]);

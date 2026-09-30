@@ -131,6 +131,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkTo(DiscordUserCrudController::class, 'Joueurs', 'fa fa-users');
         yield MenuItem::linkTo(BoosterOpeningCrudController::class, 'Ouvertures', 'fa fa-box-open');
         yield MenuItem::linkTo(BoosterClaimCrudController::class, 'Récupérations', 'fa fa-gift');
+        yield MenuItem::linkTo(BoosterPurchaseCrudController::class, 'Achats de boosters', 'fa fa-coins');
         yield MenuItem::linkTo(TradeOfferCrudController::class, 'Échanges', 'fa fa-right-left');
 
         yield MenuItem::section('Réglages');

@@ -26,4 +26,10 @@ final readonly class CoinExtension
 
         return $user instanceof DiscordUser ? $this->balances->get($user->getDiscordId()) : null;
     }
+
+    #[AsTwigFunction(name: 'coin_amount')]
+    public function coinAmount(int $coins): string
+    {
+        return CoinAmount::fromCoins($coins)->format();
+    }
 }

@@ -43,7 +43,7 @@ final class YoulCoinWalletTest extends WebTestCase
     {
         $client = $this->createCleanClient();
         $this->authenticateClient($client, self::JUJU);
-        static::getContainer()->get(CoinMockResponses::class)->queue(new MockResponse('', ['http_code' => 503]));
+        static::getContainer()->get(CoinMockResponses::class)->override('GET', '/api/user/' . self::JUJU . '/wallet', static fn (): MockResponse => new MockResponse('', ['http_code' => 503]));
 
         $crawler = $client->request('GET', '/');
 
@@ -59,7 +59,7 @@ final class YoulCoinWalletTest extends WebTestCase
         $client = $this->createCleanClient();
         $this->authenticateClient($client, self::JUJU);
         $client->request('GET', '/');
-        static::getContainer()->get(CoinMockResponses::class)->queue(new MockResponse('', ['http_code' => 503]));
+        static::getContainer()->get(CoinMockResponses::class)->override('GET', '/api/user/' . self::JUJU . '/wallet', static fn (): MockResponse => new MockResponse('', ['http_code' => 503]));
 
         $crawler = $client->request('GET', '/');
 
