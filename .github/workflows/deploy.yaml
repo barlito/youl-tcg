@@ -23,6 +23,8 @@ jobs:
       JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
       JWT_PASSPHRASE: ${{ secrets.JWT_PASSPHRASE }}
       MERCURE_JWT_SECRET: ${{ secrets.MERCURE_JWT_SECRET }}
+      YOUL_COIN_API_KEY: ${{ secrets.YOUL_COIN_API_KEY }}
+      YTCG_WEBHOOK_SECRET: ${{ secrets.YTCG_WEBHOOK_SECRET }}
 
     steps:
       - uses: actions/checkout@v7

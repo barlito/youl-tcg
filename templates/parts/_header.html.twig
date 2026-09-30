@@ -31,6 +31,14 @@
             {% endif %}
             {% if app.user %}
                 {{ component('NotificationBell') }}
+                {% set balance = wallet_balance() %}
+                <a href="{{ youl_coin_hub_url }}" class="chip-mono text-ink hover:text-primary"
+                   data-controller="wallet-balance"
+                   data-action="live-updates:wallet-changed@window->wallet-balance#update"
+                   data-testid="wallet-balance"
+                   {% if not balance %}title="Solde Youl Coin momentanément indisponible"{% endif %}>
+                    <span data-wallet-balance-target="amount">{{ balance ? balance.format : '—' }}</span> YLC
+                </a>
                 <span class="flex items-center gap-2.5 border border-hairline bg-surface p-1 sm:pr-3.5">
                     <span class="flex h-7 w-7 items-center justify-center bg-gradient-to-br from-primary to-magenta font-display text-sm font-bold text-black">
                         {{ app.user.username|first|upper }}

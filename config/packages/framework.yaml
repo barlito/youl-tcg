@@ -11,12 +11,16 @@ framework:
     # Note that the session will be started ONLY if you read or write from it.
     session: true
 
-    # Only consumer: the Mercure publisher. Realtime is best effort, a slow
-    # hub must not hold the business request for the 60s default.
+    # Realtime and the Youl Coin are best effort: a slow peer must not hold
+    # the business request for the 60s default.
     http_client:
         default_options:
             timeout: 2
             max_duration: 3
+        scoped_clients:
+            youl_coin.client:
+                base_uri: '%env(YOUL_COIN_API_URL)%'
+                auth_bearer: '%env(YOUL_COIN_API_KEY)%'
 
     #esi: true
     #fragments: true
@@ -24,5 +28,7 @@ framework:
 when@test:
     framework:
         test: true
+        http_client:
+            mock_response_factory: App\Tests\Support\CoinMockResponses
         session:
             storage_factory_id: session.storage.factory.mock_file

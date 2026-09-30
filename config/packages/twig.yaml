@@ -3,6 +3,7 @@ twig:
     globals:
         # release tag of the running image (footer + admin), 'dev' outside prod
         app_version: '%env(APP_VERSION)%'
+        youl_coin_hub_url: '%env(YOUL_COIN_HUB_URL)%'
 
 when@test:
     twig:
