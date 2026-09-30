@@ -115,7 +115,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
   - OneToMany with Card, Booster and ExtensionBanner (universe page hero banners, position-ordered carousel)
 
 - **Booster**: Booster packs containing cards
-  - Fields: name (optional display name, falls back to the extension name via getDisplayName()), claimable (default true; false = event/code distribution only — not claimable on the hub, still openable by owners, guarded server-side in BoosterClaimService), rarityRates (JSON, one `{rarities: {rarity: weight}, holoChance: int}` entry per card slot — the slot count IS the card count, holoChance is the 0-100 % holo probability of that slot; there is NO global holoRate anymore), imageName
+  - Fields: purchasable + purchasePrice (whole coins, required when purchasable — see Booster purchase), name (optional display name, falls back to the extension name via getDisplayName()), claimable (default true; false = event/code distribution only — not claimable on the hub, still openable by owners, guarded server-side in BoosterClaimService), rarityRates (JSON, one `{rarities: {rarity: weight}, holoChance: int}` entry per card slot — the slot count IS the card count, holoChance is the 0-100 % holo probability of that slot; there is NO global holoRate anymore), imageName
   - getDropRates() projects rarityRates into player-facing percentages (hub « Taux » panel)
   - ManyToOne with Extension; boosters are free (no currency in v2)
 
@@ -174,6 +174,14 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - `WalletBalances`: per-player balance in `cache.app` (60 s; « unavailable » cached 10 s so a coin outage does not cost a timeout per page); `store()` overwrites it. Header: `wallet_balance()` Twig function + `wallet_balance_controller.js` (updates on `live-updates:wallet-changed`), chip links to `YOUL_COIN_HUB_URL`
 - **Webhook** `POST /webhooks/youl-coin` (`YoulCoinWebhookController`, firewall `webhooks` without JWT): `X-Youl-Signature: sha256=hmac(secret, "<X-Youl-Timestamp>.<raw body>")` checked by `WebhookVerifier` (`hash_equals`, ±300 s, empty `YTCG_WEBHOOK_SECRET` refuses everything) → 401; bad JSON → 400; else 204. Each known wallet: `WalletBalances::store()` + `wallet-changed` `{balance, formatted}` on the private topic; unknown players ignored
 - Env: `YOUL_COIN_API_URL`, `YOUL_COIN_HUB_URL`, `YOUL_COIN_API_KEY`, `YTCG_WEBHOOK_SECRET` (the last two are prod secrets, same webhook secret as the coin). In test every HTTP call goes through `tests/Support/CoinMockResponses` (queue a `MockResponse` to simulate an outage)
+
+### Booster purchase (`BoosterPurchaseService`, `BoosterPurchase`)
+
+- Boosters flagged `purchasable` with a `purchasePrice` (whole coins) are sold in the hub « Boutique » (`BoosterHub`, two-step confirm like trades): **one purchase per player and Paris day**, all boosters together (`ParisDay`, COUNT of `pending` + `completed` rows since midnight — `failed` costs nothing). Own channel: no `BoosterClaim`, free claim quota untouched. `BoosterAvailabilityService::isPurchasable()/filterPurchasable()` = purchasable + price + distributable (published extension, drawable pool)
+- **Flow**: (1) tx: `FOR UPDATE` on the `discord_user` row, guards + quota, `BoosterPurchase` `pending` committed; (2) HTTP debit OUTSIDE any DB tx — `YoulCoinClient::debitToBank()`: player wallet + cached bank wallet, `POST /api/transactions` type `purchase`, `externalIdentifier = ytcg:booster-purchase:<purchase id>` (idempotent on the coin), `X-Player-Token` = the request's `jwt` cookie; (3) tx: `refresh(LOCK)` the purchase, still `pending` → credit `UserBooster` + `completed`; then `inventory-changed` and the cached balance is dropped (the coin webhook refreshes it)
+- **Outcomes** (`CoinPayment`): PAID → completed; REFUSED (4xx: 422 balance, 403 token, 409 payload) and UNAVAILABLE (wallets unreadable, nothing sent) → `failed` + French message; UNCERTAIN (timeout, 5xx, unreadable 201) → stays `pending` (« paiement en cours de vérification »), quota held
+- **Reconciliation**: `reconcilePending()` asks the coin by `externalIdentifier` — found → completed (once: lock + status check), not found for ≥ 10 min → failed, unreachable → still pending. Run on every hub render for the player AND by `bin/console app:coin:reconcile-purchases` (schedule it regularly, no cron shipped). Never a booster without payment, never a double credit
+- Admin: `BoosterCrudController` (Achetable + Prix, price required by an entity callback), read-only « Achats de boosters » (« Économie »), booster deletion blocked while purchases reference it
 
 ### Booster Opening Flow (`src/Service/Booster/`)
 

@@ -40,6 +40,11 @@ final readonly class WalletBalances
         }, \INF);
     }
 
+    public function forget(string $discordId): void
+    {
+        $this->cache->delete($this->key($discordId));
+    }
+
     private function key(string $discordId): string
     {
         return 'wallet_balance.' . $discordId;
