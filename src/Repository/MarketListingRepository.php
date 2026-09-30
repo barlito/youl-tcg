@@ -17,9 +17,7 @@ use Doctrine\ORM\QueryBuilder;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<MarketListing>
- */
+/** @extends ServiceEntityRepository<MarketListing> */
 class MarketListingRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -39,9 +37,6 @@ class MarketListingRepository extends ServiceEntityRepository
         ;
     }
 
-    /**
-     * Listings that still hold a copy, the quota being counted on them.
-     */
     public function countEngagedBySeller(DiscordUser $seller): int
     {
         return (int) $this->createQueryBuilder('listing')
@@ -55,11 +50,7 @@ class MarketListingRepository extends ServiceEntityRepository
         ;
     }
 
-    /**
-     * Copies a seller has engaged in listings, per card: one half of the reservation ledger (see EngagedCopies).
-     *
-     * @return array<string, array{normal: int, holo: int}> card id => reserved copies
-     */
+    /** @return array<string, array{normal: int, holo: int}> */
     public function sumReservedQuantities(DiscordUser $seller): array
     {
         /** @var list<array{cardId: mixed, holo: bool, total: string|int}> $rows */
@@ -84,9 +75,7 @@ class MarketListingRepository extends ServiceEntityRepository
         return $reserved;
     }
 
-    /**
-     * @return list<MarketListing>
-     */
+    /** @return list<MarketListing> */
     public function findEngagedBySeller(DiscordUser $seller): array
     {
         return array_values($this->createQueryBuilder('listing')
@@ -100,10 +89,6 @@ class MarketListingRepository extends ServiceEntityRepository
     }
 
     /**
-     * One page of the ACTIVE listings of the published catalogue, card, universe and seller hydrated.
-     *
-     * @param string $sort date_desc (default), date_asc, price_asc or price_desc
-     *
      * @return list<MarketListing>
      */
     public function findActivePage(?DiscordUser $seller, ?DiscordUser $excludedSeller, ?Extension $extension, ?CardRarityEnum $rarity, ?bool $holo, string $sort, int $page, int $perPage): array
@@ -134,11 +119,7 @@ class MarketListingRepository extends ServiceEntityRepository
         ;
     }
 
-    /**
-     * Universes offered on the market right now (the filter chips).
-     *
-     * @return list<Extension>
-     */
+    /** @return list<Extension> */
     public function findExtensionsWithActiveListings(?DiscordUser $seller, ?DiscordUser $excludedSeller): array
     {
         /** @var list<array{id: string}> $rows */
@@ -191,9 +172,7 @@ class MarketListingRepository extends ServiceEntityRepository
         return $queryBuilder;
     }
 
-    /**
-     * @return list<MarketListingStatusEnum>
-     */
+    /** @return list<MarketListingStatusEnum> */
     private function engagedStatuses(): array
     {
         return array_values(array_filter(MarketListingStatusEnum::cases(), static fn (MarketListingStatusEnum $status): bool => $status->isEngaged()));

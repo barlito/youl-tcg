@@ -87,7 +87,7 @@ final class RecycleHub extends AbstractController
     private ?array $engaged = null;
 
     /**
-     * @var array<string, true>|null card ids with a copy in an engaged market listing
+     * @var array<string, true>|null
      */
     private ?array $listed = null;
 
@@ -215,9 +215,6 @@ final class RecycleHub extends AbstractController
         return isset($this->engaged[(string) $row->getCard()->getId()]);
     }
 
-    /**
-     * Listed on the market: locked like an engaged card, with its own wording.
-     */
     public function isListed(UserCard $row): bool
     {
         $this->listed ??= $this->engagedCopies->listedCardIds($this->getDiscordUser());

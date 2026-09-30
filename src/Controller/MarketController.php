@@ -8,9 +8,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-/**
- * Player-to-player market: the board of every active listing and the player's own shop.
- */
 class MarketController extends AbstractController
 {
     #[Route('/marche', name: 'market')]

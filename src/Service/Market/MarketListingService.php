@@ -36,9 +36,7 @@ final readonly class MarketListingService
     ) {
     }
 
-    /**
-     * @throws MarketListingRefusedException
-     */
+    /** @throws MarketListingRefusedException */
     public function create(DiscordUser $seller, Card $card, bool $holo, int $price): MarketListing
     {
         $this->assertValidPrice($price);
@@ -80,11 +78,7 @@ final readonly class MarketListingService
         return $result;
     }
 
-    /**
-     * What the player may still put on sale: owned published copies minus the ones already engaged (indicative, create() re-checks under lock).
-     *
-     * @return list<array{card: Card, normal: int, holo: int}>
-     */
+    /** @return list<array{card: Card, normal: int, holo: int}> */
     public function getSellableCopies(DiscordUser $seller): array
     {
         $reserved = $this->engagedCopies->reservedQuantities($seller);
@@ -103,9 +97,7 @@ final readonly class MarketListingService
         return $sellable;
     }
 
-    /**
-     * @throws MarketListingRefusedException
-     */
+    /** @throws MarketListingRefusedException */
     public function changePrice(DiscordUser $seller, MarketListing $listing, int $price): void
     {
         $this->assertValidPrice($price);
@@ -116,9 +108,7 @@ final readonly class MarketListingService
         $this->announce($listing);
     }
 
-    /**
-     * @throws MarketListingRefusedException
-     */
+    /** @throws MarketListingRefusedException */
     public function withdraw(DiscordUser $seller, MarketListing $listing): void
     {
         $this->mutateActive($seller, $listing, function (MarketListing $locked): void {
@@ -127,9 +117,7 @@ final readonly class MarketListingService
         $this->announce($listing);
     }
 
-    /**
-     * @param \Closure(MarketListing): void $mutation
-     */
+    /** @param \Closure(MarketListing): void $mutation */
     private function mutateActive(DiscordUser $seller, MarketListing $listing, \Closure $mutation): void
     {
         $refusal = $this->entityManager->wrapInTransaction(function () use ($seller, $listing, $mutation): ?MarketListingRefusedException {

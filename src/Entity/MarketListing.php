@@ -33,7 +33,6 @@ class MarketListing
         private Card $card,
         #[ORM\Column]
         private bool $holo,
-        /** Whole coins. */
         #[ORM\Column]
         private int $price,
     ) {

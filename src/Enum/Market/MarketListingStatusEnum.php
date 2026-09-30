@@ -12,7 +12,6 @@ enum MarketListingStatusEnum: string
     case WITHDRAWN = 'withdrawn';
     case INVALIDATED = 'invalidated';
 
-    /** The copy is still engaged: it cannot be traded, recycled or listed again. */
     public function isEngaged(): bool
     {
         return self::ACTIVE === $this || self::RESERVED_FOR_PURCHASE === $this;

@@ -18,9 +18,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\DateTimeFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 
-/**
- * @extends AbstractReadOnlyCrudController<MarketPurchase>
- */
+/** @extends AbstractReadOnlyCrudController<MarketPurchase> */
 class MarketPurchaseCrudController extends AbstractReadOnlyCrudController
 {
     public static function getEntityFqcn(): string
@@ -89,9 +87,7 @@ class MarketPurchaseCrudController extends AbstractReadOnlyCrudController
         yield TextField::new('seller.discordId')->setLabel('Discord ID du vendeur')->onlyOnDetail();
     }
 
-    /**
-     * @return array<string, string> label => backing value
-     */
+    /** @return array<string, string> */
     private function statusChoices(): array
     {
         $choices = [];

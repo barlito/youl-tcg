@@ -52,10 +52,8 @@ class MarketPurchase
         #[ORM\ManyToOne]
         #[ORM\JoinColumn(name: 'seller_id', referencedColumnName: 'discord_id', nullable: false)]
         private DiscordUser $seller,
-        /** Whole coins, frozen with the listing's price when the purchase starts. */
         #[ORM\Column]
         private int $price,
-        /** Bank commission in minor units, frozen at that moment too (the seller receives price − fee). */
         #[ORM\Column(type: Types::BIGINT)]
         private int | string $feeMinor,
         #[ORM\Column]

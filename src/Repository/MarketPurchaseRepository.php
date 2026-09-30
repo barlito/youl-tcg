@@ -10,9 +10,7 @@ use App\Enum\Market\MarketPurchaseStatusEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<MarketPurchase>
- */
+/** @extends ServiceEntityRepository<MarketPurchase> */
 class MarketPurchaseRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -20,9 +18,7 @@ class MarketPurchaseRepository extends ServiceEntityRepository
         parent::__construct($registry, MarketPurchase::class);
     }
 
-    /**
-     * @return list<MarketPurchase>
-     */
+    /** @return list<MarketPurchase> */
     public function findUnsettled(?DiscordUser $discordUser = null): array
     {
         $queryBuilder = $this->createQueryBuilder('purchase')
@@ -39,8 +35,6 @@ class MarketPurchaseRepository extends ServiceEntityRepository
     }
 
     /**
-     * The player's latest purchases and sales, whatever the outcome, newest first.
-     *
      * @return list<MarketPurchase>
      */
     public function findRecentFor(DiscordUser $discordUser, int $limit): array

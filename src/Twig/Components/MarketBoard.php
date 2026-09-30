@@ -25,12 +25,6 @@ use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\UX\LiveComponent\Metadata\UrlMapping;
 
-/**
- * The market board, or one player's shop when `sellerId` is set: active listings
- * of the published catalogue in clear, filters, sort, pagination, and the
- * two-step purchase. The listing id is client-provided: it is only a lookup key,
- * MarketPurchaseService re-checks everything under lock.
- */
 #[AsLiveComponent]
 final class MarketBoard extends AbstractController
 {
@@ -41,7 +35,6 @@ final class MarketBoard extends AbstractController
     /** @var list<string> */
     public const array SORTS = ['date_desc', 'date_asc', 'price_asc', 'price_desc'];
 
-    /** Restricts the board to one seller (their shop on their profile). */
     #[LiveProp]
     public ?string $sellerId = null;
 
@@ -51,7 +44,6 @@ final class MarketBoard extends AbstractController
     #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'rarete'))]
     public ?string $rarity = null;
 
-    /** 'normal' | 'holo' | null (both). */
     #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'finition'))]
     public ?string $finish = null;
 
@@ -61,7 +53,6 @@ final class MarketBoard extends AbstractController
     #[LiveProp(writable: true, url: new UrlMapping(as: 'page'))]
     public int $page = 1;
 
-    /** Listing awaiting the second click of the purchase. */
     #[LiveProp]
     public ?string $confirming = null;
 
@@ -94,9 +85,7 @@ final class MarketBoard extends AbstractController
     ) {
     }
 
-    /**
-     * @return list<MarketListing>
-     */
+    /** @return list<MarketListing> */
     public function getListings(): array
     {
         $this->reconcileOnce();
@@ -134,9 +123,7 @@ final class MarketBoard extends AbstractController
         return min(max(1, $this->page), $this->getPageCount());
     }
 
-    /**
-     * @return list<Extension>
-     */
+    /** @return list<Extension> */
     public function getUniverseChips(): array
     {
         return $this->chips ??= $this->listingRepository->findExtensionsWithActiveListings(
@@ -145,9 +132,7 @@ final class MarketBoard extends AbstractController
         );
     }
 
-    /**
-     * @return list<CardRarityEnum>
-     */
+    /** @return list<CardRarityEnum> */
     public function getRarities(): array
     {
         return array_reverse(CardRarityEnum::ascending());
@@ -168,7 +153,6 @@ final class MarketBoard extends AbstractController
         return $this->balance;
     }
 
-    /** Why the buy button is dead, null when the listing can be bought. */
     public function getBuyBlock(MarketListing $listing): ?string
     {
         $balance = $this->getBalance();

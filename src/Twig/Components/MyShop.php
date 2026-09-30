@@ -22,11 +22,6 @@ use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
-/**
- * The player's own shop: engaged listings (reprice, withdraw), the copies they
- * can still put on sale, and the history of their sales and purchases. Ids and
- * prices come from the client: MarketListingService re-validates everything.
- */
 #[AsLiveComponent]
 final class MyShop extends AbstractController
 {
@@ -41,14 +36,12 @@ final class MyShop extends AbstractController
     #[LiveProp]
     public ?string $success = null;
 
-    /** Listing whose price is being edited. */
     #[LiveProp]
     public ?string $editingId = null;
 
     #[LiveProp(writable: true)]
     public string $editPrice = '';
 
-    /** "cardId|finish" of the copy being put on sale. */
     #[LiveProp]
     public ?string $selling = null;
 
@@ -72,9 +65,7 @@ final class MyShop extends AbstractController
     ) {
     }
 
-    /**
-     * @return list<MarketListing>
-     */
+    /** @return list<MarketListing> */
     public function getListings(): array
     {
         $this->reconcileOnce();
@@ -87,11 +78,7 @@ final class MyShop extends AbstractController
         return MarketListingService::MAX_ACTIVE_LISTINGS;
     }
 
-    /**
-     * Copies still free to sell, filtered by name, rarest first (capped: the search narrows it down).
-     *
-     * @return list<array{card: Card, normal: int, holo: int}>
-     */
+    /** @return list<array{card: Card, normal: int, holo: int}> */
     public function getSellable(): array
     {
         $needle = mb_trim(mb_strtolower($this->search));
@@ -107,9 +94,7 @@ final class MyShop extends AbstractController
         return \count($this->allSellable());
     }
 
-    /**
-     * @return list<MarketPurchase>
-     */
+    /** @return list<MarketPurchase> */
     public function getHistory(): array
     {
         return $this->purchaseRepository->findRecentFor($this->getDiscordUser(), self::HISTORY_LIMIT);
@@ -217,9 +202,7 @@ final class MyShop extends AbstractController
         }
     }
 
-    /**
-     * @return list<array{card: Card, normal: int, holo: int}>
-     */
+    /** @return list<array{card: Card, normal: int, holo: int}> */
     private function allSellable(): array
     {
         return $this->sellable ??= $this->listingService->getSellableCopies($this->getDiscordUser());
