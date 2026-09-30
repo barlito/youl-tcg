@@ -14,6 +14,7 @@ use App\Enum\Market\MarketListingStatusEnum;
 use App\Exception\Market\MarketListingRefusedException;
 use App\Repository\MarketListingRepository;
 use App\Repository\UserCardRepository;
+use App\Service\Coin\YoulCoinClient;
 use App\Service\Trade\EngagedCopies;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
@@ -30,6 +31,7 @@ final readonly class MarketListingService
         private UserCardRepository $userCardRepository,
         private EngagedCopies $engagedCopies,
         private ClockInterface $clock,
+        private YoulCoinClient $coin,
     ) {
     }
 
@@ -40,6 +42,16 @@ final readonly class MarketListingService
 
         if (CardStatusEnum::PUBLISHED !== $card->getStatus() || ExtensionStatusEnum::PUBLISHED !== $card->getExtension()?->getStatus()) {
             throw new MarketListingRefusedException(\sprintf('Card %s is not published.', $card->getId()), \sprintf('« %s » ne fait pas partie du catalogue publié : elle ne se vend pas.', $card->getName()));
+        }
+
+        $wallet = $this->coin->hasWallet($seller->getDiscordId());
+
+        if (null === $wallet) {
+            throw new MarketListingRefusedException('Coin unavailable.', 'Youl Coin est indisponible, réessaie dans un instant.');
+        }
+
+        if (!$wallet) {
+            throw new MarketListingRefusedException('Seller has no coin wallet.', 'Pour vendre, ton compte Youl Coin doit exister : connecte-toi une fois sur Youl Coin, puis reviens.');
         }
 
         // the closure returns its refusal: throwing inside wrapInTransaction would close the EntityManager
