@@ -15,6 +15,7 @@ use App\Enum\Trade\TradeOfferSideEnum;
 use App\Exception\Trade\TradeException;
 use App\Repository\CardRepository;
 use App\Repository\DiscordUserRepository;
+use App\Repository\MarketListingRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Trade\TradeOfferService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,7 +35,7 @@ use Symfony\UX\LiveComponent\Metadata\UrlMapping;
  * lives in NON-writable LiveProps mutated by actions only (checksummed), and
  * the domain re-validates everything anyway.
  *
- * @phpstan-type Entry array{token: string, card: ?Card, rarity: CardRarityEnum, extension: Extension, normal: int, holo: int}
+ * @phpstan-type Entry array{token: string, card: ?Card, rarity: CardRarityEnum, extension: Extension, normal: int, holo: int, listed: int}
  */
 #[RequiresFeature(FeatureEnum::TRADES)]
 #[AsLiveComponent]
@@ -88,6 +89,7 @@ final class TradeComposer extends AbstractController
         private readonly DiscordUserRepository $discordUserRepository,
         private readonly UserCardRepository $userCardRepository,
         private readonly CardRepository $cardRepository,
+        private readonly MarketListingRepository $marketListingRepository,
         #[Autowire(param: 'kernel.secret')]
         private readonly string $secret,
     ) {
@@ -355,6 +357,7 @@ final class TradeComposer extends AbstractController
             ? $this->tradeOfferService->getEngageableCopies($this->getDiscordUser())
             : $this->tradeOfferService->getRequestableCopies($this->getCounterpart());
         $known = $isMine ? null : array_fill_keys($this->userCardRepository->findOwnedCardIds($this->getDiscordUser()), true);
+        $listed = $isMine ? $this->listedCopies() : [];
 
         $entries = [];
         foreach ($copies as $cardId => $copy) {
@@ -371,7 +374,18 @@ final class TradeComposer extends AbstractController
                 'extension' => $extension,
                 'normal' => $copy['normal'],
                 'holo' => $copy['holo'],
+                'listed' => $listed[$cardId]['count'] ?? 0,
             ];
+        }
+
+        // copies on sale stay visible, locked: the player sees where they went
+        foreach ($listed as $cardId => ['card' => $card, 'count' => $count]) {
+            $token = $this->tokenFor($cardId);
+            $extension = $card->getExtension();
+
+            if (!isset($entries[$token]) && $extension instanceof Extension) {
+                $entries[$token] = ['token' => $token, 'card' => $card, 'rarity' => $card->getRarity(), 'extension' => $extension, 'normal' => 0, 'holo' => 0, 'listed' => $count];
+            }
         }
 
         uasort($entries, static fn (array $a, array $b): int => CardRarityEnum::compareRarestFirst($a['rarity'], $b['rarity'])
@@ -379,6 +393,21 @@ final class TradeComposer extends AbstractController
             ?: ($a['card']?->getName() ?? $a['token']) <=> ($b['card']?->getName() ?? $b['token']));
 
         return $this->entries[$side->value] = $entries;
+    }
+
+    /**
+     * @return array<string, array{card: Card, count: int}> card id => copies in the player's engaged listings
+     */
+    private function listedCopies(): array
+    {
+        $listed = [];
+        foreach ($this->marketListingRepository->findEngagedBySeller($this->getDiscordUser()) as $listing) {
+            $card = $listing->getCard();
+            $cardId = (string) $card->getId();
+            $listed[$cardId] = ['card' => $card, 'count' => ($listed[$cardId]['count'] ?? 0) + 1];
+        }
+
+        return $listed;
     }
 
     /**

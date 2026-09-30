@@ -11,10 +11,12 @@ use App\Entity\UserCard;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use App\Enum\Market\MarketListingStatusEnum;
+use App\Enum\Realtime\UserEventEnum;
 use App\Exception\Market\MarketListingRefusedException;
 use App\Repository\MarketListingRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Coin\YoulCoinClient;
+use App\Service\Realtime\UserEventPublisher;
 use App\Service\Trade\EngagedCopies;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
@@ -31,6 +33,7 @@ final readonly class MarketListingService
         private UserCardRepository $userCardRepository,
         private EngagedCopies $engagedCopies,
         private ClockInterface $clock,
+        private UserEventPublisher $userEventPublisher,
         private YoulCoinClient $coin,
     ) {
     }
@@ -82,7 +85,28 @@ final readonly class MarketListingService
             throw $result;
         }
 
+        $this->announce($result);
+
         return $result;
+    }
+
+    /** @return list<array{card: Card, normal: int, holo: int}> */
+    public function getSellableCopies(DiscordUser $seller): array
+    {
+        $reserved = $this->engagedCopies->reservedQuantities($seller);
+        $sellable = [];
+
+        foreach ($this->userCardRepository->findOwnedWithCards($seller, publishedOnly: true) as $row) {
+            $held = $reserved[(string) $row->getCard()->getId()] ?? ['normal' => 0, 'holo' => 0];
+            $holo = max(0, $row->getHoloQuantity() - $held['holo']);
+            $normal = max(0, $row->getQuantity() - $row->getHoloQuantity() - $held['normal']);
+
+            if ($normal > 0 || $holo > 0) {
+                $sellable[] = ['card' => $row->getCard(), 'normal' => $normal, 'holo' => $holo];
+            }
+        }
+
+        return $sellable;
     }
 
     /** @throws MarketListingRefusedException */
@@ -93,6 +117,7 @@ final readonly class MarketListingService
         $this->mutateActive($seller, $listing, static function (MarketListing $locked) use ($price): void {
             $locked->setPrice($price);
         });
+        $this->announce($listing);
     }
 
     /** @throws MarketListingRefusedException */
@@ -101,6 +126,7 @@ final readonly class MarketListingService
         $this->mutateActive($seller, $listing, function (MarketListing $locked): void {
             $locked->close(MarketListingStatusEnum::WITHDRAWN, $this->clock->now());
         });
+        $this->announce($listing);
     }
 
     /** @param \Closure(MarketListing): void $mutation */
@@ -163,6 +189,12 @@ final readonly class MarketListingService
         }
 
         return null;
+    }
+
+    // post-commit, public: the listing is visible to every player anyway
+    private function announce(MarketListing $listing): void
+    {
+        $this->userEventPublisher->publishBroadcast(UserEventEnum::MARKET_CHANGED, ['listingId' => (string) $listing->getId(), 'status' => $listing->getStatus()->value]);
     }
 
     private function assertValidPrice(int $price): void

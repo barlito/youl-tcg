@@ -116,6 +116,8 @@ final readonly class MarketPurchaseService
             throw $started;
         }
 
+        $this->announce($started->getListing());
+
         $payment = $this->coin->debitToBank(
             $buyer->getDiscordId(),
             CoinAmount::fromCoins($started->getPrice()),
@@ -190,6 +192,8 @@ final readonly class MarketPurchaseService
         if (null === $outcome) {
             return;
         }
+
+        $this->announce($purchase->getListing());
 
         if (!$outcome) {
             $this->refund($purchase, lookupFirst: false);
@@ -444,5 +448,13 @@ final readonly class MarketPurchaseService
             $purchase->fail($reason, $this->clock->now());
             $this->entityManager->flush();
         });
+
+        $this->announce($purchase->getListing());
+    }
+
+    // post-commit and public: the listing is visible to every player anyway
+    private function announce(MarketListing $listing): void
+    {
+        $this->userEventPublisher->publishBroadcast(UserEventEnum::MARKET_CHANGED, ['listingId' => (string) $listing->getId(), 'status' => $listing->getStatus()->value]);
     }
 }

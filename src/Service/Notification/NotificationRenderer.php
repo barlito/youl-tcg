@@ -90,7 +90,7 @@ final readonly class NotificationRenderer
                     $this->string($payload, 'cardName', 'une carte'),
                     CoinAmount::fromCoins($this->int($payload, 'price'))->format(),
                 ),
-                null,
+                $this->urlGenerator->generate('market_my_shop'),
             ),
             NotificationTypeEnum::ANNOUNCEMENT => new NotificationContent(
                 '!',

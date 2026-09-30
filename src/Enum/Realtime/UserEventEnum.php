@@ -22,6 +22,8 @@ enum UserEventEnum: string
     /** A trade offer involving the player changed (payload: offerId, status): trade screens re-render. */
     case TRADES_CHANGED = 'trades-changed';
 
+    case MARKET_CHANGED = 'market-changed';
+
     /** The player's Youl Coin balance changed (payload: balance in minor units, formatted). */
     case WALLET_CHANGED = 'wallet-changed';
 }
