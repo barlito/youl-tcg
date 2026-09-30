@@ -33,9 +33,7 @@ final readonly class MarketListingService
     ) {
     }
 
-    /**
-     * @throws MarketListingRefusedException
-     */
+    /** @throws MarketListingRefusedException */
     public function create(DiscordUser $seller, Card $card, bool $holo, int $price): MarketListing
     {
         $this->assertValidPrice($price);
@@ -75,9 +73,7 @@ final readonly class MarketListingService
         return $result;
     }
 
-    /**
-     * @throws MarketListingRefusedException
-     */
+    /** @throws MarketListingRefusedException */
     public function changePrice(DiscordUser $seller, MarketListing $listing, int $price): void
     {
         $this->assertValidPrice($price);
@@ -87,9 +83,7 @@ final readonly class MarketListingService
         });
     }
 
-    /**
-     * @throws MarketListingRefusedException
-     */
+    /** @throws MarketListingRefusedException */
     public function withdraw(DiscordUser $seller, MarketListing $listing): void
     {
         $this->mutateActive($seller, $listing, function (MarketListing $locked): void {
@@ -97,9 +91,7 @@ final readonly class MarketListingService
         });
     }
 
-    /**
-     * @param \Closure(MarketListing): void $mutation
-     */
+    /** @param \Closure(MarketListing): void $mutation */
     private function mutateActive(DiscordUser $seller, MarketListing $listing, \Closure $mutation): void
     {
         $refusal = $this->entityManager->wrapInTransaction(function () use ($seller, $listing, $mutation): ?MarketListingRefusedException {

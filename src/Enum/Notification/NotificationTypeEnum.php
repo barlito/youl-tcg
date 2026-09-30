@@ -32,7 +32,6 @@ enum NotificationTypeEnum: string
     /** A universe was completed and rewarded (payload: universe, slug, amount in coins). */
     case UNIVERSE_COMPLETED = 'universe_completed';
 
-    /** A player bought one of the recipient's market listings (payload: buyerName, cardName, price in coins). */
     case MARKET_SOLD = 'market_sold';
 
     case ANNOUNCEMENT = 'announcement';

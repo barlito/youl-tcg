@@ -55,7 +55,6 @@ final readonly class MarketPurchaseService
     ) {
     }
 
-    /** Bank commission in minor units, rounded down; integer math only (no float, no bcmath). */
     public static function feeMinor(int $priceCoins, int $feePercent): int
     {
         return intdiv($priceCoins * 10 ** CoinAmount::SCALE * $feePercent, 100);
@@ -66,9 +65,7 @@ final readonly class MarketPurchaseService
         return CoinAmount::fromMinor((string) ($purchase->getPrice() * 10 ** CoinAmount::SCALE - (int) $purchase->getFeeMinor()));
     }
 
-    /**
-     * @throws MarketPurchaseRefusedException
-     */
+    /** @throws MarketPurchaseRefusedException */
     public function purchase(DiscordUser $buyer, MarketListing $listing, string $playerToken): MarketPurchase
     {
         if ($listing->getSeller()->getDiscordId() === $buyer->getDiscordId()) {
@@ -137,9 +134,6 @@ final readonly class MarketPurchaseService
         return $started;
     }
 
-    /**
-     * Resumes every purchase the coin has not confirmed yet; each step is idempotent on its externalIdentifier.
-     */
     public function reconcile(?DiscordUser $discordUser = null): void
     {
         foreach ($this->purchaseRepository->findUnsettled($discordUser) as $purchase) {
@@ -197,9 +191,6 @@ final readonly class MarketPurchaseService
         $this->payout($purchase, lookupFirst: false);
     }
 
-    /**
-     * @return bool|null true: card moved, false: impossible (refund due), null: purchase no longer pending
-     */
     private function doTransfer(MarketPurchase $purchase, string $paymentTransactionId): ?bool
     {
         // the lock + status check make the transfer happen once, whoever resolves the purchase first
@@ -272,9 +263,7 @@ final readonly class MarketPurchaseService
         return null;
     }
 
-    /**
-     * @return array<string, UserCard> discord id => locked row (the seller's is absent when nothing is owned)
-     */
+    /** @return array<string, UserCard> */
     private function lockRows(DiscordUser $seller, DiscordUser $buyer, Card $card): array
     {
         $rows = [];
@@ -372,9 +361,7 @@ final readonly class MarketPurchaseService
         }
     }
 
-    /**
-     * @param \Closure(): CoinPayment $send
-     */
+    /** @param \Closure(): CoinPayment $send */
     private function sendOrLookup(string $identifier, bool $lookupFirst, \Closure $send): CoinPayment
     {
         if ($lookupFirst) {

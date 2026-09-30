@@ -11,9 +11,7 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\LockMode;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<MarketListing>
- */
+/** @extends ServiceEntityRepository<MarketListing> */
 class MarketListingRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -33,9 +31,6 @@ class MarketListingRepository extends ServiceEntityRepository
         ;
     }
 
-    /**
-     * Listings that still hold a copy, the quota being counted on them.
-     */
     public function countEngagedBySeller(DiscordUser $seller): int
     {
         return (int) $this->createQueryBuilder('listing')
@@ -49,11 +44,7 @@ class MarketListingRepository extends ServiceEntityRepository
         ;
     }
 
-    /**
-     * Copies a seller has engaged in listings, per card: one half of the reservation ledger (see EngagedCopies).
-     *
-     * @return array<string, array{normal: int, holo: int}> card id => reserved copies
-     */
+    /** @return array<string, array{normal: int, holo: int}> */
     public function sumReservedQuantities(DiscordUser $seller): array
     {
         /** @var list<array{cardId: mixed, holo: bool, total: string|int}> $rows */
@@ -78,9 +69,7 @@ class MarketListingRepository extends ServiceEntityRepository
         return $reserved;
     }
 
-    /**
-     * @return list<MarketListing>
-     */
+    /** @return list<MarketListing> */
     public function findEngagedBySeller(DiscordUser $seller): array
     {
         return array_values($this->createQueryBuilder('listing')
@@ -93,9 +82,7 @@ class MarketListingRepository extends ServiceEntityRepository
             ->getResult());
     }
 
-    /**
-     * @return list<MarketListingStatusEnum>
-     */
+    /** @return list<MarketListingStatusEnum> */
     private function engagedStatuses(): array
     {
         return array_values(array_filter(MarketListingStatusEnum::cases(), static fn (MarketListingStatusEnum $status): bool => $status->isEngaged()));
