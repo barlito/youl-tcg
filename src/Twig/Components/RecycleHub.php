@@ -76,6 +76,8 @@ final class RecycleHub extends AbstractController
      */
     private ?array $rows = null;
 
+    private ?bool $recycledToday = null;
+
     /**
      * @var list<Booster>|null
      */
@@ -254,6 +256,16 @@ final class RecycleHub extends AbstractController
         return null;
     }
 
+    public function hasRecycledToday(): bool
+    {
+        return $this->recycledToday ??= $this->recycleService->hasRecycledToday($this->getDiscordUser());
+    }
+
+    public function getSecondsUntilReset(): int
+    {
+        return $this->recycleService->getSecondsUntilReset();
+    }
+
     public function getCost(): int
     {
         return RecycleService::BOOSTER_COST;
@@ -423,6 +435,7 @@ final class RecycleHub extends AbstractController
 
         $this->selection = [];
         $this->rows = null; // the memoized inventory is stale after the debit
+        $this->recycledToday = true;
         $this->engaged = null;
         $this->success = \sprintf(
             '%d copie%s recyclée%s — %d pack%s « %s » ajouté%s à ton stock !%s',
