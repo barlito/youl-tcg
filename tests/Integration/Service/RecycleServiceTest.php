@@ -22,6 +22,7 @@ use App\Enum\FeatureEnum;
 use App\Enum\Trade\TradeOfferSideEnum;
 use App\Enum\Trade\TradeOfferStatusEnum;
 use App\Exception\Recycle\BoosterNotRecyclableException;
+use App\Exception\Recycle\DailyRecycleLimitReachedException;
 use App\Exception\Recycle\InvalidRecycleSelectionException;
 use App\Exception\Recycle\NotEnoughCopiesException;
 use App\Exception\Recycle\NotEnoughRecyclePointsException;
@@ -78,6 +79,67 @@ final class RecycleServiceTest extends KernelTestCase
         $this->assertNotFalse($recycledCard);
         $this->assertSame(10, $recycledCard->getQuantity());
         $this->assertSame(0, $recycledCard->getHoloQuantity());
+    }
+
+    public function testASecondOperationTheSameDayIsRefused(): void
+    {
+        $scenario = $this->createScenario([['rarity' => CardRarityEnum::COMMON, 'quantity' => 30]]);
+        $selection = [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 10, holoQuantity: 0)];
+
+        $this->recycleService->recycle($scenario['user'], $selection, $scenario['booster']);
+        $this->assertTrue($this->recycleService->hasRecycledToday($scenario['user']));
+
+        try {
+            $this->recycleService->recycle($scenario['user'], $selection, $scenario['booster']);
+            $this->fail('Expected DailyRecycleLimitReachedException');
+        } catch (DailyRecycleLimitReachedException $exception) {
+            $this->assertSame('Tu as déjà recyclé aujourd\'hui, reviens après minuit.', $exception->getUserMessage());
+        }
+
+        $this->assertSame(1, (int) $this->entityManager->getConnection()->fetchOne(
+            'SELECT COUNT(*) FROM recycle_operation WHERE discord_user_id = ?',
+            [$scenario['user']->getDiscordId()],
+        ));
+        $this->assertSame(20, (int) $this->entityManager->getConnection()->fetchOne(
+            'SELECT quantity FROM user_card WHERE discord_user_id = ? AND card_id = ?',
+            [$scenario['user']->getDiscordId(), (string) $scenario['cards'][0]->getId()],
+        ));
+    }
+
+    public function testTheLimitIsPerPlayer(): void
+    {
+        $first = $this->createScenario([['rarity' => CardRarityEnum::COMMON, 'quantity' => 12]]);
+        $second = $this->createScenario([['rarity' => CardRarityEnum::COMMON, 'quantity' => 12]]);
+
+        $this->recycleService->recycle($first['user'], [new RecycleSelectionLine($first['cards'][0], normalQuantity: 10, holoQuantity: 0)], $first['booster']);
+        $operation = $this->recycleService->recycle($second['user'], [new RecycleSelectionLine($second['cards'][0], normalQuantity: 10, holoQuantity: 0)], $second['booster']);
+
+        $this->assertSame(10, $operation->getPoints());
+    }
+
+    public function testTheWindowOpensAtMidnightParisNotMidnightUtc(): void
+    {
+        $paris = new \DateTimeZone('Europe/Paris');
+        $midnightParis = new \DateTimeImmutable('now', $paris)->setTime(0, 0)->setTimezone(new \DateTimeZone('UTC'));
+
+        $scenario = $this->createScenario([['rarity' => CardRarityEnum::COMMON, 'quantity' => 30]]);
+        $this->assertFalse($this->recycleService->hasRecycledToday($scenario['user']));
+
+        $this->entityManager->persist(new RecycleOperation($scenario['user'], $scenario['booster'], 10, 1, $midnightParis->modify('-1 second')));
+        $this->entityManager->flush();
+        $this->assertFalse($this->recycleService->hasRecycledToday($scenario['user']), 'One second before Paris midnight belongs to yesterday.');
+
+        $this->entityManager->persist(new RecycleOperation($scenario['user'], $scenario['booster'], 10, 1, $midnightParis));
+        $this->entityManager->flush();
+        $this->assertTrue($this->recycleService->hasRecycledToday($scenario['user']), 'Paris midnight sharp opens the new day.');
+    }
+
+    public function testTheCountdownTargetsTheNextParisMidnight(): void
+    {
+        $seconds = $this->recycleService->getSecondsUntilReset();
+
+        $this->assertGreaterThan(0, $seconds);
+        $this->assertLessThanOrEqual(25 * 3600, $seconds);
     }
 
     public function testRecyclingIsRefusedWhileTheFeatureIsOff(): void
