@@ -39,6 +39,17 @@
             </div>
         </section>
 
+        {% if this.hasRecycledToday %}
+            <div class="mx-auto mt-6 max-w-7xl px-6 lg:px-12">
+                <div class="border border-soon/50 bg-soon/10 px-4 py-3 font-mono text-xs text-soon" data-testid="recycle-daily-done">
+                    ♻ Tu as déjà recyclé aujourd'hui : une seule opération par jour. Prochain recyclage possible dans
+                    <span data-controller="countdown"
+                          data-countdown-seconds-value="{{ this.secondsUntilReset }}">--:--:--</span>
+                    (minuit, heure de Paris).
+                </div>
+            </div>
+        {% endif %}
+
         {% if error %}
             <div class="mx-auto mt-6 max-w-7xl px-6 lg:px-12">
                 <div class="border border-magenta/50 bg-magenta/10 px-4 py-3 font-mono text-xs text-magenta" data-testid="recycle-error">
@@ -255,13 +266,13 @@
                                 data-live-action-param="recycle"
                                 data-loading="addAttribute(disabled) addClass(opacity-50)"
                                 data-testid="recycle-confirm"
-                                {{ this.boosterCount < 1 ? 'disabled' }}
+                                {{ (this.boosterCount < 1 or this.hasRecycledToday) ? 'disabled' }}
                                 class="shrink-0 border border-primary bg-primary px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary disabled:cursor-not-allowed disabled:border-hairline disabled:bg-surface disabled:text-ink-dim">
                             ♻ Recycler{% if this.boosterCount > 0 %}<span class="hidden sm:inline"> contre</span> {{ this.boosterCount }} pack{{ this.boosterCount > 1 ? 's' }}{% endif %}
                         </button>
                     </div>
                 </div>
-                <p class="chip-mono mx-auto mt-2 hidden max-w-7xl text-ink-dim md:block">Hors quota quotidien · irréversible</p>
+                <p class="chip-mono mx-auto mt-2 hidden max-w-7xl text-ink-dim md:block">Hors quota quotidien · une opération par jour · irréversible</p>
             </div>
         {% endif %}
     </main>
