@@ -35,7 +35,7 @@ final class AdminDashboardTest extends WebTestCase
             $this->assertCount(1, $crawler->filter(\sprintf('[data-testid="kpi-%s"] .eco-tile__value', $kpi)), $kpi);
         }
 
-        $this->assertCount(6, $crawler->filter('canvas[data-controller="symfony--ux-chartjs--chart"]'));
+        $this->assertCount(10, $crawler->filter('canvas[data-controller="symfony--ux-chartjs--chart"]'));
         foreach (['created', 'accepted', 'refused', 'rate'] as $tile) {
             $this->assertCount(1, $crawler->filter(\sprintf('[data-testid="trades"] [data-testid="kpi-trades-%s"] .eco-tile__value', $tile)), $tile);
         }

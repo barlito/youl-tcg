@@ -30,6 +30,7 @@ final readonly class EconomyDashboard
         public array $weeklyRecycles,
         public RarityComparison $rarityComparison,
         public TradeActivity $trades,
+        public CoinEconomy $coin,
     ) {
     }
 

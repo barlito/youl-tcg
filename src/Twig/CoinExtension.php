@@ -32,4 +32,10 @@ final readonly class CoinExtension
     {
         return CoinAmount::fromCoins($coins)->format();
     }
+
+    #[AsTwigFunction(name: 'coin_minor')]
+    public function coinMinor(int $minor): string
+    {
+        return CoinAmount::fromMinor((string) $minor)->format();
+    }
 }
