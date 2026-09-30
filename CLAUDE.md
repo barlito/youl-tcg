@@ -171,6 +171,9 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - **Spending**: `StreakRewardService::chooseBooster()` — `FOR UPDATE` on the reward row, claim-like guards (claimable + published extension), credits `UserBooster` via `UserInventoryService`. Own distribution channel: no `BoosterClaim`, daily quota untouched
 - Hub UI: flame chip in the hero (always visible — running / at-risk / empty states) + "Récompense de streak" banner surfacing the oldest pending reward with one button per claimable booster (`chooseStreakReward` LiveAction)
 
+**Recycling (`RecycleService`):**
+- One operation per player and Europe/Paris day, whatever the number of cards: a COUNT on `RecycleOperation` since the last Paris midnight (`RecycleOperationRepository::existsSince()`, window derived from `BoosterClaimQuotaInterface::getNextResetTime()`), no mutable counter. Checked INSIDE the transaction after a `FOR UPDATE` on the `discord_user` row (first lock, like a claim, before `user_booster` / `user_card`), so two simultaneous recyclings serialize; refusal = `DailyRecycleLimitReachedException`. `/recyclage` shows a banner with the countdown and disables the confirm button, the rest of the page stays browsable. No dev bypass
+
 **Feature flags (`FeatureFlag` + `FeatureFlags`):**
 - `FeatureEnum` (`trades`, `recycling`); one `FeatureFlag` row per case (PK `name`), created OFF by the migration — a missing row is OFF. Test and dev fixtures switch both ON; "OFF" tests flip the flag with `tests/FeatureFlagTrait.php`
 - `App\Service\Feature\FeatureFlags::isEnabled()/assertEnabled()`: one query per request (memoized, `ResetInterface`)
