@@ -99,9 +99,6 @@ final readonly class BoosterAvailabilityService
         return $this->isClaimable($booster) && $this->isDistributable($booster);
     }
 
-    /**
-     * The single check behind the shop: on sale with a price AND distributable.
-     */
     public function isPurchasable(Booster $booster): bool
     {
         return $booster->isPurchasable() && null !== $booster->getPurchasePrice() && $this->isDistributable($booster);

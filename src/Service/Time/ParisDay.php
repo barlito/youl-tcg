@@ -6,9 +6,6 @@ namespace App\Service\Time;
 
 use Psr\Clock\ClockInterface;
 
-/**
- * The Europe/Paris calendar day that daily quotas run on, as absolute points in time.
- */
 final readonly class ParisDay
 {
     private const string TIMEZONE = 'Europe/Paris';
