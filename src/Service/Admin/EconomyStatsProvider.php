@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Service\Admin;
 
+use App\Dto\Admin\CoinAlerts;
+use App\Dto\Admin\CoinBreakdownRow;
+use App\Dto\Admin\CoinEconomy;
+use App\Dto\Admin\CoinRarityPrice;
 use App\Dto\Admin\EconomyDashboard;
 use App\Dto\Admin\EconomyKpis;
 use App\Dto\Admin\RarityComparison;
@@ -13,10 +17,15 @@ use App\Dto\Admin\WeeklyRecycleStats;
 use App\Entity\Booster;
 use App\Enum\Admin\BoosterChannelEnum;
 use App\Enum\Admin\EconomyPeriodEnum;
+use App\Enum\Booster\BoosterPurchaseStatusEnum;
+use App\Enum\Coin\UniverseRewardStatusEnum;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
+use App\Enum\Market\MarketListingStatusEnum;
+use App\Enum\Market\MarketPurchaseStatusEnum;
 use App\Enum\Trade\TradeOfferStatusEnum;
 use App\Service\Booster\CardDrawer;
+use App\Service\Coin\CoinAmount;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
@@ -46,6 +55,9 @@ final readonly class EconomyStatsProvider
         ['table' => 'trade_offer', 'player' => 'proposer_id', 'at' => 'created_at'],
         ['table' => 'trade_offer', 'player' => 'receiver_id', 'at' => 'resolved_at', 'condition' => "status IN ('accepted', 'refused')"],
         ['table' => 'trade_offer', 'player' => 'proposer_id', 'at' => 'resolved_at', 'condition' => "status = 'cancelled'"],
+        ['table' => 'booster_purchase', 'player' => 'discord_user_id', 'at' => 'requested_at'],
+        ['table' => 'market_listing', 'player' => 'seller_id', 'at' => 'created_at'],
+        ['table' => 'market_purchase', 'player' => 'buyer_id', 'at' => 'requested_at'],
     ];
 
     private const string UTC_FORMAT = 'Y-m-d H:i:s';
@@ -73,6 +85,7 @@ final readonly class EconomyStatsProvider
             $this->aggregateWeeklyRecycles($start, $since),
             $this->compareRarities($since),
             $this->countTradesPerDay($days, $since),
+            $this->buildCoinEconomy($days, $since),
         );
     }
 
@@ -455,6 +468,219 @@ final readonly class EconomyStatsProvider
     private function bucketKeys(): array
     {
         return [...array_map(static fn (CardRarityEnum $rarity): string => $rarity->value, CardRarityEnum::ascending()), self::UNIQUE_BUCKET];
+    }
+
+    /**
+     * @param list<string> $days
+     */
+    private function buildCoinEconomy(array $days, string $since): CoinEconomy
+    {
+        $purchases = $this->fetchDayRows(
+            'SELECT %s AS day, COUNT(*) AS total, SUM(price) AS coins FROM booster_purchase WHERE status = :completed AND resolved_at >= :since GROUP BY day',
+            'resolved_at',
+            $since,
+            ['completed' => BoosterPurchaseStatusEnum::COMPLETED->value],
+        );
+        $rewards = $this->fetchDayRows(
+            'SELECT %s AS day, COUNT(*) AS total, SUM(amount) AS coins FROM universe_completion_reward WHERE status = :paid AND paid_at >= :since GROUP BY day',
+            'paid_at',
+            $since,
+            ['paid' => UniverseRewardStatusEnum::PAID->value],
+        );
+        // a sale counts from the payment on: card transferred, or completed
+        $sales = $this->fetchDayRows(
+            'SELECT %s AS day, COUNT(*) AS total, SUM(price) AS coins, SUM(fee_minor) AS fees FROM market_purchase WHERE status IN (:transferred, :completed) AND requested_at >= :since GROUP BY day',
+            'requested_at',
+            $since,
+            ['transferred' => MarketPurchaseStatusEnum::CARD_TRANSFERRED->value, 'completed' => MarketPurchaseStatusEnum::COMPLETED->value],
+        );
+        [$bankIn, $bankOut] = $this->fetchBankFlows($days, $since);
+
+        return new CoinEconomy(
+            $this->pluck($days, $purchases, 'total'),
+            $this->pluck($days, $purchases, 'coins'),
+            $this->fetchBoosterBreakdown($since),
+            $this->pluck($days, $rewards, 'total'),
+            $this->pluck($days, $rewards, 'coins'),
+            $this->pluck($days, $sales, 'total'),
+            $this->pluck($days, $sales, 'coins'),
+            $this->pluck($days, $sales, 'fees'),
+            $this->fetchMarketRarityPrices($since),
+            $this->int($this->connection->fetchAssociative('SELECT COUNT(*) AS total FROM market_listing WHERE status = :active', ['active' => MarketListingStatusEnum::ACTIVE->value]) ?: [], 'total'),
+            $bankIn,
+            $bankOut,
+            $this->fetchCoinAlerts(),
+        );
+    }
+
+    /**
+     * @param list<string>                        $days
+     * @param array<string, array<string, mixed>> $rows
+     *
+     * @return array<string, int>
+     */
+    private function pluck(array $days, array $rows, string $key): array
+    {
+        $values = [];
+
+        foreach ($days as $day) {
+            $values[$day] = $this->int($rows[$day] ?? [], $key);
+        }
+
+        return $values;
+    }
+
+    /**
+     * @param array<string, string> $parameters
+     *
+     * @return array<string, array<string, mixed>> day => row
+     */
+    private function fetchDayRows(string $sqlFormat, string $column, string $since, array $parameters): array
+    {
+        $rows = [];
+
+        foreach ($this->connection->fetchAllAssociative(\sprintf($sqlFormat, $this->dayExpression($column)), ['timezone' => self::TIMEZONE, 'since' => $since, ...$parameters]) as $row) {
+            $rows[$this->string($row, 'day')] = $row;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return list<CoinBreakdownRow>
+     */
+    private function fetchBoosterBreakdown(string $since): array
+    {
+        $rows = $this->connection->fetchAllAssociative(<<<'SQL'
+            SELECT COALESCE(booster.name, extension.name) AS label, COUNT(*) AS total, SUM(booster_purchase.price) AS coins
+            FROM booster_purchase
+            JOIN booster ON booster.id = booster_purchase.booster_id
+            JOIN extension ON extension.id = booster.extension_id
+            WHERE booster_purchase.status = :completed AND booster_purchase.resolved_at >= :since
+            GROUP BY booster.id, label
+            ORDER BY coins DESC, label
+            SQL, ['completed' => BoosterPurchaseStatusEnum::COMPLETED->value, 'since' => $since]);
+
+        return array_map(fn (array $row): CoinBreakdownRow => new CoinBreakdownRow($this->string($row, 'label'), $this->int($row, 'total'), $this->int($row, 'coins')), $rows);
+    }
+
+    /**
+     * @return list<CoinRarityPrice>
+     */
+    private function fetchMarketRarityPrices(string $since): array
+    {
+        $rows = $this->connection->fetchAllAssociative(<<<'SQL'
+            SELECT card.rarity AS rarity, COUNT(*) AS total, AVG(market_purchase.price) AS average
+            FROM market_purchase
+            JOIN market_listing ON market_listing.id = market_purchase.listing_id
+            JOIN card ON card.id = market_listing.card_id
+            WHERE market_purchase.status IN (:transferred, :completed) AND market_purchase.requested_at >= :since
+            GROUP BY card.rarity
+            SQL, ['transferred' => MarketPurchaseStatusEnum::CARD_TRANSFERRED->value, 'completed' => MarketPurchaseStatusEnum::COMPLETED->value, 'since' => $since]);
+
+        $perRarity = [];
+
+        foreach ($rows as $row) {
+            $perRarity[$this->string($row, 'rarity')] = $row;
+        }
+
+        $prices = [];
+
+        foreach (CardRarityEnum::ascending() as $rarity) {
+            $row = $perRarity[$rarity->value] ?? [];
+            $average = $row['average'] ?? 0;
+            $prices[] = new CoinRarityPrice($rarity->value, $rarity->label(), $this->int($row, 'total'), is_numeric($average) ? round((float) $average, 2) : 0.0);
+        }
+
+        return $prices;
+    }
+
+    // in: booster purchases + market payments (refunded ones included); out: rewards, seller payouts, refunds
+    /**
+     * @param list<string> $days
+     *
+     * @return array{array<string, int>, array<string, int>}
+     */
+    private function fetchBankFlows(array $days, string $since): array
+    {
+        $scale = 10 ** CoinAmount::SCALE;
+        $sql = \sprintf(
+            <<<'SQL'
+                SELECT direction, day, SUM(minor) AS total FROM (
+                    SELECT 'in' AS direction, %1$s AS day, price::bigint * %6$d AS minor FROM booster_purchase WHERE status = :purchaseCompleted AND resolved_at >= :since
+                    UNION ALL
+                    SELECT 'in', %2$s, price::bigint * %6$d FROM market_purchase WHERE status IN (:transferred, :completed, :refundPending, :refunded) AND requested_at >= :since
+                    UNION ALL
+                    SELECT 'out', %3$s, amount::bigint * %6$d FROM universe_completion_reward WHERE status = :rewardPaid AND paid_at >= :since
+                    UNION ALL
+                    SELECT 'out', %4$s, price::bigint * %6$d - fee_minor FROM market_purchase WHERE status = :completed AND resolved_at >= :since
+                    UNION ALL
+                    SELECT 'out', %5$s, price::bigint * %6$d FROM market_purchase WHERE status = :refunded AND resolved_at >= :since
+                ) flows
+                GROUP BY direction, day
+                SQL,
+            $this->dayExpression('requested_at'),
+            $this->dayExpression('requested_at'),
+            $this->dayExpression('paid_at'),
+            $this->dayExpression('resolved_at'),
+            $this->dayExpression('resolved_at'),
+            $scale,
+        );
+
+        $flows = ['in' => array_fill_keys($days, 0), 'out' => array_fill_keys($days, 0)];
+
+        $rows = $this->connection->fetchAllAssociative($sql, [
+            'timezone' => self::TIMEZONE,
+            'since' => $since,
+            'purchaseCompleted' => BoosterPurchaseStatusEnum::COMPLETED->value,
+            'rewardPaid' => UniverseRewardStatusEnum::PAID->value,
+            'transferred' => MarketPurchaseStatusEnum::CARD_TRANSFERRED->value,
+            'completed' => MarketPurchaseStatusEnum::COMPLETED->value,
+            'refundPending' => MarketPurchaseStatusEnum::REFUND_PENDING->value,
+            'refunded' => MarketPurchaseStatusEnum::REFUNDED->value,
+        ]);
+
+        foreach ($rows as $row) {
+            $direction = $this->string($row, 'direction');
+            $day = $this->string($row, 'day');
+
+            if (isset($flows[$direction][$day])) {
+                $flows[$direction][$day] = $this->int($row, 'total');
+            }
+        }
+
+        return [$flows['in'], $flows['out']];
+    }
+
+    private function fetchCoinAlerts(): CoinAlerts
+    {
+        $row = $this->connection->fetchAssociative(<<<'SQL'
+            SELECT (SELECT COUNT(*) FROM booster_purchase WHERE status = :purchasePending) AS pending_purchases,
+                   (SELECT COUNT(*) FROM booster_purchase WHERE status = :purchaseFailed) AS failed_purchases,
+                   (SELECT COUNT(*) FROM universe_completion_reward WHERE status = :rewardPending) AS pending_rewards,
+                   (SELECT COUNT(*) FROM universe_completion_reward WHERE status = :rewardFailed) AS failed_rewards,
+                   (SELECT COUNT(*) FROM market_purchase WHERE status = :paymentPending) AS payment_pending,
+                   (SELECT COUNT(*) FROM market_purchase WHERE status = :transferred) AS payout_pending,
+                   (SELECT COUNT(*) FROM market_purchase WHERE status = :refundPending) AS refund_pending
+            SQL, [
+            'purchasePending' => BoosterPurchaseStatusEnum::PENDING->value,
+            'purchaseFailed' => BoosterPurchaseStatusEnum::FAILED->value,
+            'rewardPending' => UniverseRewardStatusEnum::PENDING->value,
+            'rewardFailed' => UniverseRewardStatusEnum::FAILED->value,
+            'paymentPending' => MarketPurchaseStatusEnum::PAYMENT_PENDING->value,
+            'transferred' => MarketPurchaseStatusEnum::CARD_TRANSFERRED->value,
+            'refundPending' => MarketPurchaseStatusEnum::REFUND_PENDING->value,
+        ]) ?: [];
+
+        return new CoinAlerts(
+            $this->int($row, 'pending_purchases'),
+            $this->int($row, 'failed_purchases'),
+            $this->int($row, 'pending_rewards'),
+            $this->int($row, 'failed_rewards'),
+            $this->int($row, 'payment_pending'),
+            $this->int($row, 'payout_pending'),
+            $this->int($row, 'refund_pending'),
+        );
     }
 
     /**

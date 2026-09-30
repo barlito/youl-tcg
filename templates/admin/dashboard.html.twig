@@ -32,6 +32,16 @@
 
 {% macro pts(value) %}{{ value > 0 ? '+' : (value < 0 ? '−' : '') }}{{ value|abs|number_format(2, ',', ' ') }}&nbsp;pt{% endmacro %}
 
+{% macro alert(testid, count, label, route, status, command) %}
+    {% if count > 0 %}
+        <li class="eco-alert" data-testid="alert-{{ testid }}">
+            <strong>{{ count|number_format(0, ',', ' ') }}</strong> {{ label }} ·
+            <a href="{{ path(route, {filters: {status: {comparison: '=', value: status}}}) }}">voir la liste</a>
+            {% if command %}· <code>{{ command }}</code>{% endif %}
+        </li>
+    {% endif %}
+{% endmacro %}
+
 {% block main %}
     {% set kpis = dashboard.kpis %}
     {% set rarity = dashboard.rarityComparison %}
@@ -88,6 +98,71 @@
                     {{ _self.tile('trades-rate', 'Taux d\'acceptation', acceptanceRate is null ? '—' : acceptanceRate|number_format(1, ',', ' ') ~ ' %', acceptanceRate is null ? 'aucune réponse sur la période' : null) }}
                 </div>
                 <div class="eco-chart">{{ render_chart(charts.trades, {'aria-label': 'Offres d\'échange créées, acceptées et refusées par jour', role: 'img'}) }}</div>
+            </section>
+
+            <section class="eco-card eco-card--wide" data-testid="coin">
+                {% set coin = dashboard.coin %}
+                {% set alerts = coin.alerts %}
+                <h2>Youl Coin</h2>
+                <p class="eco-meta">Calculé depuis les tables de ytcg uniquement (l'API du coin n'est jamais appelée) : c'est le point de vue de ytcg, pas le solde réel de la banque.</p>
+                {% if alerts.total > 0 %}
+                    <div class="eco-alerts" role="alert" data-testid="coin-alerts">
+                        <strong>À traiter</strong>
+                        <ul>
+                            {{ _self.alert('booster-pending', alerts.pendingBoosterPurchases, 'achat(s) de booster en attente (paiement incertain)', 'admin_booster_purchase_index', 'pending', 'app:coin:reconcile-purchases') }}
+                            {{ _self.alert('booster-failed', alerts.failedBoosterPurchases, 'achat(s) de booster échoué(s) (aucun coin débité)', 'admin_booster_purchase_index', 'failed', null) }}
+                            {{ _self.alert('reward-pending', alerts.pendingRewards, 'récompense(s) d\'univers en attente de paiement', 'admin_universe_completion_reward_index', 'pending', 'app:coin:pay-pending-rewards') }}
+                            {{ _self.alert('reward-failed', alerts.failedRewards, 'récompense(s) d\'univers échouée(s)', 'admin_universe_completion_reward_index', 'failed', 'app:coin:pay-pending-rewards --retry-failed') }}
+                            {{ _self.alert('market-payment', alerts.paymentPendingSales, 'achat(s) du marché au paiement à vérifier', 'admin_market_purchase_index', 'payment_pending', 'app:coin:reconcile-market') }}
+                            {{ _self.alert('market-payout', alerts.payoutPendingSales, 'vente(s) dont le versement au vendeur est en cours', 'admin_market_purchase_index', 'card_transferred', 'app:coin:reconcile-market') }}
+                            {{ _self.alert('market-refund', alerts.refundPendingSales, 'remboursement(s) d\'acheteur en cours', 'admin_market_purchase_index', 'refund_pending', 'app:coin:reconcile-market') }}
+                        </ul>
+                    </div>
+                {% else %}
+                    <p class="eco-meta" data-testid="coin-no-alert">Rien en attente : aucun paiement, versement ou remboursement à réconcilier.</p>
+                {% endif %}
+
+                <div class="eco-tiles eco-tiles--inline">
+                    {{ _self.tile('coin-bank-in', 'Entrées banque', '+' ~ coin_minor(coin.bankInMinor) ~ ' YLC', 'achats de boosters + paiements du marché') }}
+                    {{ _self.tile('coin-bank-out', 'Sorties banque', '−' ~ coin_minor(coin.bankOutMinor) ~ ' YLC', 'récompenses + versements + remboursements') }}
+                    {{ _self.tile('coin-bank-net', 'Solde net', (coin.bankNetMinor > 0 ? '+' : (coin.bankNetMinor < 0 ? '−' : '')) ~ coin_minor(coin.bankNetMinor|abs) ~ ' YLC', 'entrées − sorties sur la période') }}
+                    {{ _self.tile('coin-fees', 'Commissions encaissées', coin_minor(coin.marketFeesMinor) ~ ' YLC', 'ventes du marché de la période') }}
+                    {{ _self.tile('coin-listings', 'Annonces actives', coin.activeListings|number_format(0, ',', ' '), 'en vente maintenant') }}
+                </div>
+
+                <h3>Achats de boosters</h3>
+                <p class="eco-meta">Achats terminés, par jour de résolution. Barres : nombre d'achats ; courbe : coins dépensés.</p>
+                <div class="eco-chart">{{ render_chart(charts.coinBoosters, {'aria-label': 'Achats de boosters et coins dépensés par jour', role: 'img'}) }}</div>
+                <table class="eco-table" data-testid="coin-booster-breakdown">
+                    <thead><tr><th>Booster</th><th class="num">Achats</th><th class="num">Coins dépensés</th></tr></thead>
+                    <tbody>
+                        {% for row in coin.boosterBreakdown %}
+                            <tr><td>{{ row.label }}</td><td class="num">{{ row.count|number_format(0, ',', ' ') }}</td><td class="num">{{ row.coins|number_format(0, ',', ' ') }}</td></tr>
+                        {% else %}
+                            <tr><td colspan="3" class="eco-empty">Aucun achat sur la période.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <h3>Récompenses d'univers</h3>
+                <p class="eco-meta">Récompenses payées, par jour de paiement. Barres : nombre ; courbe : coins versés.</p>
+                <div class="eco-chart">{{ render_chart(charts.coinRewards, {'aria-label': 'Récompenses d\'univers et coins versés par jour', role: 'img'}) }}</div>
+
+                <h3>Marché</h3>
+                <p class="eco-meta">Une vente compte dès que la carte est transférée (jour de l'achat) ; les achats échoués ou remboursés n'en sont pas. Barres : ventes ; courbes : volume payé par les acheteurs et commissions gardées par la banque.</p>
+                <div class="eco-chart">{{ render_chart(charts.coinMarket, {'aria-label': 'Ventes, volume et commissions du marché par jour', role: 'img'}) }}</div>
+                <table class="eco-table" data-testid="coin-market-prices">
+                    <thead><tr><th>Rareté</th><th class="num">Ventes</th><th class="num">Prix moyen (coins)</th></tr></thead>
+                    <tbody>
+                        {% for row in coin.marketRarityPrices %}
+                            <tr data-testid="coin-price-{{ row.key }}"><td>{{ row.label }}</td><td class="num">{{ row.sales|number_format(0, ',', ' ') }}</td><td class="num">{{ row.sales > 0 ? row.averagePrice|number_format(2, ',', ' ') : '—' }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <h3>Flux de la banque</h3>
+                <p class="eco-meta">Entrées : achats de boosters terminés + paiements du marché (remboursés compris). Sorties : récompenses payées + versements aux vendeurs (prix − commission) + remboursements.</p>
+                <div class="eco-chart">{{ render_chart(charts.coinBank, {'aria-label': 'Entrées et sorties de la banque par jour', role: 'img'}) }}</div>
             </section>
 
             <section class="eco-card eco-card--wide" data-testid="recycles">

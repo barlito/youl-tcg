@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Service\Admin;
 
+use App\Dto\Admin\CoinEconomy;
 use App\Dto\Admin\EconomyDashboard;
 use App\Dto\Admin\RarityComparisonRow;
 use App\Dto\Admin\WeeklyRecycleStats;
 use App\Enum\Admin\BoosterChannelEnum;
+use App\Service\Coin\CoinAmount;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
 
@@ -70,6 +72,37 @@ final readonly class EconomyChartFactory
                 ],
                 percent: true,
             ),
+            ...$this->buildCoinCharts($dashboard->coin, $dayLabels),
+        ];
+    }
+
+    /**
+     * @param list<string> $dayLabels
+     *
+     * @return array<string, Chart>
+     */
+    private function buildCoinCharts(CoinEconomy $coin, array $dayLabels): array
+    {
+        $coins = static fn (array $minor): array => array_map(static fn (int $amount): float => $amount / 10 ** CoinAmount::SCALE, array_values($minor));
+
+        return [
+            'coinBoosters' => $this->chart(Chart::TYPE_BAR, $dayLabels, [
+                ['label' => 'Achats', 'data' => array_values($coin->boosterPurchasesPerDay), 'seriesSlot' => 0],
+                ['label' => 'Coins dépensés', 'data' => array_values($coin->boosterCoinsPerDay), 'seriesSlot' => 1, 'type' => 'line', 'yAxisID' => 'y2', ...self::LINE],
+            ], secondaryAxis: true),
+            'coinRewards' => $this->chart(Chart::TYPE_BAR, $dayLabels, [
+                ['label' => 'Récompenses', 'data' => array_values($coin->rewardsPerDay), 'seriesSlot' => 0],
+                ['label' => 'Coins versés', 'data' => array_values($coin->rewardCoinsPerDay), 'seriesSlot' => 1, 'type' => 'line', 'yAxisID' => 'y2', ...self::LINE],
+            ], secondaryAxis: true),
+            'coinMarket' => $this->chart(Chart::TYPE_BAR, $dayLabels, [
+                ['label' => 'Ventes', 'data' => array_values($coin->marketSalesPerDay), 'seriesSlot' => 0],
+                ['label' => 'Volume (coins)', 'data' => array_values($coin->marketVolumePerDay), 'seriesSlot' => 1, 'type' => 'line', 'yAxisID' => 'y2', ...self::LINE],
+                ['label' => 'Commissions (coins)', 'data' => $coins($coin->marketFeesMinorPerDay), 'seriesSlot' => 2, 'type' => 'line', 'yAxisID' => 'y2', ...self::LINE],
+            ], secondaryAxis: true),
+            'coinBank' => $this->chart(Chart::TYPE_LINE, $dayLabels, [
+                ['label' => 'Entrées (coins)', 'data' => $coins($coin->bankInMinorPerDay), 'seriesSlot' => 2, ...self::LINE],
+                ['label' => 'Sorties (coins)', 'data' => $coins($coin->bankOutMinorPerDay), 'seriesSlot' => 1, ...self::LINE],
+            ]),
         ];
     }
 
@@ -77,7 +110,7 @@ final readonly class EconomyChartFactory
      * @param list<string>               $labels
      * @param list<array<string, mixed>> $datasets
      */
-    private function chart(string $type, array $labels, array $datasets, bool $stacked = false, bool $percent = false): Chart
+    private function chart(string $type, array $labels, array $datasets, bool $stacked = false, bool $percent = false, bool $secondaryAxis = false): Chart
     {
         $chart = $this->chartBuilder->createChart($type);
         $chart->setData(['labels' => $labels, 'datasets' => $datasets]);
@@ -91,6 +124,12 @@ final readonly class EconomyChartFactory
                 'y' => ['stacked' => $stacked, 'beginAtZero' => true, 'ticks' => $percent ? ['format' => ['maximumFractionDigits' => 2]] : ['precision' => 0]],
             ],
         ]);
+
+        if ($secondaryAxis) {
+            $options = $chart->getOptions();
+            $options['scales']['y2'] = ['position' => 'right', 'beginAtZero' => true, 'grid' => ['drawOnChartArea' => false]];
+            $chart->setOptions($options);
+        }
 
         return $chart;
     }

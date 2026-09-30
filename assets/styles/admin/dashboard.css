@@ -47,3 +47,7 @@
 }
 
 .eco-empty { color: var(--text-muted); font-style: italic; }
+
+.eco-card h3 { margin: 1.25rem 0 .35rem; font-size: .9rem; font-weight: 600; }
+.eco-alerts { margin-bottom: 1rem; padding: .6rem .9rem; border-left: 4px solid #f59e0b; background: rgba(245, 158, 11, .08); border-radius: 0 6px 6px 0; }
+.eco-alerts ul { margin: .35rem 0 0; padding-left: 1.1rem; }
