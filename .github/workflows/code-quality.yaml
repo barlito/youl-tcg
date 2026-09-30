@@ -20,6 +20,7 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose-ci.yml config -q
           TAG=ci APP_SECRET=dummy DB_USER=dummy DB_PASSWORD=dummy \
           JWT_PUBLIC_KEY=dummy JWT_SECRET_KEY=dummy JWT_PASSPHRASE=dummy \
+          YOUL_COIN_API_KEY=dummy YTCG_WEBHOOK_SECRET=dummy \
           docker compose -f docker-compose-prod.yml config -q
 
       - name: Setup castor

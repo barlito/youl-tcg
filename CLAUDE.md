@@ -167,6 +167,14 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - Services guard their own entry points too (`RecycleService::recycle()` → `RecyclingClosedException`); templates use `feature_enabled('recycling')` (unknown name = error). Audit data and admin deletion guards are never flag-dependent
 - Admin: « Fonctionnalités » (`FeatureFlagCrudController`, edit only)
 
+### Youl Coin (`src/Service/Coin/`)
+
+- The coin (neighbour repo `youl-coin-api`) is the game currency, never required for the free loop. **Never a broken page**: `YoulCoinClient` (scoped client `youl_coin.client`, Bearer key, 2 s timeout, base URI `YOUL_COIN_API_URL` = the coin's php service on the shared Traefik network) turns any network/5xx/decoding failure into `null` = « unavailable » (logged), and a 404 wallet into a zero balance. Callers must handle `null`: header shows « — YLC », buy/sell must refuse with a clear message
+- `CoinAmount`: minor units as string (1 coin = 10^8), never a float; `format()` gives the French display (thin-space thousands, decimal comma, no useless decimals)
+- `WalletBalances`: per-player balance in `cache.app` (60 s; « unavailable » cached 10 s so a coin outage does not cost a timeout per page); `store()` overwrites it. Header: `wallet_balance()` Twig function + `wallet_balance_controller.js` (updates on `live-updates:wallet-changed`), chip links to `YOUL_COIN_HUB_URL`
+- **Webhook** `POST /webhooks/youl-coin` (`YoulCoinWebhookController`, firewall `webhooks` without JWT): `X-Youl-Signature: sha256=hmac(secret, "<X-Youl-Timestamp>.<raw body>")` checked by `WebhookVerifier` (`hash_equals`, ±300 s, empty `YTCG_WEBHOOK_SECRET` refuses everything) → 401; bad JSON → 400; else 204. Each known wallet: `WalletBalances::store()` + `wallet-changed` `{balance, formatted}` on the private topic; unknown players ignored
+- Env: `YOUL_COIN_API_URL`, `YOUL_COIN_HUB_URL`, `YOUL_COIN_API_KEY`, `YTCG_WEBHOOK_SECRET` (the last two are prod secrets, same webhook secret as the coin). In test every HTTP call goes through `tests/Support/CoinMockResponses` (queue a `MockResponse` to simulate an outage)
+
 ### Booster Opening Flow (`src/Service/Booster/`)
 
 1. **BoosterClaimService::claim()** — asks the quota policy (`BoosterClaimQuotaInterface` / `DailyBoosterClaimQuota`) for remaining claims, credits `UserBooster` via UserInventoryService, persists a `BoosterClaim`. In dev only, the `UnlimitedBoosterClaimQuota` decorator (`#[When(env: 'dev')]`) lifts the limit unless `BOOSTER_DAILY_LIMIT_ENABLED=true` is set in `.env.dev` — prod code carries no bypass

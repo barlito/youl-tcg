@@ -47,6 +47,9 @@ when@test:
         App\Service\Notification\NotificationService:
             public: true
 
+        App\Tests\Support\CoinMockResponses:
+            public: true
+
         # Records Mercure updates instead of reaching the hub
         App\Tests\Support\SpyHub:
             decorates: mercure.hub.default
