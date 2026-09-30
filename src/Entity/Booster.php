@@ -44,15 +44,9 @@ class Booster implements \Stringable
     #[ORM\Column(options: ['default' => true])]
     private bool $claimable = true;
 
-    /**
-     * Whether the booster is sold in the hub shop, for purchasePrice coins.
-     */
     #[ORM\Column(options: ['default' => false])]
     private bool $purchasable = false;
 
-    /**
-     * Price in whole coins; required as soon as the booster is purchasable.
-     */
     #[Assert\Positive]
     #[ORM\Column(nullable: true)]
     private ?int $purchasePrice = null;

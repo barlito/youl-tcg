@@ -10,10 +10,6 @@ use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 
-/**
- * Audit and state of one booster bought with Youl Coin. The daily purchase
- * quota counts the pending and completed rows since midnight (Europe/Paris).
- */
 #[ORM\Entity(repositoryClass: BoosterPurchaseRepository::class)]
 #[ORM\Index(columns: ['discord_user_id', 'requested_at'])]
 #[ORM\Index(columns: ['status'])]

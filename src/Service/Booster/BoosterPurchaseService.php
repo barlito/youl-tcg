@@ -21,11 +21,6 @@ use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
-/**
- * Boosters bought with Youl Coin, one per player and Paris day. The purchase row
- * is committed as pending BEFORE the debit and resolved after it: an uncertain
- * debit (timeout, 5xx) stays pending until the coin can be asked by externalIdentifier.
- */
 final readonly class BoosterPurchaseService
 {
     public const int DAILY_LIMIT = 1;
@@ -51,12 +46,11 @@ final readonly class BoosterPurchaseService
     }
 
     /**
-     * Returns the purchase: pending when the debit outcome is still unknown.
-     *
      * @throws BoosterPurchaseRefusedException
      */
     public function purchase(DiscordUser $discordUser, Booster $booster, string $playerToken): BoosterPurchase
     {
+        // committed pending BEFORE the debit: an uncertain outcome is reconciled later by externalIdentifier
         $purchase = $this->entityManager->wrapInTransaction(function () use ($discordUser, $booster): BoosterPurchase {
             // the quota is a COUNT then an INSERT: serialize the player's purchases on their row, like claims
             $this->entityManager->find(DiscordUser::class, $discordUser->getDiscordId(), LockMode::PESSIMISTIC_WRITE);
@@ -106,9 +100,6 @@ final readonly class BoosterPurchaseService
         return $purchase;
     }
 
-    /**
-     * The player's purchase still awaiting confirmation, after asking the coin about it.
-     */
     public function getPendingPurchase(DiscordUser $discordUser): ?BoosterPurchase
     {
         $this->reconcilePending($discordUser);
@@ -116,9 +107,6 @@ final readonly class BoosterPurchaseService
         return $this->purchaseRepository->findPending($discordUser)[0] ?? null;
     }
 
-    /**
-     * Asks the coin what became of the player's pending purchases (all players when null).
-     */
     public function reconcilePending(?DiscordUser $discordUser = null): void
     {
         foreach ($this->purchaseRepository->findPending($discordUser) as $purchase) {

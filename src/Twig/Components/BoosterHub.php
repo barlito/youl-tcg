@@ -375,9 +375,6 @@ final class BoosterHub extends AbstractController
         return $this->boosterPurchaseService->getRemainingPurchases($this->getDiscordUser());
     }
 
-    /**
-     * A purchase whose payment is still being verified (resolved on the way when the coin answers).
-     */
     public function getPendingPurchase(): ?BoosterPurchase
     {
         if (!$this->pendingPurchaseLoaded) {
@@ -388,9 +385,6 @@ final class BoosterHub extends AbstractController
         return $this->pendingPurchase;
     }
 
-    /**
-     * Null when the coin is unavailable.
-     */
     public function getBalance(): ?CoinAmount
     {
         if (!$this->balanceLoaded) {
@@ -401,9 +395,6 @@ final class BoosterHub extends AbstractController
         return $this->balance;
     }
 
-    /**
-     * Why the buy button is disabled for this booster, null when the player can buy it.
-     */
     public function getPurchaseBlock(Booster $booster): ?string
     {
         $balance = $this->getBalance();

@@ -20,9 +20,6 @@ class BoosterPurchaseRepository extends ServiceEntityRepository
         parent::__construct($registry, BoosterPurchase::class);
     }
 
-    /**
-     * Pending and completed purchases: a failed one gave nothing and costs no quota.
-     */
     public function countSince(DiscordUser $discordUser, \DateTimeImmutable $since): int
     {
         return (int) $this->createQueryBuilder('purchase')

@@ -46,10 +46,6 @@ final readonly class YoulCoinClient
         }
     }
 
-    /**
-     * Player-to-bank payment. The externalIdentifier makes a retry idempotent on the coin side;
-     * the player token proves the player consents to the debit.
-     */
     public function debitToBank(string $discordId, CoinAmount $amount, string $externalIdentifier, string $playerToken): CoinPayment
     {
         $walletIds = [$this->fetchWalletId($this->userWalletPath($discordId)), $this->getBankWalletId()];
