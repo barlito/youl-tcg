@@ -4,12 +4,12 @@
 # Rien n'est daté d'aujourd'hui : l'achat de booster du jour reste disponible.
 # Les ids de transaction coin sont fictifs.
 App\Entity\MarketListing:
-    listing_collectionneur_ahri_alt:
-        __construct: ['@discord_user_collectionneur', '@card_ahri_alt_kda', false, 120]
-    listing_collectionneur_akali_alt:
-        __construct: ['@discord_user_collectionneur', '@card_akali_alt_kda', false, 90]
-    listing_collectionneur_joueuse_de_mort:
-        __construct: ['@discord_user_collectionneur', '@card_babou_linette_la_joueuse_de_mort', false, 25]
+    listing_veli_ahri_alt:
+        __construct: ['@discord_user_veli', '@card_ahri_alt_kda', false, 120]
+    listing_weeby_akali_alt:
+        __construct: ['@discord_user_weeby', '@card_akali_alt_kda', false, 90]
+    listing_farph_joueuse_de_mort:
+        __construct: ['@discord_user_farph', '@card_babou_linette_la_joueuse_de_mort', false, 25]
     listing_juju_la_chrome:
         __construct: ['@discord_user_juju', '@card_babou_linette_la_chrome', false, 30]
     listing_juju_benj_evo_magic:
