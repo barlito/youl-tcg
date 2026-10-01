@@ -10,8 +10,8 @@
                         Recycle tes doublons
                     </h1>
                     <p class="mt-2 max-w-lg text-sm text-ink-muted">
-                        Échange tes copies en trop contre des packs : chaque tranche de {{ this.cost }} points = 1 pack,
-                        tous du modèle que tu choisis ({{ 2 * this.cost }} pts → 2 packs). Le reste sous {{ this.cost }} points est perdu,
+                        Échange tes copies en trop contre 1 pack par jour : {{ this.cost }} points = 1 pack du modèle que tu choisis.
+                        Choisis juste ce qu'il faut : les points au-dessus de {{ this.cost }} sont perdus,
                         et tu gardes toujours au moins un exemplaire de chaque carte.
                     </p>
                     <div class="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-[11px]" data-testid="recycle-scale">
@@ -32,7 +32,7 @@
                     </p>
                     {% if this.maxPointsTotal > 0 %}
                         <p class="chip-mono mt-2 text-ink-dim">
-                            Jusqu'à {{ this.maxPointsTotal }} pts · {{ (this.maxPointsTotal / this.cost)|round(0, 'floor') }} pack{{ this.maxPointsTotal >= 2 * this.cost ? 's' }}
+                            Jusqu'à {{ this.maxPointsTotal }} pts
                         </p>
                     {% endif %}
                 </div>
@@ -116,7 +116,7 @@
                                     {% set recyclable = this.recyclableCopies(row) %}
                                     {% set normalCap = this.normalCap(row) %}
                                     {% set holoCap = this.holoCap(row) %}
-                                    {% set canAddMore = totalSelected < recyclable %}
+                                    
                                     {% set engaged = this.isEngaged(row) %}
                                     {% set listed = this.isListed(row) %}
                                     <article class="relative flex flex-col border bg-surface p-4 transition-colors {{ totalSelected > 0 ? 'border-primary/70 shadow-[0_0_14px_#a435f033]' : 'border-hairline' }}"
@@ -177,7 +177,7 @@
                                                                 data-live-card-id-param="{{ card.id }}"
                                                                 data-live-kind-param="normal"
                                                                 data-testid="add-normal"
-                                                                {{ (not canAddMore or sel.normal >= normalCap) ? 'disabled' }}
+                                                                {{ (totalSelected >= recyclable or sel.normal >= normalCap or not this.canAddCopy(row, 'normal')) ? 'disabled' }}
                                                                 class="border border-hairline px-2.5 py-0.5 font-mono text-sm text-ink-muted transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">+</button>
                                                     </div>
                                                 </div>
@@ -200,7 +200,7 @@
                                                                 data-live-card-id-param="{{ card.id }}"
                                                                 data-live-kind-param="holo"
                                                                 data-testid="add-holo"
-                                                                {{ (not canAddMore or sel.holo >= holoCap) ? 'disabled' }}
+                                                                {{ (totalSelected >= recyclable or sel.holo >= holoCap or not this.canAddCopy(row, 'holo')) ? 'disabled' }}
                                                                 class="border border-hairline px-2.5 py-0.5 font-mono text-sm text-ink-muted transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">+</button>
                                                     </div>
                                                 </div>
@@ -226,17 +226,17 @@
                         <div class="min-w-0 flex-1">
                             <p class="truncate font-display text-xs font-bold uppercase tracking-[.1em] {{ this.boosterCount > 0 ? 'text-primary' : 'text-ink-muted' }}" data-testid="recycle-outcome">
                                 {% if this.boosterCount > 0 %}
-                                    → {{ this.boosterCount }} booster{{ this.boosterCount > 1 ? 's' }}{% if this.lostPoints > 0 %}<span class="text-soon">, {{ this.lostPoints }} pt{{ this.lostPoints > 1 ? 's' }} perdu{{ this.lostPoints > 1 ? 's' }}</span>{% endif %}
+                                    → 1 booster{% if this.lostPoints > 0 %}<span class="text-soon">, {{ this.lostPoints }} pt{{ this.lostPoints > 1 ? 's' }} perdu{{ this.lostPoints > 1 ? 's' }}</span>{% endif %}
                                 {% else %}
                                     Encore {{ this.cost - this.points }} pt{{ this.cost - this.points > 1 ? 's' }} pour 1 booster
                                 {% endif %}
                             </p>
                             <div class="mt-1.5 h-1.5 border border-hairline bg-bg" aria-hidden="true">
                                 <div class="h-full bg-gradient-to-r from-primary to-magenta shadow-[0_0_10px_#a435f0]"
-                                     style="width: {{ (this.lostPoints / this.cost * 100)|round }}%;"></div>
+                                     style="width: {{ (min(this.points, this.cost) / this.cost * 100)|round }}%;"></div>
                             </div>
                             <p class="chip-mono mt-1 hidden truncate text-ink-dim sm:block">
-                                {{ this.selectedCopies }} copie{{ this.selectedCopies > 1 ? 's' }} · {{ this.lostPoints }}/{{ this.cost }} vers le {{ this.boosterCount > 0 ? 'suivant' : 'premier' }}
+                                {{ this.selectedCopies }} copie{{ this.selectedCopies > 1 ? 's' }} · 1 booster par jour, {{ this.cost }} pts
                             </p>
                         </div>
                     </div>
@@ -268,11 +268,11 @@
                                 data-testid="recycle-confirm"
                                 {{ (this.boosterCount < 1 or this.hasRecycledToday) ? 'disabled' }}
                                 class="shrink-0 border border-primary bg-primary px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary disabled:cursor-not-allowed disabled:border-hairline disabled:bg-surface disabled:text-ink-dim">
-                            ♻ Recycler{% if this.boosterCount > 0 %}<span class="hidden sm:inline"> contre</span> {{ this.boosterCount }} pack{{ this.boosterCount > 1 ? 's' }}{% endif %}
+                            ♻ Recycler{% if this.boosterCount > 0 %}<span class="hidden sm:inline"> contre</span> 1 pack{% endif %}
                         </button>
                     </div>
                 </div>
-                <p class="chip-mono mx-auto mt-2 hidden max-w-7xl text-ink-dim md:block">Hors quota quotidien · une opération par jour · irréversible</p>
+                <p class="chip-mono mx-auto mt-2 hidden max-w-7xl text-ink-dim md:block">Hors quota quotidien · 1 booster par jour (10 pts) · irréversible</p>
             </div>
         {% endif %}
     </main>
