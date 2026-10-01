@@ -290,6 +290,8 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - An `AssociationField` pointing at a composite-key entity (UserCard, BoosterOpeningCard) 500s — use a virtual field + `setTemplatePath()`. EA filters target the Doctrine property (`uniqueFlag`), not the virtual field (`unique`)
 - Access: Requires ROLE_ADMIN
 
+**Import API (`/api/admin`, `src/Controller/Api/`):** create + read only, everything created is DRAFT, meant for importing cards from the disk with `curl` (guide admin §14). Firewall `api_admin` (stateless, declared BEFORE `main`, so the JWT cookie listeners never see these routes) with `ImportApiAuthenticator` (`Authorization: Bearer`, any failure or missing header = 401 JSON) and `access_control ^/api/admin` → `ROLE_IMPORT_API`, listed before `^/admin` and `^/`. The principal is an `ImportApiUser` (identifier `import-api:<discordId of the generator>`, ONLY `ROLE_IMPORT_API`), not the admin's `DiscordUser`: the token can never open the back-office. The token is generated from the admin page `/admin/api-import` (`AdminImportApiController`, CSRF, shown once): `ImportApiTokenManager` keeps ONLY its sha256 hash + generator + expiry in the dedicated `cache.import_api` pool (filesystem of the PHP container, TTL 3600 s, expiry re-checked against `ClockInterface`), one active token (generate overwrites, revoke deletes). Endpoints: `GET|POST /api/admin/extensions`, `GET|POST /api/admin/extensions/{slug}/cards` (multipart; 409 + the existing row on a duplicate name — case-insensitive, per extension for cards —, 422 with `violations` per field via `ImportApiInputValidator`: `Assert\Image` png/jpeg/webp 8M, mask PNG only; SVG refused). Unknown paths under `/api/admin` answer JSON (`ImportApiExceptionListener`). No update/delete/publish endpoint on purpose
+
 ### Frontend Architecture
 
 **3D Card Rendering System:**
@@ -322,7 +324,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - `extension_logos`: Extension logos (card frame)
 - `banners`: Universe page hero banners (ExtensionBanner)
 
-Only `/admin/cards/batch` validates the uploaded file type today; the CRUD upload fields have no `Assert\Image` yet (see security backlog).
+Only `/admin/cards/batch` and the import API validate the uploaded file type today; the CRUD upload fields have no `Assert\Image` yet (see security backlog).
 
 ### Custom Doctrine Features
 
