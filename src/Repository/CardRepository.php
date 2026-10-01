@@ -324,4 +324,17 @@ class CardRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleColumnResult());
     }
+
+    public function findOneByExtensionAndNameIgnoringCase(Extension $extension, string $name): ?Card
+    {
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.extension = :extension')
+            ->andWhere('LOWER(c.name) = LOWER(:name)')
+            ->setParameter('extension', $extension)
+            ->setParameter('name', $name)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult()
+        ;
+    }
 }

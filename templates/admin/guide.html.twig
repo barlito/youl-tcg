@@ -40,6 +40,7 @@
                 <li><a href="#annonces">Annonces et notification de codes</a></li>
                 <li><a href="#economie">Économie : les écrans de consultation</a></li>
                 <li><a href="#fonctionnalites">Fonctionnalités : couper / rouvrir</a></li>
+                <li><a href="#api-import">API d'import (extensions et cartes en brouillon)</a></li>
                 <li><a href="#ne-pas-toucher">Ce qu'on ne touche jamais à la main</a></li>
             </ol>
         </div>
@@ -277,7 +278,46 @@
         </table>
         <div class="tip">L'effet est immédiat, à la requête suivante des joueurs. Rouvrir remet tout en place à l'identique : aucune donnée n'est effacée par une coupure.</div>
 
-        <h2 id="ne-pas-toucher">14. Ce qu'on ne touche jamais à la main</h2>
+        <h2 id="api-import">14. API d'import (extensions et cartes en brouillon)</h2>
+        <p>
+            Pour importer beaucoup de cartes sans passer par le formulaire : une petite API REST qui
+            <strong>crée et lit</strong> des extensions et des cartes, <strong>toujours en brouillon</strong>
+            (jamais de modification, de suppression ni de publication : la publication reste manuelle ici).
+            Les images partent en <code>multipart</code> depuis le disque avec <code>curl</code>.
+        </p>
+        <ol>
+            <li>Menu <strong>Réglages → API d'import</strong> puis <strong>Générer un token</strong>. Il s'affiche <strong>une seule fois</strong> : copie-le.</li>
+            <li>Il vit <strong>1 heure</strong>, un seul token actif à la fois (en générer un nouveau invalide l'ancien) ; <strong>Révoquer</strong> le coupe tout de suite. Il n'ouvre pas le back-office.</li>
+            <li>Chaque requête porte l'en-tête <code>Authorization: Bearer &lt;token&gt;</code>. Sans token valide : <code>401</code>.</li>
+        </ol>
+<pre>export TOKEN='colle-le-token-ici'
+API=https://ytcg.youlz.fr/api/admin
+
+# liste des extensions (id, name, slug, status, cardCount)
+curl -s -H "Authorization: Bearer $TOKEN" $API/extensions
+
+# créer une extension (image et logo optionnels)
+curl -s -H "Authorization: Bearer $TOKEN" $API/extensions \
+  -F name='Bleach' -F description='Univers Bleach' \
+  -F image=@./bleach/cover.png -F logo=@./bleach/logo.png
+
+# liste des cartes d'une extension (par slug)
+curl -s -H "Authorization: Bearer $TOKEN" $API/extensions/bleach/cards
+
+# créer une carte (rarity : common, uncommon, rare, legendary ; mask et foil optionnels)
+curl -s -H "Authorization: Bearer $TOKEN" $API/extensions/bleach/cards \
+  -F name='Ichigo Kurosaki' -F description='Shinigami remplaçant' -F rarity=rare \
+  -F image=@./bleach/ichigo.png -F mask=@./bleach/ichigo_mask.png</pre>
+        <table>
+            <tr><th>Réponse</th><th>Sens</th></tr>
+            <tr><td><code>201</code></td><td>Créé, toujours en <strong>DRAFT</strong> (même si un <code>status</code> est envoyé).</td></tr>
+            <tr><td><code>409</code></td><td>Une extension de même nom (ou une carte de même nom dans la même extension) existe déjà : elle est renvoyée dans la réponse. L'import est donc relançable sans doublon.</td></tr>
+            <tr><td><code>422</code></td><td>Champ manquant ou invalide : le détail est par champ dans <code>violations</code> (rareté inconnue, image absente, fichier qui n'est pas PNG/JPEG/WebP, mask qui n'est pas un PNG, plus de 8 Mo…).</td></tr>
+            <tr><td><code>404</code></td><td>Slug d'extension inconnu.</td></tr>
+        </table>
+        <div class="tip">Les cartes créées sont invisibles des joueurs. Relis-les dans <strong>Cartes</strong>, ajuste ce qui doit l'être, puis publie extension et cartes à la main.</div>
+
+        <h2 id="ne-pas-toucher">15. Ce qu'on ne touche jamais à la main</h2>
         <ul>
             <li><strong>Utilisateurs Discord et rôles</strong> : créés et synchronisés automatiquement à la connexion (JWT). Ne jamais créer/modifier en base.</li>
             <li><strong>Inventaires</strong> (cartes et boosters possédés) : alimentés par les claims et les ouvertures. Une retouche manuelle fausse les compteurs et l'historique.</li>

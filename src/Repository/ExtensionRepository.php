@@ -79,4 +79,33 @@ class ExtensionRepository extends ServiceEntityRepository
             $rows,
         );
     }
+
+    public function findOneByNameIgnoringCase(string $name): ?Extension
+    {
+        return $this->createQueryBuilder('e')
+            ->andWhere('LOWER(e.name) = LOWER(:name)')
+            ->setParameter('name', $name)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult()
+        ;
+    }
+
+    /**
+     * @return list<array{extension: Extension, cardCount: int}> every card counts, drafts included
+     */
+    public function findAllWithCardCount(): array
+    {
+        /** @var list<array{0: Extension, cardCount: string|int}> $rows */
+        $rows = $this->createQueryBuilder('e')
+            ->select('e', 'COUNT(c.id) AS cardCount')
+            ->leftJoin('e.cards', 'c')
+            ->groupBy('e.id')
+            ->orderBy('e.name', 'ASC')
+            ->getQuery()
+            ->getResult()
+        ;
+
+        return array_map(static fn (array $row): array => ['extension' => $row[0], 'cardCount' => (int) $row['cardCount']], $rows);
+    }
 }
