@@ -69,11 +69,15 @@ class ImportApiCardController extends AbstractController
             return $this->json(['error' => 'Card already exists in this extension', 'card' => $this->presenter->card($existing)], Response::HTTP_CONFLICT);
         }
 
+        $rarity = CardRarityEnum::from((string) $request->request->get('rarity'));
         $card = new Card()
             ->setName($name)
             ->setDescription(trim((string) $request->request->get('description')))
-            ->setRarity(CardRarityEnum::from((string) $request->request->get('rarity')))
+            ->setRarity($rarity)
             ->setStatus(CardStatusEnum::DRAFT)
+            ->setUnique($this->inputValidator->flagValue($request, 'unique') ?? false)
+            // legendaries are always holo unless the caller says otherwise
+            ->setAlwaysHolo($this->inputValidator->flagValue($request, 'alwaysHolo') ?? CardRarityEnum::LEGENDARY === $rarity)
             ->setExtension($extension)
         ;
         $card->setImageFile($this->uploadedFile($request, 'image'));

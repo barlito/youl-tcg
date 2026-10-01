@@ -26,7 +26,6 @@ final class ImportApiCardTest extends WebTestCase
             'description' => 'Shinigami',
             'rarity' => 'legendary',
             'status' => 'PUBLISHED',
-            'unique' => '1',
         ], ['image' => $this->pngFile(), 'mask' => $this->pngFile('mask.png'), 'foil' => $this->jpegFile()]);
 
         self::assertResponseStatusCodeSame(201);
@@ -40,9 +39,47 @@ final class ImportApiCardTest extends WebTestCase
         $this->assertInstanceOf(Card::class, $card);
         $this->assertSame(CardStatusEnum::DRAFT, $card->getStatus());
         $this->assertSame(CardRarityEnum::LEGENDARY, $card->getRarity());
-        $this->assertFalse($card->isUnique());
         $this->assertFileExists(self::getContainer()->getParameter('kernel.cache_dir') . '/uploads/cards/' . $body['imageName']);
         $this->assertFileExists(self::getContainer()->getParameter('kernel.cache_dir') . '/uploads/masks/' . $body['imageMaskName']);
+    }
+
+    public function testUniqueAndAlwaysHoloAreSetFromTheRequest(): void
+    {
+        $client = self::createClient();
+        $token = $this->newToken();
+        $slug = $this->newExtension($client, $token);
+
+        $body = $this->apiRequest($client, 'POST', "/api/admin/extensions/{$slug}/cards", $token, [
+            'name' => 'One of one', 'description' => 'x', 'rarity' => 'rare', 'unique' => '1', 'alwaysHolo' => 'true',
+        ], ['image' => $this->pngFile()]);
+
+        self::assertResponseStatusCodeSame(201);
+        $this->assertTrue($body['unique']);
+        $this->assertTrue($body['alwaysHolo']);
+        $card = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Card::class)->find($body['id']);
+        $this->assertInstanceOf(Card::class, $card);
+        $this->assertTrue($card->isUnique());
+        $this->assertTrue($card->isAlwaysHolo());
+        $this->assertSame(CardStatusEnum::DRAFT, $card->getStatus());
+    }
+
+    public function testAlwaysHoloDefaultsToTrueForLegendariesOnly(): void
+    {
+        $client = self::createClient();
+        $token = $this->newToken();
+        $slug = $this->newExtension($client, $token);
+        $url = "/api/admin/extensions/{$slug}/cards";
+
+        $legendary = $this->apiRequest($client, 'POST', $url, $token, ['name' => 'Legend', 'description' => 'x', 'rarity' => 'legendary'], ['image' => $this->pngFile()]);
+        $this->assertTrue($legendary['alwaysHolo']);
+        $this->assertFalse($legendary['unique']);
+
+        $rare = $this->apiRequest($client, 'POST', $url, $token, ['name' => 'Rare', 'description' => 'x', 'rarity' => 'rare'], ['image' => $this->pngFile()]);
+        $this->assertFalse($rare['alwaysHolo']);
+
+        $optOut = $this->apiRequest($client, 'POST', $url, $token, ['name' => 'Matte legend', 'description' => 'x', 'rarity' => 'legendary', 'alwaysHolo' => '0'], ['image' => $this->pngFile()]);
+        self::assertResponseStatusCodeSame(201);
+        $this->assertFalse($optOut['alwaysHolo']);
     }
 
     public function testMaskAndFoilAreOptional(): void
@@ -100,6 +137,11 @@ final class ImportApiCardTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         $this->assertArrayHasKey('mask', $body['violations']);
 
+        $body = $this->apiRequest($client, 'POST', $url, $token, ['unique' => 'yes', 'alwaysHolo' => '2'] + $ok, ['image' => $this->pngFile()]);
+        self::assertResponseStatusCodeSame(422);
+        $this->assertArrayHasKey('unique', $body['violations']);
+        $this->assertArrayHasKey('alwaysHolo', $body['violations']);
+
         $body = $this->apiRequest($client, 'POST', $url, $token, ['name' => '', 'description' => ''] + $ok, ['image' => $this->pngFile()]);
         self::assertResponseStatusCodeSame(422);
         $this->assertArrayHasKey('name', $body['violations']);
@@ -142,7 +184,7 @@ final class ImportApiCardTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(200);
         $this->assertSame(['A card', 'B card'], array_column($body, 'name'));
-        $this->assertSame(['id', 'name', 'status', 'rarity', 'imageName', 'imageMaskName', 'imageFoilName'], array_keys($body[0]));
+        $this->assertSame(['id', 'name', 'status', 'rarity', 'unique', 'alwaysHolo', 'imageName', 'imageMaskName', 'imageFoilName'], array_keys($body[0]));
 
         $extensions = $this->apiRequest($client, 'GET', '/api/admin/extensions', $token);
         $this->assertSame(2, array_column($extensions, 'cardCount', 'slug')[$slug]);

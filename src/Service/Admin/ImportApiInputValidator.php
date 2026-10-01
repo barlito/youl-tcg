@@ -19,6 +19,10 @@ final readonly class ImportApiInputValidator
 {
     private const array IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 
+    private const array TRUE_VALUES = ['1', 'true'];
+
+    private const array FALSE_VALUES = ['0', 'false'];
+
     public function __construct(private ValidatorInterface $validator)
     {
     }
@@ -51,10 +55,22 @@ final readonly class ImportApiInputValidator
                     message: 'Rareté invalide (attendu : common, uncommon, rare, legendary).',
                 ),
             ],
+            'unique' => $this->flag(),
+            'alwaysHolo' => $this->flag(),
             'image' => $this->image(true, self::IMAGE_TYPES),
             'mask' => $this->image(false, ['image/png']),
             'foil' => $this->image(false, self::IMAGE_TYPES),
         ]);
+    }
+
+    /**
+     * Optional boolean form field: null when absent, the caller has validated it beforehand.
+     */
+    public function flagValue(Request $request, string $field): ?bool
+    {
+        $value = $request->request->get($field);
+
+        return null === $value ? null : \in_array($value, self::TRUE_VALUES, true);
     }
 
     /**
@@ -103,6 +119,17 @@ final readonly class ImportApiInputValidator
         }
 
         return [new Assert\Sequentially($constraints)];
+    }
+
+    /**
+     * @return list<Constraint>
+     */
+    private function flag(): array
+    {
+        return [new Assert\Sequentially([
+            new Assert\Type('string', message: 'Booléen attendu (1, 0, true, false).'),
+            new Assert\Choice(choices: [...self::TRUE_VALUES, ...self::FALSE_VALUES], message: 'Booléen attendu (1, 0, true, false).'),
+        ])];
     }
 
     /**

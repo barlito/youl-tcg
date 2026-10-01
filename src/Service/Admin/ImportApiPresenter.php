@@ -33,6 +33,8 @@ final readonly class ImportApiPresenter
             'name' => $card->getName(),
             'status' => $card->getStatus()->name,
             'rarity' => $card->getRarity()->value,
+            'unique' => $card->isUnique(),
+            'alwaysHolo' => $card->isAlwaysHolo(),
             'imageName' => $card->getImageName(),
             'imageMaskName' => $card->getImageMaskName(),
             'imageFoilName' => $card->getImageFoilName(),
