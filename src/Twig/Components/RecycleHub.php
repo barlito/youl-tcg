@@ -32,7 +32,7 @@ use Symfony\UX\LiveComponent\Metadata\UrlMapping;
 /**
  * Recycle page: pick duplicate copies (normal / holo counted apart) grouped by
  * universe, watch the live point total, choose a retrievable booster, confirm —
- * every full tranche of points is one copy of that booster. The selection lives
+ * one booster per day, minimal selection of at least 10 points. The selection lives
  * in a non-writable LiveProp mutated by actions only (checksummed, so the
  * client cannot forge it), and RecycleService re-validates everything under
  * lock anyway — the component never trusts client-computed points.
@@ -326,16 +326,56 @@ final class RecycleHub extends AbstractController
 
     public function getBoosterCount(): int
     {
-        return RecycleService::boosterCountFor($this->getPoints());
+        return $this->getPoints() >= RecycleService::BOOSTER_COST ? 1 : 0;
     }
 
     /**
-     * Points past the last full tranche: lost if confirmed now, or the
-     * progress toward the next booster while still selecting.
+     * Points past the booster cost: lost if confirmed now.
      */
     public function getLostPoints(): int
     {
         return RecycleService::lostPointsFor($this->getPoints());
+    }
+
+    /**
+     * Whether one more copy of this kind may be added: below the cost, and
+     * without making the selection non-minimal. Mirrors RecycleService.
+     */
+    public function canAddCopy(UserCard $row, string $kind): bool
+    {
+        $points = $this->getPoints();
+        if ($points >= RecycleService::BOOSTER_COST) {
+            return false;
+        }
+
+        $rarity = $row->getCard()->getRarity();
+        $value = self::KIND_HOLO === $kind ? $rarity->holoRecyclePoints() : $rarity->recyclePoints();
+        $cheapest = min($value, $this->getCheapestSelectedPoints() ?? $value);
+
+        return !RecycleService::isOvershooting($points + $value, $cheapest);
+    }
+
+    private function getCheapestSelectedPoints(): ?int
+    {
+        $cheapest = null;
+
+        foreach ($this->selection as $cardId => $copies) {
+            $row = $this->getRowMap()[$cardId] ?? null;
+
+            if (!$row instanceof UserCard) {
+                continue;
+            }
+
+            $rarity = $row->getCard()->getRarity();
+            if ($copies[self::KIND_NORMAL] > 0) {
+                $cheapest = min($cheapest ?? PHP_INT_MAX, $rarity->recyclePoints());
+            }
+            if ($copies[self::KIND_HOLO] > 0) {
+                $cheapest = min($cheapest ?? PHP_INT_MAX, $rarity->holoRecyclePoints());
+            }
+        }
+
+        return $cheapest;
     }
 
     /**
@@ -361,6 +401,10 @@ final class RecycleHub extends AbstractController
 
         // keep-one rule: at most quantity - 1 copies of a card, kinds combined
         if ($selected[self::KIND_NORMAL] + $selected[self::KIND_HOLO] >= $this->recyclableCopies($row)) {
+            return;
+        }
+
+        if (!$this->canAddCopy($row, $kind)) {
             return;
         }
 
@@ -443,7 +487,6 @@ final class RecycleHub extends AbstractController
 
         $lost = RecycleService::lostPointsFor($operation->getPoints());
         $copies = $operation->getRecycledCardCount();
-        $packs = $operation->getBoosterCount();
 
         $this->selection = [];
         $this->rows = null; // the memoized inventory is stale after the debit
@@ -451,14 +494,11 @@ final class RecycleHub extends AbstractController
         $this->engaged = null;
         $this->listed = null;
         $this->success = \sprintf(
-            '%d copie%s recyclée%s — %d pack%s « %s » ajouté%s à ton stock !%s',
+            '%d copie%s recyclée%s — 1 pack « %s » ajouté à ton stock !%s',
             $copies,
             $copies > 1 ? 's' : '',
             $copies > 1 ? 's' : '',
-            $packs,
-            $packs > 1 ? 's' : '',
             $booster->getDisplayName(),
-            $packs > 1 ? 's' : '',
             $lost > 0 ? \sprintf(' (%d point%s perdu%s)', $lost, $lost > 1 ? 's' : '', $lost > 1 ? 's' : '') : '',
         );
     }

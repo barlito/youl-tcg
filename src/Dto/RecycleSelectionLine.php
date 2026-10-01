@@ -32,4 +32,21 @@ final readonly class RecycleSelectionLine
         return $this->normalQuantity * $rarity->recyclePoints()
             + $this->holoQuantity * $rarity->holoRecyclePoints();
     }
+
+    /**
+     * Value of the least valuable copy of the line (0 for an empty line).
+     */
+    public function getCheapestCopyPoints(): int
+    {
+        $rarity = $this->card->getRarity();
+        $values = [];
+        if ($this->normalQuantity > 0) {
+            $values[] = $rarity->recyclePoints();
+        }
+        if ($this->holoQuantity > 0) {
+            $values[] = $rarity->holoRecyclePoints();
+        }
+
+        return [] === $values ? 0 : min($values);
+    }
 }

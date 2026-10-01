@@ -228,55 +228,16 @@ final class RecycleServiceTest extends KernelTestCase
         $this->assertSame(1, $uncommon->getHoloQuantity(), 'Only one of the two holo copies is debited.');
     }
 
-    /**
-     * @return iterable<string, array{int, int}> common copies recycled => boosters expected
-     */
-    public static function tranches(): iterable
+    public function testAMinimalSelectionIsWorthExactlyOneBooster(): void
     {
-        yield '10 points, exactly one tranche' => [10, 1];
-        yield '19 points, the 9 extra are lost' => [19, 1];
-        yield '20 points, two tranches' => [20, 2];
-        yield '35 points, three tranches and 5 lost' => [35, 3];
-    }
-
-    #[DataProvider('tranches')]
-    public function testEachFullTrancheOfPointsIsWorthOneBooster(int $points, int $expectedBoosters): void
-    {
-        // commons are worth 1 point each: the copy count is the point total
-        $scenario = $this->createScenario([['rarity' => CardRarityEnum::COMMON, 'quantity' => $points + 1]]);
+        $scenario = $this->createScenario([
+            ['rarity' => CardRarityEnum::COMMON, 'quantity' => 10],
+            ['rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 2],
+        ]);
 
         $operation = $this->recycleService->recycle(
             $scenario['user'],
-            [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: $points, holoQuantity: 0)],
-            $scenario['booster'],
-        );
-
-        $this->entityManager->clear();
-
-        $userBoosters = $this->entityManager->getRepository(UserBooster::class)->findBy(['discordUser' => $scenario['user']]);
-        $this->assertCount(1, $userBoosters, 'Every booster granted is a copy of the single chosen pack.');
-        $this->assertSame((string) $scenario['booster']->getId(), (string) $userBoosters[0]->getBooster()->getId());
-        $this->assertSame($expectedBoosters, $userBoosters[0]->getQuantity());
-
-        $persisted = $this->entityManager->getRepository(RecycleOperation::class)->findBy(['discordUser' => $scenario['user']]);
-        $this->assertCount(1, $persisted, 'One operation, whatever the number of boosters.');
-        $this->assertSame((string) $operation->getId(), (string) $persisted[0]->getId());
-        $this->assertSame($points, $persisted[0]->getPoints(), 'The audit keeps the real total, surplus included.');
-        $this->assertSame($expectedBoosters, $persisted[0]->getBoosterCount());
-        $this->assertSame((string) $scenario['booster']->getId(), (string) $persisted[0]->getBooster()->getId());
-        $this->assertSame(1, $this->findUserCard($scenario['user'], $scenario['cards'][0])->getQuantity());
-    }
-
-    public function testBoostersAddUpWithTheOnesAlreadyOwned(): void
-    {
-        $scenario = $this->createScenario([['rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 5]]);
-        $this->entityManager->persist(new UserBooster()->setDiscordUser($scenario['user'])->setBooster($scenario['booster'])->setQuantity(2));
-        $this->entityManager->flush();
-
-        // 4 legendaries = 20 points = 2 boosters, on top of the 2 owned
-        $this->recycleService->recycle(
-            $scenario['user'],
-            [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 4, holoQuantity: 0)],
+            [new RecycleSelectionLine($scenario['cards'][1], normalQuantity: 1, holoQuantity: 0), new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 5, holoQuantity: 0)],
             $scenario['booster'],
         );
 
@@ -284,7 +245,117 @@ final class RecycleServiceTest extends KernelTestCase
 
         $userBooster = $this->entityManager->getRepository(UserBooster::class)->findOneBy(['discordUser' => $scenario['user']]);
         $this->assertNotNull($userBooster);
-        $this->assertSame(4, $userBooster->getQuantity());
+        $this->assertSame(1, $userBooster->getQuantity());
+        $persisted = $this->entityManager->getRepository(RecycleOperation::class)->find($operation->getId());
+        $this->assertNotNull($persisted);
+        $this->assertSame(10, $persisted->getPoints());
+        $this->assertSame(1, $persisted->getBoosterCount());
+    }
+
+    /**
+     * @return iterable<string, array{list<array{int, int}>, bool}> [card index (0 common, 1 legendary), copies] per line, accepted
+     */
+    public static function selections(): iterable
+    {
+        yield '10 commons, exactly the cost' => [[[0, 10]], true];
+        yield '11 commons, one too many' => [[[0, 11]], false];
+        yield '20 commons' => [[[0, 20]], false];
+        yield '5 commons + 1 legendary' => [[[0, 5], [1, 1]], true];
+        yield '6 commons + 1 legendary, 11 points' => [[[0, 6], [1, 1]], false];
+        yield '9 commons + 1 legendary, 14 points' => [[[0, 9], [1, 1]], false];
+        yield '2 legendaries' => [[[1, 2]], true];
+        yield '3 legendaries, 15 points' => [[[1, 3]], false];
+        yield '1 common + 2 legendaries, 11 points' => [[[0, 1], [1, 2]], false];
+        yield '4 commons + 2 legendaries, 14 points' => [[[0, 4], [1, 2]], false];
+        yield '1 legendary + 5 commons, 10 points' => [[[1, 1], [0, 5]], true];
+    }
+
+    /**
+     * @param list<array{int, int}> $lines
+     */
+    #[DataProvider('selections')]
+    public function testOnlyAMinimalSelectionIsAccepted(array $lines, bool $accepted): void
+    {
+        $scenario = $this->createScenario([
+            ['rarity' => CardRarityEnum::COMMON, 'quantity' => 30],
+            ['rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 5],
+        ]);
+        $selection = array_map(
+            fn (array $line): RecycleSelectionLine => new RecycleSelectionLine($scenario['cards'][$line[0]], normalQuantity: $line[1], holoQuantity: 0),
+            $lines,
+        );
+
+        if (!$accepted) {
+            $this->expectException(InvalidRecycleSelectionException::class);
+        }
+
+        $operation = $this->recycleService->recycle($scenario['user'], $selection, $scenario['booster']);
+
+        $this->assertSame(1, $operation->getBoosterCount());
+    }
+
+    public function testAnOvershootingSelectionDebitsNothing(): void
+    {
+        $scenario = $this->createScenario([['rarity' => CardRarityEnum::COMMON, 'quantity' => 21]]);
+
+        try {
+            $this->recycleService->recycle($scenario['user'], [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 20, holoQuantity: 0)], $scenario['booster']);
+            $this->fail('Expected InvalidRecycleSelectionException');
+        } catch (InvalidRecycleSelectionException) {
+        }
+
+        $this->assertSame(21, $this->findUserCard($scenario['user'], $scenario['cards'][0])->getQuantity());
+        $this->assertFalse($this->recycleService->hasRecycledToday($scenario['user']));
+    }
+
+    public function testTheCheapestCopyOfASelectionMixingHolosDecidesMinimality(): void
+    {
+        // holo legendary 6 + 2 holo commons (2 each) = 10 points, cheapest copy 2: minimal
+        $scenario = $this->createScenario([
+            ['rarity' => CardRarityEnum::COMMON, 'quantity' => 6, 'holoQuantity' => 2],
+            ['rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 3, 'holoQuantity' => 1],
+        ]);
+
+        $operation = $this->recycleService->recycle($scenario['user'], [
+            new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 0, holoQuantity: 2),
+            new RecycleSelectionLine($scenario['cards'][1], normalQuantity: 0, holoQuantity: 1),
+        ], $scenario['booster']);
+
+        $this->assertSame(10, $operation->getPoints());
+    }
+
+    public function testAnExtraNormalCopyOnTopOfThatSelectionIsRefused(): void
+    {
+        // 6 + 4 + 1 normal common = 11, minus that 1-point copy = 10: refused
+        $scenario = $this->createScenario([
+            ['rarity' => CardRarityEnum::COMMON, 'quantity' => 6, 'holoQuantity' => 2],
+            ['rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 3, 'holoQuantity' => 1],
+        ]);
+
+        $this->expectException(InvalidRecycleSelectionException::class);
+        $this->recycleService->recycle($scenario['user'], [
+            new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 1, holoQuantity: 2),
+            new RecycleSelectionLine($scenario['cards'][1], normalQuantity: 0, holoQuantity: 1),
+        ], $scenario['booster']);
+    }
+
+    public function testTheBoosterAddsUpWithTheOnesAlreadyOwned(): void
+    {
+        $scenario = $this->createScenario([['rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 5]]);
+        $this->entityManager->persist(new UserBooster()->setDiscordUser($scenario['user'])->setBooster($scenario['booster'])->setQuantity(2));
+        $this->entityManager->flush();
+
+        $this->recycleService->recycle(
+            $scenario['user'],
+            [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 2, holoQuantity: 0)],
+            $scenario['booster'],
+        );
+
+        $this->entityManager->clear();
+
+        $userBooster = $this->entityManager->getRepository(UserBooster::class)->findOneBy(['discordUser' => $scenario['user']]);
+        $this->assertNotNull($userBooster);
+        $this->assertSame(3, $userBooster->getQuantity());
     }
 
     public function testRefusesASelectionBelowTheCost(): void
@@ -491,13 +562,13 @@ final class RecycleServiceTest extends KernelTestCase
         $operation = $this->recycleService->recycle(
             $scenario['user'],
             [
-                new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 5, holoQuantity: 0),
-                new RecycleSelectionLine($scenario['cards'][1], normalQuantity: 5, holoQuantity: 0),
+                new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 3, holoQuantity: 0),
+                new RecycleSelectionLine($scenario['cards'][1], normalQuantity: 2, holoQuantity: 0),
             ],
             $scenario['booster'],
         );
 
-        $this->assertSame(10, $operation->getRecycledCardCount());
+        $this->assertSame(5, $operation->getRecycledCardCount());
     }
 
     public function testAResolvedOfferLocksNothing(): void
@@ -509,11 +580,11 @@ final class RecycleServiceTest extends KernelTestCase
 
         $operation = $this->recycleService->recycle(
             $scenario['user'],
-            [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 11, holoQuantity: 0)],
+            [new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 5, holoQuantity: 0)],
             $scenario['booster'],
         );
 
-        $this->assertSame(11, $operation->getRecycledCardCount());
+        $this->assertSame(5, $operation->getRecycledCardCount());
     }
 
     public function testRefusesMoreHoloCopiesThanOwned(): void
@@ -655,7 +726,7 @@ final class RecycleServiceTest extends KernelTestCase
             $this->recycleService->recycle(
                 $scenario['user'],
                 [
-                    new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 10, holoQuantity: 0),
+                    new RecycleSelectionLine($scenario['cards'][0], normalQuantity: 9, holoQuantity: 0),
                     new RecycleSelectionLine($scenario['cards'][1], normalQuantity: 1, holoQuantity: 0),
                 ],
                 $scenario['booster'],
