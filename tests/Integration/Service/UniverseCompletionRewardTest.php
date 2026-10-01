@@ -17,12 +17,14 @@ use App\Enum\Coin\UniverseRewardStatusEnum;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Enum\FeatureEnum;
 use App\Enum\Notification\NotificationTypeEnum;
 use App\Repository\CoinSettingsRepository;
 use App\Service\Booster\BoosterOpeningService;
 use App\Service\Coin\UniverseCompletionChecker;
 use App\Service\Coin\UniverseRewardService;
 use App\Service\Trade\TradeOfferService;
+use App\Tests\FeatureFlagTrait;
 use App\Tests\Support\CoinMockResponses;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -30,6 +32,8 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 
 final class UniverseCompletionRewardTest extends KernelTestCase
 {
+    use FeatureFlagTrait;
+
     private EntityManagerInterface $entityManager;
 
     private UniverseCompletionChecker $checker;
@@ -257,6 +261,83 @@ final class UniverseCompletionRewardTest extends KernelTestCase
         $expected = [$this->user->getDiscordId(), $bob->getDiscordId()];
         sort($expected);
         $this->assertSame($expected, $rewarded);
+    }
+
+    public function testSwitchedOffRewardsGrantPayAndNotifyNothing(): void
+    {
+        $this->setFeature(FeatureEnum::UNIVERSE_REWARDS, false);
+        $this->give($this->user, $this->createCard('Owned'));
+
+        $this->checker->checkAfterCredit($this->user, [$this->extension]);
+        $this->assertNull($this->checker->rewardCompleted($this->user, $this->extension));
+
+        $this->assertSame([], $this->rewards());
+        $this->assertSame([], $this->postedTransactions());
+        $this->assertSame([], $this->notifications());
+    }
+
+    public function testSwitchedOffRewardsIgnoreTheLastCardOfAnOpening(): void
+    {
+        $this->setFeature(FeatureEnum::UNIVERSE_REWARDS, false);
+        $this->createCard('Only card');
+        $booster = new Booster()->setExtension($this->extension)->setRarityRates([['rarities' => ['common' => 100], 'holoChance' => 0]]);
+        $booster->setImageName('default_card.png');
+        $this->entityManager->persist($booster);
+        $this->entityManager->persist(new UserBooster()->setDiscordUser($this->user)->setBooster($booster)->setQuantity(1));
+        $this->entityManager->flush();
+
+        self::getContainer()->get(BoosterOpeningService::class)->open($this->user, $booster);
+
+        $this->assertSame([], $this->rewards());
+    }
+
+    public function testSwitchedOffRewardsLeavePendingOnesUnpaid(): void
+    {
+        $this->give($this->user, $this->createCard('Owned'));
+        $this->coin->override('POST', '/api/transactions', static fn (): MockResponse => new MockResponse('', ['http_code' => 502]));
+        $this->checker->checkAfterCredit($this->user, [$this->extension]);
+        $this->coin->override('POST', '/api/transactions', static fn (): MockResponse => CoinMockResponses::json(['id' => 'tx'], 201));
+        $posted = \count($this->postedTransactions());
+
+        $this->setFeature(FeatureEnum::UNIVERSE_REWARDS, false);
+        $service = self::getContainer()->get(UniverseRewardService::class);
+        $service->payPending(includeFailed: true);
+        $service->pay($this->onlyReward());
+
+        $this->assertSame(UniverseRewardStatusEnum::PENDING, $this->onlyReward()->getStatus());
+        $this->assertCount($posted, $this->postedTransactions());
+    }
+
+    public function testACancelledRewardIsNeverPaidAgainEvenWithRetryFailed(): void
+    {
+        $this->give($this->user, $this->createCard('Owned'));
+        $this->coin->override('POST', '/api/transactions', static fn (): MockResponse => new MockResponse('{}', ['http_code' => 422]));
+        $this->checker->checkAfterCredit($this->user, [$this->extension]);
+        $this->coin->override('POST', '/api/transactions', static fn (): MockResponse => CoinMockResponses::json(['id' => 'tx-later'], 201));
+        $service = self::getContainer()->get(UniverseRewardService::class);
+
+        $this->assertTrue($service->cancel($this->onlyReward()));
+        $this->assertFalse($service->cancel($this->onlyReward()), 'cancelling twice changes nothing');
+        $posted = \count($this->postedTransactions());
+        $service->payPending(includeFailed: true);
+        $service->pay($this->onlyReward());
+
+        $this->assertSame(UniverseRewardStatusEnum::CANCELLED, $this->onlyReward()->getStatus());
+        $this->assertCount($posted, $this->postedTransactions());
+        $this->assertSame([], $this->notifications());
+    }
+
+    public function testAPaidRewardCanBeCancelledAndIsNeverGrantedAgain(): void
+    {
+        $this->give($this->user, $this->createCard('Owned'));
+        $this->checker->checkAfterCredit($this->user, [$this->extension]);
+        $service = self::getContainer()->get(UniverseRewardService::class);
+
+        $this->assertTrue($service->cancel($this->onlyReward()));
+        $this->checker->checkAfterCredit($this->user, [$this->extension]);
+
+        $this->assertSame(UniverseRewardStatusEnum::CANCELLED, $this->onlyReward()->getStatus());
+        $this->assertCount(1, $this->postedTransactions());
     }
 
     private function newExtension(): Extension

@@ -9,6 +9,8 @@ enum UniverseRewardStatusEnum: string
     case PENDING = 'pending';
     case PAID = 'paid';
     case FAILED = 'failed';
+    // set by an admin: never paid again, whatever the retry
+    case CANCELLED = 'cancelled';
 
     public function label(): string
     {
@@ -16,6 +18,7 @@ enum UniverseRewardStatusEnum: string
             self::PENDING => 'En attente',
             self::PAID => 'Versée',
             self::FAILED => 'Échec',
+            self::CANCELLED => 'Annulée',
         };
     }
 }

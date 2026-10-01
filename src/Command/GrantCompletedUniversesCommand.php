@@ -6,9 +6,11 @@ namespace App\Command;
 
 use App\Entity\UniverseCompletionReward;
 use App\Enum\Coin\UniverseRewardStatusEnum;
+use App\Enum\FeatureEnum;
 use App\Service\Coin\CoinAmount;
 use App\Service\Coin\UniverseCompletionCatchUp;
 use App\Service\Coin\UniverseCompletionChecker;
+use App\Service\Feature\FeatureFlags;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -22,6 +24,7 @@ final class GrantCompletedUniversesCommand extends Command
     public function __construct(
         private readonly UniverseCompletionCatchUp $catchUp,
         private readonly UniverseCompletionChecker $checker,
+        private readonly FeatureFlags $featureFlags,
     ) {
         parent::__construct();
     }
@@ -39,6 +42,13 @@ final class GrantCompletedUniversesCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
+
+        if (!$this->featureFlags->isEnabled(FeatureEnum::UNIVERSE_REWARDS)) {
+            $io->error('Universe completion rewards are switched off (feature flag "universe_rewards"): nothing granted nor paid.');
+
+            return Command::FAILURE;
+        }
+
         $dryRun = (bool) $input->getOption('dry-run');
         $player = $input->getOption('player');
         $missing = $this->catchUp->findMissing(\is_string($player) ? $player : null);

@@ -7,10 +7,12 @@ namespace App\Service\Coin;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\UniverseCompletionReward;
+use App\Enum\FeatureEnum;
 use App\Repository\CardRepository;
 use App\Repository\CoinSettingsRepository;
 use App\Repository\UniverseCompletionRewardRepository;
 use App\Repository\UserCardRepository;
+use App\Service\Feature\FeatureFlags;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 
@@ -22,6 +24,7 @@ final readonly class UniverseCompletionChecker
         private UniverseCompletionRewardRepository $rewardRepository,
         private CoinSettingsRepository $settingsRepository,
         private UniverseRewardService $rewardService,
+        private FeatureFlags $featureFlags,
         private ClockInterface $clock,
         private LoggerInterface $logger,
     ) {
@@ -34,6 +37,10 @@ final readonly class UniverseCompletionChecker
     {
         // single entry point of every card-crediting channel: call it AFTER the commit, best effort
         try {
+            if (!$this->featureFlags->isEnabled(FeatureEnum::UNIVERSE_REWARDS)) {
+                return;
+            }
+
             $unique = [];
             foreach ($extensions as $extension) {
                 $unique[(string) $extension->getId()] = $extension;
@@ -62,9 +69,13 @@ final readonly class UniverseCompletionChecker
         return $extension->getCompletionRewardCoins() ?? $this->settingsRepository->get()->getDefaultUniverseRewardCoins();
     }
 
-    // null: already rewarded once, for good
+    // null: already rewarded once, for good — or rewards switched off
     public function rewardCompleted(DiscordUser $discordUser, Extension $extension): ?UniverseCompletionReward
     {
+        if (!$this->featureFlags->isEnabled(FeatureEnum::UNIVERSE_REWARDS)) {
+            return null;
+        }
+
         $amount = $this->rewardAmount($extension);
         $reward = $this->rewardRepository->insertIgnore($discordUser, $extension, $amount, $this->clock->now());
 

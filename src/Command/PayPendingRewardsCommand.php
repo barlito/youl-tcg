@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Enum\Coin\UniverseRewardStatusEnum;
+use App\Enum\FeatureEnum;
 use App\Repository\UniverseCompletionRewardRepository;
 use App\Service\Coin\UniverseRewardService;
+use App\Service\Feature\FeatureFlags;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -20,6 +22,7 @@ final class PayPendingRewardsCommand extends Command
     public function __construct(
         private readonly UniverseRewardService $rewardService,
         private readonly UniverseCompletionRewardRepository $rewardRepository,
+        private readonly FeatureFlags $featureFlags,
     ) {
         parent::__construct();
     }
@@ -34,6 +37,13 @@ final class PayPendingRewardsCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
+
+        if (!$this->featureFlags->isEnabled(FeatureEnum::UNIVERSE_REWARDS)) {
+            $io->error('Universe completion rewards are switched off (feature flag "universe_rewards"): nothing granted nor paid.');
+
+            return Command::FAILURE;
+        }
+
         $includeFailed = (bool) $input->getOption('retry-failed');
         $before = \count($this->rewardRepository->findToPay(includeFailed: $includeFailed));
 

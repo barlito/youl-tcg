@@ -11,12 +11,14 @@ enum FeatureEnum: string
 {
     case TRADES = 'trades';
     case RECYCLING = 'recycling';
+    case UNIVERSE_REWARDS = 'universe_rewards';
 
     public function label(): string
     {
         return match ($this) {
             self::TRADES => 'Échanges entre joueurs',
             self::RECYCLING => 'Recyclage des doublons',
+            self::UNIVERSE_REWARDS => 'Récompenses de complétion d\'univers',
         };
     }
 }

@@ -84,7 +84,7 @@ final class CoinEconomyStatsTest extends KernelTestCase
 
         $this->assertSame(1, $coin->rewardsPerDay['2026-03-24']);
         $this->assertSame(30, $coin->rewardCoinsPerDay['2026-03-24']);
-        $this->assertSame(1, array_sum($coin->rewardsPerDay));
+        $this->assertSame(1, array_sum($coin->rewardsPerDay), 'pending, failed and cancelled rewards (paid ones included) are excluded');
     }
 
     public function testMarketSalesVolumeFeesAndRarityPrices(): void
@@ -110,7 +110,7 @@ final class CoinEconomyStatsTest extends KernelTestCase
 
         // in: 10 + 20 purchases, market payments 100 + 200 + 60 (refunded) + 90 (refund pending)
         $this->assertSame(480 * self::SCALE, $coin->bankInMinor());
-        // out: reward 30, payout 100 - 5, refund 60
+        // out: reward 30 (cancelled rewards excluded), payout 100 - 5, refund 60
         $this->assertSame(185 * self::SCALE, $coin->bankOutMinor());
         $this->assertSame(295 * self::SCALE, $coin->bankNetMinor());
         $this->assertSame(60 * self::SCALE, $coin->bankOutMinorPerDay['2026-03-26']);
@@ -127,7 +127,7 @@ final class CoinEconomyStatsTest extends KernelTestCase
         $this->assertSame(1, $alerts->paymentPendingSales);
         $this->assertSame(1, $alerts->payoutPendingSales);
         $this->assertSame(1, $alerts->refundPendingSales);
-        $this->assertSame(7, $alerts->total());
+        $this->assertSame(7, $alerts->total(), 'cancelled rewards never raise an alert');
     }
 
     public function testCoinActionsMakePlayersActive(): void
@@ -157,6 +157,8 @@ final class CoinEconomyStatsTest extends KernelTestCase
         $this->reward(50, '2026-03-24 11:00:00', null);
         $this->reward(40, '2026-03-24 12:00:00', 'fail');
         $this->reward(70, '2026-03-22 22:30:00', 'pay');
+        $this->reward(90, '2026-03-24 13:00:00', 'cancelPaid');
+        $this->reward(60, '2026-03-24 14:00:00', 'cancel');
 
         $this->sale($this->common, 100, 5, '2026-03-25 10:00:00', 'complete');
         $this->sale($this->rare, 200, 10, '2026-03-28 23:30:00', 'transfer');
@@ -211,9 +213,13 @@ final class CoinEconomyStatsTest extends KernelTestCase
     {
         $reward = new UniverseCompletionReward($this->user('winner-' . $amount), $this->extension, $amount, $this->utc($atUtc));
 
+        if (\in_array($outcome, ['pay', 'cancelPaid'], true)) {
+            $reward->markPaid('tx', $this->utc($atUtc));
+        }
+
         match ($outcome) {
-            'pay' => $reward->markPaid('tx', $this->utc($atUtc)),
             'fail' => $reward->markFailed(),
+            'cancel', 'cancelPaid' => $reward->markCancelled(),
             default => null,
         };
         $this->entityManager->persist($reward);

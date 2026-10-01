@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\EventListener;
 
 use App\Entity\DiscordUser;
+use App\Enum\FeatureEnum;
 use App\Service\Coin\UniverseRewardService;
+use App\Service\Feature\FeatureFlags;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Event\TerminateEvent;
@@ -17,14 +19,19 @@ readonly class RetryPendingRewards
     public function __construct(
         private Security $security,
         private UniverseRewardService $rewardService,
+        private FeatureFlags $featureFlags,
     ) {
     }
 
     public function __invoke(TerminateEvent $event): void
     {
+        if (!$event->isMainRequest() || !$event->getRequest()->isMethod('GET')) {
+            return;
+        }
+
         $user = $this->security->getUser();
 
-        if ($event->isMainRequest() && $event->getRequest()->isMethod('GET') && $user instanceof DiscordUser) {
+        if ($user instanceof DiscordUser && $this->featureFlags->isEnabled(FeatureEnum::UNIVERSE_REWARDS)) {
             $this->rewardService->payPending($user);
         }
     }
