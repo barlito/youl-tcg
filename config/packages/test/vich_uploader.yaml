@@ -9,6 +9,8 @@ vich_uploader:
             upload_destination: '%kernel.cache_dir%/uploads/boosters'
         extensions:
             upload_destination: '%kernel.cache_dir%/uploads/extensions'
+        extension_logos:
+            upload_destination: '%kernel.cache_dir%/uploads/extension_logos'
         banners:
             upload_destination: '%kernel.cache_dir%/uploads/banners'
         masks:

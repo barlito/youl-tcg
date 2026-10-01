@@ -15,5 +15,8 @@ framework:
         #app: cache.adapter.apcu
 
         # Namespaced pools use the above "app" backend by default
-        #pools:
-            #my.dedicated.cache: null
+        pools:
+            # Single active import-API token (hash only), 1 h TTL; filesystem
+            # of the PHP container: shared by every request, wiped on deploy
+            cache.import_api:
+                adapter: cache.adapter.filesystem
