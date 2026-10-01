@@ -307,12 +307,22 @@ curl -s -H "Authorization: Bearer $TOKEN" $API/extensions/bleach/cards
 # créer une carte (rarity : common, uncommon, rare, legendary ; mask et foil optionnels)
 curl -s -H "Authorization: Bearer $TOKEN" $API/extensions/bleach/cards \
   -F name='Ichigo Kurosaki' -F description='Shinigami remplaçant' -F rarity=rare \
-  -F image=@./bleach/ichigo.png -F mask=@./bleach/ichigo_mask.png</pre>
+  -F image=@./bleach/ichigo.png -F mask=@./bleach/ichigo_mask.png
+
+# carte unique 1/1 (unique et alwaysHolo : 1, 0, true ou false)
+curl -s -H "Authorization: Bearer $TOKEN" $API/extensions/bleach/cards \
+  -F name='Kenpachi Zaraki' -F description='Capitaine de la 11e division' -F rarity=legendary \
+  -F unique=1 -F image=@./bleach/kenpachi.png</pre>
+        <p>
+            <code>unique</code> (1/1) vaut <code>false</code> par défaut. <code>alwaysHolo</code> vaut
+            <strong>true par défaut pour une légendaire</strong> et false sinon ; l'envoyer explicitement l'emporte
+            (<code>-F alwaysHolo=0</code> pour une légendaire mate).
+        </p>
         <table>
             <tr><th>Réponse</th><th>Sens</th></tr>
-            <tr><td><code>201</code></td><td>Créé, toujours en <strong>DRAFT</strong> (même si un <code>status</code> est envoyé).</td></tr>
+            <tr><td><code>201</code></td><td>Créé, toujours en <strong>DRAFT</strong> (même si un <code>status</code> est envoyé). La réponse expose <code>unique</code> et <code>alwaysHolo</code>.</td></tr>
             <tr><td><code>409</code></td><td>Une extension de même nom (ou une carte de même nom dans la même extension) existe déjà : elle est renvoyée dans la réponse. L'import est donc relançable sans doublon.</td></tr>
-            <tr><td><code>422</code></td><td>Champ manquant ou invalide : le détail est par champ dans <code>violations</code> (rareté inconnue, image absente, fichier qui n'est pas PNG/JPEG/WebP, mask qui n'est pas un PNG, plus de 8 Mo…).</td></tr>
+            <tr><td><code>422</code></td><td>Champ manquant ou invalide : le détail est par champ dans <code>violations</code> (rareté inconnue, <code>unique</code>/<code>alwaysHolo</code> qui ne sont pas des booléens, image absente, fichier qui n'est pas PNG/JPEG/WebP, mask qui n'est pas un PNG, plus de 8 Mo…).</td></tr>
             <tr><td><code>404</code></td><td>Slug d'extension inconnu.</td></tr>
         </table>
         <div class="tip">Les cartes créées sont invisibles des joueurs. Relis-les dans <strong>Cartes</strong>, ajuste ce qui doit l'être, puis publie extension et cartes à la main.</div>
