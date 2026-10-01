@@ -8,6 +8,7 @@ use App\Attribute\RequiresFeature;
 use App\Entity\DiscordUser;
 use App\Enum\FeatureEnum;
 use App\Repository\DiscordUserRepository;
+use App\Service\Trade\TradeMatchScoreService;
 use App\Service\Trade\TradeOfferService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,10 +33,10 @@ class TradeController extends AbstractController
     #[Route('/echanges/nouveau', name: 'trades_new')]
     public function chooseCounterpart(
         #[CurrentUser] DiscordUser $user,
-        DiscordUserRepository $discordUserRepository,
+        TradeMatchScoreService $matchScoreService,
     ): Response {
         return $this->render('pages/trade_new.html.twig', [
-            'players' => $discordUserRepository->findOthersOrderedByUsername($user),
+            'scores' => $matchScoreService->scoresFor($user),
         ]);
     }
 

@@ -577,6 +577,200 @@ final class TradeComponentTest extends WebTestCase
         $this->assertSame('1', trim($crawler->filter('[data-testid="pending-trades-badge"]')->text()));
     }
 
+    // ------------------------------------------------- lisibilité (badges, filtres, tri)
+
+    public function testOfferedTilesShowWhatHeLacksDuplicatesAndLastCopies(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $lacking = $this->giveCard($barlito, 'Il ne l\'a pas', quantity: 2);
+        $shared = $this->giveCard($barlito, 'Il l\'a déjà', quantity: 1);
+        $this->giveCopy($juju, $shared);
+
+        $html = (string) $this->composer()->render();
+
+        $lackingTile = $this->tile($html, 'offered', $lacking->getName());
+        $this->assertSame(1, $lackingTile->filter('[data-testid="hint-lacks"]')->count());
+        $this->assertStringContainsString('doublon ×2', $lackingTile->filter('[data-testid="hint-double"]')->text());
+        $this->assertSame(0, $lackingTile->filter('[data-testid="hint-last"]')->count());
+
+        $sharedTile = $this->tile($html, 'offered', $shared->getName());
+        $this->assertSame(0, $sharedTile->filter('[data-testid="hint-lacks"]')->count());
+        $this->assertSame(0, $sharedTile->filter('[data-testid="hint-double"]')->count());
+        $this->assertSame(1, $sharedTile->filter('[data-testid="hint-last"]')->count());
+    }
+
+    public function testDuplicatesCountEveryCopyEvenWhenSomeAreEngaged(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $card = $this->giveCard($barlito, 'Deux dont une engagée', quantity: 2);
+        $this->createOffer($barlito, $juju, $card, $this->giveCard($juju, 'Contre', quantity: 1));
+
+        $tile = $this->tile((string) $this->composer()->render(), 'offered', $card->getName());
+
+        $this->assertSame('1 dispo', trim($tile->filter('[data-testid="cap-offered-normal"]')->text()));
+        $this->assertSame(0, $tile->filter('[data-testid="hint-last"]')->count(), 'Deux exemplaires possédés : pas un dernier exemplaire.');
+        $this->assertStringContainsString('doublon ×2', $tile->filter('[data-testid="hint-double"]')->text());
+    }
+
+    public function testRequestedTilesFlagWhatIMissAndHisDuplicatesWithoutLeaking(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $missing = $this->giveCard($juju, 'Secrète pour moi', quantity: 3, rarity: CardRarityEnum::RARE);
+        $known = $this->giveCard($juju, 'Je la connais', quantity: 1);
+        $this->giveCopy($barlito, $known);
+
+        $html = (string) $this->composer()->render();
+        $masked = $this->tile($html, 'requested', null);
+
+        $this->assertSame(1, $masked->filter('[data-testid="hint-lacks"]')->count());
+        $this->assertSame(1, $masked->filter('[data-testid="hint-double"]')->count());
+        $this->assertStringNotContainsString($missing->getName(), $html);
+        $this->assertStringNotContainsString((string) $missing->getId(), $html);
+        $this->assertStringNotContainsString('×3', $masked->html(), 'Le nombre exact de copies ne fuit pas.');
+
+        $knownTile = $this->tile($html, 'requested', $known->getName());
+        $this->assertSame(0, $knownTile->filter('[data-testid="hint-lacks"]')->count());
+        $this->assertSame(0, $knownTile->filter('[data-testid="hint-double"]')->count());
+    }
+
+    public function testColumnChipsFilterWithCountsAndCombineWithSearch(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $lackingDouble = $this->giveCard($barlito, 'Alpha manquante double', quantity: 2);
+        $lackingSingle = $this->giveCard($barlito, 'Beta manquante simple', quantity: 1);
+        $shared = $this->giveCard($barlito, 'Gamma partagée', quantity: 3);
+        $this->giveCopy($juju, $shared);
+
+        $component = $this->composer();
+        $component->call('filterUniverse', ['slug' => $this->extension->getSlug()]);
+        $chips = new Crawler((string) $component->render());
+        $this->assertSame('· 2', trim($chips->filter('[data-testid="chip-offered-lacks"] .filter-chip__count')->text()));
+        $this->assertSame('· 2', trim($chips->filter('[data-testid="chip-offered-doubles"] .filter-chip__count')->text()));
+
+        $html = $this->offeredColumn((string) $component->call('filterSide', ['side' => 'offered', 'filter' => 'lacks'])->render());
+        $this->assertStringContainsString($lackingDouble->getName(), $html);
+        $this->assertStringContainsString($lackingSingle->getName(), $html);
+        $this->assertStringNotContainsString($shared->getName(), $html);
+
+        $html = $this->offeredColumn((string) $component->call('filterSide', ['side' => 'offered', 'filter' => 'doubles'])->render());
+        $this->assertStringContainsString($lackingDouble->getName(), $html);
+        $this->assertStringContainsString($shared->getName(), $html);
+        $this->assertStringNotContainsString($lackingSingle->getName(), $html);
+
+        $html = $this->offeredColumn((string) $component->set('search', 'gamma')->render());
+        $this->assertStringContainsString($shared->getName(), $html);
+        $this->assertStringNotContainsString($lackingDouble->getName(), $html);
+
+        $component->call('filterSide', ['side' => 'offered', 'filter' => 'nonsense']);
+        $this->assertSame('all', $component->component()->offeredFilter);
+    }
+
+    public function testRequestedChipsKeepMaskedCardsOutOfTheNameSearch(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $this->giveCard($juju, 'Inconnue simple', quantity: 1);
+        $this->giveCard($juju, 'Inconnue double', quantity: 2);
+        $known = $this->giveCard($juju, 'Connue double', quantity: 2);
+        $this->giveCopy($barlito, $known);
+
+        $component = $this->composer();
+
+        $crawler = new Crawler((string) $component->call('filterSide', ['side' => 'requested', 'filter' => 'lacks'])->render());
+        $this->assertSame(2, $crawler->filter('[data-testid="requested-column"] [data-testid="trade-tile"]')->count());
+        $this->assertStringNotContainsString($known->getName(), $crawler->filter('[data-testid="requested-column"]')->html());
+
+        $crawler = new Crawler((string) $component->call('filterSide', ['side' => 'requested', 'filter' => 'doubles'])->render());
+        $this->assertSame(2, $crawler->filter('[data-testid="requested-column"] [data-testid="trade-tile"]')->count());
+
+        // search by a name: masked tiles stay, the visible one is filtered
+        $crawler = new Crawler((string) $component->call('filterSide', ['side' => 'requested', 'filter' => 'all'])->set('search', 'zzz-aucun')->render());
+        $this->assertSame(2, $crawler->filter('[data-testid="requested-column"] [data-testid="masked-card"]')->count());
+        $this->assertSame(2, $crawler->filter('[data-testid="requested-column"] [data-testid="trade-tile"]')->count());
+    }
+
+    public function testChipFiltersCombineWithTheUniverseFilterAndTheUrl(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $other = new Extension()->setName('Univers filtre ' . uniqid())->setDescription('Test')->setStatus(ExtensionStatusEnum::PUBLISHED);
+        $this->entityManager->persist($other);
+        $this->entityManager->flush();
+        $here = $this->giveCard($barlito, 'Ici manquante', quantity: 1);
+        $there = $this->giveCard($barlito, 'Là-bas manquante', quantity: 1, extension: $other);
+
+        $component = $this->composer();
+        $component->call('filterSide', ['side' => 'offered', 'filter' => 'lacks']);
+        $html = (string) $component->call('filterUniverse', ['slug' => $other->getSlug()])->render();
+
+        $this->assertStringContainsString($there->getName(), $html);
+        $this->assertStringNotContainsString($here->getName(), $html);
+
+        $this->client->request('GET', '/echanges/nouveau/' . self::JUJU . '?proposes=doubles');
+        self::assertResponseIsSuccessful();
+        $this->assertStringNotContainsString($here->getName(), $this->client->getCrawler()->filter('[data-testid="offered-column"]')->html());
+    }
+
+    public function testUsefulCardsComeFirstInEachUniverseGroup(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $shared = $this->giveCard($barlito, 'Aaa partagée', quantity: 2, rarity: CardRarityEnum::LEGENDARY);
+        $this->giveCopy($juju, $shared);
+        $lacking = $this->giveCard($barlito, 'Zzz manquante', quantity: 2);
+        $this->giveCard($juju, 'Inconnue commune', quantity: 1);
+        $this->giveCard($juju, 'Inconnue légendaire', quantity: 1, rarity: CardRarityEnum::LEGENDARY);
+        $known = $this->giveCard($juju, 'Connue légendaire', quantity: 1, rarity: CardRarityEnum::LEGENDARY);
+        $this->giveCopy($barlito, $known);
+
+        $component = $this->composer();
+        $component->call('filterUniverse', ['slug' => $this->extension->getSlug()]);
+        $crawler = new Crawler((string) $component->render());
+
+        $names = $crawler->filter('[data-testid="offered-column"] [data-testid="trade-tile"] p.truncate')->each(static fn (Crawler $n): string => trim($n->text()));
+        $this->assertSame([$lacking->getName(), $shared->getName(), $known->getName()], $names, 'Ce qui manque à l\'autre passe avant, même plus commun.');
+
+        $flags = $crawler->filter('[data-testid="requested-column"] [data-testid="trade-tile"]')->each(static fn (Crawler $t): bool => $t->filter('[data-testid="masked-card"]')->count() > 0);
+        $this->assertSame([true, true, false, false], [...\array_slice($flags, 0, 2), ...\array_slice($flags, 2, 2)]);
+    }
+
+    public function testTheRecapWarnsWhenTheOfferContainsALastCopy(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $last = $this->giveCard($barlito, 'Mon unique', quantity: 1);
+        $double = $this->giveCard($barlito, 'Mon doublon', quantity: 2);
+
+        $component = $this->composer();
+        $html = (string) $component->render();
+        $this->assertSame(0, new Crawler($html)->filter('[data-testid="last-copy-warning"]')->count());
+
+        $component->call('adjust', ['side' => 'offered', 'token' => $this->tokenOf($html, 'offered', $double->getName()), 'finish' => 'normal', 'delta' => 1]);
+        $this->assertSame(0, new Crawler((string) $component->render())->filter('[data-testid="last-copy-warning"]')->count());
+
+        $component->call('adjust', ['side' => 'offered', 'token' => $this->tokenOf($html, 'offered', $last->getName()), 'finish' => 'normal', 'delta' => 1]);
+        $this->assertSame(1, new Crawler((string) $component->render())->filter('[data-testid="last-copy-warning"]')->count());
+    }
+
+    public function testThePickerShowsMatchScoresBestFirst(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $this->giveCard($juju, 'Pour moi un', quantity: 1);
+        $this->giveCard($juju, 'Pour moi deux', quantity: 1);
+        $this->giveCard($barlito, 'Mon doublon', quantity: 2);
+
+        $crawler = $this->client->request('GET', '/echanges/nouveau');
+
+        self::assertResponseIsSuccessful();
+        $first = $crawler->filter('[data-testid="player-list"] a')->first();
+        $this->assertStringContainsString('2 cartes qui te manquent', $first->filter('[data-testid="match-they-have"]')->text());
+        $this->assertStringContainsString('doublons qui lui manque', $first->filter('[data-testid="match-i-have"]')->text());
+        $this->assertStringContainsString('/echanges/nouveau/' . self::JUJU, (string) $first->attr('href'));
+    }
+
     // ----------------------------------------------------------- utilities
 
     private function user(string $discordId): DiscordUser
@@ -605,6 +799,11 @@ final class TradeComponentTest extends WebTestCase
         $this->assertGreaterThan(0, $tiles->count(), \sprintf('No %s tile for "%s".', $side, $name ?? 'masked card'));
 
         return $tiles->first();
+    }
+
+    private function offeredColumn(string $html): string
+    {
+        return new Crawler($html)->filter('[data-testid="offered-column"]')->html();
     }
 
     private function tokenOf(string $html, string $side, ?string $name): string

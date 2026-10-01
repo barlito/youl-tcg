@@ -201,6 +201,37 @@ class UserCardRepository extends ServiceEntityRepository
     }
 
     /**
+     * Distinct PUBLISHED cards (card and extension) every other player owns, one grouped query.
+     *
+     * @return array<string, array<string, true>> discord id => card id => owned
+     */
+    public function findPublishedOwnedCardIdsByPlayer(DiscordUser $excluded): array
+    {
+        /** @var list<array{userId: mixed, cardId: mixed}> $rows */
+        $rows = $this->createQueryBuilder('uc')
+            ->select('IDENTITY(uc.discordUser) AS userId', 'IDENTITY(uc.card) AS cardId')
+            ->join('uc.card', 'c')
+            ->join('c.extension', 'e')
+            ->andWhere('uc.discordUser != :excluded')
+            ->andWhere('uc.quantity > 0 OR uc.holoQuantity > 0')
+            ->andWhere('c.status = :cardStatus')
+            ->andWhere('e.status = :extensionStatus')
+            ->setParameter('excluded', $excluded)
+            ->setParameter('cardStatus', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->setParameter('extensionStatus', ExtensionStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->getQuery()
+            ->getResult()
+        ;
+
+        $owned = [];
+        foreach ($rows as $row) {
+            $owned[(string) $row['userId']][(string) $row['cardId']] = true;
+        }
+
+        return $owned;
+    }
+
+    /**
      * Cards the user owns now OR provably held at some point: drawn in one of
      * their openings, or moved by one of their ACCEPTED trades (given or
      * taken). A zero-quantity user_card row proves nothing (an aborted trade
