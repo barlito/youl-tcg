@@ -7,6 +7,7 @@ namespace App\Tests\Functional;
 use App\Entity\CoinSettings;
 use App\Entity\Extension;
 use App\Entity\UniverseCompletionReward;
+use App\Enum\Coin\UniverseRewardStatusEnum;
 use App\Repository\DiscordUserRepository;
 use App\Repository\ExtensionRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -81,5 +82,63 @@ final class AdminCoinRewardsTest extends WebTestCase
 
         $client->request('GET', '/admin/universe-completion-reward/new');
         self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testTheCancelBatchActionCancelsTheSelectedRewards(): void
+    {
+        $client = self::createClient();
+        $this->authenticateClient($client);
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $user = self::getContainer()->get(DiscordUserRepository::class)->find('195659530363731968');
+        [$first, $second] = self::getContainer()->get(ExtensionRepository::class)->findBy([], ['name' => 'ASC'], 2);
+        $cancelled = new UniverseCompletionReward($user, $first, 500, new \DateTimeImmutable());
+        $cancelled->markFailed();
+        $kept = new UniverseCompletionReward($user, $second, 500, new \DateTimeImmutable());
+        $entityManager->persist($cancelled);
+        $entityManager->persist($kept);
+        $entityManager->flush();
+
+        $crawler = $client->request('GET', '/admin/universe-completion-reward');
+        $button = $crawler->filter('[data-action-batch="true"][data-action-url*="cancel-rewards"]');
+        $this->assertCount(1, $button);
+        $client->request('POST', (string) $button->attr('data-action-url'), [
+            'batchActionName' => 'cancelRewards',
+            'entityFqcn' => UniverseCompletionReward::class,
+            'batchActionUrl' => (string) $button->attr('data-action-url'),
+            'batchActionCsrfToken' => (string) $button->attr('data-action-csrf-token'),
+            'batchActionEntityIds' => [(string) $cancelled->getId()],
+        ]);
+        self::assertResponseRedirects();
+
+        $entityManager->clear();
+        $this->assertSame(UniverseRewardStatusEnum::CANCELLED, $entityManager->find(UniverseCompletionReward::class, $cancelled->getId())?->getStatus());
+        $this->assertSame(UniverseRewardStatusEnum::PENDING, $entityManager->find(UniverseCompletionReward::class, $kept->getId())?->getStatus());
+
+        $crawler = $client->request('GET', '/admin/universe-completion-reward', ['filters' => ['status' => ['comparison' => '=', 'value' => 'cancelled']]]);
+        $this->assertStringContainsString('Annulée', $crawler->filter('table')->text());
+    }
+
+    public function testTheCancelBatchActionRefusesAForgedToken(): void
+    {
+        $client = self::createClient();
+        $this->authenticateClient($client);
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $user = self::getContainer()->get(DiscordUserRepository::class)->find('195659530363731968');
+        $reward = new UniverseCompletionReward($user, self::getContainer()->get(ExtensionRepository::class)->findOneBy([]), 500, new \DateTimeImmutable());
+        $entityManager->persist($reward);
+        $entityManager->flush();
+
+        $crawler = $client->request('GET', '/admin/universe-completion-reward');
+        $url = (string) $crawler->filter('[data-action-batch="true"][data-action-url*="cancel-rewards"]')->attr('data-action-url');
+        $client->request('POST', $url, [
+            'batchActionName' => 'cancelRewards',
+            'entityFqcn' => UniverseCompletionReward::class,
+            'batchActionUrl' => $url,
+            'batchActionCsrfToken' => 'forged-token',
+            'batchActionEntityIds' => [(string) $reward->getId()],
+        ]);
+
+        $entityManager->clear();
+        $this->assertSame(UniverseRewardStatusEnum::PENDING, $entityManager->find(UniverseCompletionReward::class, $reward->getId())?->getStatus());
     }
 }

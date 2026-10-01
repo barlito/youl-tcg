@@ -8,8 +8,10 @@ use App\Entity\DiscordUser;
 use App\Entity\UniverseCompletionReward;
 use App\Enum\Coin\CoinPaymentStatusEnum;
 use App\Enum\Coin\CoinTransactionTypeEnum;
+use App\Enum\FeatureEnum;
 use App\Enum\Notification\NotificationTypeEnum;
 use App\Repository\UniverseCompletionRewardRepository;
+use App\Service\Feature\FeatureFlags;
 use App\Service\Notification\NotificationService;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
@@ -25,6 +27,7 @@ final readonly class UniverseRewardService
         private EntityManagerInterface $entityManager,
         private UniverseCompletionRewardRepository $rewardRepository,
         private NotificationService $notificationService,
+        private FeatureFlags $featureFlags,
         private ClockInterface $clock,
         private LoggerInterface $logger,
     ) {
@@ -33,7 +36,7 @@ final readonly class UniverseRewardService
     // the coin credit is idempotent on externalIdentifier: paying again a reward whose outcome is unknown is safe
     public function pay(UniverseCompletionReward $reward): void
     {
-        if ($reward->isPaid()) {
+        if ($reward->isPaid() || $reward->isCancelled() || !$this->featureFlags->isEnabled(FeatureEnum::UNIVERSE_REWARDS)) {
             return;
         }
 
@@ -59,11 +62,32 @@ final readonly class UniverseRewardService
     // scoped to a player = page-view retry: only rewards older than a minute, one still being paid is left alone
     public function payPending(?DiscordUser $discordUser = null, bool $includeFailed = false): void
     {
+        if (!$this->featureFlags->isEnabled(FeatureEnum::UNIVERSE_REWARDS)) {
+            return;
+        }
+
         $before = $discordUser instanceof DiscordUser ? $this->clock->now()->modify('-' . self::RETRY_AFTER_SECONDS . ' seconds') : null;
 
         foreach ($this->rewardRepository->findToPay($discordUser, $before, $includeFailed) as $reward) {
             $this->pay($reward);
         }
+    }
+
+    // admin decision, whatever the current status: a cancelled reward is never paid again nor counted as a bank outflow
+    public function cancel(UniverseCompletionReward $reward): bool
+    {
+        return $this->entityManager->wrapInTransaction(function () use ($reward): bool {
+            $this->entityManager->refresh($reward, LockMode::PESSIMISTIC_WRITE);
+
+            if ($reward->isCancelled()) {
+                return false;
+            }
+
+            $reward->markCancelled();
+            $this->entityManager->flush();
+
+            return true;
+        });
     }
 
     private function settle(UniverseCompletionReward $reward, string $transactionId): void
@@ -72,6 +96,15 @@ final readonly class UniverseRewardService
             $this->entityManager->refresh($reward, LockMode::PESSIMISTIC_WRITE);
 
             if ($reward->isPaid()) {
+                return false;
+            }
+
+            if ($reward->isCancelled()) {
+                $this->logger->warning('Youl Coin credited the universe reward {reward} after an admin cancelled it: reverse transaction {transaction} by hand.', [
+                    'reward' => (string) $reward->getId(),
+                    'transaction' => $transactionId,
+                ]);
+
                 return false;
             }
 
@@ -97,7 +130,7 @@ final readonly class UniverseRewardService
         $this->entityManager->wrapInTransaction(function () use ($reward): void {
             $this->entityManager->refresh($reward, LockMode::PESSIMISTIC_WRITE);
 
-            if (!$reward->isPaid()) {
+            if (!$reward->isPaid() && !$reward->isCancelled()) {
                 $reward->markFailed();
                 $this->entityManager->flush();
             }

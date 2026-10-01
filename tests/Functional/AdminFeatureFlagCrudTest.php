@@ -15,7 +15,7 @@ final class AdminFeatureFlagCrudTest extends WebTestCase
 
     private const string NON_ADMIN = '195659530363731968';
 
-    public function testTheIndexListsBothFlagsWithoutCreation(): void
+    public function testTheIndexListsEveryFlagWithoutCreation(): void
     {
         $client = self::createClient();
         $this->authenticateClient($client);
@@ -26,6 +26,7 @@ final class AdminFeatureFlagCrudTest extends WebTestCase
         $content = $crawler->filter('main, #main, body')->first()->text();
         $this->assertStringContainsString(FeatureEnum::TRADES->label(), $content);
         $this->assertStringContainsString(FeatureEnum::RECYCLING->label(), $content);
+        $this->assertStringContainsString(FeatureEnum::UNIVERSE_REWARDS->label(), $content);
         $this->assertCount(0, $crawler->filter('a.action-new'));
         $this->assertCount(0, $crawler->filter('.action-delete'));
         $this->assertStringContainsString('Fonctionnalités', $crawler->filter('#main-menu')->text());

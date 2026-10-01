@@ -74,6 +74,11 @@ class UniverseCompletionReward
         return UniverseRewardStatusEnum::PAID === $this->status;
     }
 
+    public function isCancelled(): bool
+    {
+        return UniverseRewardStatusEnum::CANCELLED === $this->status;
+    }
+
     public function getCoinTransactionId(): ?string
     {
         return $this->coinTransactionId;
@@ -99,5 +104,10 @@ class UniverseCompletionReward
     public function markFailed(): void
     {
         $this->status = UniverseRewardStatusEnum::FAILED;
+    }
+
+    public function markCancelled(): void
+    {
+        $this->status = UniverseRewardStatusEnum::CANCELLED;
     }
 }

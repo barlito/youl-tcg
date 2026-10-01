@@ -6,15 +6,19 @@ namespace App\Tests\Functional;
 
 use App\Entity\UniverseCompletionReward;
 use App\Enum\Coin\UniverseRewardStatusEnum;
+use App\Enum\FeatureEnum;
 use App\Repository\DiscordUserRepository;
 use App\Repository\ExtensionRepository;
+use App\Tests\FeatureFlagTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
 final class PendingRewardRetryTest extends WebTestCase
 {
+    use FeatureFlagTrait;
     use JwtAuthTrait;
 
     private const string JUJU = '195659530363731968';
@@ -59,6 +63,31 @@ final class PendingRewardRetryTest extends WebTestCase
 
         $tester->execute(['--retry-failed' => true]);
         $this->assertSame(UniverseRewardStatusEnum::PAID, $failed->getStatus());
+    }
+
+    public function testAPageViewPaysNothingWhileRewardsAreSwitchedOff(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::JUJU);
+        $this->setFeature(FeatureEnum::UNIVERSE_REWARDS, false);
+        $reward = $this->pendingReward($this->completedAt('-5 minutes'));
+
+        $client->request('GET', '/');
+
+        static::getContainer()->get(EntityManagerInterface::class)->refresh($reward);
+        $this->assertSame(UniverseRewardStatusEnum::PENDING, $reward->getStatus());
+    }
+
+    public function testTheCommandRefusesWhileRewardsAreSwitchedOff(): void
+    {
+        static::bootKernel();
+        $this->setFeature(FeatureEnum::UNIVERSE_REWARDS, false);
+        $reward = $this->pendingReward($this->completedAt('-1 second'));
+        $tester = new CommandTester(new Application(static::$kernel)->find('app:coin:pay-pending-rewards'));
+
+        $this->assertSame(Command::FAILURE, $tester->execute(['--retry-failed' => true]));
+        $this->assertStringContainsString('switched off', $tester->getDisplay());
+        $this->assertSame(UniverseRewardStatusEnum::PENDING, $reward->getStatus());
     }
 
     private function completedAt(string $modifier): \DateTimeImmutable

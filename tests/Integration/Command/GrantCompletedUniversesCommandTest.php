@@ -13,14 +13,19 @@ use App\Enum\Coin\UniverseRewardStatusEnum;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Enum\FeatureEnum;
+use App\Tests\FeatureFlagTrait;
 use App\Tests\Support\CoinMockResponses;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
 final class GrantCompletedUniversesCommandTest extends KernelTestCase
 {
+    use FeatureFlagTrait;
+
     private EntityManagerInterface $entityManager;
 
     private CoinMockResponses $coin;
@@ -135,6 +140,18 @@ final class GrantCompletedUniversesCommandTest extends KernelTestCase
         $this->assertCount(1, $this->rewards());
         $this->assertSame(UniverseRewardStatusEnum::PAID, $this->rewards()[0]->getStatus());
         $this->assertSame(0, $this->rewards()[0]->getAmount());
+        $this->assertSame([], $this->coin->requests);
+    }
+
+    public function testTheCommandRefusesWhileRewardsAreSwitchedOff(): void
+    {
+        $this->setFeature(FeatureEnum::UNIVERSE_REWARDS, false);
+        $this->give($this->createCard($this->extension));
+        $tester = new CommandTester(new Application(self::$kernel)->find('app:coin:grant-completed-universes'));
+
+        $this->assertSame(Command::FAILURE, $tester->execute(['--player' => $this->user->getDiscordId()]));
+        $this->assertStringContainsString('switched off', $tester->getDisplay());
+        $this->assertSame([], $this->rewards());
         $this->assertSame([], $this->coin->requests);
     }
 
