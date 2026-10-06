@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       re-deploy:
-        description: "Full re-deploy (undeploy + redeploy) au lieu d'un rolling update"
+        description: "Stack deploy complet (applique tout docker-compose-prod.yml, rolling update avec rollback) au lieu de la seule mise à jour d'image"
         required: true
         type: boolean
         default: false
@@ -51,12 +51,8 @@ jobs:
 
       - name: Re-Deploy Stack
         if: inputs.re-deploy
-        run: |
-          # `|| true` pour tolérer "rien à supprimer" sur le tout premier deploy
-          # (docker stack rm exit non-zero si le stack n'existe pas encore)
-          make undeploy || true
-          TAG=$GITHUB_REF_NAME make deploy.prod
-          TAG=$GITHUB_REF_NAME make deploy.assert_image
+        # No `stack rm`: deploy.prod rolls the existing stack (creates it on a first deploy)
+        run: TAG=$GITHUB_REF_NAME make deploy.prod
 
       - name: Update main service + migrate
         if: ${{ ! inputs.re-deploy }}
@@ -70,3 +66,7 @@ jobs:
       - name: Smoke test
         if: ${{ ! inputs.re-deploy }}
         run: make smoke.test
+
+      - name: Remove stopped containers
+        if: ${{ ! inputs.re-deploy }}
+        run: make deploy.prune
