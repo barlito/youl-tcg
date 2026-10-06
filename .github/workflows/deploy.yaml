@@ -12,6 +12,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # A crash-looping container keeps wait-php-container spinning forever
+    timeout-minutes: 15
 
     env:
       DOCKER_HOST: ssh://${{ vars.SERVER_USERNAME }}@${{ vars.SERVER_HOST }}:${{ vars.SERVER_PORT }}
@@ -54,12 +56,14 @@ jobs:
           # (docker stack rm exit non-zero si le stack n'existe pas encore)
           make undeploy || true
           TAG=$GITHUB_REF_NAME make deploy.prod
+          TAG=$GITHUB_REF_NAME make deploy.assert_image
 
       - name: Update main service + migrate
         if: ${{ ! inputs.re-deploy }}
         run: |
           make db.backup
           make docker.service.update args="--image barlito/youl-tcg:$GITHUB_REF_NAME ytcg_php"
+          TAG=$GITHUB_REF_NAME make deploy.assert_image
           castor barlito:castor:wait-php-container
           make doctrine.migrate
 
