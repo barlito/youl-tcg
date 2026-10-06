@@ -235,19 +235,23 @@ final class RecycleHubComponentTest extends WebTestCase
     {
         $client = static::createClient();
         $user = $this->authenticateClient($client, self::USER);
-        // 3 recyclable legendaries = 15 points: 5 lost
-        $scenario = $this->createScenario($user, [['name' => 'Surplus dup', 'rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 4]]);
-        $cardId = (string) $scenario['cards'][0]->getId();
+        // legendary (5) + 2 rares (3 each) = 11 points: 1 lost
+        $scenario = $this->createScenario($user, [
+            ['name' => 'Surplus legendary', 'rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 2],
+            ['name' => 'Surplus rare', 'rarity' => CardRarityEnum::RARE, 'quantity' => 3],
+        ]);
 
         $component = $this->createLiveComponent(RecycleHub::class, client: $client);
-        foreach (range(1, 3) as $ignored) {
-            $component->call('addCopy', ['cardId' => $cardId, 'kind' => 'normal']);
+        foreach ([[0, 1], [1, 2]] as [$index, $copies]) {
+            foreach (range(1, $copies) as $ignored) {
+                $component->call('addCopy', ['cardId' => (string) $scenario['cards'][$index]->getId(), 'kind' => 'normal']);
+            }
         }
         $component->set('boosterId', (string) $scenario['booster']->getId());
         $component->call('recycle');
 
         $this->assertStringContainsString('1 pack « ', (string) $component->component()->success);
-        $this->assertStringContainsString('5 points perdus', (string) $component->component()->success);
+        $this->assertStringContainsString('1 point perdu', (string) $component->component()->success);
     }
 
     public function testASelectionBelowTheCostIsRefused(): void
@@ -320,60 +324,86 @@ final class RecycleHubComponentTest extends WebTestCase
         );
     }
 
-    public function testTwentyPointsGrantTwoCopiesOfTheChosenBooster(): void
+    public function testTenPointsGrantExactlyOneBoosterAndTheStepperStopsThere(): void
     {
         $client = static::createClient();
         $user = $this->authenticateClient($client, self::USER);
-        // 4 recyclable legendaries = 20 points = 2 tranches
-        $scenario = $this->createScenario($user, [['name' => 'Double dup', 'rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 5]]);
+        $scenario = $this->createScenario($user, [['name' => 'Cap dup', 'rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 6]]);
         $cardId = (string) $scenario['cards'][0]->getId();
 
         $component = $this->createLiveComponent(RecycleHub::class, client: $client);
         foreach (range(1, 4) as $ignored) {
             $component->call('addCopy', ['cardId' => $cardId, 'kind' => 'normal']);
         }
+
+        $this->assertSame(['normal' => 2, 'holo' => 0], $component->component()->selection[$cardId], 'The server refuses to go past 10 points.');
         $component->set('boosterId', (string) $scenario['booster']->getId());
 
         $crawler = $component->render()->crawler();
-        $this->assertStringContainsString('→ 2 boosters', $crawler->filter('[data-testid="recycle-outcome"]')->text());
-        $this->assertStringContainsString('Recycler contre 2 packs', $crawler->filter('[data-testid="recycle-confirm"]')->text());
+        $this->assertSame('→ 1 booster', trim($crawler->filter('[data-testid="recycle-outcome"]')->text()));
+        $this->assertStringContainsString('Recycler contre 1 pack', $crawler->filter('[data-testid="recycle-confirm"]')->text());
+        $this->assertNotNull($crawler->filter('[data-testid="add-normal"]')->attr('disabled'), 'Every + stepper is disabled once 10 points are reached.');
+        $this->assertNull($crawler->filter('button[aria-label^="Retirer"]')->attr('disabled'), 'Removing stays possible.');
 
         $component->call('recycle');
 
         $this->assertNull($component->component()->error);
-        $this->assertStringContainsString('2 packs « ', (string) $component->component()->success);
+        $this->assertStringContainsString('1 pack « ', (string) $component->component()->success);
 
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $userBooster = $entityManager->getRepository(UserBooster::class)->findOneBy(['discordUser' => $user, 'booster' => $scenario['booster']]);
         $this->assertNotNull($userBooster);
-        $this->assertSame(2, $userBooster->getQuantity());
+        $this->assertSame(1, $userBooster->getQuantity());
 
         $operations = $entityManager->getRepository(RecycleOperation::class)->findBy(['discordUser' => $user]);
         $this->assertCount(1, $operations);
-        $this->assertSame(2, $operations[0]->getBoosterCount());
+        $this->assertSame(1, $operations[0]->getBoosterCount());
     }
 
-    public function testTheLeftoverPointsAreAnnouncedBeforeConfirming(): void
+    public function testTheLastCardMayOvershootAndTheLostPointsAreAnnounced(): void
     {
         $client = static::createClient();
         $user = $this->authenticateClient($client, self::USER);
-        // 23 points: 3 legendaries (15) + 2 rares (6) + 2 commons (2)
+        // legendary (5) + rare (3) = 8, then another rare = 11: minimal (without the cheapest copy: 8)
         $scenario = $this->createScenario($user, [
-            ['name' => 'Leftover legendary', 'rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 4],
-            ['name' => 'Leftover rare', 'rarity' => CardRarityEnum::RARE, 'quantity' => 3],
-            ['name' => 'Leftover common', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 3],
+            ['name' => 'Overshoot legendary', 'rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 3],
+            ['name' => 'Overshoot rare', 'rarity' => CardRarityEnum::RARE, 'quantity' => 4],
         ]);
 
         $component = $this->createLiveComponent(RecycleHub::class, client: $client);
-        foreach ([[0, 3], [1, 2], [2, 2]] as [$index, $copies]) {
+        foreach ([[0, 1], [1, 2]] as [$index, $copies]) {
             foreach (range(1, $copies) as $ignored) {
                 $component->call('addCopy', ['cardId' => (string) $scenario['cards'][$index]->getId(), 'kind' => 'normal']);
             }
         }
 
         $crawler = $component->render()->crawler();
-        $this->assertStringContainsString('23', $crawler->filter('[data-testid="points-counter"]')->text());
-        $this->assertStringContainsString('→ 2 boosters, 3 pts perdus', $crawler->filter('[data-testid="recycle-outcome"]')->text());
+        $this->assertStringContainsString('11', $crawler->filter('[data-testid="points-counter"]')->text());
+        $this->assertStringContainsString('→ 1 booster, 1 pt perdu', $crawler->filter('[data-testid="recycle-outcome"]')->text());
+    }
+
+    public function testACopyThatWouldMakeTheSelectionNonMinimalIsRefusedAndItsStepperDisabled(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        // 3 rares = 9 points: a legendary would give 14 and leave 11 without a rare
+        $scenario = $this->createScenario($user, [
+            ['name' => 'Minimal rare', 'rarity' => CardRarityEnum::RARE, 'quantity' => 4],
+            ['name' => 'Minimal legendary', 'rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 3],
+        ]);
+        $rareId = (string) $scenario['cards'][0]->getId();
+        $legendaryId = (string) $scenario['cards'][1]->getId();
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        foreach (range(1, 3) as $ignored) {
+            $component->call('addCopy', ['cardId' => $rareId, 'kind' => 'normal']);
+        }
+        $component->call('addCopy', ['cardId' => $legendaryId, 'kind' => 'normal']);
+
+        $this->assertArrayNotHasKey($legendaryId, $component->component()->selection);
+        $buttons = $component->render()->crawler()->filter('[data-testid="add-normal"]');
+        $this->assertCount(2, $buttons);
+        $this->assertSame(['disabled', 'disabled'], $buttons->each(static fn ($button): ?string => null === $button->attr('disabled') ? null : 'disabled'));
     }
 
     public function testThePointsBarIsStickyAndHoldsThePackChoiceAndTheConfirmButton(): void

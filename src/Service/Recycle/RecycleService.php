@@ -39,9 +39,9 @@ use Psr\Clock\ClockInterface;
  * lock, debit the copies and persist the audit trail.
  *
  * Own distribution channel, like the codes: no BoosterClaim row, so the daily
- * quota is neither checked nor consumed. Every full tranche of BOOSTER_COST
- * points is worth one copy of the single chosen booster; the remainder is lost
- * by design (no balance, no currency) — the UI says so before confirming.
+ * quota is neither checked nor consumed. One operation per day credits exactly
+ * ONE booster for a minimal selection worth at least BOOSTER_COST points; the
+ * overshoot is lost by design (no balance, no currency).
  */
 final readonly class RecycleService
 {
@@ -51,19 +51,19 @@ final readonly class RecycleService
     public const int BOOSTER_COST = 10;
 
     /**
-     * Copies of the chosen booster a selection is worth: one per full tranche.
-     */
-    public static function boosterCountFor(int $points): int
-    {
-        return intdiv(max(0, $points), self::BOOSTER_COST);
-    }
-
-    /**
-     * Points left below the last full tranche: lost on confirmation.
+     * Points lost on confirmation: whatever goes past the booster cost.
      */
     public static function lostPointsFor(int $points): int
     {
-        return max(0, $points) % self::BOOSTER_COST;
+        return max(0, $points - self::BOOSTER_COST);
+    }
+
+    /**
+     * A selection is not minimal when it would still reach the cost without its cheapest copy.
+     */
+    public static function isOvershooting(int $points, int $cheapestCopyPoints): bool
+    {
+        return $points - $cheapestCopyPoints >= self::BOOSTER_COST;
     }
 
     public function __construct(
@@ -120,7 +120,15 @@ final readonly class RecycleService
             );
         }
 
-        $boosterCount = self::boosterCountFor($points);
+        $cheapestCopy = min(PHP_INT_MAX, ...array_map(static fn (RecycleSelectionLine $line): int => $line->getCheapestCopyPoints(), $selection));
+        if (self::isOvershooting($points, $cheapestCopy)) {
+            throw new InvalidRecycleSelectionException(
+                \sprintf('Selection of %d points is not minimal (still >= %d without its cheapest copy).', $points, self::BOOSTER_COST),
+                \sprintf('Ta sélection dépasse le nécessaire : retire des copies, %d points suffisent pour 1 booster par jour.', self::BOOSTER_COST),
+            );
+        }
+
+        $boosterCount = 1;
 
         $operation = $this->entityManager->wrapInTransaction(function () use ($discordUser, $selection, $booster, $points, $boosterCount): RecycleOperation {
             // player row first (as a claim), so concurrent recyclings serialize before the COUNT
