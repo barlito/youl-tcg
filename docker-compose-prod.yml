@@ -37,17 +37,21 @@ services:
             update_config:
                 order: start-first
                 parallelism: 1
-                monitor: 60s
+                # watched once healthy: boot failures are already caught by the healthcheck
+                monitor: 20s
                 failure_action: rollback
                 max_failure_ratio: 0
             rollback_config:
                 parallelism: 1
                 order: start-first
-                monitor: 30s
+                monitor: 20s
             labels:
                 - traefik.enable=true
 
                 - traefik.http.services.ytcg.loadbalancer.server.port=80
+                # Route through the Swarm VIP (no stale task IP during start-first);
+                # drop it if Traefik-side balancing is ever needed (sticky sessions, per-replica weights)
+                - traefik.swarm.lbswarm=true
 
                 - traefik.http.routers.ytcg.rule=Host(`ytcg.youlz.fr`)
                 - traefik.http.routers.ytcg.entrypoints=http
