@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace App\Service\Admin;
 
-use App\Dto\Admin\GeneratedImportToken;
-use App\Dto\Admin\ImportTokenInfo;
+use App\Dto\Admin\AdminApiTokenInfo;
+use App\Dto\Admin\GeneratedAdminApiToken;
+use App\Enum\Admin\AdminApiScopeEnum;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
- * One active import-API token at a time, kept as a sha256 hash in a cache pool.
+ * One active admin-API token at a time (with its scopes), kept as a sha256 hash in a cache pool.
  */
-final readonly class ImportApiTokenManager
+final readonly class AdminApiTokenManager
 {
     public const int TTL = 3600;
 
@@ -28,9 +29,16 @@ final readonly class ImportApiTokenManager
 
     /**
      * Replaces (invalidates) any previous token; the plain value is returned once and never stored.
+     *
+     * @param list<AdminApiScopeEnum> $scopes
      */
-    public function generate(string $discordId): GeneratedImportToken
+    public function generate(string $discordId, array $scopes): GeneratedAdminApiToken
     {
+        $scopes = AdminApiScopeEnum::fromValues(array_map(static fn (AdminApiScopeEnum $scope): string => $scope->value, $scopes));
+        if ([] === $scopes) {
+            throw new \InvalidArgumentException('An admin API token needs at least one scope.');
+        }
+
         $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
         $expiresAt = $this->clock->now()->modify(\sprintf('+%d seconds', self::TTL));
 
@@ -39,11 +47,12 @@ final readonly class ImportApiTokenManager
             'hash' => hash('sha256', $token),
             'generatedBy' => $discordId,
             'expiresAt' => $expiresAt->getTimestamp(),
+            'scopes' => array_map(static fn (AdminApiScopeEnum $scope): string => $scope->value, $scopes),
         ]);
         $item->expiresAfter(self::TTL);
         $this->cache->save($item);
 
-        return new GeneratedImportToken($token, new ImportTokenInfo($discordId, $expiresAt));
+        return new GeneratedAdminApiToken($token, new AdminApiTokenInfo($discordId, $expiresAt, $scopes));
     }
 
     public function revoke(): void
@@ -53,10 +62,10 @@ final readonly class ImportApiTokenManager
 
     public function isValid(string $token): bool
     {
-        return $this->validate($token) instanceof ImportTokenInfo;
+        return $this->validate($token) instanceof AdminApiTokenInfo;
     }
 
-    public function validate(string $token): ?ImportTokenInfo
+    public function validate(string $token): ?AdminApiTokenInfo
     {
         $info = $this->read();
         if (null === $info || '' === $token) {
@@ -66,13 +75,13 @@ final readonly class ImportApiTokenManager
         return hash_equals($info['hash'], hash('sha256', $token)) ? $info['info'] : null;
     }
 
-    public function activeTokenInfo(): ?ImportTokenInfo
+    public function activeTokenInfo(): ?AdminApiTokenInfo
     {
         return $this->read()['info'] ?? null;
     }
 
     /**
-     * @return array{hash: string, info: ImportTokenInfo}|null
+     * @return array{hash: string, info: AdminApiTokenInfo}|null
      */
     private function read(): ?array
     {
@@ -94,9 +103,15 @@ final readonly class ImportApiTokenManager
             return null;
         }
 
+        // tokens stored before scopes existed were import tokens
+        $scopes = AdminApiScopeEnum::fromValues(\is_array($data['scopes'] ?? null) ? $data['scopes'] : [AdminApiScopeEnum::IMPORT->value]);
+        if ([] === $scopes) {
+            return null;
+        }
+
         return [
             'hash' => $hash,
-            'info' => new ImportTokenInfo($generatedBy, new \DateTimeImmutable('@' . $expiresAt)),
+            'info' => new AdminApiTokenInfo($generatedBy, new \DateTimeImmutable('@' . $expiresAt), $scopes),
         ];
     }
 }

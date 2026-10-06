@@ -1,0 +1,63 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}🔑 API admin{% endblock %}
+
+{% block main %}
+    <div style="max-width: 720px;">
+        <p>
+            Le token donne accès à l'API admin (<code>/api/admin</code>) selon les droits cochés
+            ci-dessous. Il ne donne <strong>pas</strong> accès au back-office. Il vit {{ ttlMinutes }} minutes,
+            un seul est actif à la fois (en générer un nouveau invalide le précédent). Exemples
+            <code>curl</code> dans le <a href="{{ path('admin_guide') }}#api-import">guide admin</a>.
+        </p>
+
+        {% if generated %}
+            <div class="alert alert-warning" data-testid="generated-token">
+                <p class="mb-2"><strong>Copie-le maintenant : il ne sera plus jamais réaffiché.</strong></p>
+                <input type="text" class="form-control" readonly value="{{ generated.token }}"
+                       onclick="this.select()" data-testid="token-value">
+                <p class="mt-2 mb-0">Valable jusqu'à {{ generated.info.expiresAt|date('H:i:s', 'Europe/Paris') }} (heure de Paris).</p>
+            </div>
+        {% endif %}
+
+        {% if active %}
+            <p data-testid="token-active">
+                ✅ Un token est actif jusqu'à <strong>{{ active.expiresAt|date('H:i:s', 'Europe/Paris') }}</strong>.
+            </p>
+            <p data-testid="token-scopes">
+                Droits du token actif :
+                {% for scope in active.scopes %}
+                    <span class="badge badge-info" data-testid="token-scope-{{ scope.value }}">{{ scope.label }}</span>
+                {% endfor %}
+            </p>
+        {% else %}
+            <p data-testid="token-inactive">Aucun token actif.</p>
+        {% endif %}
+
+        <form method="post" action="{{ path('admin_api') }}" class="mb-3">
+            <input type="hidden" name="_token" value="{{ csrf_token(csrfId) }}">
+            <input type="hidden" name="action" value="generate">
+            <fieldset class="mb-3">
+                <legend class="fs-6 fw-bold">Droits du nouveau token</legend>
+                {% for scope in scopes %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="scopes[]" value="{{ scope.value }}"
+                               id="scope-{{ scope.value }}" checked data-testid="scope-{{ scope.value }}">
+                        <label class="form-check-label" for="scope-{{ scope.value }}">
+                            <strong>{{ scope.label }}</strong> : {{ scope.description }}
+                        </label>
+                    </div>
+                {% endfor %}
+            </fieldset>
+            <button type="submit" class="btn btn-primary">Générer un token</button>
+        </form>
+
+        {% if active %}
+            <form method="post" action="{{ path('admin_api') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token(csrfId) }}">
+                <input type="hidden" name="action" value="revoke">
+                <button type="submit" class="btn btn-danger">Révoquer</button>
+            </form>
+        {% endif %}
+    </div>
+{% endblock %}

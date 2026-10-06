@@ -10,7 +10,7 @@ use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 #[AsEventListener]
-final class ImportApiExceptionListener
+final class AdminApiExceptionListener
 {
     public function __invoke(ExceptionEvent $event): void
     {

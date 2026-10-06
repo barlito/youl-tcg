@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
-use App\Service\Admin\ImportApiTokenManager;
+use App\Enum\Admin\AdminApiScopeEnum;
+use App\Service\Admin\AdminApiTokenManager;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 trait ImportApiTestTrait
 {
     private const string TINY_JPEG = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
 
-    private function newToken(): string
+    /**
+     * @param list<AdminApiScopeEnum>|null $scopes every scope by default
+     */
+    private function newToken(?array $scopes = null): string
     {
-        return static::getContainer()->get(ImportApiTokenManager::class)->generate('188967649332428800')->token;
+        return static::getContainer()->get(AdminApiTokenManager::class)->generate('188967649332428800', $scopes ?? AdminApiScopeEnum::cases())->token;
     }
 
     /**
