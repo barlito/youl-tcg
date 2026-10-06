@@ -1,11 +1,11 @@
-FROM dunglas/frankenphp:1-php8.4 AS frankenphp_upstream
+FROM dunglas/frankenphp:1.13.0-php8.4 AS frankenphp_upstream
 
 ### Base Image ###############################################################
 FROM frankenphp_upstream AS frankenphp_base
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     libnss3-tools \
     vim \
 	acl \
