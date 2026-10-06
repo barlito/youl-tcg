@@ -2,7 +2,8 @@
 stack_name=ytcg
 app_container_id = $(shell docker ps --filter name="$(stack_name)_php" -q)
 db_container_id = $(shell docker ps --filter name="$(stack_name)_db" -q)
-prod_host=ytcg.barlito.fr
+prod_host=ytcg.youlz.fr
+image_name=barlito/youl-tcg
 backup_path=/srv/ytcg/backups
 
 # Config paths
@@ -52,7 +53,17 @@ tailwind.build:
 doctrine.schema_validate.ci:
 	docker exec -t $(app_container_id) bin/console doctrine:schema:validate --env=test
 
-# Smoke test : curl GET / → fail si non-2xx. Sert de garde-fou post-deploy/update.
+# Swarm rolls a failed update back and `docker service update` still exits 0:
+# fail unless the service really runs $(TAG) and was not rolled back.
+deploy.assert_image:
+	@expected="$(image_name):$(TAG)"; \
+	image="$$(docker service inspect $(stack_name)_php --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')"; \
+	state="$$(docker service inspect $(stack_name)_php --format '{{if .UpdateStatus}}{{.UpdateStatus.State}}{{end}}')"; \
+	case "$$image" in "$$expected"|"$$expected"@*) ;; *) echo "❌ $(stack_name)_php runs $$image instead of $$expected (update state: $${state:-none})"; exit 1;; esac; \
+	case "$$state" in rollback_*|paused) echo "❌ $(stack_name)_php update state: $$state"; exit 1;; esac; \
+	echo "✓ $(stack_name)_php runs $$expected (update state: $${state:-none})"
+
+# Smoke test : curl GET / → fail sur 4xx/5xx (le 302 vers l'IdP prouve que l'app répond).
 smoke.test:
 	@echo "🩺 Smoke test https://$(prod_host)/..."
 	@curl -fsS -o /dev/null -w "  HTTP %{http_code}\n" https://$(prod_host)/ || (echo "❌ Smoke test KO" && exit 1)
