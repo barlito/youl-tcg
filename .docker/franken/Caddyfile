@@ -30,6 +30,9 @@
 	# only the app signs JWTs. No anonymous subscribers, every update is private
 	# except the public broadcast topic, which carries no personal data.
 	mercure {
+		# Mercure 1.0 modern mode needs RFC 9068 tokens (iss/aud/authorization_details),
+		# which symfony/mercure does not issue yet: keep the 0.x token format.
+		protocol_version_compatibility 8
 		publisher_jwt {env.MERCURE_JWT_SECRET} HS256
 		subscriber_jwt {env.MERCURE_JWT_SECRET} HS256
 		cors_origins {$MERCURE_CORS_ORIGINS:https://ytcg.youlz.fr}
