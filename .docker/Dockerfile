@@ -5,7 +5,7 @@ FROM frankenphp_upstream AS frankenphp_base
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     libnss3-tools \
     vim \
 	acl \
