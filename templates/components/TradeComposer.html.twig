@@ -58,7 +58,8 @@
                     this.myTotal,
                     tab,
                     offered,
-                    'Aucun exemplaire disponible : tes cartes sont peut-être déjà engagées dans d\'autres offres.'
+                    'Aucun exemplaire disponible : tes cartes sont peut-être déjà engagées dans d\'autres offres.',
+                    this.chips('offered')
                 ) }}
                 {{ _self.column(
                     'requested',
@@ -69,7 +70,8 @@
                     this.theirTotal,
                     tab,
                     requested,
-                    theirName ~ ' n\'a aucune carte pour l\'instant.'
+                    theirName ~ ' n\'a aucune carte pour l\'instant.',
+                    this.chips('requested')
                 ) }}
             </div>
         </div>
@@ -78,6 +80,11 @@
     {# ------------------------------------------------ Récapitulatif sticky #}
     <div class="sticky bottom-0 z-30 border-t border-primary/50 bg-bg/95 px-4 py-2.5 shadow-[0_-8px_24px_#0b0712] backdrop-blur md:px-12 md:py-3"
          data-testid="composer-bar">
+        {% if offeredSummary.lastCopies > 0 %}
+            <p class="mx-auto mb-2 max-w-7xl border border-soon/60 bg-soon/10 px-3 py-1.5 font-mono text-[11px] text-soon" data-testid="last-copy-warning">
+                ⚠ Ton offre contient {{ offeredSummary.lastCopies > 1 ? offeredSummary.lastCopies ~ ' derniers exemplaires' : 'un dernier exemplaire' }} : tu n'en auras plus après l'échange.
+            </p>
+        {% endif %}
         <div class="mx-auto flex max-w-7xl items-center gap-3 md:gap-6">
             <div class="grid min-w-0 flex-1 grid-cols-[1fr_auto_1fr] items-center gap-2 md:gap-4" data-testid="composer-summary">
                 {{ _self.recap('Tu donnes', offeredSummary, 'offered') }}
@@ -110,7 +117,7 @@
     </button>
 {% endmacro %}
 
-{% macro column(side, title, subtitle, groups, visibleCount, total, current, selection, emptyMessage) %}
+{% macro column(side, title, subtitle, groups, visibleCount, total, current, selection, emptyMessage, chips) %}
     <section class="{{ side != current ? 'hidden lg:block' }}" data-testid="{{ side }}-column">
         <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-hairline pb-3 lg:sticky lg:top-0 lg:z-20 lg:bg-bg/95 lg:pt-3 lg:backdrop-blur">
             <h2 class="font-display text-base font-bold uppercase tracking-[.08em] text-ink-strong">{{ title }}</h2>
@@ -119,6 +126,20 @@
             </span>
         </div>
         <p class="mt-2 text-xs text-ink-dim">{{ subtitle }}</p>
+        <div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filtrer cette colonne" data-testid="{{ side }}-chips">
+            {% for chip in chips %}
+                <button type="button"
+                        data-action="live#action"
+                        data-live-action-param="filterSide"
+                        data-live-side-param="{{ side }}"
+                        data-live-filter-param="{{ chip.value }}"
+                        data-testid="chip-{{ side }}-{{ chip.value }}"
+                        aria-pressed="{{ chip.active ? 'true' : 'false' }}"
+                        class="filter-chip {{ chip.active ? 'is-active' }}">
+                    {{ chip.label }}{% if chip.value != 'all' %} <span class="filter-chip__count">· {{ chip.count }}</span>{% endif %}
+                </button>
+            {% endfor %}
+        </div>
 
         {% if groups is empty %}
             <div class="mt-4 border border-dashed border-hairline px-6 py-10 text-center text-sm text-ink-dim" data-testid="{{ side }}-empty">
@@ -174,6 +195,24 @@
         <p class="chip-mono mt-0.5" style="color: var(--rarity-{{ entry.rarity.value }});"{% if not entry.card %} data-testid="masked-rarity"{% endif %}>
             {{ entry.rarity.label }}
         </p>
+
+        {% set tradable = side == 'requested' or entry.normal + entry.holo > 0 %}
+        {% set lacks = tradable and (side == 'offered' ? entry.theirs == 0 : not entry.card) %}
+        {% set doubleCount = tradable ? (side == 'offered' ? entry.mine : entry.theirs) : 0 %}
+        {% set lastCopy = tradable and side == 'offered' and entry.mine == 1 %}
+        {% if lacks or doubleCount >= 2 or lastCopy %}
+            <p class="mt-1.5 flex flex-wrap gap-1" data-testid="tile-hints">
+                {% if lacks %}
+                    <span class="chip-mono border border-primary/60 bg-primary/10 px-1 text-primary" data-testid="hint-lacks">✚ {{ side == 'offered' ? 'Lui manque' : 'Te manque' }}</span>
+                {% endif %}
+                {% if doubleCount >= 2 %}
+                    <span class="chip-mono border border-hairline px-1 text-ink-muted" data-testid="hint-double">doublon{{ side == 'offered' ? ' ×' ~ doubleCount }}</span>
+                {% endif %}
+                {% if lastCopy %}
+                    <span class="chip-mono border border-soon/60 bg-soon/10 px-1 text-soon" data-testid="hint-last">dernier exemplaire</span>
+                {% endif %}
+            </p>
+        {% endif %}
 
         <div class="mt-2 flex flex-col gap-1.5 border-t border-hairline pt-2">
             {% if entry.listed > 0 %}

@@ -35,7 +35,7 @@ use Symfony\UX\LiveComponent\Metadata\UrlMapping;
  * lives in NON-writable LiveProps mutated by actions only (checksummed), and
  * the domain re-validates everything anyway.
  *
- * @phpstan-type Entry array{token: string, card: ?Card, rarity: CardRarityEnum, extension: Extension, normal: int, holo: int, listed: int}
+ * @phpstan-type Entry array{token: string, card: ?Card, rarity: CardRarityEnum, extension: Extension, normal: int, holo: int, listed: int, mine: int, theirs: int}
  */
 #[RequiresFeature(FeatureEnum::TRADES)]
 #[AsLiveComponent]
@@ -44,6 +44,12 @@ final class TradeComposer extends AbstractController
     use DefaultActionTrait;
 
     private const array FINISHES = ['normal', 'holo'];
+
+    private const string FILTER_ALL = 'all';
+
+    private const string FILTER_LACKS = 'lacks';
+
+    private const string FILTER_DOUBLES = 'doubles';
 
     #[LiveProp]
     public string $counterpartId = '';
@@ -73,6 +79,14 @@ final class TradeComposer extends AbstractController
     #[LiveProp(writable: true, url: new UrlMapping(as: 'univers'))]
     public ?string $universe = null;
 
+    /** Chip filter of the left column: all|lacks|doubles (what he lacks / my duplicates). */
+    #[LiveProp(writable: true, url: new UrlMapping(as: 'proposes'))]
+    public string $offeredFilter = self::FILTER_ALL;
+
+    /** Chip filter of the right column: all|lacks|doubles (what I lack / his duplicates). */
+    #[LiveProp(writable: true, url: new UrlMapping(as: 'demandes'))]
+    public string $requestedFilter = self::FILTER_ALL;
+
     /** Side shown on narrow screens (both are shown side by side on desktop). */
     #[LiveProp]
     public string $tab = 'offered';
@@ -83,6 +97,9 @@ final class TradeComposer extends AbstractController
     private array $entries = [];
 
     private ?DiscordUser $counterpart = null;
+
+    /** @var array<string, int>|null card id => total copies I own (published) */
+    private ?array $myOwned = null;
 
     public function __construct(
         private readonly TradeOfferService $tradeOfferService,
@@ -117,7 +134,7 @@ final class TradeComposer extends AbstractController
      */
     public function getMyGroups(): array
     {
-        return $this->group($this->visible(TradeOfferSideEnum::OFFERED));
+        return $this->group($this->visible(TradeOfferSideEnum::OFFERED), TradeOfferSideEnum::OFFERED);
     }
 
     /**
@@ -128,7 +145,7 @@ final class TradeComposer extends AbstractController
      */
     public function getTheirGroups(): array
     {
-        return $this->group($this->visible(TradeOfferSideEnum::REQUESTED));
+        return $this->group($this->visible(TradeOfferSideEnum::REQUESTED), TradeOfferSideEnum::REQUESTED);
     }
 
     public function getMyVisibleCount(): int
@@ -139,6 +156,33 @@ final class TradeComposer extends AbstractController
     public function getTheirVisibleCount(): int
     {
         return \count($this->visible(TradeOfferSideEnum::REQUESTED));
+    }
+
+    /**
+     * Chips of a column with their counts, under the universe and name filters but ignoring the chip itself.
+     *
+     * @return list<array{value: string, label: string, count: int, active: bool}>
+     */
+    public function chips(string $side): array
+    {
+        $sideEnum = TradeOfferSideEnum::tryFrom($side) ?? TradeOfferSideEnum::OFFERED;
+        $base = $this->visible($sideEnum, applyChip: false);
+        $labels = TradeOfferSideEnum::OFFERED === $sideEnum
+            ? [self::FILTER_ALL => 'Tout', self::FILTER_LACKS => 'Lui manque', self::FILTER_DOUBLES => 'Mes doublons']
+            : [self::FILTER_ALL => 'Tout', self::FILTER_LACKS => 'Me manque', self::FILTER_DOUBLES => 'Ses doublons'];
+        $current = $this->filterOf($sideEnum);
+
+        $chips = [];
+        foreach ($labels as $value => $label) {
+            $chips[] = [
+                'value' => $value,
+                'label' => $label,
+                'count' => \count(array_filter($base, fn (array $entry): bool => $this->matchesChip($sideEnum, $value, $entry))),
+                'active' => $value === $current,
+            ];
+        }
+
+        return $chips;
     }
 
     public function hasMaskedCards(): bool
@@ -200,7 +244,7 @@ final class TradeComposer extends AbstractController
     /**
      * Readable digest of one side of the offer for the sticky recap.
      *
-     * @return array{copies: int, byRarity: list<array{rarity: CardRarityEnum, copies: int}>, items: list<array{entry: Entry, normal: int, holo: int}>}
+     * @return array{copies: int, byRarity: list<array{rarity: CardRarityEnum, copies: int}>, items: list<array{entry: Entry, normal: int, holo: int}>, lastCopies: int}
      */
     public function summary(string $side): array
     {
@@ -209,6 +253,7 @@ final class TradeComposer extends AbstractController
         $copies = 0;
         $byRarity = [];
         $items = [];
+        $lastCopies = 0;
 
         foreach ($this->selectionOf($sideEnum) as $token => $line) {
             $entry = $entries[$token] ?? null;
@@ -220,6 +265,9 @@ final class TradeComposer extends AbstractController
             $copies += $count;
             $byRarity[$entry['rarity']->value] = ($byRarity[$entry['rarity']->value] ?? 0) + $count;
             $items[] = ['entry' => $entry, 'normal' => $line['normal'], 'holo' => $line['holo']];
+            if (TradeOfferSideEnum::OFFERED === $sideEnum && 1 === $entry['mine']) {
+                ++$lastCopies;
+            }
         }
 
         $rarities = [];
@@ -229,7 +277,7 @@ final class TradeComposer extends AbstractController
             }
         }
 
-        return ['copies' => $copies, 'byRarity' => $rarities, 'items' => $items];
+        return ['copies' => $copies, 'byRarity' => $rarities, 'items' => $items, 'lastCopies' => $lastCopies];
     }
 
     public function getOfferedCount(): int
@@ -288,6 +336,20 @@ final class TradeComposer extends AbstractController
     public function filterUniverse(#[LiveArg] string $slug): void
     {
         $this->universe = '' === $slug ? null : $slug;
+    }
+
+    #[LiveAction]
+    public function filterSide(#[LiveArg] string $side, #[LiveArg] string $filter): void
+    {
+        $filter = \in_array($filter, [self::FILTER_LACKS, self::FILTER_DOUBLES], true) ? $filter : self::FILTER_ALL;
+
+        if (TradeOfferSideEnum::REQUESTED->value === $side) {
+            $this->requestedFilter = $filter;
+
+            return;
+        }
+
+        $this->offeredFilter = $filter;
     }
 
     #[LiveAction]
@@ -358,6 +420,8 @@ final class TradeComposer extends AbstractController
             : $this->tradeOfferService->getRequestableCopies($this->getCounterpart());
         $known = $isMine ? null : array_fill_keys($this->userCardRepository->findOwnedCardIds($this->getDiscordUser()), true);
         $listed = $isMine ? $this->listedCopies() : [];
+        $mine = $this->myOwned();
+        $theirs = $isMine ? $this->theirOwned() : [];
 
         $entries = [];
         foreach ($copies as $cardId => $copy) {
@@ -375,6 +439,8 @@ final class TradeComposer extends AbstractController
                 'normal' => $copy['normal'],
                 'holo' => $copy['holo'],
                 'listed' => $listed[$cardId]['count'] ?? 0,
+                'mine' => $mine[$cardId] ?? 0,
+                'theirs' => $isMine ? $theirs[$cardId] ?? 0 : $copy['normal'] + $copy['holo'],
             ];
         }
 
@@ -384,7 +450,7 @@ final class TradeComposer extends AbstractController
             $extension = $card->getExtension();
 
             if (!isset($entries[$token]) && $extension instanceof Extension) {
-                $entries[$token] = ['token' => $token, 'card' => $card, 'rarity' => $card->getRarity(), 'extension' => $extension, 'normal' => 0, 'holo' => 0, 'listed' => $count];
+                $entries[$token] = ['token' => $token, 'card' => $card, 'rarity' => $card->getRarity(), 'extension' => $extension, 'normal' => 0, 'holo' => 0, 'listed' => $count, 'mine' => $mine[$cardId] ?? 0, 'theirs' => $theirs[$cardId] ?? 0];
             }
         }
 
@@ -417,22 +483,83 @@ final class TradeComposer extends AbstractController
      *
      * @return list<Entry>
      */
-    private function visible(TradeOfferSideEnum $side): array
+    private function visible(TradeOfferSideEnum $side, bool $applyChip = true): array
     {
         $active = $this->getActiveExtension();
         $needle = mb_trim(mb_strtolower($this->search));
         $selection = $this->selectionOf($side);
+        $chip = $applyChip ? $this->filterOf($side) : self::FILTER_ALL;
 
         return array_values(array_filter(
             $this->entries($side),
-            static fn (array $entry): bool => (!$active instanceof Extension || $entry['extension'] === $active)
+            fn (array $entry): bool => (!$active instanceof Extension || $entry['extension'] === $active)
                 && (
                     '' === $needle
                     || !$entry['card'] instanceof Card
                     || isset($selection[$entry['token']])
                     || str_contains(mb_strtolower($entry['card']->getName()), $needle)
-                ),
+                )
+                && (isset($selection[$entry['token']]) || $this->matchesChip($side, $chip, $entry)),
         ));
+    }
+
+    private function filterOf(TradeOfferSideEnum $side): string
+    {
+        $filter = TradeOfferSideEnum::OFFERED === $side ? $this->offeredFilter : $this->requestedFilter;
+
+        return \in_array($filter, [self::FILTER_LACKS, self::FILTER_DOUBLES], true) ? $filter : self::FILTER_ALL;
+    }
+
+    /**
+     * @param Entry $entry
+     */
+    private function matchesChip(TradeOfferSideEnum $side, string $chip, array $entry): bool
+    {
+        $offered = TradeOfferSideEnum::OFFERED === $side;
+
+        return match ($chip) {
+            self::FILTER_LACKS => $this->lacksOnOtherSide($side, $entry),
+            self::FILTER_DOUBLES => ($offered ? $entry['mine'] : $entry['theirs']) >= 2,
+            default => true,
+        };
+    }
+
+    /**
+     * Left: he owns none of it. Right: I do not own it (exactly the masked tiles).
+     *
+     * @param Entry $entry
+     */
+    private function lacksOnOtherSide(TradeOfferSideEnum $side, array $entry): bool
+    {
+        return TradeOfferSideEnum::OFFERED === $side ? 0 === $entry['theirs'] : !$entry['card'] instanceof Card;
+    }
+
+    /**
+     * @return array<string, int> card id => total copies I own, holo included
+     */
+    private function myOwned(): array
+    {
+        if (null !== $this->myOwned) {
+            return $this->myOwned;
+        }
+
+        $owned = [];
+        foreach ($this->userCardRepository->findOwnedWithCards($this->getDiscordUser(), publishedOnly: true) as $row) {
+            $owned[(string) $row->getCard()->getId()] = $row->getQuantity();
+        }
+
+        return $this->myOwned = $owned;
+    }
+
+    /**
+     * @return array<string, int> card id => total copies he owns
+     */
+    private function theirOwned(): array
+    {
+        return array_map(
+            static fn (array $copy): int => $copy['normal'] + $copy['holo'],
+            $this->tradeOfferService->getRequestableCopies($this->getCounterpart()),
+        );
     }
 
     /**
@@ -440,7 +567,7 @@ final class TradeComposer extends AbstractController
      *
      * @return list<array{extension: Extension, entries: list<Entry>}>
      */
-    private function group(array $entries): array
+    private function group(array $entries, TradeOfferSideEnum $side): array
     {
         $groups = [];
         foreach ($entries as $entry) {
@@ -449,10 +576,26 @@ final class TradeComposer extends AbstractController
             $groups[$key]['entries'][] = $entry;
         }
 
+        foreach ($groups as &$group) {
+            // stable partition: cards missing on the other side first, current order kept inside each bucket
+            $useful = array_values(array_filter($group['entries'], fn (array $entry): bool => $this->isUseful($side, $entry)));
+            $rest = array_values(array_filter($group['entries'], fn (array $entry): bool => !$this->isUseful($side, $entry)));
+            $group['entries'] = [...$useful, ...$rest];
+        }
+        unset($group);
+
         $groups = array_values($groups);
         usort($groups, static fn (array $a, array $b): int => $a['extension']->getName() <=> $b['extension']->getName());
 
         return $groups;
+    }
+
+    /**
+     * @param Entry $entry
+     */
+    private function isUseful(TradeOfferSideEnum $side, array $entry): bool
+    {
+        return $this->lacksOnOtherSide($side, $entry) && (TradeOfferSideEnum::REQUESTED === $side || $entry['normal'] + $entry['holo'] > 0);
     }
 
     /**
