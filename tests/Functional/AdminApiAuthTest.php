@@ -123,12 +123,26 @@ final class AdminApiAuthTest extends WebTestCase
         $this->assertSame('Http error', $body['error']);
     }
 
-    public function testTokenWithBothScopesOpensTheImportArea(): void
+    public function testTokenWithBothScopesOpensBothAreas(): void
     {
         $client = self::createClient();
         $token = $this->newToken();
 
         $this->apiRequest($client, 'GET', '/api/admin/extensions', $token);
         self::assertResponseStatusCodeSame(200);
+
+        $this->apiRequest($client, 'GET', '/api/admin/stats?sections=meta', $token);
+        self::assertResponseStatusCodeSame(200);
+    }
+
+    public function testExpiredTokenIsUnauthorizedOnTheStatsRoute(): void
+    {
+        $client = self::createClient();
+        $token = $this->newToken();
+
+        self::mockTime(new \DateTimeImmutable('+2 hours'));
+        $this->apiRequest($client, 'GET', '/api/admin/stats', $token);
+
+        self::assertResponseStatusCodeSame(401);
     }
 }
