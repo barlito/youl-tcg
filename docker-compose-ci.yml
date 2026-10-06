@@ -1,6 +1,12 @@
 services:
     php:
         container_name: ytcg_php
+        # GHA layer cache (needs the buildx builder + runtime token set up by the workflow)
+        build:
+            cache_from:
+                - type=gha,scope=php-dev
+            cache_to:
+                - type=gha,scope=php-dev,mode=max,ignore-error=true
 
     db:
         container_name: ytcg_db

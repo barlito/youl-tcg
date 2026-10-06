@@ -40,8 +40,29 @@ jobs:
           key: composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: composer-
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # exposes ACTIONS_RUNTIME_TOKEN / cache URLs to docker compose for the gha layer cache
+      - name: Expose GitHub runtime
+        uses: crazy-max/ghaction-github-runtime@v4
+
       - name: Deploy stack
         run: USER_ID=$(id -u) GROUP_ID=$(id -g) make deploy.ci github_token=${{ secrets.GITHUB_TOKEN }}
+
+      # /app is bind-mounted: the tools write their caches on the runner, as the runner uid
+      - name: Cache quality tools
+        uses: actions/cache@v6
+        with:
+          path: |
+            var/cache/phpstan
+            var/cache/rector
+            .php-cs-fixer.cache
+            .phpcs-cache
+          key: quality-${{ hashFiles('composer.lock', 'phpstan.dist.neon', 'rector.php') }}-${{ github.sha }}
+          restore-keys: |
+            quality-${{ hashFiles('composer.lock', 'phpstan.dist.neon', 'rector.php') }}-
+            quality-
 
       - name: Run quality checks
         run: make quality
