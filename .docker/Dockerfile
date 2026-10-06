@@ -11,14 +11,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
 	acl \
 	&& rm -rf /var/lib/apt/lists/*
 
-# Create non-root user with configurable UID/GID
-ARG USER_ID=1000
-ARG GROUP_ID=1000
-
-RUN groupadd -g ${GROUP_ID} www && \
-    useradd -u ${USER_ID} -g www -m -s /bin/bash www && \
-    chown -R www:www /app /data /config
-
+# uid-independent layers first, so CI (uid 1001) and local/prod (1000) share them
 # add additional extensions here:
 RUN install-php-extensions \
     @composer \
@@ -32,6 +25,14 @@ ENV COMPOSER_HOME=/home/www/.composer
 # https://getcomposer.org/doc/03-cli.md#composer-allow-superuser
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV SERVER_NAME=":80"
+
+# Create non-root user with configurable UID/GID
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+RUN groupadd -g ${GROUP_ID} www && \
+    useradd -u ${USER_ID} -g www -m -s /bin/bash www && \
+    chown -R www:www /app /data /config
 
 COPY --link .docker/php/app.ini $PHP_INI_DIR/conf.d/
 COPY --link .docker/franken/Caddyfile /etc/caddy/Caddyfile
