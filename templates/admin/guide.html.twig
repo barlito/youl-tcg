@@ -41,6 +41,7 @@
                 <li><a href="#economie">Économie : les écrans de consultation</a></li>
                 <li><a href="#fonctionnalites">Fonctionnalités : couper / rouvrir</a></li>
                 <li><a href="#api-import">API admin : import, stats (lecture seule) et gestion (modifier / publier)</a></li>
+                <li><a href="#duel">Jeu de duel : tags, terrains, decks</a></li>
                 <li><a href="#ne-pas-toucher">Ce qu'on ne touche jamais à la main</a></li>
             </ol>
         </div>
@@ -86,6 +87,8 @@
             <tr><td>Unique (1/1)</td><td>Exemplaire unique <strong>global</strong> : le premier joueur qui la tire la verrouille pour tout le monde (champ <em>claimedBy</em> en détail). Une fois réclamée elle ne peut plus être tirée — les ouvertures suivantes reçoivent une carte de remplacement de même rareté. La page univers affiche « droppée / encore dans le pool », jamais le détenteur. <strong>Une 1/1 est exclue du tirage par rareté</strong> : elle ne sort que par la <em>chance carte unique</em> d'un slot de booster (cf. §7). Tant qu'aucun slot n'en configure une, elle est intirable.</td></tr>
             <tr><td>Always holo</td><td>La carte sort <em>toujours</em> en version holo, quel que soit le <code>holoChance</code> du slot du booster.</td></tr>
             <tr><td>Statut</td><td>Cf. §1. Publier = tirable + comptée dans la complétion. Une carte déjà possédée (ou 1/1 tirée) ne peut plus repasser en <em>Draft</em>.</td></tr>
+            <tr><td>Terrain</td><td>Carte « lieu » du jeu de duel : jamais jouable dans un deck, un deck peut en embarquer une. Elle reste une carte comme les autres pour tout le reste (boosters, échanges, marché, recyclage). Cf. <a href="#duel">§15</a>.</td></tr>
+            <tr><td>Tags</td><td><code>famille:valeur</code> en minuscules (<code>character:benj</code>, <code>family:linette</code>, <code>trait:machine</code>). Les tags existants sont proposés, on en crée un nouveau en le tapant puis Entrée. <code>universe:</code> est refusé : l'univers de la carte en tient lieu. Cf. <a href="#duel">§15</a>.</td></tr>
         </table>
         <div class="warn">
             L'artwork principal est <strong>obligatoire</strong> et non supprimable depuis le
@@ -278,6 +281,7 @@
             <tr><td>Fusion des doublons</td><td>La page <code>/fusion</code> répond 404, le bouton « Fusionner mes doublons » disparaît de la collection, et une fusion lancée depuis une page restée ouverte est refusée (« La fusion est momentanément fermée. ») sans rien débiter. L'historique des fusions est conservé et reste consultable. <strong>Règle :</strong> 10 copies normales libres d'une même carte (ni en vente, ni proposées dans une offre d'échange en attente) deviennent 1 copie holo de cette carte, jusqu'à 10 fusions à la fois ; une carte unique 1/1, en brouillon ou d'un univers non publié ne se fusionne pas. Le holo créé ne compte pas comme « tiré » par le joueur.</td></tr>
             <tr><td>Échanges entre joueurs</td><td>Les pages <code>/echanges</code> répondent 404 et l'entrée « Échanges » du menu redevient « bientôt » (plus de pastille d'offres en attente). Une action lancée depuis une page restée ouverte est refusée (« Les échanges sont momentanément fermés. »). Les offres en attente sont <strong>gelées</strong> : ni annulées ni libérées — les cartes qu'un joueur y propose restent réservées (et non recyclables) jusqu'à la réouverture, où tout reprend tel quel.</td></tr>
             <tr><td>Récompenses de complétion d'univers</td><td><strong>Règle de réactivation :</strong> quand le flag <code>universe_rewards</code> est rouvert, seules comptent les cartes que le joueur a <strong>tirées lui-même</strong> en ouvrant des boosters (tous canaux) ; les cartes reçues par échange ou achetées au marché restent dans la collection mais ne comptent pas. Il faut en plus posséder encore chaque carte. Pas de rétroactivité : les récompenses existantes (payées, en attente, échouées) ne changent pas, et <code>app:coin:grant-completed-universes</code> ne rattrape que les joueurs éligibles selon cette règle. La page univers affiche la progression « x/y cartes tirées par toi ». Plus aucune récompense n'est créée, payée ni notifiée quand un joueur complète un univers ; les récompenses en attente ou échouées restent telles quelles (ni payées ni relancées) et les commandes <code>app:coin:pay-pending-rewards</code> / <code>app:coin:grant-completed-universes</code> refusent de tourner. Un univers complété pendant la coupure n'est <strong>pas</strong> récompensé à la réouverture (seul <code>app:coin:grant-completed-universes</code> rattrape). Pour qu'une récompense ne soit jamais versée, la passer en « Annulée » (action groupée « Annuler » de <strong>Économie → Récompenses d'univers</strong>) : elle sort des alertes et des flux de la banque, même avec <code>--retry-failed</code> ; une récompense déjà versée doit en plus être reprise à la main dans l'admin Youl Coin.</td></tr>
+            <tr><td>Jeu de duel</td><td>Les filtres par tag et le badge « Terrain » disparaissent de la collection, et toute l'API du jeu (<code>/api/duel/...</code>, joueurs et serveur de jeu) répond 404 : le jeu ne peut plus charger de collection ni de deck. Les decks, tags et terrains sont <strong>conservés</strong> ; le CRUD carte garde ses champs tags et terrain.</td></tr>
             <tr><td>Wishlist et alertes</td><td>La page <code>/wishlist</code> et les actions ♡ répondent 404 / sont refusées (« La wishlist est momentanément fermée. »), les ♡, le filtre « Ma wishlist » du marché, les badges « la cherche » du composeur et les liens disparaissent, et plus aucune alerte « en vente » n'est envoyée. Les souhaits et abonnements d'univers sont <strong>conservés tels quels</strong> (rien n'est effacé) ; un souhait n'est plus retiré automatiquement quand le joueur obtient la carte pendant la coupure.</td></tr>
         </table>
         <div class="tip">L'effet est immédiat, à la requête suivante des joueurs. Rouvrir remet tout en place à l'identique : aucune donnée n'est effacée par une coupure.</div>
@@ -432,7 +436,21 @@ curl -s -H "Authorization: Bearer $TOKEN" $API/cards/ID_DE_LA_CARTE/files -F ima
         </table>
         <div class="tip">Les réponses invalident les caches (stats, tableau de bord, carte du jour) : les chiffres suivants sont à jour. Garde le token Gestion pour les arbitrages : il écrit pour de vrai en production.</div>
 
-        <h2 id="ne-pas-toucher">15. Ce qu'on ne touche jamais à la main</h2>
+        <h2 id="duel">15. Jeu de duel : tags, terrains, decks</h2>
+        <p>
+            Le jeu de duel (repo <code>ytcg-game</code>, servi sur le même domaine) joue avec les cartes de Youl TCG.
+            Youl TCG porte les <strong>tags</strong>, le drapeau <strong>terrain</strong>, les <strong>decks</strong> des joueurs
+            et la vérification de possession ; les coûts, puissances et effets vivent dans le jeu.
+        </p>
+        <ul>
+            <li><strong>Tags</strong> : édités dans le formulaire carte (bloc « Jeu de duel »). Ils servent aux combos du jeu et aux filtres de la collection des joueurs (chips par famille : personnages, familles, traits), qui ne montrent que les tags des cartes <em>possédées</em>.</li>
+            <li><strong>Terrains</strong> : cocher « Terrain » sur les cartes lieu. Un joueur sans terrain joue avec un terrain tiré au hasard par le jeu.</li>
+            <li><strong>Decks</strong> : 12 cartes distinctes possédées (hors terrains) + un terrain possédé optionnel, 10 decks maximum par joueur. Un deck dont une carte a été vendue, échangée ou recyclée devient <em>incomplet</em> (le jeu le refuse) : rien n'empêche de vendre une carte d'un deck.</li>
+            <li><strong>Import depuis les données du jeu</strong> : <code>bin/console app:duel:import-game-data &lt;dossier data de ytcg-game&gt; --dry-run</code> montre ce qui changerait, sans <code>--dry-run</code> il écrit. Il pose les tags (hors <code>universe:</code>) et le drapeau terrain par uuid de carte, ne touche à rien d'autre et peut être rejoué sans effet. Les uuid inconnus de la base sont listés et ignorés.</li>
+            <li><strong>Serveur de jeu</strong> : il appelle <code>/api/duel/server/...</code> avec le secret <code>DUEL_SERVER_TOKEN</code> (secret GitHub, vide = tout refusé).</li>
+        </ul>
+
+        <h2 id="ne-pas-toucher">16. Ce qu'on ne touche jamais à la main</h2>
         <ul>
             <li><strong>Utilisateurs Discord et rôles</strong> : créés et synchronisés automatiquement à la connexion (JWT). Ne jamais créer/modifier en base.</li>
             <li><strong>Inventaires</strong> (cartes et boosters possédés) : alimentés par les claims et les ouvertures. Une retouche manuelle fausse les compteurs et l'historique.</li>

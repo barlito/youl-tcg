@@ -185,6 +185,41 @@ class UserCardRepository extends ServiceEntityRepository
     }
 
     /**
+     * The duel collection: published cards (card AND extension) with at least one copy, holo copies included in quantity.
+     *
+     * @return array<string, UserCard> card id => row, by universe then card name
+     */
+    public function findDuelCollection(DiscordUser $discordUser): array
+    {
+        /** @var list<UserCard> $rows */
+        $rows = $this->createQueryBuilder('uc')
+            ->join('uc.card', 'c')
+            ->addSelect('c')
+            ->join('c.extension', 'e')
+            ->addSelect('e')
+            ->andWhere('uc.discordUser = :user')
+            ->andWhere('uc.quantity > 0')
+            ->andWhere('c.status = :cardStatus')
+            ->andWhere('e.status = :extensionStatus')
+            ->setParameter('user', $discordUser)
+            ->setParameter('cardStatus', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->setParameter('extensionStatus', ExtensionStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->orderBy('e.name', 'ASC')
+            ->addOrderBy('c.name', 'ASC')
+            ->addOrderBy('c.id', 'ASC')
+            ->getQuery()
+            ->getResult()
+        ;
+
+        $collection = [];
+        foreach ($rows as $row) {
+            $collection[(string) $row->getCard()->getId()] = $row;
+        }
+
+        return $collection;
+    }
+
+    /**
      * Ids of the distinct cards the user owns (any quantity), used to flag
      * freshly obtained cards after a booster opening.
      *

@@ -102,7 +102,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 **Core Entities:**
 - **Card**: Trading cards with multi-image support (main image, mask, foil)
-  - Fields: name, description, status (DRAFT/PUBLISHED), rarity (CardRarityEnum: common/uncommon/rare/legendary — 4 tiers since the epic removal, grey/green/blue/orange glows), uniqueFlag, claimedBy, alwaysHolo (forces holo whatever the slot's holoChance), visualConfigOverride (JSON, per-card override of the extension's visualConfig)
+  - Fields: name, description, status (DRAFT/PUBLISHED), rarity (CardRarityEnum: common/uncommon/rare/legendary — 4 tiers since the epic removal, grey/green/blue/orange glows), uniqueFlag, claimedBy, alwaysHolo (forces holo whatever the slot's holoChance), visualConfigOverride (JSON, per-card override of the extension's visualConfig), tags + terrain (duel game, see below)
   - **Uniques 1/1**: `uniqueFlag` + `claimedBy` (ManyToOne DiscordUser, ON DELETE SET NULL). The single holder is enforced by the atomic conditional UPDATE `CardRepository::claimUnique()` (`claimed_by IS NULL`), not by a DB constraint; `findDrawablePool` excludes claimed uniques
   - An owned card (a holder with quantity > 0, or a drawn 1/1 `claimedBy`) can never go back PUBLISHED → DRAFT: `NotDepublishedWhileOwned` constraint + `CardDepublicationGuard` (edit form locks the status field, the batch draft action refuses owned cards one by one)
   - No "type" field: visual customization is the extension→card VisualConfig cascade (see below)
@@ -195,11 +195,22 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - Stats API: `fusion` section (totals, perDay, topCards, topPlayers) + `players[].fusion` counters + `meta.gameRules.fusionCostCopies / fusionMaxPerOperation`
 
 **Feature flags (`FeatureFlag` + `FeatureFlags`):**
-- `FeatureEnum` (`trades`, `recycling`, `universe_rewards`, `fusion`, `wishlist`); one `FeatureFlag` row per case (PK `name`), created OFF by the migration — a missing row is OFF. Test and dev fixtures switch them all ON; "OFF" tests flip the flag with `tests/FeatureFlagTrait.php`
+- `FeatureEnum` (`trades`, `recycling`, `universe_rewards`, `fusion`, `wishlist`, `duel`); one `FeatureFlag` row per case (PK `name`), created OFF by the migration — a missing row is OFF. Test and dev fixtures switch them all ON; "OFF" tests flip the flag with `tests/FeatureFlagTrait.php`
 - `App\Service\Feature\FeatureFlags::isEnabled()/assertEnabled()`: one query per request (memoized, `ResetInterface`)
 - `#[RequiresFeature(FeatureEnum::X)]` (class or method, repeatable) → `RequiresFeatureListener` on `kernel.controller_arguments` answers 404, sub-requests included. Put it on the page controller AND the Live Component class: `/_components/...` actions and re-renders bypass the page controller
 - Services guard their own entry points too (`RecycleService::recycle()` → `RecyclingClosedException`); templates use `feature_enabled('recycling')` (unknown name = error). Audit data and admin deletion guards are never flag-dependent
 - Admin: « Fonctionnalités » (`FeatureFlagCrudController`, edit only)
+
+**Duel game integration (`Deck`, `src/Service/Duel/`, contract in `docs/duel-api.md`):**
+- The game lives in the `ytcg-game` repo (costs, power, effects, deck curve); ytcg owns tags, terrains, decks and OWNERSHIP only — never re-implement game rules in PHP
+- `Card.tags`: JSON list of `family:value` (`CardTags::PATTERN` `^[a-z]+:[a-z0-9-]+$`, normalized lowercase/sorted by `setTags()`, max 12); `universe:` is refused (implicit = the extension). Admin widget `CardTagsField` → `CardTagsType` (TomSelect with free creation through `CardTagChoiceLoader`: known tags suggested, any submitted tag accepted, the entity constraints judge it). EA would guess an ArrayField for the JSON column, hence the own field class
+- `Card.terrain`: a duel location card, never playable, at most one per deck; stays collectible like any card (boosters, trades, market, recycling)
+- `Deck`: owner, name (40), ManyToMany `deck_card` (a SET: the game shuffles, FK cascade), optional terrain (SET NULL), max `DeckService::MAX_DECKS` = 10 per player (counted under `FOR UPDATE` on the `discord_user` row). Ownership is checked at write (`DeckInputValidator`: 12 distinct published owned non-terrain cards + optional owned terrain; unknown/unpublished/not owned share one message) and RECOMPUTED ON READ (`DeckValidator` → `valid`/`missingCards`/`issues`). Economy flows are never locked by a deck: selling a deck card just makes it incomplete
+- Duel collection = `UserCardRepository::findDuelCollection()`: card AND extension published, `quantity > 0` (holo included)
+- Player API `/api/duel/{collection,decks}` (`DuelApiController`, main firewall / JWT cookie): JSON only, writes require `Content-Type: application/json` (CSRF guard: a cross-site form cannot send it without a preflight), someone else's deck = 404 like an unknown id. Missing/expired JWT on `/api/duel/` → JSON 401 with `loginUrl` (`RefreshTokenRedirector::createResponse()`), never a redirect; `DuelApiExceptionListener` turns every HttpException under `/api/duel/` into `{error}` with a generic French message
+- Server API `GET /api/duel/server/decks/{id}?player=<discordId>` (`DuelServerController`): firewall `duel_server` declared BEFORE `main`, `DuelServerAuthenticator` = bearer `DUEL_SERVER_TOKEN` with `hash_equals`, empty secret refuses everything; 200 `{cards, terrain}` only when fully owned now, else 409 + `missingCards` / 404
+- Flag `duel` gates both APIs (`#[RequiresFeature]` + `DeckService` guards), the collection tag chips (`?tag=`, `CollectionTagFilter`, built from OWNED cards only — a masked card never shows its tags) and the « Terrain » tile badge. Admin fields are never gated
+- `app:duel:import-game-data <ytcg-game/data> [--dry-run]` (`GameDataImporter`): `cards/*.json` → terrain false + tags, `locations/*.json` → terrain true (+ tags only if the file has some), `universe:` tags dropped; aborts without writing on invalid JSON/tag or a uuid listed as both; unknown uuids reported and skipped; idempotent
 
 ### Youl Coin (`src/Service/Coin/`)
 
@@ -378,6 +389,7 @@ Only `/admin/cards/batch` and the import API validate the uploaded file type tod
 - `OAUTH_DISCORD_CLIENT_ID` / `OAUTH_DISCORD_CLIENT_SECRET`: only required by the (unused) `knpu_oauth2_client` config — OAuth is handled by the external IdP
 - `MERCURE_URL` (in-container publish URL), `MERCURE_PUBLIC_URL` (browser URL, prod value in `.env`), `MERCURE_JWT_SECRET` (secret, also read by Caddy)
 - `REFRESH_TOKEN_URL`: Discord OAuth2 refresh endpoint
+- `DUEL_SERVER_TOKEN`: bearer secret of the duel game server API (prod secret, optional in compose: empty = every server call refused)
 - `LOGOUT_URL`: External logout redirect URL
 - `APP_VERSION`: displayed version (set at image build)
 

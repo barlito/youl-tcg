@@ -127,6 +127,42 @@ final readonly class ProfileComparisonService
     }
 
     /**
+     * Owned cards carrying the tag only: a masked card never reveals its tags. Empty universes drop out.
+     */
+    public function restrictToOwnedTag(ProfileComparison $comparison, string $tag): ProfileComparison
+    {
+        $universes = [];
+        foreach ($comparison->universes as $universe) {
+            $cards = array_values(array_filter(
+                $universe->cards,
+                static fn (ProfileCardComparison $item): bool => $item->profileCard instanceof UserCard && $item->card->hasTag($tag),
+            ));
+            if ([] === $cards) {
+                continue;
+            }
+
+            $universes[] = new ProfileUniverseComparison(
+                extension: $universe->extension,
+                cards: $cards,
+                total: \count($cards),
+                common: \count(array_filter($cards, static fn (ProfileCardComparison $item): bool => ProfileCardStateEnum::COMMON === $item->state)),
+                profileOnly: \count(array_filter($cards, static fn (ProfileCardComparison $item): bool => ProfileCardStateEnum::PROFILE_ONLY === $item->state)),
+                visitorOnly: 0,
+                missingBoth: 0,
+            );
+        }
+
+        return new ProfileComparison(
+            universes: $universes,
+            total: $this->sum($universes, static fn (ProfileUniverseComparison $u): int => $u->total),
+            common: $this->sum($universes, static fn (ProfileUniverseComparison $u): int => $u->common),
+            profileOnly: $this->sum($universes, static fn (ProfileUniverseComparison $u): int => $u->profileOnly),
+            visitorOnly: 0,
+            missingBoth: 0,
+        );
+    }
+
+    /**
      * @param list<ProfileUniverseComparison>          $universes
      * @param callable(ProfileUniverseComparison): int $counter
      */
