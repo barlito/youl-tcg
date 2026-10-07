@@ -229,7 +229,7 @@ final class WishlistServiceTest extends KernelTestCase
 
         $wanted = $this->service->wantedAmong($wanter, array_map(static fn ($card): string => (string) $card->getId(), [$direct, $watched, $watchedOwned]));
 
-        $this->assertSame([(string) $direct->getId(), (string) $watched->getId()], array_keys($wanted));
+        $this->assertEqualsCanonicalizing([(string) $direct->getId(), (string) $watched->getId()], array_keys($wanted));
     }
 
     public function testRemoveEntryOnlyTouchesTheOwnersRows(): void
