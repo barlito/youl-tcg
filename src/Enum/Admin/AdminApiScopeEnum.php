@@ -8,12 +8,14 @@ enum AdminApiScopeEnum: string
 {
     case IMPORT = 'import';
     case STATS = 'stats';
+    case MANAGE = 'manage';
 
     public function role(): string
     {
         return match ($this) {
             self::IMPORT => 'ROLE_IMPORT_API',
             self::STATS => 'ROLE_STATS_API',
+            self::MANAGE => 'ROLE_MANAGE_API',
         };
     }
 
@@ -22,6 +24,7 @@ enum AdminApiScopeEnum: string
         return match ($this) {
             self::IMPORT => 'Import',
             self::STATS => 'Stats',
+            self::MANAGE => 'Gestion',
         };
     }
 
@@ -30,7 +33,16 @@ enum AdminApiScopeEnum: string
         return match ($this) {
             self::IMPORT => 'création et lecture d\'extensions et de cartes (brouillons uniquement)',
             self::STATS => 'lecture seule de toutes les données du jeu, joueurs inclus',
+            self::MANAGE => 'modifier/publier extensions, cartes, boosters, réglages (jamais de suppression)',
         };
+    }
+
+    /**
+     * Pre-ticked on the token form; the write scope is opt-in.
+     */
+    public function checkedByDefault(): bool
+    {
+        return self::MANAGE !== $this;
     }
 
     /**

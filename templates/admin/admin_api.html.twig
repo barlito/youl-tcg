@@ -42,7 +42,7 @@
                 {% for scope in scopes %}
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="scopes[]" value="{{ scope.value }}"
-                               id="scope-{{ scope.value }}" checked data-testid="scope-{{ scope.value }}">
+                               id="scope-{{ scope.value }}"{% if scope.checkedByDefault %} checked{% endif %} data-testid="scope-{{ scope.value }}">
                         <label class="form-check-label" for="scope-{{ scope.value }}">
                             <strong>{{ scope.label }}</strong> : {{ scope.description }}
                         </label>

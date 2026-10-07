@@ -39,6 +39,8 @@ security:
     access_control:
         - { path: ^/webhooks/, roles: PUBLIC_ACCESS }
         - { path: ^/api/admin/stats, roles: ROLE_STATS_API }
+        - { path: '^/api/admin/(cards|boosters|settings|features)(/|$)', roles: ROLE_MANAGE_API }
+        - { path: '^/api/admin/extensions/[^/]+(/(files|publish|banners))?$', roles: ROLE_MANAGE_API }
         - { path: ^/api/admin, roles: ROLE_IMPORT_API }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/, roles: ROLE_USER }

@@ -64,6 +64,32 @@ final readonly class ImportApiInputValidator
     }
 
     /**
+     * Upload-only payloads of the management API: at least one of the files (all of $required), only known field names.
+     *
+     * @param array<string, non-empty-list<non-empty-string>> $fields   field => accepted mime types
+     * @param list<string>                                    $required
+     *
+     * @return array<string, list<string>>
+     */
+    public function validateReplacement(Request $request, array $fields, array $required = []): array
+    {
+        $constraints = [];
+        foreach ($fields as $field => $mimeTypes) {
+            $constraints[$field] = $this->image(\in_array($field, $required, true), $mimeTypes);
+        }
+        $errors = $this->run($request, $constraints);
+
+        foreach (array_diff(array_keys($request->files->all()), array_keys($fields)) as $unknown) {
+            $errors[(string) $unknown][] = 'Fichier inconnu (attendu : ' . implode(', ', array_keys($fields)) . ').';
+        }
+        if ([] === $errors && [] === array_filter(array_keys($fields), $request->files->has(...))) {
+            $errors['files'][] = 'Envoie au moins un fichier (multipart) : ' . implode(', ', array_keys($fields)) . '.';
+        }
+
+        return $errors;
+    }
+
+    /**
      * Optional boolean form field: null when absent, the caller has validated it beforehand.
      */
     public function flagValue(Request $request, string $field): ?bool

@@ -1,5 +1,6 @@
 monolog:
     channels:
+        - admin_api # one line per write done through the admin API
         - deprecation # Deprecations are logged in the dedicated "deprecation" channel when it exists
 
 when@dev:
@@ -36,6 +37,10 @@ when@test:
                 type: stream
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
                 level: debug
+            admin_api_spy:
+                type: test
+                level: info
+                channels: ["admin_api"]
 
 when@prod:
     monolog:

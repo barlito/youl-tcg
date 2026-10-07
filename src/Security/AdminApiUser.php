@@ -20,6 +20,11 @@ final readonly class AdminApiUser implements UserInterface
     {
     }
 
+    public function getGeneratedBy(): string
+    {
+        return $this->generatedBy;
+    }
+
     public function getRoles(): array
     {
         return array_map(static fn (AdminApiScopeEnum $scope): string => $scope->role(), $this->scopes);
