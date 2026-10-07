@@ -25,6 +25,9 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class UserCardRepository extends ServiceEntityRepository
 {
+    // a card counts toward a universe reward only if the owner pulled it in one of his own openings (trades and market do not)
+    private const string DRAWN_BY_OWNER = 'EXISTS (SELECT 1 FROM App\Entity\BoosterOpeningCard boc JOIN boc.boosterOpening bo WHERE boc.card = c AND bo.discordUser = uc.discordUser)';
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, UserCard::class);
@@ -115,9 +118,9 @@ class UserCardRepository extends ServiceEntityRepository
     /**
      * @param list<string> $extensionIds
      *
-     * @return array<string, array<string, int>> discord id => extension id => distinct owned published non-unique cards
+     * @return array<string, array<string, int>> discord id => extension id => distinct published non-unique cards still owned AND drawn by the player himself
      */
-    public function countOwnedNonUniqueByPlayerAndExtension(array $extensionIds, ?string $discordId = null): array
+    public function countDrawnOwnedNonUniqueByPlayerAndExtension(array $extensionIds, ?string $discordId = null): array
     {
         $queryBuilder = $this->createQueryBuilder('uc')
             ->select('IDENTITY(uc.discordUser) AS discordId', 'IDENTITY(c.extension) AS extensionId', 'COUNT(DISTINCT c.id) AS ownedCount')
@@ -128,6 +131,7 @@ class UserCardRepository extends ServiceEntityRepository
             ->andWhere('c.status = :cardStatus')
             ->andWhere('e.status = :extensionStatus')
             ->andWhere('c.uniqueFlag = false')
+            ->andWhere(self::DRAWN_BY_OWNER)
             ->setParameter('extensionIds', $extensionIds)
             ->setParameter('cardStatus', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
             ->setParameter('extensionStatus', ExtensionStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
@@ -152,9 +156,9 @@ class UserCardRepository extends ServiceEntityRepository
     /**
      * @param list<string> $extensionIds
      *
-     * @return array<string, int> extension id => distinct owned published non-unique cards
+     * @return array<string, int> extension id => distinct published non-unique cards still owned AND drawn by the player himself
      */
-    public function countOwnedNonUniqueByExtension(DiscordUser $discordUser, array $extensionIds): array
+    public function countDrawnOwnedNonUniqueByExtension(DiscordUser $discordUser, array $extensionIds): array
     {
         /** @var list<array{extensionId: string, ownedCount: string|int}> $rows */
         $rows = $this->createQueryBuilder('uc')
@@ -167,6 +171,7 @@ class UserCardRepository extends ServiceEntityRepository
             ->andWhere('c.status = :cardStatus')
             ->andWhere('e.status = :extensionStatus')
             ->andWhere('c.uniqueFlag = false')
+            ->andWhere(self::DRAWN_BY_OWNER)
             ->setParameter('user', $discordUser)
             ->setParameter('extensionIds', $extensionIds)
             ->setParameter('cardStatus', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)

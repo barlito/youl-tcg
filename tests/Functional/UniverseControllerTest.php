@@ -13,12 +13,17 @@ use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Enum\FeatureEnum;
+use App\Tests\DrawnCardTrait;
+use App\Tests\FeatureFlagTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class UniverseControllerTest extends WebTestCase
 {
+    use DrawnCardTrait;
+    use FeatureFlagTrait;
     use JwtAuthTrait;
 
     private KernelBrowser $client;
@@ -226,6 +231,32 @@ final class UniverseControllerTest extends WebTestCase
         $boosters = $crawler->filter('[data-testid="universe-boosters"]');
         $this->assertStringContainsString('Pack Event Univers', $boosters->text());
         $this->assertStringContainsString('Non récupérable', $boosters->text());
+    }
+
+    public function testRewardProgressCountsOnlyTheCardsDrawnByThePlayer(): void
+    {
+        // cards[0] is owned (not drawn), cards[1] drawn: only the drawn one counts
+        $this->recordDraw($this->entityManager, $this->user, $this->cards[1]);
+        $this->entityManager->persist(new UserCard()->setDiscordUser($this->user)->setCard($this->cards[1])->setQuantity(1));
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/univers/' . $this->extension->getSlug());
+
+        $reward = $crawler->filter('[data-testid="universe-reward"]');
+        $this->assertSame(1, $reward->count());
+        $this->assertStringContainsString('1/3', $reward->text());
+        $this->assertStringContainsString('cartes tirées par toi', $reward->text());
+        $this->assertStringContainsString('échange ou achetées ne comptent pas', $reward->text());
+    }
+
+    public function testRewardProgressIsHiddenWhileTheFeatureIsOff(): void
+    {
+        $this->setFeature(FeatureEnum::UNIVERSE_REWARDS, false);
+
+        $crawler = $this->client->request('GET', '/univers/' . $this->extension->getSlug());
+
+        self::assertResponseIsSuccessful();
+        $this->assertSame(0, $crawler->filter('[data-testid="universe-reward"]')->count());
     }
 
     public function testUnknownSlugIsNotFound(): void

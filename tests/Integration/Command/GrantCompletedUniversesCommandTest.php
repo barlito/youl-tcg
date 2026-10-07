@@ -14,6 +14,7 @@ use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use App\Enum\FeatureEnum;
+use App\Tests\DrawnCardTrait;
 use App\Tests\FeatureFlagTrait;
 use App\Tests\Support\CoinMockResponses;
 use Doctrine\ORM\EntityManagerInterface;
@@ -24,6 +25,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 
 final class GrantCompletedUniversesCommandTest extends KernelTestCase
 {
+    use DrawnCardTrait;
     use FeatureFlagTrait;
 
     private EntityManagerInterface $entityManager;
@@ -106,6 +108,39 @@ final class GrantCompletedUniversesCommandTest extends KernelTestCase
         $this->runCommand();
 
         $this->assertCount(1, $this->rewards());
+    }
+
+    public function testACardNotDrawnByThePlayerBlocksTheCatchUpUntilItIsDrawn(): void
+    {
+        $this->give($this->createCard($this->extension));
+        $received = $this->createCard($this->extension);
+        $this->give($received, drawn: false);
+
+        $tester = $this->runCommand();
+        $this->assertStringContainsString('No completed universe without reward', $tester->getDisplay());
+        $this->assertSame([], $this->rewards());
+
+        $this->recordDraw($this->entityManager, $this->user, $this->entityManager->find(Card::class, $received->getId()));
+        $this->runCommand();
+
+        $this->assertCount(1, $this->rewards());
+    }
+
+    public function testAnAlreadyPaidRewardIsLeftIntactEvenWithoutDrawnCards(): void
+    {
+        $this->give($this->createCard($this->extension), drawn: false);
+        $reward = new UniverseCompletionReward($this->user, $this->extension, 123, new \DateTimeImmutable('-1 day'));
+        $reward->markPaid('old-tx', new \DateTimeImmutable('-1 day'));
+        $this->entityManager->persist($reward);
+        $this->entityManager->flush();
+
+        $this->runCommand();
+
+        $rewards = $this->rewards();
+        $this->assertCount(1, $rewards);
+        $this->assertSame(123, $rewards[0]->getAmount());
+        $this->assertSame(UniverseRewardStatusEnum::PAID, $rewards[0]->getStatus());
+        $this->assertSame([], $this->coin->requests);
     }
 
     public function testAUniverseMadeOfUniquesOnlyIsIgnored(): void
@@ -196,10 +231,13 @@ final class GrantCompletedUniversesCommandTest extends KernelTestCase
         return $card;
     }
 
-    private function give(Card $card): void
+    private function give(Card $card, bool $drawn = true): void
     {
         $this->entityManager->persist(new UserCard()->setDiscordUser($this->user)->setCard($card)->setQuantity(1));
         $this->entityManager->flush();
+        if ($drawn) {
+            $this->recordDraw($this->entityManager, $this->user, $card);
+        }
     }
 
     /**

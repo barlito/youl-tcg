@@ -10,12 +10,17 @@ use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Enum\FeatureEnum;
 use App\Repository\BoosterRepository;
 use App\Repository\CardRepository;
 use App\Repository\ExtensionRepository;
+use App\Repository\UniverseCompletionRewardRepository;
 use App\Repository\UserBoosterRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterAvailabilityService;
+use App\Service\Coin\CoinAmount;
+use App\Service\Coin\UniverseCompletionChecker;
+use App\Service\Feature\FeatureFlags;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -43,6 +48,9 @@ class UniverseController extends AbstractController
         private readonly UserCardRepository $userCardRepository,
         private readonly UserBoosterRepository $userBoosterRepository,
         private readonly BoosterAvailabilityService $boosterAvailability,
+        private readonly FeatureFlags $featureFlags,
+        private readonly UniverseCompletionChecker $completionChecker,
+        private readonly UniverseCompletionRewardRepository $rewardRepository,
     ) {
     }
 
@@ -119,8 +127,32 @@ class UniverseController extends AbstractController
             'ownedBoosterCounts' => $this->ownedBoosterCounts($user),
             'uniquesTotal' => $uniquesTotal,
             'uniquesClaimed' => $uniquesClaimed,
+            'reward' => $this->rewardProgress($user, $extension, $catalog),
             'coverImage' => $this->cardRepository->findCoverImageNamesByExtension()[(string) $extension->getId()] ?? null,
         ]);
+    }
+
+    /**
+     * Reward progress counts only the cards the player pulled himself; null while the feature is off.
+     *
+     * @param list<Card> $catalog
+     *
+     * @return array{drawn: int, total: int, amount: string, rewarded: bool}|null
+     */
+    private function rewardProgress(DiscordUser $user, Extension $extension, array $catalog): ?array
+    {
+        $amount = $this->completionChecker->rewardAmount($extension);
+        $total = \count(array_filter($catalog, static fn (Card $card): bool => !$card->isUnique()));
+        if (!$this->featureFlags->isEnabled(FeatureEnum::UNIVERSE_REWARDS) || $amount <= 0 || 0 === $total) {
+            return null;
+        }
+
+        return [
+            'drawn' => $this->userCardRepository->countDrawnOwnedNonUniqueByExtension($user, [(string) $extension->getId()])[(string) $extension->getId()] ?? 0,
+            'total' => $total,
+            'amount' => CoinAmount::fromCoins($amount)->format(),
+            'rewarded' => null !== $this->rewardRepository->findOneBy(['discordUser' => $user, 'extension' => $extension]),
+        ];
     }
 
     /**

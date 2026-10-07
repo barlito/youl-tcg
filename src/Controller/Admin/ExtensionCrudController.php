@@ -99,7 +99,7 @@ class ExtensionCrudController extends AbstractGuardedCrudController
         ;
         yield IntegerField::new('completionRewardCoins')
             ->setLabel('Récompense de complétion (coins)')
-            ->setHelp('Coins versés une fois par joueur qui possède toutes les cartes publiées de l\'univers (cartes 1/1 exclues). Vide : valeur par défaut des réglages coin. 0 : pas de récompense.')
+            ->setHelp('Coins versés une fois par joueur qui possède toutes les cartes publiées de l\'univers et les a toutes tirées lui-même en ouvrant des boosters (cartes 1/1 exclues ; échanges et achats marché ne comptent pas). Vide : valeur par défaut des réglages coin. 0 : pas de récompense.')
         ;
         yield ImageField::new('imageName')
             ->setLabel('Image')
