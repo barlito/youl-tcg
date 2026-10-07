@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\BoosterOpeningCardRepository;
 use App\Repository\BoosterOpeningRepository;
 use App\Repository\CardRepository;
 use App\Repository\ExtensionRepository;
+use App\Service\Home\HomeDashboardBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 
@@ -27,6 +30,8 @@ class BaseController extends AbstractController
 
     #[Route('/', name: 'homepage')]
     public function homepage(
+        #[CurrentUser] DiscordUser $user,
+        HomeDashboardBuilder $dashboard,
         CardRepository $cardRepository,
         ExtensionRepository $extensionRepository,
         BoosterOpeningRepository $boosterOpeningRepository,
@@ -71,6 +76,10 @@ class BaseController extends AbstractController
             'cardsPulledCount' => $boosterOpeningCardRepository->countPulledCards(),
             'upcoming' => $upcoming,
             'upcomingCover' => $upcoming instanceof Extension ? $cardRepository->findTeaserCoverImageName($upcoming) : null,
+            'today' => $dashboard->today($user),
+            'toFinish' => $dashboard->universesToFinish($user, $extensions, $coverImages),
+            'community' => $dashboard->community(),
+            'latestListings' => $dashboard->latestListings($user),
         ]);
     }
 

@@ -1,0 +1,149 @@
+{# « Ton QG » : what the player can do right now, one tile per action #}
+{% set claims = today.claims %}
+{% set streak = today.streak %}
+<section id="qg" class="px-6 pb-4 pt-20 lg:px-14" data-testid="home-today">
+    <div class="mx-auto max-w-7xl">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+            <div>
+                <p class="eyebrow">Ton QG</p>
+                <h2 class="mt-4 font-display text-5xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-6xl">
+                    Salut <span class="text-primary">{{ app.user.username }}</span>.
+                </h2>
+            </div>
+            <a href="{{ path('collection') }}" class="btn-ghost !px-4 !py-2 text-xs">Ma collection ▸</a>
+        </div>
+
+        <div class="mt-10 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+            {# packs of the day: the tile lights up while something is waiting #}
+            {% set packsWaiting = claims.remaining > 0 or today.unopenedBoosters > 0 %}
+            <a href="{{ path('boosters') }}" data-testid="today-claims"
+               class="group border bg-surface p-5 transition-colors hover:border-primary {{ packsWaiting ? 'border-primary/70 shadow-[0_0_18px_#a435f033]' : 'border-hairline' }}">
+                <p class="chip-mono text-ink-dim">Packs du jour</p>
+                <p class="mt-3 font-display text-4xl font-bold text-ink-strong">{{ claims.remaining }}<span class="text-xl text-ink-dim">/{{ claims.limit }}</span></p>
+                <p class="mt-2 text-sm text-ink-muted">
+                    {% if claims.remaining > 0 %}
+                        <span class="text-primary">à réclamer ▸</span>
+                    {% else %}
+                        Recharge dans <span data-controller="countdown" data-countdown-seconds-value="{{ claims.secondsUntilReset }}">--:--:--</span>
+                    {% endif %}
+                </p>
+                {% if today.unopenedBoosters > 0 %}
+                    <p class="chip-mono mt-2 text-live" data-testid="today-unopened">● {{ today.unopenedBoosters }} pack{{ today.unopenedBoosters > 1 ? 's' }} à ouvrir</p>
+                {% endif %}
+            </a>
+
+            <a href="{{ path('boosters') }}" data-testid="today-streak"
+               class="border bg-surface p-5 transition-colors hover:border-primary {{ streak.atRisk ? 'border-magenta/80' : 'border-hairline' }}">
+                <p class="chip-mono text-ink-dim">Série</p>
+                <p class="mt-3 font-display text-4xl font-bold text-ink-strong">🔥 {{ streak.length }}<span class="text-xl text-ink-dim"> j</span></p>
+                <p class="mt-2 text-sm {{ streak.atRisk ? 'text-magenta' : 'text-ink-muted' }}">
+                    {% if streak.atRisk %}
+                        Ouvre un pack avant minuit !
+                    {% elseif streak.openedToday %}
+                        Validée aujourd'hui · prochain palier {{ streak.nextMilestone }} j
+                    {% else %}
+                        Ouvre un pack pour lancer ta série
+                    {% endif %}
+                </p>
+            </a>
+
+            <a href="{{ path('leaderboard') }}" data-testid="today-collection"
+               class="border border-hairline bg-surface p-5 transition-colors hover:border-primary">
+                <p class="chip-mono text-ink-dim">Collection</p>
+                <p class="mt-3 font-display text-4xl font-bold text-ink-strong">{{ today.completionPct }}<span class="text-xl text-ink-dim"> %</span></p>
+                <div class="mt-3 h-1.5 bg-white/10" aria-hidden="true">
+                    <div class="h-full bg-gradient-to-r from-primary to-magenta" style="width: {{ today.completionPct }}%;"></div>
+                </div>
+                <p class="mt-2 text-sm text-ink-muted">#{{ today.rank }} au classement ▸</p>
+            </a>
+
+            {% if today.pendingTrades is not null %}
+                <a href="{{ path('trades') }}" data-testid="today-trades"
+                   class="border bg-surface p-5 transition-colors hover:border-primary {{ today.pendingTrades > 0 ? 'border-primary/70' : 'border-hairline' }}">
+                    <p class="chip-mono text-ink-dim">Échanges</p>
+                    <p class="mt-3 font-display text-4xl font-bold text-ink-strong">⇄ {{ today.pendingTrades }}</p>
+                    <p class="mt-2 text-sm text-ink-muted">
+                        {{ today.pendingTrades > 0 ? (today.pendingTrades > 1 ? 'offres attendent ta réponse' : 'offre attend ta réponse') : 'Aucune offre reçue' }}
+                    </p>
+                </a>
+            {% endif %}
+
+            {% if today.fusions is not null %}
+                <a href="{{ path('fusion') }}" data-testid="today-fusion"
+                   class="border bg-surface p-5 transition-colors hover:border-primary {{ today.fusions.possible > 0 ? 'border-primary/70' : 'border-hairline' }}">
+                    <p class="chip-mono text-ink-dim">Fusion</p>
+                    <p class="mt-3 font-display text-4xl font-bold text-ink-strong">✦ {{ today.fusions.possible }}</p>
+                    <p class="mt-2 text-sm text-ink-muted">
+                        {% if today.fusions.possible > 0 %}
+                            fusion{{ today.fusions.possible > 1 ? 's' }} possible{{ today.fusions.possible > 1 ? 's' }} sur {{ today.fusions.cards }} carte{{ today.fusions.cards > 1 ? 's' }}
+                        {% else %}
+                            10 doublons normaux = 1 holo
+                        {% endif %}
+                    </p>
+                </a>
+            {% endif %}
+
+            {% if today.recycledToday is not null %}
+                <a href="{{ path('recycle') }}" data-testid="today-recycle"
+                   class="border border-hairline bg-surface p-5 transition-colors hover:border-primary">
+                    <p class="chip-mono text-ink-dim">Recyclage</p>
+                    <p class="mt-3 font-display text-4xl font-bold {{ today.recycledToday ? 'text-ink-dim' : 'text-live' }}">{{ today.recycledToday ? '✓' : '♻' }}</p>
+                    <p class="mt-2 text-sm text-ink-muted">{{ today.recycledToday ? 'Fait aujourd\'hui' : 'Disponible aujourd\'hui' }}</p>
+                </a>
+            {% endif %}
+
+            {% if today.wishesOnSale is not null %}
+                <a href="{{ path('market', { wishlist: 1 }) }}" data-testid="today-wishlist"
+                   class="border bg-surface p-5 transition-colors hover:border-magenta {{ today.wishesOnSale > 0 ? 'border-magenta/70' : 'border-hairline' }}">
+                    <p class="chip-mono text-ink-dim">Wishlist</p>
+                    <p class="mt-3 font-display text-4xl font-bold text-ink-strong"><span class="text-magenta">♡</span> {{ today.wishesOnSale }}</p>
+                    <p class="mt-2 text-sm text-ink-muted">
+                        {{ today.wishesOnSale > 0 ? (today.wishesOnSale > 1 ? 'cartes souhaitées en vente' : 'carte souhaitée en vente') : 'Rien en vente pour l\'instant' }}
+                    </p>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+{% if toFinish is not empty %}
+    {# the started universes closest to 100 %, with the self-drawn reward progress #}
+    <section class="px-6 pb-8 pt-12 lg:px-14" data-testid="home-to-finish">
+        <div class="mx-auto max-w-7xl">
+            <p class="chip-mono text-ink-dim">Presque complets</p>
+            <div class="mt-4 grid gap-3 md:grid-cols-3">
+                {% for universe in toFinish %}
+                    {% set extension = universe.extension %}
+                    {% set coverUrl = extension.imageName
+                        ? vich_uploader_asset(extension)
+                        : (universe.coverImage ? asset('uploads/cards/' ~ universe.coverImage)) %}
+                    <a href="{{ path('universes_show', { slug: extension.slug }) }}" data-testid="to-finish-universe"
+                       class="group relative block min-h-[150px] overflow-hidden border border-hairline bg-surface transition-colors hover:border-primary">
+                        {% if coverUrl %}
+                            <img src="{{ coverUrl }}" alt="" loading="lazy" onerror="this.remove()"
+                                 class="absolute inset-0 h-full w-full object-cover object-top opacity-40 transition-opacity group-hover:opacity-60">
+                        {% endif %}
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" aria-hidden="true"></div>
+                        <div class="relative flex h-full flex-col justify-end p-5">
+                            <div class="flex items-baseline justify-between gap-3">
+                                <h3 class="truncate font-display text-xl font-bold uppercase tracking-[-0.02em] text-white">{{ extension.name }}</h3>
+                                <span class="font-display text-2xl font-bold text-primary">{{ universe.percentage }} %</span>
+                            </div>
+                            <div class="mt-2 h-1.5 bg-white/15" aria-hidden="true">
+                                <div class="h-full bg-gradient-to-r from-primary to-magenta" style="width: {{ universe.percentage }}%;"></div>
+                            </div>
+                            <p class="chip-mono mt-2 text-white/80">
+                                {{ universe.owned }}/{{ universe.total }} cartes · il en manque {{ universe.total - universe.owned }}
+                            </p>
+                            {% if universe.reward %}
+                                <p class="chip-mono mt-1 text-white/70" data-testid="to-finish-reward">
+                                    ★ {{ universe.reward.drawn }}/{{ universe.reward.total }} tirées par toi · +{{ universe.reward.amount }} YLC
+                                </p>
+                            {% endif %}
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+{% endif %}
