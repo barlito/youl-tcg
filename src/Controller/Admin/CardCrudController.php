@@ -10,6 +10,7 @@ use App\Admin\VisualConfigFields;
 use App\Entity\BoosterOpeningCard;
 use App\Entity\Card;
 use App\Entity\DiscordUser;
+use App\Entity\FusionOperation;
 use App\Entity\MarketListing;
 use App\Entity\RecycleOperationCard;
 use App\Enum\Entity\CardRarityEnum;
@@ -347,6 +348,7 @@ class CardCrudController extends AbstractGuardedCrudController
             '%d joueur(s) la possèdent' => $this->userCardRepository->countHolders($entity),
             '%d ouverture(s) l\'ont tirée' => $this->entityManager->getRepository(BoosterOpeningCard::class)->count(['card' => $entity]),
             '%d recyclage(s) l\'ont consommée' => $this->entityManager->getRepository(RecycleOperationCard::class)->count(['card' => $entity]),
+            '%d fusion(s) l\'ont consommée' => $this->entityManager->getRepository(FusionOperation::class)->count(['card' => $entity]),
             '%d annonce(s) du marché la concernent' => $this->entityManager->getRepository(MarketListing::class)->count(['card' => $entity]),
         ]);
 

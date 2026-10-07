@@ -98,6 +98,12 @@ final readonly class PlayersSection extends AbstractStatsSection
                     'points' => $this->pair($own, 'recycle_points'),
                     'boostersObtained' => $this->pair($own, 'recycle_boosters'),
                 ],
+                'fusion' => [
+                    'operations' => $this->pair($own, 'fusion_operations'),
+                    'fusions' => $this->pair($own, 'fusion_count'),
+                    'copiesConsumed' => $this->pair($own, 'fusion_copies'),
+                    'holosCreated' => $this->pair($own, 'fusion_holos'),
+                ],
                 'streak' => [
                     'current' => $streak['current'],
                     'best' => $streak['best'],
@@ -178,6 +184,14 @@ final readonly class PlayersSection extends AbstractStatsSection
                 SELECT discord_user_id, 'recycle_points', recycled_at, points, 0, 0 FROM recycle_operation
                 UNION ALL
                 SELECT discord_user_id, 'recycle_boosters', recycled_at, booster_count, 0, 0 FROM recycle_operation
+                UNION ALL
+                SELECT discord_user_id, 'fusion_operations', fused_at, 1, 0, 0 FROM fusion_operation
+                UNION ALL
+                SELECT discord_user_id, 'fusion_count', fused_at, fusion_count, 0, 0 FROM fusion_operation
+                UNION ALL
+                SELECT discord_user_id, 'fusion_copies', fused_at, copies_consumed, 0, 0 FROM fusion_operation
+                UNION ALL
+                SELECT discord_user_id, 'fusion_holos', fused_at, holos_created, 0, 0 FROM fusion_operation
                 UNION ALL
                 SELECT proposer_id, 'trade_proposed', created_at, 1, 0, 0 FROM trade_offer
                 UNION ALL

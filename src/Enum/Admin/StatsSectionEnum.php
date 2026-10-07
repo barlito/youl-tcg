@@ -16,6 +16,7 @@ enum StatsSectionEnum: string
     case MARKET = 'market';
     case TRADES = 'trades';
     case RECYCLING = 'recycling';
+    case FUSION = 'fusion';
     case CODES = 'codes';
     case STREAKS = 'streaks';
     case UNIVERSE_REWARDS = 'universeRewards';

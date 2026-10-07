@@ -59,6 +59,13 @@
                             ♻ Recycler mes doublons
                         </a>
                     {% endif %}
+                    {% if feature_enabled('fusion') %}
+                        <a href="{{ path('fusion') }}"
+                           data-testid="fusion-link"
+                           class="border border-hairline bg-black px-5 py-3.5 font-display text-[13px] font-bold uppercase tracking-[.15em] text-ink-muted transition-colors hover:border-primary hover:text-primary">
+                            ✦ Fusionner mes doublons
+                        </a>
+                    {% endif %}
                     <a href="{{ path('opening_history') }}"
                        class="chip-mono text-ink-dim transition-colors hover:text-primary"
                        data-testid="history-link">

@@ -67,6 +67,10 @@ trait StatsApiScenarioTrait
         $this->conn->insert('recycle_operation_card', ['recycle_operation_id' => $recycle, 'card_id' => $rare, 'quantity' => 2, 'holo_quantity' => 0]);
         $this->conn->insert('recycle_operation_card', ['recycle_operation_id' => $recycle, 'card_id' => $common, 'quantity' => 2, 'holo_quantity' => 1]);
 
+        $this->row('fusion_operation', ['discord_user_id' => self::STATSY, 'card_id' => $common, 'fusion_count' => 2, 'copies_consumed' => 20, 'holos_created' => 2, 'fused_at' => '2026-10-06 16:00:00']);
+        $this->row('fusion_operation', ['discord_user_id' => self::STATSY, 'card_id' => $rare, 'fusion_count' => 1, 'copies_consumed' => 10, 'holos_created' => 1, 'fused_at' => '2026-06-01 16:00:00']);
+        $this->row('fusion_operation', ['discord_user_id' => self::BUYER, 'card_id' => $common, 'fusion_count' => 1, 'copies_consumed' => 10, 'holos_created' => 1, 'fused_at' => '2026-10-07 08:00:00']);
+
         $this->conn->insert('user_card', ['discord_user_id' => self::STATSY, 'card_id' => $common, 'quantity' => 3, 'holo_quantity' => 1, 'created_at' => self::NOW, 'updated_at' => self::NOW]);
         $this->conn->insert('user_card', ['discord_user_id' => self::STATSY, 'card_id' => $rare, 'quantity' => 1, 'holo_quantity' => 0, 'created_at' => self::NOW, 'updated_at' => self::NOW]);
         $this->conn->insert('user_booster', ['discord_user_id' => self::STATSY, 'booster_id' => $booster, 'quantity' => 4, 'created_at' => self::NOW, 'updated_at' => self::NOW]);

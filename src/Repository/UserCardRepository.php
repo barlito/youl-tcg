@@ -394,6 +394,42 @@ class UserCardRepository extends ServiceEntityRepository
         return $this->lockRows($discordUser, $cardIds);
     }
 
+    /**
+     * Published, non-unique cards of which the player holds at least $minNormal
+     * normal copies (engaged ones included: the caller subtracts the ledger).
+     *
+     * @return list<UserCard> rarest first, then by name
+     */
+    public function findWithNormalCopies(DiscordUser $discordUser, int $minNormal): array
+    {
+        /** @var list<UserCard> $cards */
+        $cards = $this->createQueryBuilder('uc')
+            ->join('uc.card', 'c')
+            ->addSelect('c')
+            ->join('c.extension', 'e')
+            ->addSelect('e')
+            ->andWhere('uc.discordUser = :user')
+            ->andWhere('uc.quantity - uc.holoQuantity >= :minNormal')
+            ->andWhere('c.status = :cardStatus')
+            ->andWhere('e.status = :extensionStatus')
+            ->andWhere('c.uniqueFlag = false')
+            ->setParameter('user', $discordUser)
+            ->setParameter('minNormal', $minNormal)
+            ->setParameter('cardStatus', CardStatusEnum::PUBLISHED)
+            ->setParameter('extensionStatus', ExtensionStatusEnum::PUBLISHED)
+            ->getQuery()
+            ->getResult()
+        ;
+
+        usort(
+            $cards,
+            static fn (UserCard $a, UserCard $b): int => CardRarityEnum::compareRarestFirst($a->getCard()->getRarity(), $b->getCard()->getRarity())
+                ?: $a->getCard()->getName() <=> $b->getCard()->getName(),
+        );
+
+        return $cards;
+    }
+
     public function countHolders(Card $card): int
     {
         return (int) $this->createQueryBuilder('userCard')

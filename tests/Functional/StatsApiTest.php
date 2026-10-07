@@ -45,6 +45,7 @@ final class StatsApiTest extends WebTestCase
             'market' => ['listingsByStatus', 'activeListings', 'sales', 'purchasesByStatus', 'topCards', 'topSellers', 'topBuyers'],
             'trades' => ['offersByStatus', 'perDay', 'acceptanceRatePercent', 'lines', 'mostOfferedCards', 'mostRequestedCards', 'mostActivePlayers'],
             'recycling' => ['totals', 'perWeek', 'perDay', 'boostersProduced', 'copiesByRarity', 'topCards'],
+            'fusion' => ['totals', 'perDay', 'topCards', 'topPlayers'],
             'codes' => ['totals', 'batches', 'usesPerDay'],
             'streaks' => ['rewards', 'boostersChosen', 'currentStreaks'],
             'universeRewards' => ['byStatus', 'paidDelaySeconds', 'completionsPerDay', 'perExtension'],
@@ -65,11 +66,13 @@ final class StatsApiTest extends WebTestCase
         $this->assertSame('2026-09-08', $meta['periodStart']);
         $this->assertSame('2026-10-07', $meta['periodEnd']);
         $this->assertSame('Europe/Paris', $meta['timezone']);
-        $this->assertSame(['trades', 'recycling', 'universe_rewards'], array_keys($meta['features']));
+        $this->assertSame(['trades', 'recycling', 'universe_rewards', 'fusion'], array_keys($meta['features']));
         $this->assertSame(['minor' => '50000000000', 'coins' => 500], $meta['coinSettings']['defaultUniverseRewardCoins']);
         $this->assertSame(5, $meta['coinSettings']['marketFeePercent']);
         $this->assertNull($meta['commit']);
         $this->assertSame(10, $meta['gameRules']['recycleBoosterCostPoints']);
+        $this->assertSame(10, $meta['gameRules']['fusionCostCopies']);
+        $this->assertSame(10, $meta['gameRules']['fusionMaxPerOperation']);
     }
 
     public function testSectionsParameterFiltersTheAnswer(): void
@@ -150,6 +153,7 @@ final class StatsApiTest extends WebTestCase
         $this->assertSame(1, $player['recycling']['operations']['total']);
         $this->assertSame(9, $player['recycling']['points']['total']);
         $this->assertSame(1, $player['recycling']['boostersObtained']['total']);
+        $this->assertSame(['operations' => ['total' => 2, 'period' => 1], 'fusions' => ['total' => 3, 'period' => 2], 'copiesConsumed' => ['total' => 30, 'period' => 20], 'holosCreated' => ['total' => 3, 'period' => 2]], $player['fusion']);
         $this->assertSame(['current' => 3, 'best' => 3, 'startedOn' => '2026-10-05', 'openedToday' => true, 'milestonesAwarded' => 1, 'rewardsChosen' => 1], $player['streak']);
         $this->assertSame(1, $player['universeRewards']['paid']['count']);
         $this->assertSame(500, $player['universeRewards']['paid']['amount']['coins']);
@@ -350,6 +354,29 @@ final class StatsApiTest extends WebTestCase
         $this->assertSame('Cyberpunk Rogue', $trades['mostOfferedCards']['allTime'][0]['card']['name']);
         $this->assertSame(self::STATSY, $trades['mostActivePlayers']['proposers']['allTime'][0]['player']['discordId']);
         $this->assertSame(2, $trades['mostActivePlayers']['proposers']['allTime'][0]['offers']);
+    }
+
+    public function testFusionSection(): void
+    {
+        $fusion = $this->stats(['fusion'])['fusion'];
+
+        $this->assertSame(['operations' => 3, 'fusions' => 4, 'copiesConsumed' => 40, 'holosCreated' => 4, 'players' => 2], $fusion['totals']['allTime']);
+        $this->assertSame(['operations' => 2, 'fusions' => 3, 'copiesConsumed' => 30, 'holosCreated' => 3, 'players' => 2], $fusion['totals']['period']);
+
+        $perDay = array_column($fusion['perDay'], null, 'day');
+        $this->assertSame(['day' => '2026-10-06', 'operations' => 1, 'fusions' => 2, 'copies' => 20, 'holos' => 2], $perDay['2026-10-06']);
+        $this->assertSame(1, $perDay['2026-10-07']['fusions']);
+        $this->assertSame(0, $perDay['2026-10-05']['operations']);
+
+        $this->assertSame('Cyberpunk Barlito', $fusion['topCards']['allTime'][0]['card']['name']);
+        $this->assertSame(3, $fusion['topCards']['allTime'][0]['fusions']);
+        $this->assertSame(30, $fusion['topCards']['period'][0]['copiesConsumed']);
+        $this->assertCount(1, $fusion['topCards']['period']);
+
+        $this->assertSame(self::STATSY, $fusion['topPlayers']['allTime'][0]['player']['discordId']);
+        $this->assertSame(3, $fusion['topPlayers']['allTime'][0]['fusions']);
+        $this->assertSame(2, $fusion['topPlayers']['allTime'][0]['operations']);
+        $this->assertSame(2, $fusion['topPlayers']['period'][0]['fusions']);
     }
 
     public function testRecyclingCodesStreaksAndUniverseRewards(): void
