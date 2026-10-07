@@ -14,6 +14,7 @@ enum FeatureEnum: string
     case UNIVERSE_REWARDS = 'universe_rewards';
     case FUSION = 'fusion';
     case WISHLIST = 'wishlist';
+    case DUEL = 'duel';
 
     public function label(): string
     {
@@ -23,6 +24,7 @@ enum FeatureEnum: string
             self::UNIVERSE_REWARDS => 'Récompenses de complétion d\'univers',
             self::FUSION => 'Fusion des doublons',
             self::WISHLIST => 'Wishlist et alertes',
+            self::DUEL => 'Jeu de duel (decks, tags, API du jeu)',
         };
     }
 }

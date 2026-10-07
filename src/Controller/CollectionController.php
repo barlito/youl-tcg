@@ -7,8 +7,11 @@ namespace App\Controller;
 use App\Dto\ProfileComparison;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
+use App\Enum\FeatureEnum;
 use App\Service\Booster\BoosterClaimQuotaInterface;
+use App\Service\Collection\CollectionTagFilter;
 use App\Service\Collection\CompletionStripBuilder;
+use App\Service\Feature\FeatureFlags;
 use App\Service\Leaderboard\LeaderboardService;
 use App\Service\Leaderboard\ProfileComparisonService;
 use App\Service\Wishlist\WishlistService;
@@ -35,6 +38,8 @@ class CollectionController extends AbstractController
         private readonly LeaderboardService $leaderboardService,
         private readonly BoosterClaimQuotaInterface $boosterClaimQuota,
         private readonly WishlistService $wishlist,
+        private readonly CollectionTagFilter $tagFilter,
+        private readonly FeatureFlags $featureFlags,
     ) {
     }
 
@@ -65,14 +70,26 @@ class CollectionController extends AbstractController
         }
 
         $currentExtension = $this->resolveExtensionFilter($comparison, $slug);
+        // grid and filter chips follow the extension actually rendered
+        $visible = $this->profileComparisonService->restrictTo($comparison, $currentExtension);
+
+        // tags are a duel feature: the chips follow the universe shown, the tag narrows the owned cards
+        $duelEnabled = $this->featureFlags->isEnabled(FeatureEnum::DUEL);
+        $tagGroups = $duelEnabled ? $this->tagFilter->groups($visible) : [];
+        $currentTag = $duelEnabled ? $this->tagFilter->parse($request->query->getString('tag')) : null;
+        if (null !== $currentTag) {
+            $visible = $this->profileComparisonService->restrictToOwnedTag($visible, $currentTag);
+        }
 
         return $this->render('pages/collection.html.twig', [
             'entry' => $this->leaderboardService->getEntryFor($user),
             'comparison' => $comparison,
-            // grid and filter chips follow the extension actually rendered
-            'visible' => $this->profileComparisonService->restrictTo($comparison, $currentExtension),
+            'visible' => $visible,
             'strip' => $this->stripBuilder->build($comparison->universes),
             'currentExtension' => $currentExtension,
+            'duelEnabled' => $duelEnabled,
+            'tagGroups' => $tagGroups,
+            'currentTag' => $currentTag,
             'wishlistEnabled' => $this->wishlist->isEnabled(),
             'wishedIds' => $this->wishlist->wishedCardIds($user),
             'remainingClaims' => $this->boosterClaimQuota->getRemainingClaims($user),

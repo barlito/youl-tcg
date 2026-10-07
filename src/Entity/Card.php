@@ -9,6 +9,7 @@ use App\Entity\Traits\HasVisualConfigTrait;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Repository\CardRepository;
+use App\Service\Card\CardTags;
 use App\Validator\NotDepublishedWhileOwned;
 use Barlito\Utils\Traits\IdUuidTrait;
 use Doctrine\DBAL\Types\Types;
@@ -99,6 +100,17 @@ class Card implements \Stringable
      */
     #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
     private array $visualConfigOverride = [];
+
+    /**
+     * @var list<string>
+     */
+    #[Assert\Count(max: CardTags::MAX_TAGS, maxMessage: '{{ limit }} tags maximum par carte.')]
+    #[ORM\Column(type: Types::JSON, options: ['default' => '[]'])]
+    private array $tags = [];
+
+    // a terrain is a duel location card: collectible like any card, never playable in a deck
+    #[ORM\Column(options: ['default' => false])]
+    private bool $terrain = false;
 
     public function getName(): string
     {
@@ -207,6 +219,53 @@ class Card implements \Stringable
         if (null !== $reason && !$this->uniqueFlag) {
             $context->buildViolation($reason)->atPath('unique')->addViolation();
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function getTags(): array
+    {
+        return $this->tags;
+    }
+
+    /**
+     * @param iterable<mixed> $tags
+     */
+    public function setTags(iterable $tags): static
+    {
+        $this->tags = CardTags::normalize($tags);
+
+        return $this;
+    }
+
+    public function hasTag(string $tag): bool
+    {
+        return \in_array($tag, $this->tags, true);
+    }
+
+    #[Assert\Callback]
+    public function validateTags(ExecutionContextInterface $context): void
+    {
+        foreach ($this->tags as $tag) {
+            if (CardTags::IMPLICIT_FAMILY === CardTags::family($tag)) {
+                $context->buildViolation(\sprintf('« %s » : le tag universe: est implicite (c\'est l\'univers de la carte), ne le saisis pas.', $tag))->atPath('tags')->addViolation();
+            } elseif (!CardTags::isValid($tag)) {
+                $context->buildViolation(\sprintf('« %s » : format attendu famille:valeur (minuscules, chiffres, tirets), par ex. character:benj.', $tag))->atPath('tags')->addViolation();
+            }
+        }
+    }
+
+    public function isTerrain(): bool
+    {
+        return $this->terrain;
+    }
+
+    public function setTerrain(bool $terrain): static
+    {
+        $this->terrain = $terrain;
+
+        return $this;
     }
 
     public function isAlwaysHolo(): bool

@@ -19,6 +19,6 @@ readonly class JwtExpired
 
     public function onJwtExpired(JWTExpiredEvent $event): void
     {
-        $event->setResponse($this->refreshTokenRedirector->createRedirect($event->getRequest()));
+        $event->setResponse($this->refreshTokenRedirector->createResponse($event->getRequest()));
     }
 }

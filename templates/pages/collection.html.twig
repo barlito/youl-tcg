@@ -91,6 +91,7 @@
             strip: strip,
             currentExtension: currentExtension,
             route: 'collection',
+            routeParams: currentTag ? { tag: currentTag } : {},
             owned: comparison.owned,
             total: comparison.total,
             percentage: comparison.completionPct,
@@ -99,11 +100,43 @@
         {# ---------------------------------------------------------- Grille #}
         <section class="px-6 pb-24 pt-8 lg:px-12" data-controller="profile-filter">
             <div class="mx-auto max-w-7xl">
+                {% if tagGroups is not empty or currentTag %}
+                    {# tags des cartes POSSÉDÉES seulement : une carte face cachée ne trahit aucun tag #}
+                    <div class="mb-8 flex flex-col gap-3" data-testid="tag-filters">
+                        {% for group in tagGroups %}
+                            <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrer par {{ group.label|lower }}" data-testid="tag-group" data-family="{{ group.family }}">
+                                <span class="chip-mono w-28 shrink-0 text-ink-dim">{{ group.label }}</span>
+                                {% for item in group.tags %}
+                                    {% set active = item.tag == currentTag %}
+                                    <a href="{{ path('collection', { slug: currentExtension ? currentExtension.slug : null, tag: active ? null : item.tag }) }}"
+                                       class="filter-chip{{ active ? ' is-active' }}"
+                                       aria-pressed="{{ active ? 'true' : 'false' }}"
+                                       data-testid="tag-chip"
+                                       data-tag="{{ item.tag }}">
+                                        {{ item.label }} <span class="filter-chip__count">{{ item.count }}</span>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
+                        {% if currentTag %}
+                            <a href="{{ path('collection', { slug: currentExtension ? currentExtension.slug : null }) }}"
+                               class="chip-mono self-start text-ink-dim transition-colors hover:text-primary"
+                               data-testid="tag-reset">
+                                ✕ Retirer le filtre {{ currentTag }}
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
                 {% if visible.owned == 0 %}
                     <div class="mb-10 border border-dashed border-hairline px-8 py-16 text-center text-ink-dim" data-testid="empty-state">
                         <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Vide.</p>
                         <p class="mt-3 text-sm">
-                            {{ currentExtension is not null ? 'Aucune carte de cet univers. Ouvre un pack, gros youl.' : 'Aucune carte pour le moment. Ouvre un pack, gros youl.' }}
+                            {% if currentTag %}
+                                Aucune carte de ta collection ne porte ce tag ici.
+                            {% else %}
+                                {{ currentExtension is not null ? 'Aucune carte de cet univers. Ouvre un pack, gros youl.' : 'Aucune carte pour le moment. Ouvre un pack, gros youl.' }}
+                            {% endif %}
                         </p>
                         <a href="{{ path('boosters') }}" class="btn-arcade mt-8">Ouvrir un pack ▸</a>
                     </div>
@@ -190,6 +223,11 @@
                                         {% if item.card.isUnique %}
                                             <span class="chip-mono border border-magenta bg-black/90 px-2 py-1 font-bold text-magenta" data-testid="chip-unique">
                                                 ◆<span class="sr-only sm:not-sr-only sm:ml-1">1/1</span>
+                                            </span>
+                                        {% endif %}
+                                        {% if userCard is not null and duelEnabled and item.card.terrain %}
+                                            <span class="chip-mono border border-hairline bg-black/90 px-2 py-1 font-bold text-ink-muted" data-testid="chip-terrain" title="Terrain du jeu de duel">
+                                                ⛰<span class="sr-only sm:not-sr-only sm:ml-1">Terrain</span>
                                             </span>
                                         {% endif %}
                                         {% if userCard is not null %}

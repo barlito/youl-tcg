@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Service\Security;
 
+use App\EventListener\DuelApiExceptionListener;
 use App\Service\Notification\InternalLinkPolicy;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 readonly class RefreshTokenRedirector
@@ -19,6 +22,21 @@ readonly class RefreshTokenRedirector
         private string $refreshTokenUrl,
         private UrlGeneratorInterface $urlGenerator,
     ) {
+    }
+
+    /**
+     * The duel API is called by fetch(): a 401 the game client can act on, never a cross-origin redirect.
+     */
+    public function createResponse(?Request $request): Response
+    {
+        if ($request instanceof Request && str_starts_with($request->getPathInfo(), DuelApiExceptionListener::PATH_PREFIX)) {
+            return new JsonResponse(
+                ['error' => 'Session expirée : reconnecte-toi sur Youl TCG.', 'loginUrl' => $this->createRedirect($request)->getTargetUrl()],
+                Response::HTTP_UNAUTHORIZED,
+            );
+        }
+
+        return $this->createRedirect($request);
     }
 
     public function createRedirect(?Request $request): RedirectResponse
