@@ -40,7 +40,7 @@
                 <li><a href="#annonces">Annonces et notification de codes</a></li>
                 <li><a href="#economie">Économie : les écrans de consultation</a></li>
                 <li><a href="#fonctionnalites">Fonctionnalités : couper / rouvrir</a></li>
-                <li><a href="#api-import">API admin : import (extensions et cartes en brouillon) et stats (lecture seule)</a></li>
+                <li><a href="#api-import">API admin : import, stats (lecture seule) et gestion (modifier / publier)</a></li>
                 <li><a href="#ne-pas-toucher">Ce qu'on ne touche jamais à la main</a></li>
             </ol>
         </div>
@@ -279,11 +279,11 @@
         </table>
         <div class="tip">L'effet est immédiat, à la requête suivante des joueurs. Rouvrir remet tout en place à l'identique : aucune donnée n'est effacée par une coupure.</div>
 
-        <h2 id="api-import">14. API admin : import et stats</h2>
+        <h2 id="api-import">14. API admin : import, stats et gestion</h2>
         <p>
             Une seule page génère le token : menu <strong>Réglages → API admin</strong>. On y coche les <strong>droits</strong>
-            du token (<strong>Import</strong> et <strong>Stats</strong>, les deux cochés par défaut) ; un token « Stats »
-            reçoit <code>403</code> sur les routes d'import, un token « Import » reçoit <code>403</code> sur les stats.
+            du token (<strong>Import</strong> et <strong>Stats</strong> cochés par défaut, <strong>Gestion</strong> à cocher
+            volontairement) ; un token sans le bon droit reçoit <code>403</code> sur les routes correspondantes.
             La page affiche les droits du token actif.
         </p>
 
@@ -366,6 +366,68 @@ curl -s -H "Authorization: Bearer $TOKEN" "$API/stats?sections=players" | jq '.p
             <li>Pas d'horodatage de dernière connexion en base : « première / dernière activité » est déduite des actions (ouverture, claim, échange, achat, annonce, achat marché).</li>
             <li>Un champ impossible à calculer vaut <code>null</code> (ex. <code>meta.commit</code>, seule la version est connue).</li>
         </ul>
+
+        <h3 id="api-gestion">Gestion (modifier, publier, régler : droit « Gestion »)</h3>
+        <p>
+            Le droit <strong>Gestion</strong> permet de piloter le jeu sans passer par le back-office : publier une extension et ses cartes,
+            changer les taux et le prix d'un booster, créer les boosters d'une nouvelle extension, régler les récompenses et les frais,
+            activer une fonctionnalité, remplacer des images, corriger une carte. Toutes les écritures passent par <strong>les mêmes règles
+            que le back-office</strong> et <strong>il n'existe aucune suppression</strong> (un <code>DELETE</code> répond <code>405</code>).
+            Chaque écriture laisse une ligne dans les logs (canal <code>admin_api</code> : qui a généré le token, route, cible, champs
+            modifiés avant / après). Les corps sont en JSON (<code>-H 'Content-Type: application/json'</code>), sauf l'envoi de fichiers
+            (<code>multipart</code>, toujours en <code>POST</code>).
+        </p>
+<pre>export TOKEN='colle-le-token-ici'
+API=https://ytcg.youlz.fr/api/admin
+JSON='Content-Type: application/json'
+
+# publier une extension : d'abord à blanc (rien n'est écrit), puis pour de vrai
+curl -s -X POST -H "Authorization: Bearer $TOKEN" "$API/extensions/bleach/publish?dryRun=1"
+curl -s -X POST -H "Authorization: Bearer $TOKEN" "$API/extensions/bleach/publish"
+
+# changer les taux d'un booster (un slot = une carte ; poids relatifs, holoChance en %, uniqueChance sur 10 000)
+curl -s -X PATCH -H "Authorization: Bearer $TOKEN" -H "$JSON" $API/boosters/ID_DU_BOOSTER \
+  -d '{"rarityRates":[{"rarities":{"common":70,"rare":30},"holoChance":10},{"rarities":{"rare":90,"legendary":10},"holoChance":40,"uniqueChance":25}]}'
+
+# prix et mise en vente
+curl -s -X PATCH -H "Authorization: Bearer $TOKEN" -H "$JSON" $API/boosters/ID_DU_BOOSTER \
+  -d '{"purchasable":true,"purchasePrice":150}'
+
+# créer le booster d'une nouvelle extension (image optionnelle : voir plus bas pour la version multipart)
+curl -s -H "Authorization: Bearer $TOKEN" -H "$JSON" $API/boosters \
+  -d '{"extension":"bleach","claimable":true,"rarityRates":[{"rarities":{"common":100},"holoChance":5}]}'
+
+# activer une fonctionnalité (trades, recycling, universe_rewards)
+curl -s -X PATCH -H "Authorization: Bearer $TOKEN" -H "$JSON" $API/features/recycling -d '{"enabled":true}'
+
+# récompense de complétion d'une extension, frais du marché
+curl -s -X PATCH -H "Authorization: Bearer $TOKEN" -H "$JSON" $API/extensions/bleach -d '{"completionRewardCoins":800}'
+curl -s -X PATCH -H "Authorization: Bearer $TOKEN" -H "$JSON" $API/settings -d '{"marketFeePercent":5}'
+
+# corriger une carte, puis remplacer son image
+curl -s -X PATCH -H "Authorization: Bearer $TOKEN" -H "$JSON" $API/cards/ID_DE_LA_CARTE -d '{"name":"Ichigo","rarity":"rare"}'
+curl -s -H "Authorization: Bearer $TOKEN" $API/cards/ID_DE_LA_CARTE/files -F image=@./bleach/ichigo.png</pre>
+        <table>
+            <tr><th>Route</th><th>Rôle</th></tr>
+            <tr><td><code>GET|PATCH /extensions/{slug}</code></td><td>Lecture / modification : <code>name</code>, <code>description</code>, <code>status</code> (<code>draft</code> ou <code>published</code>), <code>upcoming</code>, <code>completionRewardCoins</code> (entier ou <code>null</code> = défaut), <code>visualConfig</code> (fusionné clé par clé, <code>null</code> sur une clé l'efface). Renommer change le slug.</td></tr>
+            <tr><td><code>POST /extensions/{slug}/files</code></td><td>Remplace <code>image</code> et / ou <code>logo</code> (multipart).</td></tr>
+            <tr><td><code>POST /extensions/{slug}/publish</code></td><td>Publie l'extension <strong>et toutes ses cartes en brouillon</strong> en une transaction (tout ou rien). <code>?dryRun=1</code> : liste ce qui serait publié, sans rien écrire. Les <code>warnings</code> signalent sans bloquer : aucune carte, cartes sans image, aucun booster, aucun booster réclamable ou achetable.</td></tr>
+            <tr><td><code>GET|POST /extensions/{slug}/banners</code></td><td>Bannières du carrousel ; <code>POST</code> en multipart : <code>image</code> (obligatoire), <code>position</code> (optionnelle, sinon à la suite).</td></tr>
+            <tr><td><code>GET|PATCH /cards/{id}</code></td><td>Détail complet / modification : <code>name</code>, <code>description</code>, <code>rarity</code>, <code>status</code>, <code>unique</code>, <code>alwaysHolo</code>, <code>visualConfigOverride</code>, <code>extension</code> (slug).</td></tr>
+            <tr><td><code>POST /cards/{id}/files</code></td><td>Remplace <code>image</code>, <code>mask</code> (PNG), <code>foil</code> (multipart, mêmes contraintes que l'import).</td></tr>
+            <tr><td><code>GET /boosters</code>, <code>GET|PATCH /boosters/{id}</code></td><td>Liste / détail / modification : <code>name</code>, <code>extension</code>, <code>claimable</code>, <code>purchasable</code>, <code>purchasePrice</code>, <code>rarityRates</code>.</td></tr>
+            <tr><td><code>POST /boosters</code>, <code>POST /boosters/{id}/files</code></td><td>Création (JSON, ou multipart avec <code>rarityRates</code> en chaîne JSON et <code>image</code>) ; remplacement de l'image.</td></tr>
+            <tr><td><code>GET|PATCH /settings</code></td><td><code>defaultUniverseRewardCoins</code>, <code>marketFeePercent</code>.</td></tr>
+            <tr><td><code>GET /features</code>, <code>PATCH /features/{key}</code></td><td>Interrupteurs de fonctionnalités : <code>{"enabled": true}</code>.</td></tr>
+        </table>
+        <table>
+            <tr><th>Réponse</th><th>Sens</th></tr>
+            <tr><td><code>200</code> / <code>201</code></td><td>État complet de la ressource après modification.</td></tr>
+            <tr><td><code>404</code></td><td>Extension, carte, booster ou fonctionnalité inconnue.</td></tr>
+            <tr><td><code>422</code></td><td>Données invalides, détail par champ dans <code>violations</code> : champ inconnu, type, taux invalides (mêmes messages que le back-office), booster achetable sans prix, fichier refusé…</td></tr>
+            <tr><td><code>409</code></td><td>Refus métier : dépublier une carte ou une extension déjà possédée (ou une carte unique déjà tirée), modifier le flag unique d'une carte déjà tirée, déplacer une carte possédée vers une autre extension, nom déjà pris.</td></tr>
+        </table>
+        <div class="tip">Les réponses invalident les caches (stats, tableau de bord, carte du jour) : les chiffres suivants sont à jour. Garde le token Gestion pour les arbitrages : il écrit pour de vrai en production.</div>
 
         <h2 id="ne-pas-toucher">15. Ce qu'on ne touche jamais à la main</h2>
         <ul>
