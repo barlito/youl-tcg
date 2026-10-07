@@ -19,6 +19,8 @@ final readonly class ApiStatsProvider
 {
     public const int CACHE_TTL = 300;
 
+    public const string VERSION_KEY = 'admin_api_stats_version';
+
     /**
      * @param iterable<StatsSectionInterface> $builders
      */
@@ -39,7 +41,9 @@ final readonly class ApiStatsProvider
     public function get(EconomyPeriodEnum $period, array $sections = []): array
     {
         $wanted = [] === $sections ? StatsSectionEnum::cases() : array_values(array_filter(StatsSectionEnum::cases(), static fn (StatsSectionEnum $case): bool => \in_array($case, $sections, true)));
-        $key = \sprintf('admin_api_stats_%d_%s', $period->value, md5(implode(',', array_map(static fn (StatsSectionEnum $section): string => $section->value, $wanted))));
+        // dropping the version token orphans every cached combination at once
+        $version = $this->cache->get(self::VERSION_KEY, static fn (ItemInterface $item): string => bin2hex(random_bytes(4)));
+        $key = \sprintf('admin_api_stats_%s_%d_%s', \is_string($version) ? $version : '0', $period->value, md5(implode(',', array_map(static fn (StatsSectionEnum $section): string => $section->value, $wanted))));
 
         $payload = $this->cache->get($key, function (ItemInterface $item) use ($period, $wanted): array {
             $item->expiresAfter(self::CACHE_TTL);

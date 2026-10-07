@@ -109,6 +109,30 @@ final class AdminApiPageTest extends WebTestCase
         $this->assertSame([AdminApiScopeEnum::IMPORT], $manager->activeTokenInfo()?->scopes);
     }
 
+    public function testTheManageScopeIsOptInAndCanBeGranted(): void
+    {
+        $client = self::createClient();
+        $client->disableReboot();
+        $this->authenticateClient($client);
+        $manager = static::getContainer()->get(AdminApiTokenManager::class);
+        $manager->revoke();
+
+        $crawler = $client->request('GET', '/admin/api');
+        $this->assertCount(1, $crawler->filter('[data-testid="scope-manage"]'));
+        $this->assertCount(0, $crawler->filter('[data-testid="scope-manage"][checked]'));
+        $this->assertStringContainsString('modifier/publier extensions, cartes, boosters, réglages', $crawler->filter('label[for="scope-manage"]')->text());
+
+        $client->submit($crawler->selectButton('Générer un token')->form());
+        $this->assertSame([AdminApiScopeEnum::IMPORT, AdminApiScopeEnum::STATS], $manager->activeTokenInfo()?->scopes);
+
+        $form = $client->request('GET', '/admin/api')->selectButton('Générer un token')->form();
+        $form['scopes'][2]->tick();
+        $crawler = $client->submit($form);
+
+        $this->assertCount(1, $crawler->filter('[data-testid="token-scope-manage"]'));
+        $this->assertContains(AdminApiScopeEnum::MANAGE, $manager->activeTokenInfo()?->scopes ?? []);
+    }
+
     public function testGeneratingWithoutAnyScopeIsRefused(): void
     {
         $client = self::createClient();
