@@ -8,3 +8,5 @@ App\Entity\FeatureFlag:
         __construct: ['<(App\Enum\FeatureEnum::UNIVERSE_REWARDS)>', true]
     feature_flag_fusion:
         __construct: ['<(App\Enum\FeatureEnum::FUSION)>', true]
+    feature_flag_wishlist:
+        __construct: ['<(App\Enum\FeatureEnum::WISHLIST)>', true]

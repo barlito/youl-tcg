@@ -27,6 +27,7 @@ use App\Repository\TradeOfferRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Coin\UniverseCompletionChecker;
 use App\Service\Feature\FeatureFlags;
+use App\Service\Wishlist\WishlistService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
@@ -61,6 +62,7 @@ final readonly class TradeOfferService
         private FeatureFlags $featureFlags,
         private TradeEventAnnouncer $announcer,
         private UniverseCompletionChecker $completionChecker,
+        private WishlistService $wishlist,
         private EngagedCopies $engagedCopies,
     ) {
     }
@@ -185,6 +187,10 @@ final readonly class TradeOfferService
     private function checkCompletions(TradeOffer $offer): void
     {
         foreach ([$offer->getProposer(), $offer->getReceiver()] as $taker) {
+            $this->wishlist->fulfil($taker, array_map(
+                static fn (TradeOfferLine $line): Card => $line->getCard(),
+                array_filter($offer->getLines()->toArray(), static fn (TradeOfferLine $line): bool => $offer->getTakerOf($line) === $taker),
+            ));
             $this->completionChecker->checkAfterCredit($taker, array_filter(array_map(
                 static fn (TradeOfferLine $line): ?Extension => $line->getCard()->getExtension(),
                 array_filter($offer->getLines()->toArray(), static fn (TradeOfferLine $line): bool => $offer->getTakerOf($line) === $taker),

@@ -29,6 +29,8 @@ use App\Service\Coin\WalletBalances;
 use App\Service\Coin\YoulCoinClient;
 use App\Service\Notification\NotificationService;
 use App\Service\Realtime\UserEventPublisher;
+use App\Service\Wishlist\WishlistAlertService;
+use App\Service\Wishlist\WishlistService;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -50,6 +52,8 @@ final readonly class MarketPurchaseService
         private UserEventPublisher $userEventPublisher,
         private NotificationService $notificationService,
         private UniverseCompletionChecker $completionChecker,
+        private WishlistService $wishlist,
+        private WishlistAlertService $wishlistAlerts,
         private ClockInterface $clock,
         private LoggerInterface $logger,
     ) {
@@ -322,6 +326,8 @@ final readonly class MarketPurchaseService
             'price' => $purchase->getPrice(),
         ]);
 
+        $this->wishlist->fulfil($buyer, [$card]);
+
         if ($card->getExtension() instanceof Extension) {
             $this->completionChecker->checkAfterCredit($buyer, [$card->getExtension()]);
         }
@@ -459,6 +465,8 @@ final readonly class MarketPurchaseService
         });
 
         $this->announce($purchase->getListing());
+        // a reopened listing is a listing again; players already alerted for it are skipped
+        $this->wishlistAlerts->alertListing($purchase->getListing());
     }
 
     // post-commit and public: the listing is visible to every player anyway

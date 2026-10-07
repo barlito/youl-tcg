@@ -10,11 +10,13 @@ use App\Entity\MarketListing;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Market\MarketPurchaseStatusEnum;
 use App\Exception\Market\MarketException;
+use App\Exception\Wishlist\WishlistRefusedException;
 use App\Repository\DiscordUserRepository;
 use App\Repository\MarketListingRepository;
 use App\Service\Coin\CoinAmount;
 use App\Service\Coin\WalletBalances;
 use App\Service\Market\MarketPurchaseService;
+use App\Service\Wishlist\WishlistService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Uid\Uuid;
@@ -47,6 +49,9 @@ final class MarketBoard extends AbstractController
     #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'finition'))]
     public ?string $finish = null;
 
+    #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'wishlist'))]
+    public bool $wishlistOnly = false;
+
     #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'tri'))]
     public string $sort = 'date_desc';
 
@@ -72,6 +77,9 @@ final class MarketBoard extends AbstractController
     /** @var list<Extension>|null */
     private ?array $chips = null;
 
+    /** @var array<string, true>|null */
+    private ?array $wishedIds = null;
+
     private bool $balanceLoaded = false;
 
     private ?CoinAmount $balance = null;
@@ -82,6 +90,7 @@ final class MarketBoard extends AbstractController
         private readonly DiscordUserRepository $discordUserRepository,
         private readonly WalletBalances $walletBalances,
         private readonly RequestStack $requestStack,
+        private readonly WishlistService $wishlist,
     ) {
     }
 
@@ -99,6 +108,7 @@ final class MarketBoard extends AbstractController
             $this->getActiveSort(),
             $this->getCurrentPage(),
             self::PER_PAGE,
+            $this->getWishOf(),
         );
     }
 
@@ -110,6 +120,7 @@ final class MarketBoard extends AbstractController
             $this->getActiveExtension(),
             $this->getActiveRarity(),
             $this->getActiveHolo(),
+            $this->getWishOf(),
         );
     }
 
@@ -179,6 +190,13 @@ final class MarketBoard extends AbstractController
     }
 
     #[LiveAction]
+    public function toggleWishlistFilter(): void
+    {
+        $this->wishlistOnly = !$this->wishlistOnly;
+        $this->resetPage();
+    }
+
+    #[LiveAction]
     public function goToPage(#[LiveArg] int $page): void
     {
         $this->page = max(1, $page);
@@ -191,7 +209,32 @@ final class MarketBoard extends AbstractController
         $this->universe = null;
         $this->rarity = null;
         $this->finish = null;
+        $this->wishlistOnly = false;
         $this->page = 1;
+    }
+
+    #[LiveAction]
+    public function toggleWish(#[LiveArg] string $listingId): void
+    {
+        $this->error = null;
+        $this->success = null;
+        $listing = $this->findListing($listingId);
+
+        if (!$listing instanceof MarketListing || !$listing->isActive()) {
+            $this->error = 'Cette annonce n\'est plus disponible.';
+
+            return;
+        }
+
+        try {
+            $this->wishlist->toggle($this->getDiscordUser(), $listing->getCard());
+        } catch (WishlistRefusedException $exception) {
+            $this->error = $exception->getUserMessage();
+        }
+
+        $this->wishedIds = null;
+        $this->listings = null;
+        $this->total = null;
     }
 
     #[LiveAction]
@@ -259,6 +302,23 @@ final class MarketBoard extends AbstractController
         $this->success = MarketPurchaseStatusEnum::PAYMENT_PENDING === $purchase->getStatus()
             ? 'Paiement en cours de vérification : la carte arrivera dès que Youl Coin le confirme.'
             : 'Carte achetée ! Elle est dans ta collection.';
+    }
+
+    public function isWishlistEnabled(): bool
+    {
+        return $this->wishlist->isEnabled();
+    }
+
+    public function isWished(MarketListing $listing): bool
+    {
+        $this->wishedIds ??= $this->wishlist->wishedCardIds($this->getDiscordUser());
+
+        return isset($this->wishedIds[(string) $listing->getCard()->getId()]);
+    }
+
+    private function getWishOf(): ?DiscordUser
+    {
+        return $this->wishlistOnly && !$this->getSeller() instanceof DiscordUser && $this->wishlist->isEnabled() ? $this->getDiscordUser() : null;
     }
 
     private function getSeller(): ?DiscordUser

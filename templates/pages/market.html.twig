@@ -19,7 +19,12 @@
                         Une commission de la banque est prélevée sur chaque vente.
                     </p>
                 </div>
-                <a href="{{ path('market_my_shop') }}" class="btn-arcade shrink-0 self-start md:self-auto" data-testid="my-shop-link">Ma boutique ▸</a>
+                <div class="flex shrink-0 flex-wrap items-center gap-4 self-start md:self-auto">
+                    {% if feature_enabled('wishlist') %}
+                        <a href="{{ path('wishlist') }}" class="btn-ghost" data-testid="wishlist-link">♡ Ma wishlist</a>
+                    {% endif %}
+                    <a href="{{ path('market_my_shop') }}" class="btn-arcade" data-testid="my-shop-link">Ma boutique ▸</a>
+                </div>
             </div>
         </section>
 

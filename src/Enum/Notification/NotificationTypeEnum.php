@@ -34,6 +34,9 @@ enum NotificationTypeEnum: string
 
     case MARKET_SOLD = 'market_sold';
 
+    /** A card the recipient wishes for (or a missing card of a watched universe) was listed on the market. */
+    case WISHLIST_LISTED = 'wishlist_listed';
+
     case ANNOUNCEMENT = 'announcement';
     case BOOSTER_CODE = 'booster_code';
 }

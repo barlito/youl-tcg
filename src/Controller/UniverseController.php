@@ -21,6 +21,7 @@ use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Coin\CoinAmount;
 use App\Service\Coin\UniverseCompletionChecker;
 use App\Service\Feature\FeatureFlags;
+use App\Service\Wishlist\WishlistService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -51,6 +52,7 @@ class UniverseController extends AbstractController
         private readonly FeatureFlags $featureFlags,
         private readonly UniverseCompletionChecker $completionChecker,
         private readonly UniverseCompletionRewardRepository $rewardRepository,
+        private readonly WishlistService $wishlist,
     ) {
     }
 
@@ -125,6 +127,9 @@ class UniverseController extends AbstractController
             'ownedByCardId' => $ownedByCardId,
             'boosters' => $this->visibleBoosters($extension, $user),
             'ownedBoosterCounts' => $this->ownedBoosterCounts($user),
+            'wishlistEnabled' => $this->wishlist->isEnabled(),
+            'wishedIds' => $this->wishlist->wishedCardIds($user),
+            'watching' => $this->wishlist->isEnabled() && $this->wishlist->isWatching($user, $extension),
             'uniquesTotal' => $uniquesTotal,
             'uniquesClaimed' => $uniquesClaimed,
             'reward' => $this->rewardProgress($user, $extension, $catalog),

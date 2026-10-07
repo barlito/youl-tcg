@@ -11,6 +11,7 @@ use App\Service\Booster\BoosterClaimQuotaInterface;
 use App\Service\Collection\CompletionStripBuilder;
 use App\Service\Leaderboard\LeaderboardService;
 use App\Service\Leaderboard\ProfileComparisonService;
+use App\Service\Wishlist\WishlistService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -33,6 +34,7 @@ class CollectionController extends AbstractController
         private readonly CompletionStripBuilder $stripBuilder,
         private readonly LeaderboardService $leaderboardService,
         private readonly BoosterClaimQuotaInterface $boosterClaimQuota,
+        private readonly WishlistService $wishlist,
     ) {
     }
 
@@ -71,6 +73,8 @@ class CollectionController extends AbstractController
             'visible' => $this->profileComparisonService->restrictTo($comparison, $currentExtension),
             'strip' => $this->stripBuilder->build($comparison->universes),
             'currentExtension' => $currentExtension,
+            'wishlistEnabled' => $this->wishlist->isEnabled(),
+            'wishedIds' => $this->wishlist->wishedCardIds($user),
             'remainingClaims' => $this->boosterClaimQuota->getRemainingClaims($user),
             'dailyLimit' => BoosterClaimQuotaInterface::DAILY_LIMIT,
         ]);

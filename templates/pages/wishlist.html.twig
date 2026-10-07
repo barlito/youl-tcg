@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+    YOUL TCG — Ma wishlist
+{% endblock %}
+
+{% block body %}
+    <main>
+        <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
+            <div class="glow-ambient" aria-hidden="true"></div>
+            <div class="relative mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <p class="eyebrow">Alertes</p>
+                    <h1 class="mt-2 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
+                        Ma wishlist
+                    </h1>
+                    <p class="mt-2 max-w-xl text-sm text-ink-muted">
+                        Les cartes que tu cherches. Tu es prévenu dès qu'une d'elles passe en vente sur le marché.
+                        Les cartes que tu n'as pas encore trouvées restent secrètes : pour elles, surveille l'univers entier.
+                    </p>
+                </div>
+                <a href="{{ path('market', { wishlist: 1 }) }}" class="btn-arcade shrink-0 self-start md:self-auto" data-testid="market-wishlist-link">Voir au marché ▸</a>
+            </div>
+        </section>
+
+        {{ component('WishlistPanel') }}
+    </main>
+{% endblock %}

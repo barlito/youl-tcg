@@ -1,0 +1,24 @@
+{# Bouton ♡ des pages statiques (collection, univers) : bascule par fetch POST.
+   `variant` = heart (carte possédée, jamais masquée) | universe (abonnement par extension).
+   Aucun identifiant de carte ici hors du `url` d'une carte VISIBLE. #}
+{% set variant = variant|default('heart') %}
+<button type="button"
+        class="{{ variant == 'universe'
+            ? 'chip-mono border border-hairline bg-surface px-3 py-2 font-bold text-ink-muted transition-colors hover:border-magenta hover:text-magenta aria-pressed:border-magenta aria-pressed:text-magenta'
+            : 'card-tile__toggle chip-mono absolute -bottom-2 -left-2 border border-hairline bg-black/90 px-2 py-1 font-bold text-ink-dim transition-colors hover:text-magenta aria-pressed:border-magenta aria-pressed:text-magenta' }}"
+        data-controller="wish-toggle"
+        data-action="wish-toggle#toggle"
+        data-wish-toggle-url-value="{{ url }}"
+        data-wish-toggle-active-value="{{ active ? 'true' : 'false' }}"
+        {% if variant == 'universe' %}
+            data-wish-toggle-on-label-value="Alertes actives pour mes cartes manquantes"
+            data-wish-toggle-off-label-value="Me prévenir pour mes cartes manquantes"
+        {% else %}
+            data-wish-toggle-on-label-value=""
+            data-wish-toggle-off-label-value=""
+        {% endif %}
+        aria-pressed="{{ active ? 'true' : 'false' }}"
+        aria-label="{{ variant == 'universe' ? 'Surveiller les cartes manquantes de cet univers' : 'Ajouter ou retirer de ma wishlist' }}"
+        data-testid="{{ variant == 'universe' ? 'wish-universe' : 'wish-heart' }}">
+    <span data-wish-toggle-target="icon">{{ active ? '♥' : '♡' }}</span><span data-wish-toggle-target="label">{{ variant == 'universe' ? (active ? ' Alertes actives pour mes cartes manquantes' : ' Me prévenir pour mes cartes manquantes') }}</span>
+</button>

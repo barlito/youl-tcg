@@ -66,6 +66,13 @@
                             ✦ Fusionner mes doublons
                         </a>
                     {% endif %}
+                    {% if wishlistEnabled %}
+                        <a href="{{ path('wishlist') }}"
+                           class="chip-mono text-ink-dim transition-colors hover:text-primary"
+                           data-testid="wishlist-link">
+                            ♡ Ma wishlist ▸
+                        </a>
+                    {% endif %}
                     <a href="{{ path('opening_history') }}"
                        class="chip-mono text-ink-dim transition-colors hover:text-primary"
                        data-testid="history-link">
@@ -192,6 +199,13 @@
                                             {% endif %}
                                         {% endif %}
                                     </div>
+
+                                    {% if userCard is not null and wishlistEnabled %}
+                                        {{ include('parts/_wish_button.html.twig', {
+                                            url: path('wishlist_card_toggle', { id: item.card.id }),
+                                            active: wishedIds[item.card.id ~ ''] is defined,
+                                        }, with_context = false) }}
+                                    {% endif %}
 
                                     {% if ownsHolo and ownsNormal %}
                                         {# toggle OUTSIDE the .card element: a click on the card itself triggers the 3D zoom.

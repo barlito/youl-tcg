@@ -74,6 +74,18 @@ final class NotificationRendererTest extends TestCase
         $this->assertSame('Un joueur te propose un échange', $this->renderer()->describe(NotificationTypeEnum::TRADE_RECEIVED, [])->text);
     }
 
+    public function testWishlistAlertNamesAWishedCardButNeverAMissingOne(): void
+    {
+        $named = $this->renderer()->describe(NotificationTypeEnum::WISHLIST_LISTED, ['cardName' => 'Rogue', 'universe' => 'Cyberpunk', 'slug' => 'cyberpunk-2077', 'price' => 40]);
+        $this->assertSame(['♡', '« Rogue » de ta wishlist est en vente : 40 YLC', '/market?univers=cyberpunk-2077'], [$named->icon, $named->text, $named->link]);
+
+        $anonymous = $this->renderer()->describe(NotificationTypeEnum::WISHLIST_LISTED, ['cardName' => null, 'universe' => 'Cyberpunk', 'slug' => 'cyberpunk-2077', 'price' => 40]);
+        $this->assertSame('Une carte qui te manque dans Cyberpunk est en vente : 40 YLC', $anonymous->text);
+
+        $forged = $this->renderer()->describe(NotificationTypeEnum::WISHLIST_LISTED, ['slug' => '../evil?x=1', 'price' => 1]);
+        $this->assertSame('/market', $forged->link);
+    }
+
     private function renderer(): NotificationRenderer
     {
         $urlGenerator = $this->createStub(UrlGeneratorInterface::class);

@@ -59,7 +59,8 @@
                     tab,
                     offered,
                     'Aucun exemplaire disponible : tes cartes sont peut-être déjà engagées dans d\'autres offres.',
-                    this.chips('offered')
+                    this.chips('offered'),
+                    { theirName: theirName, wishlist: this.wishlistEnabled }
                 ) }}
                 {{ _self.column(
                     'requested',
@@ -71,7 +72,8 @@
                     tab,
                     requested,
                     theirName ~ ' n\'a aucune carte pour l\'instant.',
-                    this.chips('requested')
+                    this.chips('requested'),
+                    { theirName: theirName, wishlist: this.wishlistEnabled }
                 ) }}
             </div>
         </div>
@@ -117,7 +119,7 @@
     </button>
 {% endmacro %}
 
-{% macro column(side, title, subtitle, groups, visibleCount, total, current, selection, emptyMessage, chips) %}
+{% macro column(side, title, subtitle, groups, visibleCount, total, current, selection, emptyMessage, chips, ctx) %}
     <section class="{{ side != current ? 'hidden lg:block' }}" data-testid="{{ side }}-column">
         <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-hairline pb-3 lg:sticky lg:top-0 lg:z-20 lg:bg-bg/95 lg:pt-3 lg:backdrop-blur">
             <h2 class="font-display text-base font-bold uppercase tracking-[.08em] text-ink-strong">{{ title }}</h2>
@@ -154,7 +156,7 @@
                         </h3>
                         <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
                             {% for entry in group.entries %}
-                                {{ _self.tile(side, entry, selection[entry.token]|default({ normal: 0, holo: 0 })) }}
+                                {{ _self.tile(side, entry, selection[entry.token]|default({ normal: 0, holo: 0 }), ctx) }}
                             {% endfor %}
                         </div>
                     </div>
@@ -164,7 +166,7 @@
     </section>
 {% endmacro %}
 
-{% macro tile(side, entry, picked) %}
+{% macro tile(side, entry, picked, ctx) %}
     {% set selectedCopies = picked.normal + picked.holo %}
     <article class="relative flex flex-col border bg-surface p-2 transition-colors {{ selectedCopies > 0 ? 'border-primary/80 shadow-[0_0_16px_#a435f044]' : 'border-hairline' }}"
              data-testid="trade-tile"{% if selectedCopies > 0 %} data-selected{% endif %}>
@@ -172,6 +174,18 @@
             <span class="chip-mono absolute -right-1.5 -top-1.5 z-10 bg-gradient-to-r from-primary to-magenta px-1.5 py-0.5 font-bold text-black" data-testid="tile-badge">
                 ×{{ selectedCopies }}
             </span>
+        {% endif %}
+
+        {% if ctx.wishlist and entry.card %}
+            <button type="button"
+                    data-action="live#action" data-live-action-param="toggleWish" data-live-token-param="{{ entry.token }}"
+                    data-loading="addAttribute(disabled)"
+                    aria-pressed="{{ entry.wished ? 'true' : 'false' }}"
+                    aria-label="Ajouter ou retirer de ma wishlist"
+                    data-testid="tile-wish"
+                    class="chip-mono absolute -left-1.5 -top-1.5 z-10 border border-hairline bg-black/90 px-2 py-1 font-bold text-ink-dim transition-colors hover:text-magenta aria-pressed:border-magenta aria-pressed:text-magenta">
+                {{ entry.wished ? '♥' : '♡' }}
+            </button>
         {% endif %}
 
         <div class="mx-auto w-full max-w-[11rem]">
@@ -200,8 +214,12 @@
         {% set lacks = tradable and (side == 'offered' ? entry.theirs == 0 : not entry.card) %}
         {% set doubleCount = tradable ? (side == 'offered' ? entry.mine : entry.theirs) : 0 %}
         {% set lastCopy = tradable and side == 'offered' and entry.mine == 1 %}
-        {% if lacks or doubleCount >= 2 or lastCopy %}
+        {% set wantedByHim = side == 'offered' and entry.wanted %}
+        {% if lacks or doubleCount >= 2 or lastCopy or wantedByHim %}
             <p class="mt-1.5 flex flex-wrap gap-1" data-testid="tile-hints">
+                {% if wantedByHim %}
+                    <span class="chip-mono max-w-full truncate border border-magenta/60 bg-magenta/10 px-1 text-magenta" data-testid="hint-wanted">♡ {{ ctx.theirName }} la cherche</span>
+                {% endif %}
                 {% if lacks %}
                     <span class="chip-mono border border-primary/60 bg-primary/10 px-1 text-primary" data-testid="hint-lacks">✚ {{ side == 'offered' ? 'Lui manque' : 'Te manque' }}</span>
                 {% endif %}

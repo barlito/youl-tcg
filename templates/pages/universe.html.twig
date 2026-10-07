@@ -97,7 +97,14 @@
                     <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
                         Le set · {{ totalCount }} cartes
                     </h2>
-                    <div class="flex items-center gap-5">
+                    <div class="flex flex-wrap items-center justify-end gap-x-5 gap-y-2">
+                        {% if wishlistEnabled and (watching or ownedCount < totalCount) %}
+                            {{ include('parts/_wish_button.html.twig', {
+                                variant: 'universe',
+                                url: path('wishlist_universe_toggle', { slug: extension.slug }),
+                                active: watching,
+                            }, with_context = false) }}
+                        {% endif %}
                         <a href="{{ path('collection', { slug: extension.slug }) }}"
                            class="chip-mono text-ink-dim transition-colors hover:text-primary"
                            data-testid="collection-link">
@@ -119,6 +126,12 @@
                                         <span class="chip-mono bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black">✦{{ userCard.holoQuantity }}</span>
                                     {% endif %}
                                 </div>
+                                {% if wishlistEnabled %}
+                                    {{ include('parts/_wish_button.html.twig', {
+                                        url: path('wishlist_card_toggle', { id: card.id }),
+                                        active: wishedIds[card.id ~ ''] is defined,
+                                    }, with_context = false) }}
+                                {% endif %}
                             {% else %}
                                 {{ include('parts/_masked_card.html.twig', with_context = false) }}
                             {% endif %}
