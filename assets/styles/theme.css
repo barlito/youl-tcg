@@ -189,3 +189,18 @@
     0%, 100% { opacity: .2; transform: scale(.6); }
     50% { opacity: 1; transform: scale(1.4); }
 }
+
+/* Fusion : la tuile qui vient de fuser s'illumine une fois */
+@keyframes fusionFlash {
+    0% { box-shadow: 0 0 0 0 #ff2bd600; transform: scale(1); }
+    35% { box-shadow: 0 0 36px 6px #ff2bd6aa; transform: scale(1.03); }
+    100% { box-shadow: 0 0 0 0 #ff2bd600; transform: scale(1); }
+}
+
+.fusion-flash {
+    animation: fusionFlash .9s ease-out 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fusion-flash { animation: none; }
+}

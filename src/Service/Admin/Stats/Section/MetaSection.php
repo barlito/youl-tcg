@@ -19,6 +19,7 @@ use App\Service\Booster\BoosterClaimQuotaInterface;
 use App\Service\Booster\BoosterPurchaseService;
 use App\Service\Coin\CoinAmount;
 use App\Service\Feature\FeatureFlags;
+use App\Service\Fusion\FusionService;
 use App\Service\Market\MarketListingService;
 use App\Service\Recycle\RecycleService;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -69,6 +70,8 @@ final readonly class MetaSection extends AbstractStatsSection
                 'dailyBoosterPurchases' => BoosterPurchaseService::DAILY_LIMIT,
                 'recycleBoosterCostPoints' => RecycleService::BOOSTER_COST,
                 'recyclePointsPerRarity' => $this->recyclePoints(),
+                'fusionCostCopies' => FusionService::FUSION_COST,
+                'fusionMaxPerOperation' => FusionService::MAX_FUSIONS_PER_OPERATION,
                 'streakMilestoneStepDays' => OpeningStreak::MILESTONE_STEP,
                 'marketMaxActiveListingsPerPlayer' => MarketListingService::MAX_ACTIVE_LISTINGS,
                 'marketMaxPriceCoins' => MarketListingService::MAX_PRICE,

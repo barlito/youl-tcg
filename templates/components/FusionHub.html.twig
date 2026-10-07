@@ -1,0 +1,171 @@
+<div {{ attributes.defaults({'data-action': 'live-updates:inventory-changed@window->live#$render live-updates:market-changed@window->live#$render live-updates:trades-changed@window->live#$render'}) }}>
+    <main>
+        <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
+            <div class="glow-ambient" aria-hidden="true"></div>
+            <div class="relative mx-auto flex max-w-7xl flex-col gap-8 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <p class="eyebrow">Fusion</p>
+                    <h1 class="mt-2 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
+                        Fusionne tes doublons
+                    </h1>
+                    <p class="mt-2 max-w-lg text-sm text-ink-muted">
+                        {{ this.cost }} exemplaires normaux d'une même carte deviennent 1 exemplaire <span class="text-magenta">✦ holo</span> de cette carte.
+                        Les copies en vente ou proposées dans un échange en attente ne sont pas fusionnables.
+                    </p>
+                    <p class="chip-mono mt-3 text-primary" data-testid="fusion-rule">{{ this.cost }} normales → 1 holo</p>
+                </div>
+
+                <div class="border border-primary/50 bg-surface px-5 py-4 shadow-[0_0_24px_#a435f033]" data-testid="fusable-total">
+                    <p class="chip-mono text-ink-muted">Dans ta collection</p>
+                    <p class="mt-1 font-display text-4xl font-bold leading-none tracking-[-0.04em] text-primary [text-shadow:0_0_14px_#a435f077]">
+                        {{ this.fusableTotal }}
+                    </p>
+                    <p class="mt-1 font-display text-xs font-bold uppercase tracking-[.1em] text-ink-strong">
+                        fusion{{ this.fusableTotal > 1 ? 's' }} possible{{ this.fusableTotal > 1 ? 's' }}
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        {% if error %}
+            <div class="mx-auto mt-6 max-w-7xl px-6 lg:px-12">
+                <div class="border border-magenta/50 bg-magenta/10 px-4 py-3 font-mono text-xs text-magenta" data-testid="fusion-error">
+                    ⚠ {{ error }}
+                </div>
+            </div>
+        {% elseif success %}
+            <div class="mx-auto mt-6 max-w-7xl px-6 lg:px-12">
+                <div class="fusion-flash flex items-center gap-4 border border-live/50 bg-live/10 px-4 py-3 font-mono text-xs text-live" data-testid="fusion-success">
+                    {% set fused = this.fusedCard %}
+                    {% if fused %}
+                        <div class="w-16 shrink-0">
+                            {{ include('components/CardComponent.html.twig', {
+                                card: fused,
+                                holo: true,
+                                interactive: false,
+                                lazy: true,
+                                id: 'fused-' ~ fused.id,
+                            }) }}
+                        </div>
+                    {% endif %}
+                    <p>✦ {{ success }}</p>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if not this.hasRows %}
+            <section class="px-6 pb-24 pt-10 lg:px-12">
+                <div class="mx-auto max-w-7xl border border-dashed border-hairline px-8 py-20 text-center text-ink-dim" data-testid="fusion-empty">
+                    <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Aucune carte fusionnable.</p>
+                    <p class="mt-3 text-sm">Il te faut au moins {{ this.cost }} exemplaires normaux d'une même carte.</p>
+                    <a href="{{ path('boosters') }}" class="btn-arcade mt-8">Ouvrir un pack ▸</a>
+                </div>
+            </section>
+        {% else %}
+            <section class="px-6 pb-16 pt-8 lg:px-12">
+                <div class="mx-auto max-w-7xl">
+                    {% for group in this.universes %}
+                        <div class="mb-12" data-testid="fusion-universe">
+                            <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                                <h3 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">{{ group.extension.name }}</h3>
+                                <span class="chip-mono text-primary">✦ {{ group.fusable }} fusion{{ group.fusable > 1 ? 's' }} possible{{ group.fusable > 1 ? 's' }}</span>
+                            </div>
+
+                            <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="fusion-grid">
+                                {% for row in group.rows %}
+                                    {% set card = row.card %}
+                                    {% set free = this.freeNormal(row) %}
+                                    {% set maxFusions = this.maxFusions(row) %}
+                                    {% set engagedNormal = this.engagedNormal(row) %}
+                                    {% set asking = this.isConfirming(row) %}
+                                    <article class="relative flex flex-col border bg-surface p-4 transition-colors {{ asking ? 'border-primary/70 shadow-[0_0_14px_#a435f033]' : 'border-hairline' }}"
+                                             data-testid="fusion-card">
+                                        {% if engagedNormal > 0 %}
+                                            <span class="chip-mono absolute -right-2 -top-2 border border-soon bg-black px-2 py-1 font-bold text-soon"
+                                                  data-testid="engaged-badge">{{ this.isListed(row) ? '¤ en vente' : '⇄ en échange' }} ×{{ engagedNormal }}</span>
+                                        {% endif %}
+
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-28 shrink-0">
+                                                {{ include('components/CardComponent.html.twig', {
+                                                    card: card,
+                                                    holo: row.holoQuantity > 0,
+                                                    interactive: false,
+                                                    lazy: true,
+                                                    id: 'fusion-' ~ card.id,
+                                                }) }}
+                                            </div>
+                                            <div class="min-w-0 pr-6">
+                                                <h4 class="truncate font-display text-sm font-bold uppercase leading-tight text-ink-strong" title="{{ card.name }}">{{ card.name }}</h4>
+                                                <p class="chip-mono mt-1" style="color: var(--rarity-{{ card.rarity.value }});">{{ card.rarity.label }}</p>
+                                                <p class="chip-mono mt-1.5 text-ink-dim">
+                                                    ×{{ row.quantity }}{% if row.holoQuantity > 0 %} dont ✦{{ row.holoQuantity }}{% endif %}
+                                                </p>
+                                                <p class="chip-mono mt-1 {{ free >= this.cost ? 'text-primary' : 'text-soon' }}" data-testid="free-normal">
+                                                    {{ free }} normale{{ free > 1 ? 's' }} libre{{ free > 1 ? 's' }}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-3 flex flex-col gap-2 border-t border-hairline pt-3">
+                                            {% if maxFusions < 1 %}
+                                                <p class="chip-mono text-ink-dim" data-testid="engaged-notice">
+                                                    Moins de {{ this.cost }} normales libres : les copies en vente ou en échange sont réservées.
+                                                </p>
+                                            {% elseif asking %}
+                                                <div class="flex items-center justify-between gap-2">
+                                                    <span class="chip-mono text-ink-muted">Fusions</span>
+                                                    <div class="flex items-center gap-1.5">
+                                                        <button type="button" aria-label="Moins de fusions"
+                                                                data-action="live#action"
+                                                                data-live-action-param="changeTimes"
+                                                                data-live-delta-param="-1"
+                                                                {{ this.times <= 1 ? 'disabled' }}
+                                                                class="border border-hairline px-2.5 py-0.5 font-mono text-sm text-ink-muted transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">−</button>
+                                                        <span class="w-10 text-center font-mono text-sm font-bold text-primary" data-testid="fusion-times">{{ this.times }}<span class="text-[10px] font-normal text-ink-dim">/{{ maxFusions }}</span></span>
+                                                        <button type="button" aria-label="Plus de fusions"
+                                                                data-action="live#action"
+                                                                data-live-action-param="changeTimes"
+                                                                data-live-delta-param="1"
+                                                                data-testid="fusion-plus"
+                                                                {{ this.times >= maxFusions ? 'disabled' }}
+                                                                class="border border-hairline px-2.5 py-0.5 font-mono text-sm text-ink-muted transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">+</button>
+                                                    </div>
+                                                </div>
+                                                <p class="text-xs text-ink-muted" data-testid="fusion-confirmation">
+                                                    {{ this.times * this.cost }} normales → {{ this.times }} <span class="text-magenta">✦ holo</span>. Irréversible.
+                                                </p>
+                                                <div class="flex gap-2">
+                                                    <button type="button"
+                                                            data-action="live#action"
+                                                            data-live-action-param="fuse"
+                                                            data-loading="addAttribute(disabled) addClass(opacity-50)"
+                                                            data-testid="fusion-confirm"
+                                                            class="flex-1 border border-primary bg-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary">✓ Confirmer la fusion</button>
+                                                    <button type="button"
+                                                            data-action="live#action"
+                                                            data-live-action-param="abort"
+                                                            data-testid="fusion-abort"
+                                                            class="border border-hairline px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-muted transition-colors hover:border-primary hover:text-primary">Annuler</button>
+                                                </div>
+                                            {% else %}
+                                                <button type="button"
+                                                        data-action="live#action"
+                                                        data-live-action-param="askFuse"
+                                                        data-live-card-id-param="{{ card.id }}"
+                                                        data-testid="fusion-ask"
+                                                        class="border border-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-primary transition-colors hover:bg-primary hover:text-black">
+                                                    ✦ Fusionner {{ this.cost }} → 1 holo{% if maxFusions > 1 %} <span class="text-ink-dim">(jusqu'à ×{{ maxFusions }})</span>{% endif %}
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </article>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+    </main>
+</div>

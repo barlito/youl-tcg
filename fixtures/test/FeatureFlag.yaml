@@ -6,3 +6,5 @@ App\Entity\FeatureFlag:
         __construct: ['<(App\Enum\FeatureEnum::RECYCLING)>', true]
     feature_flag_universe_rewards:
         __construct: ['<(App\Enum\FeatureEnum::UNIVERSE_REWARDS)>', true]
+    feature_flag_fusion:
+        __construct: ['<(App\Enum\FeatureEnum::FUSION)>', true]
