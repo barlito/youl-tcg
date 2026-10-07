@@ -58,7 +58,7 @@ jobs:
             var/cache/phpstan
             var/cache/rector
             .php-cs-fixer.cache
-            .phpcs-cache
+            vendor/barlito/utils/config/.phpcs-cache
           key: quality-${{ hashFiles('composer.lock', 'phpstan.dist.neon', 'rector.php') }}-${{ github.sha }}
           restore-keys: |
             quality-${{ hashFiles('composer.lock', 'phpstan.dist.neon', 'rector.php') }}-
