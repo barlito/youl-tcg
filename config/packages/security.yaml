@@ -21,6 +21,12 @@ security:
             stateless: true
             custom_authenticators:
                 - App\Security\AdminApiAuthenticator
+        # game server only (bearer DUEL_SERVER_TOKEN); the player duel API stays on main (JWT cookie)
+        duel_server:
+            pattern: ^/api/duel/server/
+            stateless: true
+            custom_authenticators:
+                - App\Security\DuelServerAuthenticator
         main:
             stateless: true
             jwt: ~
@@ -42,5 +48,6 @@ security:
         - { path: '^/api/admin/(cards|boosters|settings|features)(/|$)', roles: ROLE_MANAGE_API }
         - { path: '^/api/admin/extensions/[^/]+(/(files|publish|banners))?$', roles: ROLE_MANAGE_API }
         - { path: ^/api/admin, roles: ROLE_IMPORT_API }
+        - { path: ^/api/duel/server/, roles: ROLE_DUEL_SERVER }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/, roles: ROLE_USER }

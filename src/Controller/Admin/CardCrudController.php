@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Admin\Field\CardTagsField;
 use App\Admin\Field\ImageField as VichImageField;
 use App\Admin\FoilSizeSliderScript;
 use App\Admin\VisualConfigFields;
@@ -81,6 +82,7 @@ class CardCrudController extends AbstractGuardedCrudController
             ->add('status')
             ->add(BooleanFilter::new('uniqueFlag', 'Carte unique (1/1)'))
             ->add(BooleanFilter::new('alwaysHolo', 'Toujours holo'))
+            ->add(BooleanFilter::new('terrain', 'Terrain (duel)'))
         ;
     }
 
@@ -305,6 +307,21 @@ class CardCrudController extends AbstractGuardedCrudController
             ->setLabel('Toujours holo')
             ->setHelp('La carte sort toujours en holo, quelle que soit la chance holo du slot.')
             ->renderAsSwitch(false)
+        ;
+
+        yield FormField::addFieldset('Jeu de duel')
+            ->setHelp('Tags et terrains servent au jeu de duel et aux filtres de collection des joueurs.')
+        ;
+        yield BooleanField::new('terrain')
+            ->setLabel('Terrain')
+            ->setHelp('Carte lieu : jamais jouable dans un deck, un deck peut en embarquer une. Reste collectionnable comme les autres (boosters, échanges, marché).')
+            ->renderAsSwitch(false)
+            ->hideOnIndex()
+        ;
+        yield CardTagsField::new('tags')
+            ->setLabel('Tags')
+            ->setHelp('Format famille:valeur en minuscules (character:benj, family:linette, trait:machine). Tape un nouveau tag puis Entrée pour le créer. universe: est implicite (c\'est l\'univers de la carte).')
+            ->hideOnIndex()
         ;
 
         yield FormField::addFieldset('Images');

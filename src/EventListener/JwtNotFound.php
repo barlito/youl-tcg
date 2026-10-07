@@ -19,6 +19,6 @@ readonly class JwtNotFound
 
     public function onJwtNotFound(JWTNotFoundEvent $event): void
     {
-        $event->setResponse($this->refreshTokenRedirector->createRedirect($event->getRequest()));
+        $event->setResponse($this->refreshTokenRedirector->createResponse($event->getRequest()));
     }
 }

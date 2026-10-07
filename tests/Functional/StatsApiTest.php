@@ -67,7 +67,7 @@ final class StatsApiTest extends WebTestCase
         $this->assertSame('2026-09-08', $meta['periodStart']);
         $this->assertSame('2026-10-07', $meta['periodEnd']);
         $this->assertSame('Europe/Paris', $meta['timezone']);
-        $this->assertSame(['trades', 'recycling', 'universe_rewards', 'fusion', 'wishlist'], array_keys($meta['features']));
+        $this->assertSame(['trades', 'recycling', 'universe_rewards', 'fusion', 'wishlist', 'duel'], array_keys($meta['features']));
         $this->assertSame(['minor' => '50000000000', 'coins' => 500], $meta['coinSettings']['defaultUniverseRewardCoins']);
         $this->assertSame(5, $meta['coinSettings']['marketFeePercent']);
         $this->assertNull($meta['commit']);

@@ -10,3 +10,5 @@ App\Entity\FeatureFlag:
         __construct: ['<(App\Enum\FeatureEnum::FUSION)>', true]
     feature_flag_wishlist:
         __construct: ['<(App\Enum\FeatureEnum::WISHLIST)>', true]
+    feature_flag_duel:
+        __construct: ['<(App\Enum\FeatureEnum::DUEL)>', true]

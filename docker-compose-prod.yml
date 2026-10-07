@@ -20,6 +20,8 @@ services:
             MERCURE_JWT_SECRET: "${MERCURE_JWT_SECRET:?MERCURE_JWT_SECRET is required}"
             YOUL_COIN_API_KEY: "${YOUL_COIN_API_KEY:?YOUL_COIN_API_KEY is required}"
             YTCG_WEBHOOK_SECRET: "${YTCG_WEBHOOK_SECRET:?YTCG_WEBHOOK_SECRET is required}"
+            # Optional: empty = the duel server API refuses every call
+            DUEL_SERVER_TOKEN: "${DUEL_SERVER_TOKEN:-}"
             MERCURE_CORS_ORIGINS: https://ytcg.youlz.fr
             TZ: Europe/Paris
         tty: true
