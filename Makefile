@@ -62,39 +62,10 @@ tailwind.build:
 doctrine.schema_validate.ci:
 	docker exec -t $(app_container_id) bin/console doctrine:schema:validate --env=test
 
-# Swarm rollbacks exit 0: require $(TAG) in the spec, no rollback, and a healthy task still up after assert_settle
+# Swarm rollbacks exit 0: fail unless the service really runs $(TAG), healthy (php-make-rules castor task)
 assert_settle=10
 deploy.assert_image:
-	@expected="$(image_name):$(TAG)"; service="$(stack_name)_php"; \
-	deadline=$$(( $$(date +%s) + $(assert_timeout) )); \
-	while :; do \
-		state="$$(docker service inspect $$service --format '{{if .UpdateStatus}}{{.UpdateStatus.State}}{{end}}')"; \
-		case "$$state" in updating|rollback_started) ;; *) break;; esac; \
-		[ $$(date +%s) -lt $$deadline ] || break; \
-		echo "… $$service update state: $$state"; sleep 5; \
-	done; \
-	image="$$(docker service inspect $$service --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')"; \
-	case "$$image" in "$$expected"|"$$expected"@*) ;; *) echo "❌ $$service runs $$image instead of $$expected (update state: $${state:-none})"; exit 1;; esac; \
-	case "$$state" in rollback_*|paused|updating) echo "❌ $$service update state: $$state"; exit 1;; esac; \
-	stable=""; \
-	while :; do \
-		task="$$(docker service ps $$service --filter desired-state=running -q | head -1)"; \
-		info=""; health=""; \
-		if [ -n "$$task" ]; then \
-			info="$$(docker inspect $$task --format '{{.Status.State}} {{.Spec.ContainerSpec.Image}}')"; \
-			cid="$$(docker inspect $$task --format '{{if .Status.ContainerStatus}}{{.Status.ContainerStatus.ContainerID}}{{end}}')"; \
-			[ -z "$$cid" ] || health="$$(docker inspect $$cid --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' 2>/dev/null)"; \
-		fi; \
-		case "$$info" in "running $$expected"|"running $$expected@"*) ok=$$health;; *) ok="";; esac; \
-		if [ "$$ok" = healthy ] || [ "$$ok" = none ]; then \
-			[ "$$stable" = "$$task" ] && break; \
-			stable="$$task"; sleep $(assert_settle); continue; \
-		fi; \
-		stable=""; \
-		if [ $$(date +%s) -ge $$deadline ]; then echo "❌ $$service task $${task:-none} not healthy on $$expected ($${info:-no task}, health: $${health:-unknown})"; exit 1; fi; \
-		echo "… $$service task $${task:-none}: $${info:-no task}, health: $${health:-unknown}"; sleep 5; \
-	done; \
-	echo "✓ $$service runs $$expected, task $$task healthy (update state: $${state:-none})"
+	castor barlito:castor:assert-deployed $(stack_name)_php $(image_name):$(TAG) --timeout=$(assert_timeout) --settle=$(assert_settle)
 
 # Removes the stack's stopped containers (old tasks); prune never touches running ones
 deploy.prune:
