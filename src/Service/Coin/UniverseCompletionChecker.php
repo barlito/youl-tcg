@@ -52,7 +52,7 @@ final readonly class UniverseCompletionChecker
 
             $ids = array_keys($unique);
             $totals = $this->cardRepository->countPublishedNonUniqueByExtension($ids);
-            $owned = $this->userCardRepository->countOwnedNonUniqueByExtension($discordUser, $ids);
+            $owned = $this->userCardRepository->countDrawnOwnedNonUniqueByExtension($discordUser, $ids);
 
             foreach ($unique as $id => $extension) {
                 if (($totals[$id] ?? 0) > 0 && ($owned[$id] ?? 0) >= $totals[$id]) {

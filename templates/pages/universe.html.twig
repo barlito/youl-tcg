@@ -65,6 +65,15 @@
                             </span>
                         {% endif %}
                     </div>
+                    {% if reward %}
+                        <p class="chip-mono mt-3 max-w-2xl text-white/80" data-testid="universe-reward">
+                            {% if reward.rewarded %}
+                                ★ Récompense de complétion obtenue
+                            {% else %}
+                                ★ Récompense : <span class="font-bold text-primary">{{ reward.drawn }}/{{ reward.total }}</span> cartes tirées par toi (+{{ reward.amount }} YLC) — les cartes reçues par échange ou achetées ne comptent pas
+                            {% endif %}
+                        </p>
+                    {% endif %}
                     <div class="mt-3 h-1 max-w-md bg-white/15">
                         <div class="h-full bg-gradient-to-r from-primary to-magenta shadow-[0_0_10px_#a435f0]" style="width: {{ percentage }}%;"></div>
                     </div>

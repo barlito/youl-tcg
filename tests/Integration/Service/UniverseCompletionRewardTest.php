@@ -24,6 +24,7 @@ use App\Service\Booster\BoosterOpeningService;
 use App\Service\Coin\UniverseCompletionChecker;
 use App\Service\Coin\UniverseRewardService;
 use App\Service\Trade\TradeOfferService;
+use App\Tests\DrawnCardTrait;
 use App\Tests\FeatureFlagTrait;
 use App\Tests\Support\CoinMockResponses;
 use Doctrine\ORM\EntityManagerInterface;
@@ -32,6 +33,7 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 
 final class UniverseCompletionRewardTest extends KernelTestCase
 {
+    use DrawnCardTrait;
     use FeatureFlagTrait;
 
     private EntityManagerInterface $entityManager;
@@ -242,7 +244,7 @@ final class UniverseCompletionRewardTest extends KernelTestCase
         $this->assertSame(UniverseRewardStatusEnum::PAID, $this->onlyReward()->getStatus());
     }
 
-    public function testAnAcceptedTradeRewardsBothPlayersWhoCompleteTheUniverse(): void
+    public function testAnAcceptedTradeNeverRewardsTheCardsReceived(): void
     {
         $cardA = $this->createCard('A');
         $cardB = $this->createCard('B');
@@ -252,15 +254,54 @@ final class UniverseCompletionRewardTest extends KernelTestCase
         $service = self::getContainer()->get(TradeOfferService::class);
 
         $offer = $service->create($this->user, $bob, [new TradeLineRequest($cardA, 1)], [new TradeLineRequest($cardB, 1)]);
-        $this->assertSame([], $this->rewards());
-
         $service->accept($offer, $bob);
 
-        $rewarded = array_map(static fn (UniverseCompletionReward $reward): string => $reward->getDiscordUser()->getDiscordId(), $this->rewards());
-        sort($rewarded);
-        $expected = [$this->user->getDiscordId(), $bob->getDiscordId()];
-        sort($expected);
-        $this->assertSame($expected, $rewarded);
+        $this->assertSame([], $this->rewards());
+    }
+
+    public function testACardReceivedByTradeThenDrawnLaterCompletesTheReward(): void
+    {
+        $drawn = $this->createCard('Drawn');
+        $received = $this->createCard('Received');
+        $this->give($this->user, $drawn);
+        $this->give($this->user, $received, drawn: false);
+        $this->checker->checkAfterCredit($this->user, [$this->extension]);
+        $this->assertSame([], $this->rewards());
+
+        $this->recordDraw($this->entityManager, $this->user, $received);
+        $this->checker->checkAfterCredit($this->user, [$this->extension]);
+
+        $this->assertSame(UniverseRewardStatusEnum::PAID, $this->onlyReward()->getStatus());
+    }
+
+    public function testACardDrawnThenGivenAwayDoesNotCountUntilOwnedAgain(): void
+    {
+        $first = $this->createCard('First');
+        $second = $this->createCard('Second');
+        $this->give($this->user, $first);
+        $gone = $this->give($this->user, $second);
+        $gone->setQuantity(0);
+        $this->entityManager->flush();
+
+        $this->checker->checkAfterCredit($this->user, [$this->extension]);
+        $this->assertSame([], $this->rewards());
+
+        $gone->setQuantity(1);
+        $this->entityManager->flush();
+        $this->checker->checkAfterCredit($this->user, [$this->extension]);
+        $this->assertCount(1, $this->rewards());
+    }
+
+    public function testDrawsOfAnotherPlayerDoNotCount(): void
+    {
+        $card = $this->createCard('Shared');
+        $bob = $this->createUser('bob');
+        $this->give($bob, $card);
+        $this->give($this->user, $card, drawn: false);
+
+        $this->checker->checkAfterCredit($this->user, [$this->extension]);
+
+        $this->assertSame([], array_filter($this->rewards(), fn (UniverseCompletionReward $reward): bool => $reward->getDiscordUser()->getDiscordId() === $this->user->getDiscordId()));
     }
 
     public function testSwitchedOffRewardsGrantPayAndNotifyNothing(): void
@@ -374,11 +415,14 @@ final class UniverseCompletionRewardTest extends KernelTestCase
         return $card;
     }
 
-    private function give(DiscordUser $user, Card $card, int $quantity = 1): UserCard
+    private function give(DiscordUser $user, Card $card, int $quantity = 1, bool $drawn = true): UserCard
     {
         $userCard = new UserCard()->setDiscordUser($user)->setCard($card)->setQuantity($quantity);
         $this->entityManager->persist($userCard);
         $this->entityManager->flush();
+        if ($drawn) {
+            $this->recordDraw($this->entityManager, $user, $card);
+        }
 
         return $userCard;
     }

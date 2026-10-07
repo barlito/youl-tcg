@@ -15,8 +15,10 @@ use App\Enum\Market\MarketListingStatusEnum;
 use App\Enum\Market\MarketPurchaseStatusEnum;
 use App\Enum\Notification\NotificationTypeEnum;
 use App\Exception\Market\MarketPurchaseRefusedException;
+use App\Service\Coin\UniverseCompletionChecker;
 use App\Service\Market\MarketListingService;
 use App\Service\Market\MarketPurchaseService;
+use App\Tests\DrawnCardTrait;
 use App\Tests\Support\CoinMockResponses;
 use App\Tests\Support\SpyHub;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -25,6 +27,7 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 
 final class MarketPurchaseServiceTest extends KernelTestCase
 {
+    use DrawnCardTrait;
     use MarketTestTrait;
 
     private MarketPurchaseService $service;
@@ -211,19 +214,39 @@ final class MarketPurchaseServiceTest extends KernelTestCase
         $this->assertCount(2, $inventoryEvents);
     }
 
-    public function testTheBuyerUniverseCompletionIsChecked(): void
+    public function testBuyingTheLastCardOfAUniverseDoesNotReward(): void
     {
         $extra = $this->createCard('Completing');
         $this->giveCards($this->seller, $extra, 1);
         $listing = $this->createListing($this->seller, $extra, false, 5);
-        // the buyer already owns every other card of the universe
+        // the buyer pulled every other card of the universe himself
         foreach ($this->entityManager->getRepository(Card::class)->findBy(['extension' => $this->extension]) as $card) {
             if ($card->getId() !== $extra->getId()) {
                 $this->giveCards($this->buyer, $card, 1);
+                $this->recordDraw($this->entityManager, $this->buyer, $card);
             }
         }
 
         $this->service->purchase($this->buyer, $listing, 'jwt');
+
+        $this->assertSame([], $this->entityManager->getRepository(UniverseCompletionReward::class)->findBy(['discordUser' => $this->buyer]));
+    }
+
+    public function testBuyingTheCardThenDrawingItRewardsTheBuyer(): void
+    {
+        $extra = $this->createCard('Completing');
+        $this->giveCards($this->seller, $extra, 1);
+        $listing = $this->createListing($this->seller, $extra, false, 5);
+        foreach ($this->entityManager->getRepository(Card::class)->findBy(['extension' => $this->extension]) as $card) {
+            if ($card->getId() !== $extra->getId()) {
+                $this->giveCards($this->buyer, $card, 1);
+                $this->recordDraw($this->entityManager, $this->buyer, $card);
+            }
+        }
+        $this->service->purchase($this->buyer, $listing, 'jwt');
+
+        $this->recordDraw($this->entityManager, $this->buyer, $extra);
+        self::getContainer()->get(UniverseCompletionChecker::class)->checkAfterCredit($this->buyer, [$this->extension]);
 
         $this->assertCount(1, $this->entityManager->getRepository(UniverseCompletionReward::class)->findBy(['discordUser' => $this->buyer]));
     }

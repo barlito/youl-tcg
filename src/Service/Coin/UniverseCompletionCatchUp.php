@@ -46,7 +46,7 @@ final readonly class UniverseCompletionCatchUp
         $rewarded = $this->rewardRepository->findRewardedPairs();
 
         $missing = [];
-        foreach ($this->userCardRepository->countOwnedNonUniqueByPlayerAndExtension($ids, $discordId) as $playerId => $owned) {
+        foreach ($this->userCardRepository->countDrawnOwnedNonUniqueByPlayerAndExtension($ids, $discordId) as $playerId => $owned) {
             foreach ($owned as $extensionId => $count) {
                 if (($totals[$extensionId] ?? 0) > 0 && $count >= $totals[$extensionId] && !isset($rewarded[$playerId . '|' . $extensionId])) {
                     $missing[] = [$playerId, $byId[$extensionId]];
