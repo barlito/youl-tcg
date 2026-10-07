@@ -49,6 +49,7 @@ final class StatsApiTest extends WebTestCase
             'codes' => ['totals', 'batches', 'usesPerDay'],
             'streaks' => ['rewards', 'boostersChosen', 'currentStreaks'],
             'universeRewards' => ['byStatus', 'paidDelaySeconds', 'completionsPerDay', 'perExtension'],
+            'wishlist' => ['maxEntriesPerPlayer', 'playersEngaged', 'wishes', 'universeWatches', 'alertsSent', 'alertsPerDay', 'mostWishedCards', 'watchedUniverses'],
             'notifications' => ['byType', 'broadcasts', 'announcements', 'note'],
         ];
 
@@ -66,7 +67,7 @@ final class StatsApiTest extends WebTestCase
         $this->assertSame('2026-09-08', $meta['periodStart']);
         $this->assertSame('2026-10-07', $meta['periodEnd']);
         $this->assertSame('Europe/Paris', $meta['timezone']);
-        $this->assertSame(['trades', 'recycling', 'universe_rewards', 'fusion'], array_keys($meta['features']));
+        $this->assertSame(['trades', 'recycling', 'universe_rewards', 'fusion', 'wishlist'], array_keys($meta['features']));
         $this->assertSame(['minor' => '50000000000', 'coins' => 500], $meta['coinSettings']['defaultUniverseRewardCoins']);
         $this->assertSame(5, $meta['coinSettings']['marketFeePercent']);
         $this->assertNull($meta['commit']);
@@ -377,6 +378,42 @@ final class StatsApiTest extends WebTestCase
         $this->assertSame(3, $fusion['topPlayers']['allTime'][0]['fusions']);
         $this->assertSame(2, $fusion['topPlayers']['allTime'][0]['operations']);
         $this->assertSame(2, $fusion['topPlayers']['period'][0]['fusions']);
+    }
+
+    public function testWishlistSectionAndPlayerCounters(): void
+    {
+        $common = $this->ids['common'];
+        $rare = $this->ids['rare'];
+        $cyberpunk = $this->scalar("SELECT id FROM extension WHERE slug = 'cyberpunk-2077'");
+        $magic = $this->scalar("SELECT id FROM extension WHERE slug = 'magic'");
+        $this->row('wishlist_entry', ['player_id' => self::STATSY, 'card_id' => $common, 'created_at' => '2026-10-06 10:00:00']);
+        $this->row('wishlist_entry', ['player_id' => self::STATSY, 'card_id' => $rare, 'created_at' => '2026-06-01 10:00:00']);
+        $this->row('wishlist_entry', ['player_id' => self::BUYER, 'card_id' => $common, 'created_at' => '2026-10-07 08:00:00']);
+        $this->row('wishlist_universe', ['player_id' => self::STATSY, 'extension_id' => $cyberpunk]);
+        $this->row('wishlist_universe', ['player_id' => self::COLLECTOR, 'extension_id' => $cyberpunk]);
+        $this->row('wishlist_universe', ['player_id' => self::COLLECTOR, 'extension_id' => $magic]);
+        $listing = $this->scalar("SELECT id FROM market_listing WHERE status = 'active' LIMIT 1");
+        $otherListing = $this->scalar("SELECT id FROM market_listing WHERE status = 'sold' LIMIT 1");
+        $this->insert('wishlist_alert', ['player_id' => self::STATSY, 'listing_id' => $listing, 'created_at' => '2026-10-07 08:30:00']);
+        $this->insert('wishlist_alert', ['player_id' => self::STATSY, 'listing_id' => $otherListing, 'created_at' => '2026-06-02 08:30:00']);
+        $this->insert('wishlist_alert', ['player_id' => self::BUYER, 'listing_id' => $listing, 'created_at' => '2026-10-07 08:30:00']);
+
+        $wishlist = $this->stats(['wishlist'])['wishlist'];
+
+        $this->assertSame(30, $wishlist['maxEntriesPerPlayer']);
+        $this->assertSame(3, $wishlist['playersEngaged']);
+        $this->assertSame(['total' => 3, 'period' => 2, 'players' => 2, 'distinctCards' => 2], $wishlist['wishes']);
+        $this->assertSame(['total' => 3, 'period' => 3, 'players' => 2], $wishlist['universeWatches']);
+        $this->assertSame(['total' => 3, 'period' => 2, 'players' => 2, 'listings' => 2], $wishlist['alertsSent']);
+        $this->assertSame(2, array_column($wishlist['alertsPerDay'], null, 'day')['2026-10-07']['alerts']);
+        $this->assertSame(['Cyberpunk Barlito', 2], [$wishlist['mostWishedCards'][0]['card']['name'], $wishlist['mostWishedCards'][0]['wishes']]);
+        $this->assertSame(['cyberpunk-2077', 2], [$wishlist['watchedUniverses'][0]['extension'], $wishlist['watchedUniverses'][0]['watchers']]);
+
+        $this->assertSame(
+            ['entries' => 2, 'universesWatched' => 1, 'alertsReceived' => ['total' => 2, 'period' => 1]],
+            $this->player(self::STATSY)['wishlist'],
+        );
+        $this->assertSame(['entries' => 0, 'universesWatched' => 2, 'alertsReceived' => ['total' => 0, 'period' => 0]], $this->player(self::COLLECTOR)['wishlist']);
     }
 
     public function testRecyclingCodesStreaksAndUniverseRewards(): void

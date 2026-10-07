@@ -13,11 +13,13 @@ use App\Enum\Entity\CardRarityEnum;
 use App\Enum\FeatureEnum;
 use App\Enum\Trade\TradeOfferSideEnum;
 use App\Exception\Trade\TradeException;
+use App\Exception\Wishlist\WishlistRefusedException;
 use App\Repository\CardRepository;
 use App\Repository\DiscordUserRepository;
 use App\Repository\MarketListingRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Trade\TradeOfferService;
+use App\Service\Wishlist\WishlistService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -35,7 +37,7 @@ use Symfony\UX\LiveComponent\Metadata\UrlMapping;
  * lives in NON-writable LiveProps mutated by actions only (checksummed), and
  * the domain re-validates everything anyway.
  *
- * @phpstan-type Entry array{token: string, card: ?Card, rarity: CardRarityEnum, extension: Extension, normal: int, holo: int, listed: int, mine: int, theirs: int}
+ * @phpstan-type Entry array{token: string, card: ?Card, rarity: CardRarityEnum, extension: Extension, normal: int, holo: int, listed: int, mine: int, theirs: int, wanted: bool, wished: bool}
  */
 #[RequiresFeature(FeatureEnum::TRADES)]
 #[AsLiveComponent]
@@ -50,6 +52,8 @@ final class TradeComposer extends AbstractController
     private const string FILTER_LACKS = 'lacks';
 
     private const string FILTER_DOUBLES = 'doubles';
+
+    private const string FILTER_WANTED = 'wanted';
 
     #[LiveProp]
     public string $counterpartId = '';
@@ -107,6 +111,7 @@ final class TradeComposer extends AbstractController
         private readonly UserCardRepository $userCardRepository,
         private readonly CardRepository $cardRepository,
         private readonly MarketListingRepository $marketListingRepository,
+        private readonly WishlistService $wishlist,
         #[Autowire(param: 'kernel.secret')]
         private readonly string $secret,
     ) {
@@ -170,6 +175,9 @@ final class TradeComposer extends AbstractController
         $labels = TradeOfferSideEnum::OFFERED === $sideEnum
             ? [self::FILTER_ALL => 'Tout', self::FILTER_LACKS => 'Lui manque', self::FILTER_DOUBLES => 'Mes doublons']
             : [self::FILTER_ALL => 'Tout', self::FILTER_LACKS => 'Me manque', self::FILTER_DOUBLES => 'Ses doublons'];
+        if (TradeOfferSideEnum::OFFERED === $sideEnum && $this->wishlist->isEnabled()) {
+            $labels[self::FILTER_WANTED] = '♡ Il la cherche';
+        }
         $current = $this->filterOf($sideEnum);
 
         $chips = [];
@@ -183,6 +191,11 @@ final class TradeComposer extends AbstractController
         }
 
         return $chips;
+    }
+
+    public function isWishlistEnabled(): bool
+    {
+        return $this->wishlist->isEnabled();
     }
 
     public function hasMaskedCards(): bool
@@ -341,7 +354,7 @@ final class TradeComposer extends AbstractController
     #[LiveAction]
     public function filterSide(#[LiveArg] string $side, #[LiveArg] string $filter): void
     {
-        $filter = \in_array($filter, [self::FILTER_LACKS, self::FILTER_DOUBLES], true) ? $filter : self::FILTER_ALL;
+        $filter = \in_array($filter, [self::FILTER_LACKS, self::FILTER_DOUBLES, self::FILTER_WANTED], true) ? $filter : self::FILTER_ALL;
 
         if (TradeOfferSideEnum::REQUESTED->value === $side) {
             $this->requestedFilter = $filter;
@@ -350,6 +363,28 @@ final class TradeComposer extends AbstractController
         }
 
         $this->offeredFilter = $filter;
+    }
+
+    /**
+     * Heart on a tile: only a card shown in clear can be wished, a masked token is ignored.
+     */
+    #[LiveAction]
+    public function toggleWish(#[LiveArg] string $token): void
+    {
+        $this->error = null;
+        $card = ($this->entries(TradeOfferSideEnum::OFFERED)[$token] ?? $this->entries(TradeOfferSideEnum::REQUESTED)[$token] ?? null)['card'] ?? null;
+
+        if (!$card instanceof Card) {
+            return;
+        }
+
+        try {
+            $this->wishlist->toggle($this->getDiscordUser(), $card);
+        } catch (WishlistRefusedException $exception) {
+            $this->error = $exception->getUserMessage();
+        }
+
+        $this->entries = [];
     }
 
     #[LiveAction]
@@ -422,6 +457,9 @@ final class TradeComposer extends AbstractController
         $listed = $isMine ? $this->listedCopies() : [];
         $mine = $this->myOwned();
         $theirs = $isMine ? $this->theirOwned() : [];
+        // only my own cards are tested against his wishes: he cannot learn anything about a card I do not hold
+        $wanted = $isMine ? $this->wishlist->wantedAmong($this->getCounterpart(), array_map(strval(...), array_keys($copies + $listed))) : [];
+        $wished = $this->wishlist->wishedCardIds($this->getDiscordUser());
 
         $entries = [];
         foreach ($copies as $cardId => $copy) {
@@ -441,6 +479,8 @@ final class TradeComposer extends AbstractController
                 'listed' => $listed[$cardId]['count'] ?? 0,
                 'mine' => $mine[$cardId] ?? 0,
                 'theirs' => $isMine ? $theirs[$cardId] ?? 0 : $copy['normal'] + $copy['holo'],
+                'wanted' => isset($wanted[$cardId]),
+                'wished' => (null === $known || isset($known[$cardId])) && isset($wished[$cardId]),
             ];
         }
 
@@ -450,7 +490,7 @@ final class TradeComposer extends AbstractController
             $extension = $card->getExtension();
 
             if (!isset($entries[$token]) && $extension instanceof Extension) {
-                $entries[$token] = ['token' => $token, 'card' => $card, 'rarity' => $card->getRarity(), 'extension' => $extension, 'normal' => 0, 'holo' => 0, 'listed' => $count, 'mine' => $mine[$cardId] ?? 0, 'theirs' => $theirs[$cardId] ?? 0];
+                $entries[$token] = ['token' => $token, 'card' => $card, 'rarity' => $card->getRarity(), 'extension' => $extension, 'normal' => 0, 'holo' => 0, 'listed' => $count, 'mine' => $mine[$cardId] ?? 0, 'theirs' => $theirs[$cardId] ?? 0, 'wanted' => isset($wanted[$cardId]), 'wished' => isset($wished[$cardId])];
             }
         }
 
@@ -507,7 +547,9 @@ final class TradeComposer extends AbstractController
     {
         $filter = TradeOfferSideEnum::OFFERED === $side ? $this->offeredFilter : $this->requestedFilter;
 
-        return \in_array($filter, [self::FILTER_LACKS, self::FILTER_DOUBLES], true) ? $filter : self::FILTER_ALL;
+        $allowed = TradeOfferSideEnum::OFFERED === $side ? [self::FILTER_LACKS, self::FILTER_DOUBLES, self::FILTER_WANTED] : [self::FILTER_LACKS, self::FILTER_DOUBLES];
+
+        return \in_array($filter, $allowed, true) ? $filter : self::FILTER_ALL;
     }
 
     /**
@@ -520,6 +562,7 @@ final class TradeComposer extends AbstractController
         return match ($chip) {
             self::FILTER_LACKS => $this->lacksOnOtherSide($side, $entry),
             self::FILTER_DOUBLES => ($offered ? $entry['mine'] : $entry['theirs']) >= 2,
+            self::FILTER_WANTED => $offered && $entry['wanted'],
             default => true,
         };
     }
@@ -577,10 +620,11 @@ final class TradeComposer extends AbstractController
         }
 
         foreach ($groups as &$group) {
-            // stable partition: cards missing on the other side first, current order kept inside each bucket
-            $useful = array_values(array_filter($group['entries'], fn (array $entry): bool => $this->isUseful($side, $entry)));
-            $rest = array_values(array_filter($group['entries'], fn (array $entry): bool => !$this->isUseful($side, $entry)));
-            $group['entries'] = [...$useful, ...$rest];
+            // stable partition: cards he is looking for, then cards missing on the other side, current order kept inside each bucket
+            $wanted = array_values(array_filter($group['entries'], static fn (array $entry): bool => $entry['wanted']));
+            $useful = array_values(array_filter($group['entries'], fn (array $entry): bool => !$entry['wanted'] && $this->isUseful($side, $entry)));
+            $rest = array_values(array_filter($group['entries'], fn (array $entry): bool => !$entry['wanted'] && !$this->isUseful($side, $entry)));
+            $group['entries'] = [...$wanted, ...$useful, ...$rest];
         }
         unset($group);
 

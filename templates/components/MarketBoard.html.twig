@@ -29,7 +29,7 @@
                     <div class="mt-6 border border-dashed border-hairline px-8 py-16 text-center text-ink-dim" data-testid="market-empty">
                         <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Rien en vente.</p>
                         <p class="mt-3 text-sm">
-                            {% if total == 0 and (universe or rarity or finish) %}
+                            {% if total == 0 and (universe or rarity or finish or wishlistOnly) %}
                                 Aucune annonce ne correspond à ces filtres.
                             {% else %}
                                 Aucune carte n'est proposée par les autres joueurs pour le moment.
@@ -46,6 +46,17 @@
                                      data-testid="market-listing">
                                 {% if listing.holo %}
                                     <span class="chip-mono absolute -right-1.5 -top-1.5 z-10 bg-gradient-to-r from-primary to-magenta px-1.5 py-0.5 font-bold text-black">✦ Holo</span>
+                                {% endif %}
+                                {% if this.wishlistEnabled %}
+                                    <button type="button"
+                                            data-action="live#action" data-live-action-param="toggleWish" data-live-listing-id-param="{{ listing.id }}"
+                                            data-loading="addAttribute(disabled)"
+                                            aria-pressed="{{ this.isWished(listing) ? 'true' : 'false' }}"
+                                            aria-label="Ajouter ou retirer de ma wishlist"
+                                            data-testid="listing-wish"
+                                            class="chip-mono absolute -left-1.5 -top-1.5 z-10 border border-hairline bg-black/90 px-2 py-1 font-bold text-ink-dim transition-colors hover:text-magenta aria-pressed:border-magenta aria-pressed:text-magenta">
+                                        {{ this.isWished(listing) ? '♥' : '♡' }}
+                                    </button>
                                 {% endif %}
                                 <div class="mx-auto w-full max-w-[13rem]">
                                     {{ include('components/CardComponent.html.twig', {
@@ -168,7 +179,16 @@
                     {% endfor %}
                 </select>
             </label>
-            {% if board.universe or board.rarity or board.finish %}
+            {% if board.wishlistEnabled %}
+                <button type="button" class="filter-chip {{ board.wishlistOnly ? 'is-active' }}"
+                        data-action="live#action" data-live-action-param="toggleWishlistFilter"
+                        aria-pressed="{{ board.wishlistOnly ? 'true' : 'false' }}"
+                        data-testid="filter-wishlist">
+                    ♡ Ma wishlist
+                </button>
+                <a href="{{ path('wishlist') }}" class="chip-mono text-ink-dim hover:text-primary" data-testid="wishlist-page-link">Gérer ▸</a>
+            {% endif %}
+            {% if board.universe or board.rarity or board.finish or board.wishlistOnly %}
                 <button type="button" data-action="live#action" data-live-action-param="resetFilters" data-testid="reset-filters"
                         class="chip-mono text-ink-dim hover:text-primary">Réinitialiser ✕</button>
             {% endif %}

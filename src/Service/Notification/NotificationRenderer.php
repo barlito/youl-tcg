@@ -92,6 +92,11 @@ final readonly class NotificationRenderer
                 ),
                 $this->urlGenerator->generate('market_my_shop'),
             ),
+            NotificationTypeEnum::WISHLIST_LISTED => new NotificationContent(
+                '♡',
+                $this->wishlistListedText($payload),
+                $this->wishlistLink($payload),
+            ),
             NotificationTypeEnum::ANNOUNCEMENT => new NotificationContent(
                 '!',
                 $this->string($payload, 'title', 'Annonce'),
@@ -105,6 +110,33 @@ final readonly class NotificationRenderer
                 $this->nullableString($payload, 'message'),
             ),
         };
+    }
+
+    /**
+     * A watched universe never names the card (the player does not know it), a direct wish does.
+     *
+     * @param array<string, scalar|null> $payload
+     */
+    private function wishlistListedText(array $payload): string
+    {
+        $price = CoinAmount::fromCoins($this->int($payload, 'price'))->format();
+        $cardName = $this->nullableString($payload, 'cardName');
+
+        return null !== $cardName
+            ? \sprintf('« %s » de ta wishlist est en vente : %s YLC', $cardName, $price)
+            : \sprintf('Une carte qui te manque dans %s est en vente : %s YLC', $this->string($payload, 'universe', 'un univers'), $price);
+    }
+
+    /**
+     * @param array<string, scalar|null> $payload
+     */
+    private function wishlistLink(array $payload): string
+    {
+        $slug = $this->string($payload, 'slug', '');
+
+        return 1 === preg_match('/^[a-z0-9-]+$/', $slug)
+            ? $this->urlGenerator->generate('market', ['univers' => $slug])
+            : $this->urlGenerator->generate('market');
     }
 
     /**

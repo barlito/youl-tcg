@@ -9,6 +9,7 @@ use App\Dto\DrawnCard;
 use App\Entity\Booster;
 use App\Entity\BoosterOpening;
 use App\Entity\BoosterOpeningCard;
+use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Enum\Notification\NotificationTypeEnum;
@@ -21,6 +22,7 @@ use App\Service\Coin\UniverseCompletionChecker;
 use App\Service\Notification\NotificationService;
 use App\Service\Random\RandomService;
 use App\Service\Realtime\UserEventPublisher;
+use App\Service\Wishlist\WishlistService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
@@ -42,6 +44,7 @@ final readonly class BoosterOpeningService
         private UserEventPublisher $userEventPublisher,
         private NotificationService $notificationService,
         private UniverseCompletionChecker $completionChecker,
+        private WishlistService $wishlist,
     ) {
     }
 
@@ -91,6 +94,7 @@ final readonly class BoosterOpeningService
         $this->streakRewardService->grantMilestones($discordUser);
         $this->userEventPublisher->publish($discordUser, UserEventEnum::INVENTORY_CHANGED);
         $this->announceUniques($discordUser, $result);
+        $this->wishlist->fulfil($discordUser, array_map(static fn (DrawnCard $drawnCard): Card => $drawnCard->card, $result->drawnCards));
         $this->completionChecker->checkAfterCredit($discordUser, array_filter(array_map(
             static fn (DrawnCard $drawnCard): ?Extension => $drawnCard->card->getExtension(),
             $result->drawnCards,

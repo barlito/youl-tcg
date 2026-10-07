@@ -43,6 +43,9 @@ final readonly class PlayersSection extends AbstractStatsSection
         );
         $unopened = $this->db->keyed('SELECT discord_user_id, COALESCE(SUM(quantity), 0) AS copies, COUNT(*) FILTER (WHERE quantity > 0) AS distinct_boosters FROM user_booster GROUP BY discord_user_id', 'discord_user_id');
         $unread = $this->db->keyed($this->unreadQuery(), 'discord_id');
+        $wishes = $this->db->keyed('SELECT player_id, COUNT(*) AS total FROM wishlist_entry GROUP BY player_id', 'player_id');
+        $watches = $this->db->keyed('SELECT player_id, COUNT(*) AS total FROM wishlist_universe GROUP BY player_id', 'player_id');
+        $alerts = $this->db->keyed('SELECT player_id, COUNT(*) AS total, COUNT(*) FILTER (WHERE created_at >= :since) AS period FROM wishlist_alert GROUP BY player_id', 'player_id', ['since' => $context->since]);
         $completion = $this->completion();
         $openingDays = $this->playerDays->openings();
 
@@ -116,6 +119,11 @@ final readonly class PlayersSection extends AbstractStatsSection
                     'paid' => ['count' => StatsFormat::int($own['reward_paid'] ?? [], 'total'), 'amount' => StatsFormat::coins(StatsFormat::int($own['reward_paid'] ?? [], 'coins'))],
                     'pending' => ['count' => StatsFormat::int($own['reward_pending'] ?? [], 'total'), 'amount' => StatsFormat::coins(StatsFormat::int($own['reward_pending'] ?? [], 'coins'))],
                     'failed' => ['count' => StatsFormat::int($own['reward_failed'] ?? [], 'total'), 'amount' => StatsFormat::coins(StatsFormat::int($own['reward_failed'] ?? [], 'coins'))],
+                ],
+                'wishlist' => [
+                    'entries' => StatsFormat::int($wishes[$id] ?? [], 'total'),
+                    'universesWatched' => StatsFormat::int($watches[$id] ?? [], 'total'),
+                    'alertsReceived' => $this->pair(['alerts' => $alerts[$id] ?? []], 'alerts'),
                 ],
                 'unreadNotifications' => [
                     'personal' => StatsFormat::int($unreadRow, 'personal'),

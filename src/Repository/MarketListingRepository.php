@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\MarketListing;
@@ -91,9 +92,9 @@ class MarketListingRepository extends ServiceEntityRepository
     /**
      * @return list<MarketListing>
      */
-    public function findActivePage(?DiscordUser $seller, ?DiscordUser $excludedSeller, ?Extension $extension, ?CardRarityEnum $rarity, ?bool $holo, string $sort, int $page, int $perPage): array
+    public function findActivePage(?DiscordUser $seller, ?DiscordUser $excludedSeller, ?Extension $extension, ?CardRarityEnum $rarity, ?bool $holo, string $sort, int $page, int $perPage, ?DiscordUser $wishOf = null): array
     {
-        $queryBuilder = $this->activeQuery($seller, $excludedSeller, $extension, $rarity, $holo)
+        $queryBuilder = $this->activeQuery($seller, $excludedSeller, $extension, $rarity, $holo, $wishOf)
             ->addSelect('card', 'extension', 'seller')
             ->setFirstResult(max(0, $page - 1) * $perPage)
             ->setMaxResults($perPage)
@@ -110,9 +111,9 @@ class MarketListingRepository extends ServiceEntityRepository
         return array_values(iterator_to_array(new Paginator($queryBuilder->getQuery(), fetchJoinCollection: false)));
     }
 
-    public function countActive(?DiscordUser $seller, ?DiscordUser $excludedSeller, ?Extension $extension, ?CardRarityEnum $rarity, ?bool $holo): int
+    public function countActive(?DiscordUser $seller, ?DiscordUser $excludedSeller, ?Extension $extension, ?CardRarityEnum $rarity, ?bool $holo, ?DiscordUser $wishOf = null): int
     {
-        return (int) $this->activeQuery($seller, $excludedSeller, $extension, $rarity, $holo)
+        return (int) $this->activeQuery($seller, $excludedSeller, $extension, $rarity, $holo, $wishOf)
             ->select('COUNT(listing.id)')
             ->getQuery()
             ->getSingleScalarResult()
@@ -135,7 +136,42 @@ class MarketListingRepository extends ServiceEntityRepository
         ));
     }
 
-    private function activeQuery(?DiscordUser $seller, ?DiscordUser $excludedSeller, ?Extension $extension, ?CardRarityEnum $rarity, ?bool $holo): QueryBuilder
+    /** True when a published card has an ACTIVE listing: it is then visible in clear on /marche. */
+    public function existsActiveForCard(Card $card): bool
+    {
+        return (int) $this->activeQuery(null, null, null, null, null)
+            ->select('COUNT(listing.id)')
+            ->andWhere('listing.card = :listedCard')
+            ->setParameter('listedCard', $card)
+            ->getQuery()
+            ->getSingleScalarResult() > 0
+        ;
+    }
+
+    /**
+     * @param list<string> $cardIds
+     *
+     * @return array<string, true> card id => has an active listing
+     */
+    public function findActiveCardIds(array $cardIds): array
+    {
+        if ([] === $cardIds) {
+            return [];
+        }
+
+        /** @var list<array{id: mixed}> $rows */
+        $rows = $this->activeQuery(null, null, null, null, null)
+            ->select('DISTINCT card.id AS id')
+            ->andWhere('card.id IN (:listedCards)')
+            ->setParameter('listedCards', $cardIds)
+            ->getQuery()
+            ->getResult()
+        ;
+
+        return array_fill_keys(array_map(static fn (array $row): string => (string) $row['id'], $rows), true);
+    }
+
+    private function activeQuery(?DiscordUser $seller, ?DiscordUser $excludedSeller, ?Extension $extension, ?CardRarityEnum $rarity, ?bool $holo, ?DiscordUser $wishOf = null): QueryBuilder
     {
         $queryBuilder = $this->createQueryBuilder('listing')
             ->join('listing.card', 'card')
@@ -167,6 +203,15 @@ class MarketListingRepository extends ServiceEntityRepository
 
         if (null !== $holo) {
             $queryBuilder->andWhere('listing.holo = :holo')->setParameter('holo', $holo);
+        }
+
+        if ($wishOf instanceof DiscordUser) {
+            $queryBuilder
+                ->andWhere('EXISTS (SELECT 1 FROM App\Entity\WishlistEntry wish WHERE wish.player = :wishOf AND wish.card = card)
+                    OR (EXISTS (SELECT 1 FROM App\Entity\WishlistUniverse watched WHERE watched.player = :wishOf AND watched.extension = card.extension)
+                        AND NOT EXISTS (SELECT 1 FROM App\Entity\UserCard owned WHERE owned.discordUser = :wishOf AND owned.card = card AND (owned.quantity > 0 OR owned.holoQuantity > 0)))')
+                ->setParameter('wishOf', $wishOf)
+            ;
         }
 
         return $queryBuilder;

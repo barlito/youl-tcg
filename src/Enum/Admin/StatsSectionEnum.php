@@ -20,6 +20,7 @@ enum StatsSectionEnum: string
     case CODES = 'codes';
     case STREAKS = 'streaks';
     case UNIVERSE_REWARDS = 'universeRewards';
+    case WISHLIST = 'wishlist';
     case NOTIFICATIONS = 'notifications';
 
     /**

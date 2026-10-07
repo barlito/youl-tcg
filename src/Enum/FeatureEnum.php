@@ -13,6 +13,7 @@ enum FeatureEnum: string
     case RECYCLING = 'recycling';
     case UNIVERSE_REWARDS = 'universe_rewards';
     case FUSION = 'fusion';
+    case WISHLIST = 'wishlist';
 
     public function label(): string
     {
@@ -21,6 +22,7 @@ enum FeatureEnum: string
             self::RECYCLING => 'Recyclage des doublons',
             self::UNIVERSE_REWARDS => 'Récompenses de complétion d\'univers',
             self::FUSION => 'Fusion des doublons',
+            self::WISHLIST => 'Wishlist et alertes',
         };
     }
 }

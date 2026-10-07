@@ -18,6 +18,7 @@ use App\Repository\UserCardRepository;
 use App\Service\Coin\YoulCoinClient;
 use App\Service\Realtime\UserEventPublisher;
 use App\Service\Trade\EngagedCopies;
+use App\Service\Wishlist\WishlistAlertService;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -35,6 +36,7 @@ final readonly class MarketListingService
         private ClockInterface $clock,
         private UserEventPublisher $userEventPublisher,
         private YoulCoinClient $coin,
+        private WishlistAlertService $wishlistAlerts,
     ) {
     }
 
@@ -86,6 +88,7 @@ final readonly class MarketListingService
         }
 
         $this->announce($result);
+        $this->wishlistAlerts->alertListing($result);
 
         return $result;
     }
