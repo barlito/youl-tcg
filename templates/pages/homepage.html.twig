@@ -86,6 +86,9 @@
             </div>
         </section>
 
+        {# ------------------------------------------------- QG + à finir #}
+        {{ include('parts/home/_today.html.twig') }}
+
         {# --------------------------------------------------------- Concept #}
                 <section class="bg-bg px-6 py-24 lg:px-14">
             <div class="mx-auto max-w-7xl">
@@ -164,10 +167,13 @@
             </div>
         </section>
 
+        {# ------------------------------------------------------ En direct #}
+        {{ include('parts/home/_live.html.twig') }}
+
         {# --------------------------------------------------------- Raretés #}
         <section id="raretes" class="border-t-2 border-hairline px-6 py-20 lg:px-14">
             <div class="mx-auto max-w-7xl">
-                <p class="eyebrow">02 / Raretés</p>
+                <p class="eyebrow">03 / Raretés</p>
                 <h2 class="mb-10 mt-4 font-display text-5xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-6xl">
                     {{ rarities|length }} paliers.
                 </h2>
@@ -191,18 +197,19 @@
         {# --------------------------------------------------------- Roadmap #}
         <section id="roadmap" class="px-6 py-20 lg:px-14">
             <div class="mx-auto max-w-7xl">
-                <p class="eyebrow">03 / Roadmap</p>
+                <p class="eyebrow">04 / Roadmap</p>
                 <h2 class="mb-12 mt-4 font-display text-5xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-6xl">
                     La suite.
                 </h2>
 
                 {% set roadmap = [
                     {quarter: 'Q3 26', state: 'LIVE', title: 'Ouverture de packs', color: 'var(--live)'},
-                    {quarter: 'Q4 26', state: 'NOW', title: 'Échanges P2P', color: 'var(--primary)'},
+                    {quarter: 'Q4 26', state: 'LIVE', title: 'Échanges & marché', color: 'var(--live)'},
+                    {quarter: 'Q4 26', state: 'NEW', title: 'Fusion & wishlist', color: 'var(--primary)'},
                     {quarter: 'Q1 27', state: 'PLANNED', title: 'Mode Duel', color: 'var(--soon)'},
                     {quarter: '2027', state: 'VISION', title: 'Saisons ranked', color: 'var(--text-dim)'},
                 ] %}
-                <div class="grid md:grid-cols-4">
+                <div class="grid md:grid-cols-5">
                     {% for step in roadmap %}
                         <div class="p-6 {{ not loop.last ? 'md:border-r md:border-hairline' }}"
                              style="border-top: 4px solid {{ step.color }};">

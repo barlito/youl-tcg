@@ -1,0 +1,94 @@
+{# « En direct » : the week's big pulls (rarity + universe only, never the card), the 1/1 hunt,
+   community counters and the newest market listings (listings are visible in clear) #}
+{% macro ago(date) %}
+    {%- set seconds = 'now'|date('U') - date|date('U') -%}
+    {%- if seconds < 3600 -%}il y a {{ max(1, (seconds / 60)|round(0, 'floor')) }} min
+    {%- elseif seconds < 86400 -%}il y a {{ (seconds / 3600)|round(0, 'floor') }} h
+    {%- else -%}il y a {{ (seconds / 86400)|round(0, 'floor') }} j
+    {%- endif -%}
+{% endmacro %}
+
+<section id="direct" class="border-t-2 border-hairline px-6 py-20 lg:px-14" data-testid="home-live">
+    <div class="mx-auto max-w-7xl">
+        <p class="eyebrow">02 / En direct</p>
+        <h2 class="mt-4 font-display text-5xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-6xl">
+            Le multivers <span class="text-primary">bouge</span>.
+        </h2>
+
+        <div class="mt-10 grid gap-8 lg:grid-cols-[1.2fr_1fr]">
+            <div>
+                <p class="chip-mono text-ink-dim">Gros tirages de la semaine</p>
+                {% if community.pulls is empty %}
+                    <p class="mt-4 border border-hairline bg-surface p-5 text-sm text-ink-muted">
+                        Aucune légendaire tirée cette semaine. La tienne sera peut-être la première.
+                    </p>
+                {% else %}
+                    <ul class="mt-4 divide-y divide-hairline border border-hairline bg-surface" data-testid="live-pulls">
+                        {% for pull in community.pulls %}
+                            {% set color = pull.unique ? 'var(--primary)' : 'var(--rarity-' ~ pull.rarity ~ ')' %}
+                            <li class="flex items-center gap-3 px-4 py-3" data-testid="live-pull">
+                                <span class="chip-mono shrink-0 px-2 py-0.5 font-bold text-black" style="background: {{ color }};">
+                                    {{ pull.unique ? '1/1' : rarity_label(pull.rarity) }}{{ pull.holo and not pull.unique ? ' ✦' }}
+                                </span>
+                                <p class="min-w-0 flex-1 truncate text-sm text-ink-muted">
+                                    <a href="{{ path('leaderboard_player', { discordId: pull.discordId }) }}" class="font-bold text-ink-strong hover:text-primary">{{ pull.player }}</a>
+                                    {{ pull.unique ? 'a trouvé une 1/1' : 'a tiré une légendaire' }} dans
+                                    <a href="{{ path('universes_show', { slug: pull.slug }) }}" class="text-ink-strong hover:text-primary">{{ pull.universe }}</a>
+                                </p>
+                                <span class="chip-mono shrink-0 text-ink-dim">{{ _self.ago(pull.openedAt) }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 self-start" data-testid="live-counters">
+                {% set counters = [
+                    {label: '1/1 trouvées', value: community.uniques.found ~ ' / ' ~ community.uniques.total, accent: true},
+                    {label: 'Joueurs actifs (7 j)', value: community.activePlayers},
+                    {label: 'Holos en circulation', value: community.holoCopies|number_format(0, ',', ' ')},
+                    {label: 'Échanges conclus', value: community.tradesAccepted|number_format(0, ',', ' ')},
+                    {label: 'Fusions réalisées', value: community.fusions|number_format(0, ',', ' ')},
+                    {label: 'Cartes tirées', value: cardsPulledCount|number_format(0, ',', ' ')},
+                ] %}
+                {% for counter in counters %}
+                    <div class="border bg-surface p-4 {{ counter.accent|default(false) ? 'border-primary/70' : 'border-hairline' }}">
+                        <p class="chip-mono text-ink-dim">{{ counter.label }}</p>
+                        <p class="mt-2 font-display text-3xl font-bold {{ counter.accent|default(false) ? 'text-primary' : 'text-ink-strong' }}">{{ counter.value }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if latestListings is not empty %}
+            <div class="mt-14 flex items-end justify-between gap-4">
+                <p class="chip-mono text-ink-dim">Fraîchement au marché</p>
+                <a href="{{ path('market') }}" class="btn-ghost !px-4 !py-2 text-xs">Tout le marché ▸</a>
+            </div>
+            <div class="mt-4 grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-4" data-testid="live-listings">
+                {% for listing in latestListings %}
+                    {% set card = listing.card %}
+                    <a href="{{ path('market', { univers: card.extension.slug }) }}" class="group relative block border border-hairline bg-surface p-3 transition-colors hover:border-primary" data-testid="live-listing">
+                        {% if listing.holo %}
+                            <span class="chip-mono absolute -right-1.5 -top-1.5 z-10 bg-gradient-to-r from-primary to-magenta px-1.5 py-0.5 font-bold text-black">✦ Holo</span>
+                        {% endif %}
+                        <div class="mx-auto w-full max-w-[11rem]">
+                            {{ include('components/CardComponent.html.twig', {
+                                card: card,
+                                holo: listing.holo,
+                                interactive: false,
+                                lazy: true,
+                                id: 'home-listing-' ~ listing.id,
+                            }, with_context = false) }}
+                        </div>
+                        <p class="mt-3 truncate font-display text-xs font-bold uppercase leading-tight text-ink-strong" title="{{ card.name }}">{{ card.name }}</p>
+                        <p class="chip-mono mt-0.5 truncate" style="color: var(--rarity-{{ card.rarity.value }});">
+                            {{ card.rarity.label }} · <span class="text-ink-dim">{{ listing.seller.username }}</span>
+                        </p>
+                        <p class="mt-2 font-display text-lg font-bold text-primary">{{ coin_amount(listing.price) }} <span class="text-xs">YLC</span></p>
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</section>

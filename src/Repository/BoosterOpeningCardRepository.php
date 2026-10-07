@@ -145,4 +145,36 @@ class BoosterOpeningCardRepository extends ServiceEntityRepository
             ->getOneOrNullResult()
         ;
     }
+
+    /**
+     * Legendary and 1/1 pulls since $since, newest first, for the homepage feed
+     * (the card itself is never exposed there, only its rarity and universe).
+     *
+     * @return list<BoosterOpeningCard>
+     */
+    public function findRecentNotablePulls(\DateTimeImmutable $since, int $limit): array
+    {
+        /** @var list<BoosterOpeningCard> $pulls */
+        $pulls = $this->createQueryBuilder('boc')
+            ->join('boc.boosterOpening', 'bo')
+            ->addSelect('bo')
+            ->join('bo.discordUser', 'u')
+            ->addSelect('u')
+            ->join('boc.card', 'c')
+            ->addSelect('c')
+            ->join('c.extension', 'e')
+            ->addSelect('e')
+            ->andWhere('c.rarity = :legendary OR c.uniqueFlag = true')
+            ->andWhere('bo.openedAt >= :since')
+            ->setParameter('legendary', CardRarityEnum::LEGENDARY->value)
+            ->setParameter('since', $since)
+            ->orderBy('bo.openedAt', 'DESC')
+            ->addOrderBy('c.id', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult()
+        ;
+
+        return $pulls;
+    }
 }

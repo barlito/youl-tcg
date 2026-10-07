@@ -337,4 +337,25 @@ class CardRepository extends ServiceEntityRepository
             ->getOneOrNullResult()
         ;
     }
+
+    /**
+     * @return array{total: int, found: int} published 1/1 cards, and how many already have a holder
+     */
+    public function countPublishedUniques(): array
+    {
+        /** @var array{total: string|int, found: string|int} $row */
+        $row = $this->createQueryBuilder('c')
+            ->select('COUNT(c.id) AS total', 'COUNT(c.claimedBy) AS found')
+            ->join('c.extension', 'e')
+            ->andWhere('c.uniqueFlag = true')
+            ->andWhere('c.status = :cardStatus')
+            ->andWhere('e.status = :extensionStatus')
+            ->setParameter('cardStatus', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->setParameter('extensionStatus', ExtensionStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
+            ->getQuery()
+            ->getSingleResult()
+        ;
+
+        return ['total' => (int) $row['total'], 'found' => (int) $row['found']];
+    }
 }

@@ -68,4 +68,15 @@ class UserBoosterRepository extends ServiceEntityRepository
 
         return \is_int($deleted) ? $deleted : 0;
     }
+
+    public function sumQuantityFor(DiscordUser $discordUser): int
+    {
+        return (int) $this->createQueryBuilder('ub')
+            ->select('COALESCE(SUM(ub.quantity), 0)')
+            ->andWhere('ub.discordUser = :user')
+            ->setParameter('user', $discordUser)
+            ->getQuery()
+            ->getSingleScalarResult()
+        ;
+    }
 }
