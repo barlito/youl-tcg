@@ -140,7 +140,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Réglages');
         yield MenuItem::linkTo(FeatureFlagCrudController::class, 'Fonctionnalités', 'fa fa-toggle-on');
         yield MenuItem::linkTo(CoinSettingsCrudController::class, 'Réglages coin', 'fa fa-coins');
-        yield MenuItem::linkToRoute('API d\'import', 'fa fa-plug', 'admin_api_import');
+        yield MenuItem::linkToRoute('API admin', 'fa fa-plug', 'admin_api');
 
         yield MenuItem::section('Aide');
         yield MenuItem::linkToRoute('Guide admin', 'fa fa-book', 'admin_guide');

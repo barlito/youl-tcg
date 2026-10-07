@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Security;
 
-use App\Dto\Admin\ImportTokenInfo;
-use App\Service\Admin\ImportApiTokenManager;
+use App\Dto\Admin\AdminApiTokenInfo;
+use App\Service\Admin\AdminApiTokenManager;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,9 +17,9 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
 use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface;
 
-final class ImportApiAuthenticator extends AbstractAuthenticator implements AuthenticationEntryPointInterface
+final class AdminApiAuthenticator extends AbstractAuthenticator implements AuthenticationEntryPointInterface
 {
-    public function __construct(private readonly ImportApiTokenManager $tokenManager)
+    public function __construct(private readonly AdminApiTokenManager $tokenManager)
     {
     }
 
@@ -36,13 +36,13 @@ final class ImportApiAuthenticator extends AbstractAuthenticator implements Auth
         }
 
         $info = $this->tokenManager->validate($matches[1]);
-        if (!$info instanceof ImportTokenInfo) {
+        if (!$info instanceof AdminApiTokenInfo) {
             throw new CustomUserMessageAuthenticationException('Invalid or expired token.');
         }
 
         return new SelfValidatingPassport(new UserBadge(
-            'import-api:' . $info->generatedBy,
-            static fn (): ImportApiUser => new ImportApiUser($info->generatedBy),
+            'admin-api:' . $info->generatedBy,
+            static fn (): AdminApiUser => new AdminApiUser($info->generatedBy, $info->scopes),
         ));
     }
 

@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
-use App\Service\Admin\ImportApiTokenManager;
+use App\Enum\Admin\AdminApiScopeEnum;
+use App\Service\Admin\AdminApiTokenManager;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
-final class ImportApiAuthTest extends WebTestCase
+final class AdminApiAuthTest extends WebTestCase
 {
     use ClockSensitiveTrait;
     use ImportApiTestTrait;
@@ -48,7 +49,7 @@ final class ImportApiAuthTest extends WebTestCase
     {
         $client = self::createClient();
         $token = $this->newToken();
-        static::getContainer()->get(ImportApiTokenManager::class)->revoke();
+        static::getContainer()->get(AdminApiTokenManager::class)->revoke();
 
         $this->apiRequest($client, 'GET', '/api/admin/extensions', $token);
 
@@ -84,7 +85,7 @@ final class ImportApiAuthTest extends WebTestCase
         $client = self::createClient();
         $token = $this->newToken();
 
-        foreach (['/admin', '/admin/api-import', '/admin/card'] as $uri) {
+        foreach (['/admin', '/admin/api', '/admin/card'] as $uri) {
             $client->request('GET', $uri, server: ['HTTP_AUTHORIZATION' => 'Bearer ' . $token]);
             $this->assertNotSame(200, $client->getResponse()->getStatusCode(), $uri);
         }
@@ -98,5 +99,50 @@ final class ImportApiAuthTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(404);
         $this->assertSame('Http error', $body['error']);
+    }
+
+    public function testStatsOnlyTokenIsForbiddenOnTheImportRoutes(): void
+    {
+        $client = self::createClient();
+        $token = $this->newToken([AdminApiScopeEnum::STATS]);
+
+        $body = $this->apiRequest($client, 'GET', '/api/admin/extensions', $token);
+
+        self::assertResponseStatusCodeSame(403);
+        $this->assertSame('Http error', $body['error']);
+    }
+
+    public function testImportOnlyTokenIsForbiddenOnTheStatsRoute(): void
+    {
+        $client = self::createClient();
+        $token = $this->newToken([AdminApiScopeEnum::IMPORT]);
+
+        $body = $this->apiRequest($client, 'GET', '/api/admin/stats', $token);
+
+        self::assertResponseStatusCodeSame(403);
+        $this->assertSame('Http error', $body['error']);
+    }
+
+    public function testTokenWithBothScopesOpensBothAreas(): void
+    {
+        $client = self::createClient();
+        $token = $this->newToken();
+
+        $this->apiRequest($client, 'GET', '/api/admin/extensions', $token);
+        self::assertResponseStatusCodeSame(200);
+
+        $this->apiRequest($client, 'GET', '/api/admin/stats?sections=meta', $token);
+        self::assertResponseStatusCodeSame(200);
+    }
+
+    public function testExpiredTokenIsUnauthorizedOnTheStatsRoute(): void
+    {
+        $client = self::createClient();
+        $token = $this->newToken();
+
+        self::mockTime(new \DateTimeImmutable('+2 hours'));
+        $this->apiRequest($client, 'GET', '/api/admin/stats', $token);
+
+        self::assertResponseStatusCodeSame(401);
     }
 }

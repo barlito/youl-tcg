@@ -139,7 +139,7 @@ final readonly class EconomyStatsProvider
     /**
      * @return array<string, int>
      */
-    private function countOpeningsPerDay(string $since): array
+    public function countOpeningsPerDay(string $since): array
     {
         $sql = \sprintf(
             'SELECT %s AS day, COUNT(*) AS total FROM booster_opening WHERE opened_at >= :since GROUP BY day',
@@ -152,7 +152,7 @@ final readonly class EconomyStatsProvider
     /**
      * @return array<string, int>
      */
-    private function countActivePlayersPerDay(string $since): array
+    public function countActivePlayersPerDay(string $since): array
     {
         $sql = \sprintf(
             'SELECT %s AS day, COUNT(DISTINCT user_id) AS total FROM (%s) activity GROUP BY day',
@@ -172,7 +172,7 @@ final readonly class EconomyStatsProvider
      *
      * @return array<string, array<string, int>>
      */
-    private function countBoostersPerChannel(array $days, string $since): array
+    public function countBoostersPerChannel(array $days, string $since): array
     {
         $sql = \sprintf(
             <<<'SQL'
@@ -223,7 +223,7 @@ final readonly class EconomyStatsProvider
     /**
      * @param list<string> $days
      */
-    private function countTradesPerDay(array $days, string $since): TradeActivity
+    public function countTradesPerDay(array $days, string $since): TradeActivity
     {
         $sql = \sprintf(
             <<<'SQL'
@@ -266,7 +266,7 @@ final readonly class EconomyStatsProvider
     /**
      * @return list<WeeklyRecycleStats>
      */
-    private function aggregateWeeklyRecycles(\DateTimeImmutable $start, string $since): array
+    public function aggregateWeeklyRecycles(\DateTimeImmutable $start, string $since): array
     {
         $sql = <<<'SQL'
             SELECT to_char(date_trunc('week', (recycled_at AT TIME ZONE 'UTC') AT TIME ZONE :timezone), 'YYYY-MM-DD') AS week,
@@ -309,7 +309,7 @@ final readonly class EconomyStatsProvider
      * those of the opening time), uniqueChance counted even once every 1/1 of
      * the extension is drawn, alwaysHolo cards not modelled in the holo rate.
      */
-    private function compareRarities(string $since): RarityComparison
+    public function compareRarities(string $since): RarityComparison
     {
         $observed = $this->fetchObservedBuckets($since);
         $openedBoosters = $this->connection->fetchAllAssociative(<<<'SQL'
@@ -473,7 +473,7 @@ final readonly class EconomyStatsProvider
     /**
      * @param list<string> $days
      */
-    private function buildCoinEconomy(array $days, string $since): CoinEconomy
+    public function buildCoinEconomy(array $days, string $since): CoinEconomy
     {
         $purchases = $this->fetchDayRows(
             'SELECT %s AS day, COUNT(*) AS total, SUM(price) AS coins FROM booster_purchase WHERE status = :completed AND resolved_at >= :since GROUP BY day',
@@ -652,7 +652,7 @@ final readonly class EconomyStatsProvider
         return [$flows['in'], $flows['out']];
     }
 
-    private function fetchCoinAlerts(): CoinAlerts
+    public function fetchCoinAlerts(): CoinAlerts
     {
         $row = $this->connection->fetchAssociative(<<<'SQL'
             SELECT (SELECT COUNT(*) FROM booster_purchase WHERE status = :purchasePending) AS pending_purchases,
@@ -686,7 +686,7 @@ final readonly class EconomyStatsProvider
     /**
      * UNION ALL of the activity sources since the given placeholder.
      */
-    private function activitySql(string $sincePlaceholder): string
+    public function activitySql(string $sincePlaceholder): string
     {
         $parts = [];
 
@@ -704,7 +704,7 @@ final readonly class EconomyStatsProvider
         return implode(' UNION ALL ', $parts);
     }
 
-    private function dayExpression(string $column): string
+    public function dayExpression(string $column): string
     {
         return \sprintf("to_char((%s AT TIME ZONE 'UTC') AT TIME ZONE :timezone, 'YYYY-MM-DD')", $column);
     }
@@ -729,7 +729,7 @@ final readonly class EconomyStatsProvider
      *
      * @return array<string, int>
      */
-    private function fillDays(array $days, array $totals): array
+    public function fillDays(array $days, array $totals): array
     {
         $filled = [];
 
@@ -743,7 +743,7 @@ final readonly class EconomyStatsProvider
     /**
      * @return list<string>
      */
-    private function listDays(\DateTimeImmutable $start): array
+    public function listDays(\DateTimeImmutable $start): array
     {
         $days = [];
         $today = $this->today();
@@ -755,7 +755,7 @@ final readonly class EconomyStatsProvider
         return $days;
     }
 
-    private function today(): \DateTimeImmutable
+    public function today(): \DateTimeImmutable
     {
         return $this->clock->now()->setTimezone(new \DateTimeZone(self::TIMEZONE))->setTime(0, 0);
     }
@@ -763,7 +763,7 @@ final readonly class EconomyStatsProvider
     /**
      * Timestamps are stored UTC without zone: bind the same instant in UTC.
      */
-    private function toUtc(\DateTimeImmutable $moment): string
+    public function toUtc(\DateTimeImmutable $moment): string
     {
         return $moment->setTimezone(new \DateTimeZone('UTC'))->format(self::UTC_FORMAT);
     }

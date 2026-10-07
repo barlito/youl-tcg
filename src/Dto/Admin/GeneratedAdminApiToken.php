@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Dto\Admin;
 
-final readonly class GeneratedImportToken
+final readonly class GeneratedAdminApiToken
 {
     public function __construct(
         public string $token,
-        public ImportTokenInfo $info,
+        public AdminApiTokenInfo $info,
     ) {
     }
 }
