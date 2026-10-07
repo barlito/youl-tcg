@@ -289,6 +289,8 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 
 **Frontend (`src/Controller/`):**
 - **BaseController**: Homepage with 3 random published cards (cached daily, key `daycards`), ticker (packs opened, cards pulled), upcoming-universe teaser
+  - `HomeDashboardBuilder` (`src/Service/Home/`) feeds the player blocks: « Ton QG » (`today()`: claims left + countdown, unopened packs, streak, rank/completion, then one tile per feature flag ON — pending trades received, fusions available on FREE normal copies via `EngagedCopies`, recycling done today, wished cards other players sell), « Presque complets » (`universesToFinish()`: the 3 started-but-unfinished universes with the highest completion, same formula as `/univers`, + self-drawn reward progress while `universe_rewards` is ON and the universe is not rewarded yet), « En direct » (`community()`, cached 5 min in `cache.app` key `home_community`: last 7 days legendary / 1/1 pulls, 1/1 found/total, holo copies, accepted trades, fusions, distinct openers on 7 days; `latestListings()`: the 4 newest listings of OTHER players, live)
+  - Masking: the pull feed exposes player + rarity + universe only, NEVER the card (name, id, artwork); listings are the assumed market exception
   - Routes: `/` (homepage), `/boosters` (hub), `/extensions` (301 → `/univers`)
   - Uses custom `CardRepository::findRandomCardId()` with RANDOM() DQL function
 - **BoosterController**: `/boosters/{id}/open` (route `booster_open`) — dedicated opening page, redirects to the hub when the player owns none

@@ -17,4 +17,13 @@ class FusionOperationRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, FusionOperation::class);
     }
+
+    public function sumFusions(): int
+    {
+        return (int) $this->createQueryBuilder('fo')
+            ->select('COALESCE(SUM(fo.fusionCount), 0)')
+            ->getQuery()
+            ->getSingleScalarResult()
+        ;
+    }
 }

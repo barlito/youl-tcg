@@ -242,4 +242,9 @@ class TradeOfferRepository extends ServiceEntityRepository
             ->addSelect('receiver')
         ;
     }
+
+    public function countAccepted(): int
+    {
+        return $this->count(['status' => TradeOfferStatusEnum::ACCEPTED]);
+    }
 }

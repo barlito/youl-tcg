@@ -140,4 +140,15 @@ class BoosterOpeningRepository extends ServiceEntityRepository
             'maxDays' => $limit,
         ]);
     }
+
+    public function countDistinctPlayersSince(\DateTimeImmutable $since): int
+    {
+        return (int) $this->createQueryBuilder('bo')
+            ->select('COUNT(DISTINCT IDENTITY(bo.discordUser))')
+            ->andWhere('bo.openedAt >= :since')
+            ->setParameter('since', $since)
+            ->getQuery()
+            ->getSingleScalarResult()
+        ;
+    }
 }

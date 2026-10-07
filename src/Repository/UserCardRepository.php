@@ -511,4 +511,13 @@ class UserCardRepository extends ServiceEntityRepository
 
         return $locked;
     }
+
+    public function sumHoloCopies(): int
+    {
+        return (int) $this->createQueryBuilder('uc')
+            ->select('COALESCE(SUM(uc.holoQuantity), 0)')
+            ->getQuery()
+            ->getSingleScalarResult()
+        ;
+    }
 }
