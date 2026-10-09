@@ -142,13 +142,17 @@ export default class extends Controller {
         // every card face-down again, nothing current
         this.cardTargets?.forEach((node) => node.classList.remove('is-current', 'is-pop'));
         this.flipTargets?.forEach((flip) => flip.classList.remove('is-flipped'));
-        // reveal tracker back to all-mystery
+        // reveal tracker back to all-mystery, without the fade: the re-render already
+        // put the NEXT draw's cards in these tiles, a fade-out would show them
         this.trackTargets?.forEach((tile) => {
+            tile.classList.add('is-resetting');
             tile.classList.remove('is-revealed', 'is-popping');
             const name = tile.querySelector('.opening__track-name');
             if (name) {
                 name.textContent = 'Non révélée';
             }
+            void tile.offsetWidth;
+            tile.classList.remove('is-resetting');
         });
         if (this.hasLabelTarget) {
             this.labelTarget.textContent = '';

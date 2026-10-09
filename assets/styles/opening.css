@@ -413,6 +413,8 @@
     box-shadow: 0 0 14px -2px var(--slot-rar, transparent), 0 8px 18px #0008;
 }
 .opening__track-tile.is-popping .opening__track-img { animation: opening-slotPop .5s ease-out; }
+.opening__track-tile.is-resetting,
+.opening__track-tile.is-resetting * { transition: none !important; }
 /* la carte rendue (CardComponent figé) remplace la vignette : c'est elle qui
    porte le cadre, le nom et le filigrane */
 .opening__track-img .card {
