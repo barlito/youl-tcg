@@ -145,6 +145,54 @@ final class DuelApiTest extends WebTestCase
         $this->assertSame([], $this->getJson('/api/duel/decks')['decks']);
     }
 
+    public function testTheHoloChoiceIsStoredPerCardAndFallsBackWhenTheHoloCopyLeaves(): void
+    {
+        $this->setHoloQuantity($this->cards[0], 1);
+        $this->setHoloQuantity($this->cards[1], 2);
+        $holo = [(string) $this->cards[0]->getId(), (string) $this->cards[1]->getId()];
+        sort($holo);
+
+        $created = $this->sendJson('POST', '/api/duel/decks', ['name' => 'Holo', 'cards' => $this->ids($this->cards), 'holoCards' => $holo]);
+
+        self::assertResponseStatusCodeSame(201);
+        $this->assertSame($holo, $created['holoCards']);
+        $this->assertSame([], $created['holoMissing']);
+
+        // the choice survives a read, and a PUT without holoCards clears it
+        $this->assertSame($holo, $this->getJson('/api/duel/decks')['decks'][0]['holoCards']);
+
+        $this->setHoloQuantity($this->cards[0], 0);
+        $deck = $this->getJson('/api/duel/decks')['decks'][0];
+        $this->assertTrue($deck['valid']);
+        $this->assertSame([], $deck['issues']);
+        $this->assertSame($holo, $deck['holoCards']);
+        $this->assertSame([(string) $this->cards[0]->getId()], $deck['holoMissing']);
+
+        $cleared = $this->sendJson('PUT', '/api/duel/decks/' . $created['id'], ['name' => 'Holo', 'cards' => $this->ids($this->cards)]);
+        self::assertResponseIsSuccessful();
+        $this->assertSame([], $cleared['holoCards']);
+        $this->assertSame([], $cleared['holoMissing']);
+    }
+
+    public function testAHoloCardMustBeInTheDeckAndOwnedInAHoloCopy(): void
+    {
+        $this->setHoloQuantity($this->cards[0], 1);
+        $outside = $this->duelCard($this->extension, 'Outside');
+        $this->give($this->me, $outside, 1, 1);
+        $this->entityManager->flush();
+
+        $body = $this->sendJson('POST', '/api/duel/decks', [
+            'name' => 'Holo',
+            'cards' => $this->ids($this->cards),
+            'holoCards' => [(string) $this->cards[0]->getId(), (string) $this->cards[1]->getId(), (string) $outside->getId(), 'nope'],
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+        $this->assertSame(['holoCards[1]', 'holoCards[2]', 'holoCards[3]'], array_keys($body['violations']));
+        $this->assertSame(['Tu ne possèdes pas d\'exemplaire holo de « Duel card 02 ».'], $body['violations']['holoCards[1]']);
+        $this->assertSame(['Une carte holo doit faire partie du deck.'], $body['violations']['holoCards[2]']);
+    }
+
     public function testAnInvalidDeckAnswers422WithViolationsPerField(): void
     {
         $cards = $this->ids($this->cards);
@@ -325,5 +373,13 @@ final class DuelApiTest extends WebTestCase
         $this->assertIsArray($body, (string) $this->client->getResponse()->getContent());
 
         return $body;
+    }
+
+    private function setHoloQuantity(Card $card, int $holoQuantity): void
+    {
+        $row = $this->entityManager->getRepository(UserCard::class)->findOneBy(['discordUser' => $this->me, 'card' => $card]);
+        $this->assertInstanceOf(UserCard::class, $row);
+        $row->setHoloQuantity($holoQuantity)->setQuantity(max($row->getQuantity(), $holoQuantity));
+        $this->entityManager->flush();
     }
 }

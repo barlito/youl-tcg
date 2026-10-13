@@ -39,10 +39,12 @@ final class DuelApiPresenter
             'id' => (string) $deck->getId(),
             'name' => $deck->getName(),
             'cards' => $deck->getCardIds(),
+            'holoCards' => $deck->getHoloCardIds(),
             'terrain' => $deck->getTerrain()?->getId(),
             'valid' => $validity->isValid(),
             'missingCards' => $validity->missingCards,
             'issues' => $validity->issues,
+            'holoMissing' => $validity->holoMissing,
             'createdAt' => $deck->getCreatedAt()?->format(\DATE_ATOM),
             'updatedAt' => $deck->getUpdatedAt()?->format(\DATE_ATOM),
         ];

@@ -53,10 +53,12 @@ Format d'un `<deck>` (aussi renvoyé par `POST` et `PUT`) :
   "id": "01a1…",
   "name": "Linettes",
   "cards": ["<12 uuid triés>"],
+  "holoCards": ["<uuid>"],
   "terrain": "01a101ad-2e2c-7289-800e-82b1aeb87e5a",
   "valid": true,
   "missingCards": [],
   "issues": [],
+  "holoMissing": [],
   "createdAt": "2026-10-08T10:00:00+02:00",
   "updatedAt": "2026-10-08T10:00:00+02:00"
 }
@@ -64,15 +66,17 @@ Format d'un `<deck>` (aussi renvoyé par `POST` et `PUT`) :
 
 `valid`, `missingCards` et `issues` sont **recalculés à chaque lecture** contre la collection du moment : une carte vendue, échangée ou recyclée rend le deck incomplet (`valid: false`, son uuid dans `missingCards`, une phrase dans `issues`). Rien n'est bloqué côté économie. Les cartes d'un deck forment un ensemble (pas d'ordre : le jeu mélange).
 
+**Holo choisi par le joueur.** `holoCards` est le sous-ensemble de `cards` que le joueur a choisi de jouer **dans son exemplaire holo** (cosmétique). C'est un choix enregistré avec le deck, pas dérivé de la collection : un joueur peut très bien jouer une carte en non-holo alors qu'il possède une copie holo. À la lecture, `holoMissing` liste les cartes de `holoCards` dont le joueur n'a plus aucune copie holo (`holoQuantity = 0`) : le deck **reste valide** (`valid`, `issues` inchangés), ces cartes se jouent simplement en non-holo, et le client peut prévenir le joueur.
+
 ### `POST /api/duel/decks` → `201 <deck>`
 
 ```json
-{ "name": "Linettes", "cards": ["<12 uuid>"], "terrain": "<uuid> | null (facultatif)" }
+{ "name": "Linettes", "cards": ["<12 uuid>"], "terrain": "<uuid> | null (facultatif)", "holoCards": ["<uuid>"] }
 ```
 
 ### `PUT /api/duel/decks/{id}` → `200 <deck>`
 
-Remplacement complet, même corps que `POST` (`terrain` absent = aucun terrain).
+Remplacement complet, même corps que `POST` (`terrain` absent = aucun terrain, `holoCards` absent = aucune carte holo).
 
 ### `DELETE /api/duel/decks/{id}` → `204`
 
@@ -84,7 +88,7 @@ Remplacement complet, même corps que `POST` (`terrain` absent = aucun terrain).
 | `422` | règle de possession violée | `{"error": "Deck invalide.", "violations": {"<champ>": ["message", …]}}` |
 | `409` | 10 decks déjà enregistrés (création) | `{"error": "Tu as déjà 10 decks : supprimes-en un avant d'en créer un nouveau."}` |
 
-Clés de `violations` : `name` (vide, plus de 40 caractères), `cards` (pas une liste, pas exactement 12 entrées), `cards[i]` (index dans la liste envoyée : identifiant invalide, doublon, « Carte introuvable dans ta collection. », carte qui est un terrain), `terrain` (identifiant invalide, « Terrain introuvable dans ta collection. », carte qui n'est pas un terrain). Une carte inconnue, non publiée ou non possédée donne le même message.
+Clés de `violations` : `name` (vide, plus de 40 caractères), `cards` (pas une liste, pas exactement 12 entrées), `cards[i]` (index dans la liste envoyée : identifiant invalide, doublon, « Carte introuvable dans ta collection. », carte qui est un terrain), `holoCards` (pas une liste), `holoCards[i]` (identifiant invalide, « Une carte holo doit faire partie du deck. », « Tu ne possèdes pas d'exemplaire holo de « … ». »), `terrain` (identifiant invalide, « Terrain introuvable dans ta collection. », carte qui n'est pas un terrain). Une carte inconnue, non publiée ou non possédée donne le même message.
 
 ## API serveur (serveur de jeu Colyseus)
 
@@ -101,4 +105,4 @@ Le deck tel qu'il doit être joué, vérifié contre la collection du joueur **�
 | `404` | deck inconnu, joueur inconnu ou deck d'un autre joueur | `{"error": "Deck introuvable pour ce joueur."}` |
 | `400` | `player` absent | `{"error": "Paramètre player (discordId) requis."}` |
 
-`holoCards` : sous-ensemble trié de `cards` dont le joueur possède **au moins une copie holo** (`holoQuantity > 0`) au moment de l'appel. Un deck stocke des cartes, pas des copies : la règle est « le joueur a un exemplaire holo, donc il le joue ». Les cartes `alwaysHolo` sont tirées holo, donc leurs copies comptent dans `holoQuantity`. Le holo reste cosmétique ; le preset visuel (`shine`, `basic`…) vient des données du jeu. Champ ajouté sans rupture : un client qui l'ignore continue de fonctionner.
+`holoCards` : les choix de holo enregistrés dans le deck **encore couverts par la collection** (le joueur possède toujours au moins une copie holo, `holoQuantity > 0`). Les autres cartes du deck, y compris celles dont le joueur possède une copie holo mais qu'il n'a pas choisies, se jouent en non-holo. Le holo reste cosmétique ; le preset visuel (`shine`, `basic`…) vient des données du jeu.

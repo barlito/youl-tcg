@@ -49,6 +49,33 @@ final class DeckRulesTest extends TestCase
         $this->assertSame($this->terrain, $draft->terrain);
     }
 
+    public function testHoloCardsAreChosenAmongTheDeckCardsOwnedInAHoloCopy(): void
+    {
+        $this->collection[(string) $this->cards[0]->getId()]->setHoloQuantity(1);
+
+        $draft = $this->validate(['name' => 'Holo', 'cards' => $this->ids(12), 'holoCards' => [(string) $this->cards[0]->getId(), (string) $this->cards[0]->getId()]]);
+        $this->assertSame([$this->cards[0]], $draft->holoCards);
+        $this->assertSame([], $this->validate(['name' => 'Plain', 'cards' => $this->ids(12)])->holoCards);
+
+        $violations = $this->violations(['name' => 'Holo', 'cards' => $this->ids(12), 'holoCards' => [(string) $this->cards[1]->getId(), (string) $this->cards[12]->getId(), 12]]);
+        $this->assertSame(['Tu ne possèdes pas d\'exemplaire holo de « Card 2 ».'], $violations['holoCards[0]']);
+        $this->assertSame(['Une carte holo doit faire partie du deck.'], $violations['holoCards[1]']);
+        $this->assertSame(['Identifiant de carte invalide.'], $violations['holoCards[2]']);
+        $this->assertSame(['holoCards' => ['Liste d\'identifiants de cartes du deck attendue.']], $this->violations(['name' => 'Holo', 'cards' => $this->ids(12), 'holoCards' => 'x']));
+    }
+
+    public function testALostHoloCopyKeepsTheDeckValidButIsReported(): void
+    {
+        $this->collection[(string) $this->cards[0]->getId()]->setHoloQuantity(1);
+        $deck = new Deck($this->player, 'Deck', \array_slice($this->cards, 0, 12), $this->terrain, [$this->cards[0], $this->cards[1]]);
+        $this->collection[(string) $this->cards[0]->getId()]->setHoloQuantity(0);
+
+        $validity = new DeckValidator()->check($deck, $this->collection);
+
+        $this->assertTrue($validity->isValid());
+        $this->assertSame([(string) $this->cards[0]->getId(), (string) $this->cards[1]->getId()], $validity->holoMissing);
+    }
+
     public function testTheTerrainIsOptional(): void
     {
         $this->assertNull($this->validate(['name' => 'Sans terrain', 'cards' => $this->ids(12)])->terrain);

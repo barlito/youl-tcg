@@ -52,6 +52,19 @@ final class DeckValidator
             }
         }
 
-        return new DeckValidity($missing, $issues);
+        return new DeckValidity($missing, $issues, $this->holoMissing($deck, $collection));
+    }
+
+    /**
+     * @param array<string, UserCard> $collection
+     *
+     * @return list<string>
+     */
+    private function holoMissing(Deck $deck, array $collection): array
+    {
+        return array_values(array_filter(
+            $deck->getHoloCardIds(),
+            static fn (string $id): bool => ($collection[$id] ?? null)?->getHoloQuantity() <= 0,
+        ));
     }
 }

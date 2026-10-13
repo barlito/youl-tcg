@@ -79,18 +79,21 @@ final class DuelServerApiTest extends WebTestCase
         ], $body);
     }
 
-    public function testHoloCardsListsTheDeckCardsOwnedInAHoloCopy(): void
+    public function testHoloCardsAreTheStoredChoicesStillBackedByAHoloCopy(): void
     {
-        $holoCard = $this->cards[0];
-        $row = $this->entityManager->getRepository(UserCard::class)->findOneBy(['discordUser' => $this->player, 'card' => $holoCard]);
-        $this->assertInstanceOf(UserCard::class, $row);
-        $row->setHoloQuantity(1);
+        [$chosen, $lost, $ownedOnly] = $this->cards;
+        foreach ([[$chosen, 1], [$lost, 0], [$ownedOnly, 1]] as [$card, $holoQuantity]) {
+            $row = $this->entityManager->getRepository(UserCard::class)->findOneBy(['discordUser' => $this->player, 'card' => $card]);
+            $this->assertInstanceOf(UserCard::class, $row);
+            $row->setHoloQuantity($holoQuantity);
+        }
+        $this->deck->update('Machines', $this->cards, $this->terrain, [$chosen, $lost]);
         $this->entityManager->flush();
 
         $body = $this->fetch((string) $this->deck->getId(), self::JUJU);
 
         self::assertResponseIsSuccessful();
-        $this->assertSame([(string) $holoCard->getId()], $body['holoCards']);
+        $this->assertSame([(string) $chosen->getId()], $body['holoCards']);
     }
 
     public function testAnIncompleteDeckAnswers409WithTheMissingCards(): void

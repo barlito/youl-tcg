@@ -29,12 +29,13 @@ final class DeckInputValidator
         $name = $this->validateName($payload['name'] ?? null, $violations);
         $cards = $this->validateCards($payload['cards'] ?? null, $collection, $violations);
         $terrain = $this->validateTerrain($payload['terrain'] ?? null, $collection, $violations);
+        $holoCards = $this->validateHoloCards($payload['holoCards'] ?? [], $cards, $collection, $violations);
 
         if ([] !== $violations) {
             throw DeckRefusedException::invalid($violations);
         }
 
-        return new DeckDraft($name, $cards, $terrain);
+        return new DeckDraft($name, $cards, $terrain, $holoCards);
     }
 
     /**
@@ -133,5 +134,46 @@ final class DeckInputValidator
         }
 
         return $terrain;
+    }
+
+    /**
+     * The player picks which cards of the deck are played in their holo copy: only cards of the deck, owned in a holo copy.
+     *
+     * @param list<Card>                  $cards
+     * @param array<string, UserCard>     $collection
+     * @param array<string, list<string>> $violations
+     *
+     * @return list<Card>
+     */
+    private function validateHoloCards(mixed $value, array $cards, array $collection, array &$violations): array
+    {
+        if (!\is_array($value) || !array_is_list($value)) {
+            $violations['holoCards'][] = 'Liste d\'identifiants de cartes du deck attendue.';
+
+            return [];
+        }
+
+        $inDeck = [];
+        foreach ($cards as $card) {
+            $inDeck[(string) $card->getId()] = $card;
+        }
+
+        $holo = [];
+        foreach ($value as $index => $id) {
+            $path = \sprintf('holoCards[%d]', $index);
+            $id = \is_string($id) && Uuid::isValid($id) ? strtolower($id) : null;
+
+            if (null === $id) {
+                $violations[$path][] = 'Identifiant de carte invalide.';
+            } elseif (!isset($inDeck[$id])) {
+                $violations[$path][] = 'Une carte holo doit faire partie du deck.';
+            } elseif (($collection[$id] ?? null)?->getHoloQuantity() <= 0) {
+                $violations[$path][] = \sprintf('Tu ne possèdes pas d\'exemplaire holo de « %s ».', $inDeck[$id]->getName());
+            } else {
+                $holo[$id] = $inDeck[$id];
+            }
+        }
+
+        return array_values($holo);
     }
 }

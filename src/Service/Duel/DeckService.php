@@ -70,7 +70,7 @@ final readonly class DeckService
     }
 
     /**
-     * The deck's cards the player owns in a holo copy right now (the deck stores cards, not copies).
+     * The cards the player chose to play holo AND still owns in a holo copy; the others play non-holo.
      *
      * @throws FeatureDisabledException
      *
@@ -78,14 +78,9 @@ final readonly class DeckService
      */
     public function holoCardIds(Deck $deck): array
     {
-        $collection = $this->collection($deck->getOwner());
-        $holo = array_filter(
-            $deck->getCardIds(),
-            static fn (string $id): bool => isset($collection[$id]) && $collection[$id]->getHoloQuantity() > 0,
-        );
-        sort($holo);
+        $missing = $this->validity($deck)->holoMissing;
 
-        return $holo;
+        return array_values(array_diff($deck->getHoloCardIds(), $missing));
     }
 
     /**
@@ -107,7 +102,7 @@ final readonly class DeckService
                 return null;
             }
 
-            $deck = new Deck($player, $draft->name, $draft->cards, $draft->terrain);
+            $deck = new Deck($player, $draft->name, $draft->cards, $draft->terrain, $draft->holoCards);
             $this->entityManager->persist($deck);
 
             return $deck;
@@ -128,7 +123,7 @@ final readonly class DeckService
     {
         $draft = $this->inputValidator->validate($payload, $this->collection($deck->getOwner()));
 
-        $deck->update($draft->name, $draft->cards, $draft->terrain);
+        $deck->update($draft->name, $draft->cards, $draft->terrain, $draft->holoCards);
         $this->entityManager->flush();
 
         return $deck;
