@@ -65,6 +65,14 @@ class UserCard
         return $this;
     }
 
+    /**
+     * Copies without the holo ones (quantity is the total, holoQuantity a subset of it).
+     */
+    public function getNormalQuantity(): int
+    {
+        return max(0, $this->quantity - $this->holoQuantity);
+    }
+
     public function getHoloQuantity(): int
     {
         return $this->holoQuantity;

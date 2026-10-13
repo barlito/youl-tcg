@@ -30,6 +30,7 @@ final readonly class DeckService
         private UserCardRepository $userCardRepository,
         private DeckInputValidator $inputValidator,
         private DeckValidator $validator,
+        private DeckReconciler $reconciler,
         private FeatureFlags $featureFlags,
     ) {
     }
@@ -56,9 +57,39 @@ final readonly class DeckService
         $collection = $this->collection($player);
 
         return array_map(
-            fn (Deck $deck): array => ['deck' => $deck, 'validity' => $this->validator->check($deck, $collection)],
+            function (Deck $deck) use ($collection): array {
+                $this->reconciler->reconcile($deck, $collection);
+
+                return ['deck' => $deck, 'validity' => $this->validator->check($deck, $collection)];
+            },
             $this->deckRepository->findForOwner($player),
         );
+    }
+
+    /**
+     * A deck read (player list or game join): brought in line with the collection first, then checked.
+     *
+     * @throws FeatureDisabledException
+     */
+    public function reconciledValidity(Deck $deck): DeckValidity
+    {
+        $collection = $this->collection($deck->getOwner());
+        $this->reconciler->reconcile($deck, $collection);
+
+        return $this->validator->check($deck, $collection);
+    }
+
+    /**
+     * The player has read the notice of changes.
+     *
+     * @throws FeatureDisabledException
+     */
+    public function acknowledgeChanges(Deck $deck): void
+    {
+        $this->featureFlags->assertEnabled(FeatureEnum::DUEL);
+
+        $deck->acknowledgeChanges();
+        $this->entityManager->flush();
     }
 
     /**
@@ -70,7 +101,7 @@ final readonly class DeckService
     }
 
     /**
-     * The cards the player chose to play holo AND still owns in a holo copy; the others play non-holo.
+     * The deck cards played in their holo copy: the stored choice normalized to what the player holds now.
      *
      * @throws FeatureDisabledException
      *
@@ -78,9 +109,7 @@ final readonly class DeckService
      */
     public function holoCardIds(Deck $deck): array
     {
-        $missing = $this->validity($deck)->holoMissing;
-
-        return array_values(array_diff($deck->getHoloCardIds(), $missing));
+        return $this->validity($deck)->holoCards;
     }
 
     /**

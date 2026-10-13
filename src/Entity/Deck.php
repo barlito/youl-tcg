@@ -45,6 +45,14 @@ class Deck
     private Collection $holoCards;
 
     /**
+     * What the last reconciliation with the collection changed, until the player acknowledges it or saves the deck.
+     *
+     * @var list<array{card: string, name: string, type: string, at: string}>
+     */
+    #[ORM\Column(type: 'json', options: ['default' => '[]'])]
+    private array $changes = [];
+
+    /**
      * @param list<Card> $cards
      * @param list<Card> $holoCards
      */
@@ -110,6 +118,54 @@ class Deck
         return $ids;
     }
 
+    /**
+     * @return list<array{card: string, name: string, type: string, at: string}>
+     */
+    public function getChanges(): array
+    {
+        return $this->changes;
+    }
+
+    /**
+     * @param list<array{card: string, name: string, type: string, at: string}> $changes
+     */
+    public function recordChanges(array $changes): void
+    {
+        $this->changes = [...$this->changes, ...$changes];
+    }
+
+    public function acknowledgeChanges(): void
+    {
+        $this->changes = [];
+    }
+
+    public function hasCard(Card $card): bool
+    {
+        return $this->cards->contains($card);
+    }
+
+    /**
+     * The player lost the last copy of a card: it leaves the deck at once (the deck becomes incomplete).
+     */
+    public function removeCard(Card $card): void
+    {
+        $this->cards->removeElement($card);
+        $this->holoCards->removeElement($card);
+        $this->updatedAt = new \DateTime();
+    }
+
+    /**
+     * Switches the kind played for a card of the deck (no-op when it already matches).
+     */
+    public function setHolo(Card $card, bool $holo): void
+    {
+        if (!$this->cards->contains($card) || $this->holoCards->contains($card) === $holo) {
+            return;
+        }
+        $holo ? $this->holoCards->add($card) : $this->holoCards->removeElement($card);
+        $this->updatedAt = new \DateTime();
+    }
+
     public function getTerrain(): ?Card
     {
         return $this->terrain;
@@ -124,6 +180,8 @@ class Deck
         $this->name = $name;
         $this->replaceCards($cards, $holoCards);
         $this->terrain = $terrain;
+        // saving the deck settles whatever the player was told about
+        $this->changes = [];
         // a cards-only change leaves no field changeset: Timestampable would not bump it
         $this->updatedAt = new \DateTime();
     }

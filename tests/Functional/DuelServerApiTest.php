@@ -82,10 +82,10 @@ final class DuelServerApiTest extends WebTestCase
     public function testHoloCardsAreTheStoredChoicesStillBackedByAHoloCopy(): void
     {
         [$chosen, $lost, $ownedOnly] = $this->cards;
-        foreach ([[$chosen, 1], [$lost, 0], [$ownedOnly, 1]] as [$card, $holoQuantity]) {
+        foreach ([[$chosen, 2, 1], [$lost, 1, 0], [$ownedOnly, 2, 1]] as [$card, $quantity, $holoQuantity]) {
             $row = $this->entityManager->getRepository(UserCard::class)->findOneBy(['discordUser' => $this->player, 'card' => $card]);
             $this->assertInstanceOf(UserCard::class, $row);
-            $row->setHoloQuantity($holoQuantity);
+            $row->setQuantity($quantity)->setHoloQuantity($holoQuantity);
         }
         $this->deck->update('Machines', $this->cards, $this->terrain, [$chosen, $lost]);
         $this->entityManager->flush();
@@ -94,6 +94,28 @@ final class DuelServerApiTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $this->assertSame([(string) $chosen->getId()], $body['holoCards']);
+    }
+
+    public function testAJoinReconcilesTheDeckSoANotOwnedCardNeverStartsAMatch(): void
+    {
+        [$lostLast, $lostHolo] = $this->cards;
+        foreach ([[$lostLast, 0, 0], [$lostHolo, 1, 0]] as [$card, $quantity, $holoQuantity]) {
+            $row = $this->entityManager->getRepository(UserCard::class)->findOneBy(['discordUser' => $this->player, 'card' => $card]);
+            $this->assertInstanceOf(UserCard::class, $row);
+            $row->setQuantity($quantity)->setHoloQuantity($holoQuantity);
+        }
+        $this->deck->update('Machines', $this->cards, $this->terrain, [$lostHolo]);
+        $this->entityManager->flush();
+
+        $body = $this->fetch((string) $this->deck->getId(), self::JUJU);
+
+        self::assertResponseStatusCodeSame(409);
+        $this->assertSame(['Il manque 1 carte : un deck en contient 12.'], $body['issues']);
+        $this->entityManager->clear();
+        $stored = $this->entityManager->getRepository(Deck::class)->find($this->deck->getId());
+        $this->assertInstanceOf(Deck::class, $stored);
+        $this->assertSame([], $stored->getHoloCardIds());
+        $this->assertSame(['removed', 'switchedToNormal'], array_column($stored->getChanges(), 'type'));
     }
 
     public function testAnIncompleteDeckAnswers409WithTheMissingCards(): void

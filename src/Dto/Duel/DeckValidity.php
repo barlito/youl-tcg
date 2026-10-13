@@ -12,12 +12,12 @@ final readonly class DeckValidity
     /**
      * @param list<string> $missingCards ids of the deck cards (terrain included) the owner no longer holds
      * @param list<string> $issues       player-facing French reasons, empty when valid
-     * @param list<string> $holoMissing  chosen holo cards the owner no longer holds in a holo copy: they play non-holo, the deck stays valid
+     * @param list<string> $holoCards    sorted ids of the deck cards played in their holo copy (the stored choice normalized to what the owner holds)
      */
     public function __construct(
         public array $missingCards,
         public array $issues,
-        public array $holoMissing = [],
+        public array $holoCards = [],
     ) {
     }
 
