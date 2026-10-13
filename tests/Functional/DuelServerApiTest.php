@@ -74,8 +74,23 @@ final class DuelServerApiTest extends WebTestCase
             'id' => (string) $this->deck->getId(),
             'name' => 'Machines',
             'cards' => $expected,
+            'holoCards' => [],
             'terrain' => (string) $this->terrain->getId(),
         ], $body);
+    }
+
+    public function testHoloCardsListsTheDeckCardsOwnedInAHoloCopy(): void
+    {
+        $holoCard = $this->cards[0];
+        $row = $this->entityManager->getRepository(UserCard::class)->findOneBy(['discordUser' => $this->player, 'card' => $holoCard]);
+        $this->assertInstanceOf(UserCard::class, $row);
+        $row->setHoloQuantity(1);
+        $this->entityManager->flush();
+
+        $body = $this->fetch((string) $this->deck->getId(), self::JUJU);
+
+        self::assertResponseIsSuccessful();
+        $this->assertSame([(string) $holoCard->getId()], $body['holoCards']);
     }
 
     public function testAnIncompleteDeckAnswers409WithTheMissingCards(): void

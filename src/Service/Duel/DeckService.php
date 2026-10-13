@@ -70,6 +70,25 @@ final readonly class DeckService
     }
 
     /**
+     * The deck's cards the player owns in a holo copy right now (the deck stores cards, not copies).
+     *
+     * @throws FeatureDisabledException
+     *
+     * @return list<string> sorted card ids
+     */
+    public function holoCardIds(Deck $deck): array
+    {
+        $collection = $this->collection($deck->getOwner());
+        $holo = array_filter(
+            $deck->getCardIds(),
+            static fn (string $id): bool => isset($collection[$id]) && $collection[$id]->getHoloQuantity() > 0,
+        );
+        sort($holo);
+
+        return $holo;
+    }
+
+    /**
      * @param array<mixed> $payload
      *
      * @throws DeckRefusedException

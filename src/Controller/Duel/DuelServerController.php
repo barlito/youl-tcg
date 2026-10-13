@@ -61,6 +61,7 @@ class DuelServerController extends AbstractController
             'id' => (string) $deck->getId(),
             'name' => $deck->getName(),
             'cards' => $deck->getCardIds(),
+            'holoCards' => $this->deckService->holoCardIds($deck),
             'terrain' => $deck->getTerrain()?->getId(),
         ]);
     }

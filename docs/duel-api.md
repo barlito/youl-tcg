@@ -96,7 +96,9 @@ Le deck tel qu'il doit être joué, vérifié contre la collection du joueur **�
 
 | Code | Quand | Corps |
 |---|---|---|
-| `200` | deck du joueur, entièrement possédé | `{"id": "…", "name": "…", "cards": ["<12 uuid>"], "terrain": "<uuid>" \| null}` |
+| `200` | deck du joueur, entièrement possédé | `{"id": "…", "name": "…", "cards": ["<12 uuid>"], "holoCards": ["<uuid>"], "terrain": "<uuid>" \| null}` |
 | `409` | deck incomplet | `{"error": "Deck incomplet : il ne correspond plus à la collection du joueur.", "missingCards": ["<uuid>"], "issues": ["…"]}` |
 | `404` | deck inconnu, joueur inconnu ou deck d'un autre joueur | `{"error": "Deck introuvable pour ce joueur."}` |
 | `400` | `player` absent | `{"error": "Paramètre player (discordId) requis."}` |
+
+`holoCards` : sous-ensemble trié de `cards` dont le joueur possède **au moins une copie holo** (`holoQuantity > 0`) au moment de l'appel. Un deck stocke des cartes, pas des copies : la règle est « le joueur a un exemplaire holo, donc il le joue ». Les cartes `alwaysHolo` sont tirées holo, donc leurs copies comptent dans `holoQuantity`. Le holo reste cosmétique ; le preset visuel (`shine`, `basic`…) vient des données du jeu. Champ ajouté sans rupture : un client qui l'ignore continue de fonctionner.
