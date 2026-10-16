@@ -16,7 +16,7 @@ use Twig\Attribute\AsTwigFunction;
 
 /**
  * Subscription side of the realtime layer: hands the layout the hub URL to
- * listen to and sets the mercureAuthorization cookie, whose JWT grants the
+ * listen to and sets the hub's access-token cookie, whose JWT grants the
  * logged-in player their own private topic and nothing else.
  */
 final readonly class RealtimeExtension
@@ -46,7 +46,8 @@ final readonly class RealtimeExtension
         }
 
         try {
-            $this->authorization->setCookie($request, $this->topics->privateTopicsFor($user));
+            // RFC 9068: the token's subject is the player, not the app
+            $this->authorization->setCookie($request, $this->topics->privateTopicsFor($user), additionalClaims: ['sub' => $this->topics->forUser($user)]);
         } catch (\Throwable $exception) {
             $this->logger->warning('Mercure subscription cookie not issued: {message}', [
                 'message' => $exception->getMessage(),
@@ -56,8 +57,9 @@ final readonly class RealtimeExtension
             return null;
         }
 
+        // Mercure 1.0 exact matcher (`topic=` was the 0.x parameter)
         $query = implode('&', array_map(
-            static fn (string $topic): string => 'topic=' . rawurlencode($topic),
+            static fn (string $topic): string => 'match=' . rawurlencode($topic),
             $this->topics->subscriptionsFor($user),
         ));
 
