@@ -203,7 +203,7 @@ final class BoosterOpening extends AbstractController
             'booster' => $this->getBooster(),
         ]);
 
-        return null !== $userBooster ? $userBooster->getQuantity() : 0;
+        return $userBooster?->getQuantity() ?? 0;
     }
 
     #[LiveAction]
