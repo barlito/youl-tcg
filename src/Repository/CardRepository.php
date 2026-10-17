@@ -358,4 +358,20 @@ class CardRepository extends ServiceEntityRepository
 
         return ['total' => (int) $row['total'], 'found' => (int) $row['found']];
     }
+
+    /**
+     * Every tag used on any card, whatever its status: the admin autocomplete suggestions.
+     *
+     * @return list<string>
+     */
+    public function findAllTags(): array
+    {
+        /** @var list<string> $tags */
+        $tags = $this->getEntityManager()->getConnection()
+            ->executeQuery('SELECT DISTINCT jsonb_array_elements_text(tags::jsonb) AS tag FROM card ORDER BY tag')
+            ->fetchFirstColumn()
+        ;
+
+        return array_map(strval(...), $tags);
+    }
 }

@@ -43,14 +43,14 @@ readonly class JwtInvalid
             $this->logger->warning('Invalid JWT token, redirecting to the refresh endpoint.', [
                 'reason' => $event->getException()->getMessageKey(),
             ]);
-            $event->setResponse($this->refreshTokenRedirector->createRedirect($request));
+            $event->setResponse($this->refreshTokenRedirector->createResponse($request));
 
             return;
         }
 
         $userData = $this->extractValidatedPayload($request);
         if (null === $userData) {
-            $event->setResponse($this->refreshTokenRedirector->createRedirect($request));
+            $event->setResponse($this->refreshTokenRedirector->createResponse($request));
 
             return;
         }
