@@ -10,6 +10,7 @@ use App\Entity\Extension;
 use App\Entity\MarketListing;
 use App\Entity\MarketPurchase;
 use App\Entity\UserCard;
+use App\Entity\WishlistEntry;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
@@ -66,7 +67,7 @@ final class MarketComponentTest extends WebTestCase
         $this->entityManager->flush();
     }
 
-    public function testTheBoardShowsOtherPlayersListingsInClearAndHidesMine(): void
+    public function testTheBoardShowsEveryListingInClearAndMarksMineAsNotPurchasable(): void
     {
         $card = $this->card('Visible card');
         $this->listing($this->seller, $card, false, 40);
@@ -75,12 +76,120 @@ final class MarketComponentTest extends WebTestCase
 
         $crawler = $this->board()->render()->crawler();
 
-        $this->assertCount(1, $crawler->filter('[data-testid="market-listing"]'));
-        $text = $crawler->filter('[data-testid="market-listing"]')->text();
-        $this->assertStringContainsString($card->getName(), $text);
-        $this->assertStringContainsString('Barlito', $text);
-        $this->assertStringContainsString('40 YLC', $text);
+        $this->assertCount(2, $crawler->filter('[data-testid="market-listing"]'));
         $this->assertCount(0, $crawler->filter('[data-testid="masked-card"]'));
+
+        $other = $crawler->filter('[data-testid="market-listing"]:not([data-own-listing])');
+        $this->assertStringContainsString($card->getName(), $other->text());
+        $this->assertStringContainsString('Barlito', $other->text());
+        $this->assertStringContainsString('40 YLC', $other->text());
+        $this->assertSame('Acheter', trim($other->filter('[data-testid="listing-buy"]')->text()));
+        $this->assertCount(1, $other->filter('[data-testid="listing-wish"]'));
+        $this->assertCount(0, $other->filter('[data-testid="own-listing-badge"]'));
+
+        $own = $crawler->filter('[data-testid="market-listing"][data-own-listing]');
+        $this->assertCount(1, $own);
+        $this->assertStringContainsString($mine->getName(), $own->text());
+        $this->assertStringContainsString('Ton annonce', $own->filter('[data-testid="own-listing-badge"]')->text());
+        $this->assertCount(0, $own->filter('[data-testid="listing-buy"], [data-testid="listing-wish"]'));
+        $this->assertSame('/marche/ma-boutique', $own->filter('[data-testid="listing-manage"]')->attr('href'));
+    }
+
+    public function testMyOwnListingFollowsTheFiltersAndTheSort(): void
+    {
+        $rare = $this->card('Their rare', CardRarityEnum::RARE);
+        $mine = $this->card('My common');
+        $this->listing($this->seller, $rare, false, 30);
+        $this->listing($this->buyer, $mine, false, 10);
+        $names = static fn (TestLiveComponent $component): array => $component->render()->crawler()->filter('[data-testid="market-listing"] p.truncate.font-display')->each(static fn ($node): string => trim($node->text()));
+        $board = $this->board();
+
+        $board->set('sort', 'price_asc');
+        $this->assertSame([$mine->getName(), $rare->getName()], $names($board));
+        $board->set('rarity', 'rare');
+        $this->assertSame([$rare->getName()], $names($board));
+    }
+
+    public function testAnEmptyMineFilterPointsToMyShop(): void
+    {
+        $this->listing($this->seller, $this->card('Theirs'), false, 30);
+        $board = $this->board();
+
+        $crawler = $board->call('toggleMineFilter')->render()->crawler();
+        $this->assertSame('true', $crawler->filter('[data-testid="filter-mine"]')->attr('aria-pressed'));
+        $this->assertCount(0, $crawler->filter('[data-testid="market-listing"]'));
+        $this->assertStringContainsString('aucune carte en vente', $crawler->filter('[data-testid="market-empty"]')->text());
+        $this->assertSame('/marche/ma-boutique', $crawler->filter('[data-testid="market-empty-my-shop"]')->attr('href'));
+    }
+
+    public function testTheMineFilterShowsOnlyMyListings(): void
+    {
+        $this->listing($this->seller, $this->card('Theirs too'), false, 30);
+        $this->listing($this->buyer, $this->card('Mine filtered'), true, 12);
+        $board = $this->board();
+
+        $crawler = $board->call('toggleMineFilter')->render()->crawler();
+        $this->assertCount(1, $crawler->filter('[data-testid="market-listing"][data-own-listing]'));
+        $this->assertCount(1, $crawler->filter('[data-testid="market-listing"]'));
+        $this->assertStringContainsString('01', $crawler->filter('[data-testid="filter-mine"]')->text());
+
+        $crawler = $board->call('resetFilters')->render()->crawler();
+        $this->assertCount(2, $crawler->filter('[data-testid="market-listing"]'));
+    }
+
+    public function testTheMineFilterIsMirroredInTheUrl(): void
+    {
+        $theirs = $this->card('Url theirs');
+        $mine = $this->card('Url mine');
+        $this->listing($this->seller, $theirs, false, 30);
+        $this->listing($this->buyer, $mine, false, 10);
+
+        $crawler = $this->client->request('GET', '/marche?mine=1');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertCount(1, $crawler->filter('[data-testid="market-listing"]'));
+        $this->assertStringContainsString($mine->getName(), $crawler->filter('[data-testid="market-listing"]')->text());
+    }
+
+    public function testTheMineAndWishlistFiltersExcludeEachOther(): void
+    {
+        $board = $this->board();
+
+        $board->call('toggleWishlistFilter')->call('toggleMineFilter');
+        $this->assertTrue($board->component()->mineOnly);
+        $this->assertFalse($board->component()->wishlistOnly);
+
+        $board->call('toggleWishlistFilter');
+        $this->assertFalse($board->component()->mineOnly);
+        $this->assertTrue($board->component()->wishlistOnly);
+    }
+
+    public function testMyOwnListingNeverMatchesMyWishlist(): void
+    {
+        $mine = $this->card('Wished and mine');
+        $this->listing($this->buyer, $mine, false, 10);
+        $this->entityManager->persist(new WishlistEntry($this->buyer, $mine));
+        $this->entityManager->flush();
+
+        $crawler = $this->board()->call('toggleWishlistFilter')->render()->crawler();
+
+        $this->assertCount(0, $crawler->filter('[data-testid="market-listing"]'));
+    }
+
+    public function testMyOwnListingCannotBeBought(): void
+    {
+        $mine = $this->card('Not for me');
+        $listing = $this->listing($this->buyer, $mine, false, 10);
+        $this->give($this->buyer, $mine, 1);
+        $board = $this->board();
+
+        $crawler = $board->call('askBuy', ['listingId' => (string) $listing->getId()])->render()->crawler();
+        $this->assertStringContainsString('Ton annonce', $crawler->filter('[data-testid="market-error"]')->text());
+        $this->assertCount(0, $crawler->filter('[data-testid="listing-confirm"]'));
+
+        $board->call('buy', ['listingId' => (string) $listing->getId()]);
+        $this->assertSame(0, $this->purchaseCount());
+        $this->assertSame(MarketListingStatusEnum::ACTIVE, $listing->getStatus());
     }
 
     public function testAnEmptyBoardSaysSo(): void

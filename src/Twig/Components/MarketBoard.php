@@ -52,6 +52,9 @@ final class MarketBoard extends AbstractController
     #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'wishlist'))]
     public bool $wishlistOnly = false;
 
+    #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'mine'))]
+    public bool $mineOnly = false;
+
     #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'tri'))]
     public string $sort = 'date_desc';
 
@@ -71,6 +74,8 @@ final class MarketBoard extends AbstractController
     private ?array $listings = null;
 
     private ?int $total = null;
+
+    private ?int $mineTotal = null;
 
     private bool $reconciled = false;
 
@@ -100,8 +105,8 @@ final class MarketBoard extends AbstractController
         $this->reconcileOnce();
 
         return $this->listings ??= $this->listingRepository->findActivePage(
-            $this->getSeller(),
-            $this->getSeller() instanceof DiscordUser ? null : $this->getDiscordUser(),
+            $this->getScopeSeller(),
+            $this->getExcludedSeller(),
             $this->getActiveExtension(),
             $this->getActiveRarity(),
             $this->getActiveHolo(),
@@ -115,8 +120,8 @@ final class MarketBoard extends AbstractController
     public function getTotal(): int
     {
         return $this->total ??= $this->listingRepository->countActive(
-            $this->getSeller(),
-            $this->getSeller() instanceof DiscordUser ? null : $this->getDiscordUser(),
+            $this->getScopeSeller(),
+            $this->getExcludedSeller(),
             $this->getActiveExtension(),
             $this->getActiveRarity(),
             $this->getActiveHolo(),
@@ -137,10 +142,22 @@ final class MarketBoard extends AbstractController
     /** @return list<Extension> */
     public function getUniverseChips(): array
     {
-        return $this->chips ??= $this->listingRepository->findExtensionsWithActiveListings(
-            $this->getSeller(),
-            $this->getSeller() instanceof DiscordUser ? null : $this->getDiscordUser(),
-        );
+        return $this->chips ??= $this->listingRepository->findExtensionsWithActiveListings($this->getScopeSeller(), null);
+    }
+
+    public function getMineTotal(): int
+    {
+        return $this->mineTotal ??= $this->listingRepository->countActive($this->getDiscordUser(), null, null, null, null);
+    }
+
+    public function isMineFilterActive(): bool
+    {
+        return $this->mineOnly && null === $this->sellerId;
+    }
+
+    public function isOwn(MarketListing $listing): bool
+    {
+        return $listing->getSeller()->getDiscordId() === $this->getDiscordUser()->getDiscordId();
     }
 
     /** @return list<CardRarityEnum> */
@@ -169,7 +186,7 @@ final class MarketBoard extends AbstractController
         $balance = $this->getBalance();
 
         return match (true) {
-            $listing->getSeller()->getDiscordId() === $this->getDiscordUser()->getDiscordId() => 'Ton annonce',
+            $this->isOwn($listing) => 'Ton annonce',
             !$balance instanceof CoinAmount => 'Youl Coin indisponible',
             $balance->isLessThan(CoinAmount::fromCoins($listing->getPrice())) => 'Solde insuffisant',
             default => null,
@@ -193,6 +210,15 @@ final class MarketBoard extends AbstractController
     public function toggleWishlistFilter(): void
     {
         $this->wishlistOnly = !$this->wishlistOnly;
+        $this->mineOnly = $this->mineOnly && !$this->wishlistOnly;
+        $this->resetPage();
+    }
+
+    #[LiveAction]
+    public function toggleMineFilter(): void
+    {
+        $this->mineOnly = !$this->mineOnly;
+        $this->wishlistOnly = $this->wishlistOnly && !$this->mineOnly;
         $this->resetPage();
     }
 
@@ -210,6 +236,7 @@ final class MarketBoard extends AbstractController
         $this->rarity = null;
         $this->finish = null;
         $this->wishlistOnly = false;
+        $this->mineOnly = false;
         $this->page = 1;
     }
 
@@ -318,7 +345,19 @@ final class MarketBoard extends AbstractController
 
     private function getWishOf(): ?DiscordUser
     {
-        return $this->wishlistOnly && !$this->getSeller() instanceof DiscordUser && $this->wishlist->isEnabled() ? $this->getDiscordUser() : null;
+        return $this->wishlistOnly && null === $this->sellerId && !$this->isMineFilterActive() && $this->wishlist->isEnabled() ? $this->getDiscordUser() : null;
+    }
+
+    // a player shop shows one seller; the board shows everyone, or only me under « Mes annonces »
+    private function getScopeSeller(): ?DiscordUser
+    {
+        return $this->getSeller() ?? ($this->isMineFilterActive() ? $this->getDiscordUser() : null);
+    }
+
+    // my own listings never match « Ma wishlist »: I already own those cards
+    private function getExcludedSeller(): ?DiscordUser
+    {
+        return $this->getWishOf();
     }
 
     private function getSeller(): ?DiscordUser
