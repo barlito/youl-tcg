@@ -1,7 +1,8 @@
-# Hub built into FrankenPHP (.docker/franken/Caddyfile, `mercure` directive).
-# PHP publishes through the in-container URL; browsers subscribe on the app's
-# own origin (/.well-known/mercure), authorized by the mercureAuthorization
-# cookie (App\Twig\RealtimeExtension).
+# Hub built into FrankenPHP (.docker/franken/Caddyfile, `mercure` directive),
+# Mercure protocol 1.0: RFC 9068 access tokens (typ at+jwt, iss/aud/sub/
+# client_id, authorization_details). PHP publishes through the in-container
+# URL; browsers subscribe on the app's own origin (/.well-known/mercure),
+# authorized by the __Secure-mercure_access_token cookie (App\Twig\RealtimeExtension).
 mercure:
     # the cookie is reissued on every page load; 12h keeps an idle tab able
     # to reconnect after a network drop
@@ -9,7 +10,18 @@ mercure:
     hubs:
         default:
             url: '%env(MERCURE_URL)%'
+            # also the token audience (aud): must equal the hub's resource_identifier
             public_url: '%env(MERCURE_PUBLIC_URL)%'
+            protocol_version: '1.0'
+            # pinned in every env (the bundle drops the prefix under kernel.debug); the hub reads the same name
+            cookie_name: '__Secure-mercure_access_token'
             jwt:
                 secret: '%env(MERCURE_JWT_SECRET)%'
                 publish: '*'
+                claims:
+                    # must equal the hub's `issuer` block
+                    iss: '%env(MERCURE_JWT_ISSUER)%'
+                    # the app requests its own tokens (client credentials): sub = client_id.
+                    # Subscriber cookies override sub with the player (RealtimeExtension)
+                    client_id: 'youl-tcg'
+                    sub: 'youl-tcg'

@@ -25,16 +25,21 @@
 	root * /app/public
 	encode zstd br gzip
 
-	# Built-in Mercure hub (same origin as the app, served before php_server).
-	# One key for publishers (PHP) and subscribers (mercureAuthorization cookie):
-	# only the app signs JWTs. No anonymous subscribers, every update is private
-	# except the public broadcast topic, which carries no personal data.
+	# Built-in Mercure hub (same origin as the app), protocol 1.0 modern mode.
+	# Only the app signs tokens (one key, bound to its `iss`). `aud` is pinned to
+	# the public URL: behind Traefik the hub would derive an http:// identifier.
+	# No anonymous subscribers: every update is private except /broadcast.
 	mercure {
-		# Mercure 1.0 modern mode needs RFC 9068 tokens (iss/aud/authorization_details),
-		# which symfony/mercure does not issue yet: keep the 0.x token format.
-		protocol_version_compatibility 8
-		publisher_jwt {env.MERCURE_JWT_SECRET} HS256
-		subscriber_jwt {env.MERCURE_JWT_SECRET} HS256
+		issuer {$MERCURE_TRUSTED_ISSUER:https://ytcg.youlz.fr} {
+			publisher {
+				jwt {env.MERCURE_JWT_SECRET} HS256
+			}
+			subscriber {
+				jwt {env.MERCURE_JWT_SECRET} HS256
+			}
+		}
+		resource_identifier {$MERCURE_RESOURCE_IDENTIFIER:https://ytcg.youlz.fr/.well-known/mercure}
+		cookie_name __Secure-mercure_access_token
 		cors_origins {$MERCURE_CORS_ORIGINS:https://ytcg.youlz.fr}
 		publish_origins {$MERCURE_CORS_ORIGINS:https://ytcg.youlz.fr}
 		transport bolt {

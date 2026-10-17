@@ -14,6 +14,10 @@ services:
             # Read by Caddy (built-in Mercure hub); must match .env.dev
             MERCURE_JWT_SECRET: dev-mercure-secret-change-me-at-least-256-bits-long
             MERCURE_CORS_ORIGINS: https://ytcg.local.barlito.fr
+            # = MERCURE_JWT_ISSUER / MERCURE_PUBLIC_URL of .env.dev (Caddy-only names:
+            # a real MERCURE_PUBLIC_URL would also override .env.test)
+            MERCURE_TRUSTED_ISSUER: https://ytcg.local.barlito.fr
+            MERCURE_RESOURCE_IDENTIFIER: https://ytcg.local.barlito.fr/.well-known/mercure
         volumes:
             - ./:/app
             - ./.docker/franken/Caddyfile:/etc/caddy/Caddyfile

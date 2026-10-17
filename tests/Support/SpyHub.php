@@ -6,6 +6,7 @@ namespace App\Tests\Support;
 
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Jwt\TokenFactoryInterface;
+use Symfony\Component\Mercure\Jwt\TokenProviderInterface;
 use Symfony\Component\Mercure\ProtocolVersion;
 use Symfony\Component\Mercure\Update;
 
@@ -34,6 +35,18 @@ final class SpyHub implements HubInterface
     public function getFactory(): ?TokenFactoryInterface
     {
         return $this->inner->getFactory();
+    }
+
+    /**
+     * Publisher token source of the real hub (not part of HubInterface, like TraceableHub).
+     */
+    public function getProvider(): TokenProviderInterface
+    {
+        if (!method_exists($this->inner, 'getProvider')) {
+            throw new \LogicException('The decorated hub exposes no token provider.');
+        }
+
+        return $this->inner->getProvider();
     }
 
     public function getProtocolVersion(): ProtocolVersion

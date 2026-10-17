@@ -10,6 +10,7 @@ use App\Service\Realtime\UserEventPublisher;
 use App\Tests\Support\SpyHub;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Mercure\Exception\RuntimeException;
+use Symfony\Component\Mercure\ProtocolVersion;
 
 final class UserEventPublisherTest extends KernelTestCase
 {
@@ -35,6 +36,35 @@ final class UserEventPublisherTest extends KernelTestCase
         $this->publisher()->publish(new DiscordUser()->setDiscordId('1')->setUsername('x'), UserEventEnum::INVENTORY_CHANGED);
 
         $this->assertSame([], $this->hub()->getUpdates());
+    }
+
+    public function testThePublisherTokenIsAnRfc9068AccessTokenOfTheApp(): void
+    {
+        self::bootKernel();
+
+        $this->assertSame(ProtocolVersion::V1, $this->hub()->getProtocolVersion());
+        $this->assertSame('__Secure-mercure_access_token', $this->hub()->getCookieName());
+
+        $parts = explode('.', $this->hub()->getProvider()->getJwt());
+        $this->assertCount(3, $parts);
+        $header = json_decode(base64_decode(strtr($parts[0], '-_', '+/'), true) ?: '', true, flags: \JSON_THROW_ON_ERROR);
+        $claims = json_decode(base64_decode(strtr($parts[1], '-_', '+/'), true) ?: '', true, flags: \JSON_THROW_ON_ERROR);
+        $this->assertIsArray($header);
+        $this->assertIsArray($claims);
+
+        $this->assertSame('at+jwt', $header['typ']);
+        // must equal the hub's `issuer` block and `resource_identifier` (Caddyfile)
+        $this->assertSame('https://localhost', $claims['iss']);
+        $this->assertSame('https://localhost/.well-known/mercure', $claims['aud']);
+        // client credentials: the app is its own subject
+        $this->assertSame('youl-tcg', $claims['sub']);
+        $this->assertSame('youl-tcg', $claims['client_id']);
+        $this->assertIsNumeric($claims['exp']);
+        $this->assertSame([[
+            'type' => 'https://mercure.rocks/authorization-detail',
+            'actions' => ['publish'],
+            'topics' => [['match' => '*']],
+        ]], $claims['authorization_details']);
     }
 
     private function publisher(): UserEventPublisher
