@@ -220,6 +220,7 @@
     place-items: center;
 }
 .opening__reveal-card {
+    position: relative; /* anchors the « Nouvelle carte » stamp */
     grid-area: 1 / 1;
     width: 100%;
     display: none;
@@ -229,6 +230,11 @@
 .opening__reveal-card.is-current { display: block; }
 .opening__reveal-card.is-entering { animation: opening-cardEnter .45s cubic-bezier(.2,.8,.2,1) both; }
 .opening__reveal-card.is-pop { animation: opening-cardPop .6s ease-out; }
+
+/* phones: the card top runs under the header, the stamp goes to the bottom corner */
+@media (max-width: 900px) {
+    .opening__reveal-card .new-tag { top: auto; bottom: 7%; left: -4%; }
+}
 
 /* ---- 3D flip scene: back faces the player, click flips it to the front ---- */
 .opening__flip {

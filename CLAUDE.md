@@ -336,6 +336,7 @@ docker exec $(docker ps --filter name="ytcg_php" -q) bin/console make:controller
 - **JavaScript (Stimulus controllers in `assets/controllers/`):**
   - `card_controller.js`: lifecycle glue around `assets/lib/card_tilt.js` (pointer tracking with in-house springs, one style write per frame — no anime.js); attached via `data-controller="card"`, so dynamically rendered cards (Live Components) work too
   - `booster_opening_controller.js` (reveal sequence, rarest-last climax) + `pack_opening_3d_controller.js` (three.js GLTF pack, `public/models/pack-wide.gltf`)
+  - « Nouvelle carte » stamp: `parts/_new_card_tag.html.twig` + `assets/styles/cards/new-tag.css` (loaded by the layout), hidden until a controller adds `is-on` (stamp + burst + shine, static under reduced motion). The opening puts it on the big revealed card of the FIRST copy of each `newCardIds` card (not owned right before the draw), played right after the flip
 - **Design system « Violet Arcade »**: tokens in `assets/styles/theme.css` (+ Tailwind palette), helpers `.btn-arcade`, `.eyebrow`, `.chip-mono`; rarity colors `--rarity-*`
 
 **Asset Pipeline:**
