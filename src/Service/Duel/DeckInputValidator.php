@@ -29,12 +29,14 @@ final class DeckInputValidator
         $name = $this->validateName($payload['name'] ?? null, $violations);
         $cards = $this->validateCards($payload['cards'] ?? null, $collection, $violations);
         $terrain = $this->validateTerrain($payload['terrain'] ?? null, $collection, $violations);
+        $holoCards = $this->validateHoloCards($payload['holoCards'] ?? [], $cards, $collection, $violations);
+        $this->validateForcedHolo($payload['cards'] ?? null, $holoCards, $collection, $violations);
 
         if ([] !== $violations) {
             throw DeckRefusedException::invalid($violations);
         }
 
-        return new DeckDraft($name, $cards, $terrain);
+        return new DeckDraft($name, $cards, $terrain, $holoCards);
     }
 
     /**
@@ -133,5 +135,69 @@ final class DeckInputValidator
         }
 
         return $terrain;
+    }
+
+    /**
+     * The player picks which cards of the deck are played in their holo copy: only cards of the deck, owned in a holo copy.
+     *
+     * @param list<Card>                  $cards
+     * @param array<string, UserCard>     $collection
+     * @param array<string, list<string>> $violations
+     *
+     * @return list<Card>
+     */
+    private function validateHoloCards(mixed $value, array $cards, array $collection, array &$violations): array
+    {
+        if (!\is_array($value) || !array_is_list($value)) {
+            $violations['holoCards'][] = 'Liste d\'identifiants de cartes du deck attendue.';
+
+            return [];
+        }
+
+        $inDeck = [];
+        foreach ($cards as $card) {
+            $inDeck[(string) $card->getId()] = $card;
+        }
+
+        $holo = [];
+        foreach ($value as $index => $id) {
+            $path = \sprintf('holoCards[%d]', $index);
+            $id = \is_string($id) && Uuid::isValid($id) ? strtolower($id) : null;
+
+            if (null === $id) {
+                $violations[$path][] = 'Identifiant de carte invalide.';
+            } elseif (!isset($inDeck[$id])) {
+                $violations[$path][] = 'Une carte holo doit faire partie du deck.';
+            } elseif (($collection[$id] ?? null)?->getHoloQuantity() <= 0) {
+                $violations[$path][] = \sprintf('Tu ne possèdes pas d\'exemplaire holo de « %s ».', $inDeck[$id]->getName());
+            } else {
+                $holo[$id] = $inDeck[$id];
+            }
+        }
+
+        return array_values($holo);
+    }
+
+    /**
+     * Owning only holo copies of a card means playing it holo: refusing to flag it is refused, not silently fixed.
+     *
+     * @param list<Card>                  $holoCards
+     * @param array<string, UserCard>     $collection
+     * @param array<string, list<string>> $violations
+     */
+    private function validateForcedHolo(mixed $sent, array $holoCards, array $collection, array &$violations): void
+    {
+        if (!\is_array($sent) || !array_is_list($sent)) {
+            return;
+        }
+
+        $flagged = array_map(static fn (Card $card): string => (string) $card->getId(), $holoCards);
+        foreach ($sent as $index => $id) {
+            $key = \is_string($id) ? strtolower($id) : '';
+            $row = $collection[$key] ?? null;
+            if ($row instanceof UserCard && $row->getHoloQuantity() > 0 && $row->getNormalQuantity() <= 0 && !\in_array($key, $flagged, true)) {
+                $violations[\sprintf('cards[%d]', $index)][] = \sprintf('Tu ne possèdes que des exemplaires holo de « %s » : ajoute-la à holoCards.', $row->getCard()->getName());
+            }
+        }
     }
 }

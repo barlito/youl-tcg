@@ -13,11 +13,13 @@ final readonly class DeckDraft
 {
     /**
      * @param list<Card> $cards
+     * @param list<Card> $holoCards
      */
     public function __construct(
         public string $name,
         public array $cards,
         public ?Card $terrain,
+        public array $holoCards = [],
     ) {
     }
 }

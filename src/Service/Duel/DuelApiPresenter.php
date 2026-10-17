@@ -39,6 +39,8 @@ final class DuelApiPresenter
             'id' => (string) $deck->getId(),
             'name' => $deck->getName(),
             'cards' => $deck->getCardIds(),
+            'holoCards' => $validity->holoCards,
+            'changes' => $deck->getChanges(),
             'terrain' => $deck->getTerrain()?->getId(),
             'valid' => $validity->isValid(),
             'missingCards' => $validity->missingCards,

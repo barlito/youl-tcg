@@ -49,6 +49,51 @@ final class DeckRulesTest extends TestCase
         $this->assertSame($this->terrain, $draft->terrain);
     }
 
+    public function testHoloCardsAreChosenAmongTheDeckCardsOwnedInAHoloCopy(): void
+    {
+        $this->copies($this->cards[0], 2, 1);
+
+        $draft = $this->validate(['name' => 'Holo', 'cards' => $this->ids(12), 'holoCards' => [(string) $this->cards[0]->getId(), (string) $this->cards[0]->getId()]]);
+        $this->assertSame([$this->cards[0]], $draft->holoCards);
+        $this->assertSame([], $this->validate(['name' => 'Plain', 'cards' => $this->ids(12)])->holoCards);
+
+        $violations = $this->violations(['name' => 'Holo', 'cards' => $this->ids(12), 'holoCards' => [(string) $this->cards[1]->getId(), (string) $this->cards[12]->getId(), 12]]);
+        $this->assertSame(['Tu ne possèdes pas d\'exemplaire holo de « Card 2 ».'], $violations['holoCards[0]']);
+        $this->assertSame(['Une carte holo doit faire partie du deck.'], $violations['holoCards[1]']);
+        $this->assertSame(['Identifiant de carte invalide.'], $violations['holoCards[2]']);
+        $this->assertSame(['holoCards' => ['Liste d\'identifiants de cartes du deck attendue.']], $this->violations(['name' => 'Holo', 'cards' => $this->ids(12), 'holoCards' => 'x']));
+    }
+
+    public function testTheReadNormalizesTheStoredChoiceToWhatTheOwnerHolds(): void
+    {
+        $forcedHoloUnflagged = $this->cards[0]; // only holo copies
+        $chosenButNormalOnly = $this->cards[1]; // no holo copy any more
+        $bothKindsNotChosen = $this->cards[2];
+        $bothKindsChosen = $this->cards[3];
+        $this->copies($forcedHoloUnflagged, 1, 1);
+        $this->copies($bothKindsNotChosen, 2, 1);
+        $this->copies($bothKindsChosen, 2, 1);
+        $deck = new Deck($this->player, 'Deck', \array_slice($this->cards, 0, 12), $this->terrain, [$chosenButNormalOnly, $bothKindsChosen]);
+
+        $validity = new DeckValidator()->check($deck, $this->collection);
+
+        $this->assertTrue($validity->isValid());
+        $expected = [(string) $forcedHoloUnflagged->getId(), (string) $bothKindsChosen->getId()];
+        sort($expected);
+        $this->assertSame($expected, $validity->holoCards);
+    }
+
+    public function testOnlyHoloCopiesOwnedMustBeFlaggedOnWrite(): void
+    {
+        $this->copies($this->cards[0], 1, 1);
+
+        $violations = $this->violations(['name' => 'Holo', 'cards' => $this->ids(12)]);
+
+        $this->assertSame(['cards[0]' => ['Tu ne possèdes que des exemplaires holo de « Card 1 » : ajoute-la à holoCards.']], $violations);
+        $draft = $this->validate(['name' => 'Holo', 'cards' => $this->ids(12), 'holoCards' => [(string) $this->cards[0]->getId()]]);
+        $this->assertSame([$this->cards[0]], $draft->holoCards);
+    }
+
     public function testTheTerrainIsOptional(): void
     {
         $this->assertNull($this->validate(['name' => 'Sans terrain', 'cards' => $this->ids(12)])->terrain);
@@ -126,6 +171,11 @@ final class DeckRulesTest extends TestCase
             '« Card 1 » est désormais un terrain : il ne se joue plus comme carte.',
             '« Niveau 24 » n\'est plus un terrain.',
         ], $validity->issues);
+    }
+
+    private function copies(Card $card, int $quantity, int $holoQuantity): void
+    {
+        $this->collection[(string) $card->getId()]->setQuantity($quantity)->setHoloQuantity($holoQuantity);
     }
 
     private function own(Card $card): Card

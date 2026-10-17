@@ -48,7 +48,7 @@ class DuelServerController extends AbstractController
             return $this->json(['error' => 'Deck introuvable pour ce joueur.'], Response::HTTP_NOT_FOUND);
         }
 
-        $validity = $this->deckService->validity($deck);
+        $validity = $this->deckService->reconciledValidity($deck);
         if (!$validity->isValid()) {
             return $this->json([
                 'error' => 'Deck incomplet : il ne correspond plus à la collection du joueur.',
@@ -61,6 +61,7 @@ class DuelServerController extends AbstractController
             'id' => (string) $deck->getId(),
             'name' => $deck->getName(),
             'cards' => $deck->getCardIds(),
+            'holoCards' => $this->deckService->holoCardIds($deck),
             'terrain' => $deck->getTerrain()?->getId(),
         ]);
     }

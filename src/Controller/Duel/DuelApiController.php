@@ -106,6 +106,19 @@ class DuelApiController extends AbstractController
         return new Response(null, Response::HTTP_NO_CONTENT);
     }
 
+    #[Route('/decks/{id}/changes', name: 'api_duel_deck_changes_ack', methods: ['DELETE'])]
+    public function acknowledgeChanges(#[CurrentUser] DiscordUser $player, string $id): Response
+    {
+        $deck = $this->deckRepository->findOneOwnedBy($id, $player);
+        if (!$deck instanceof Deck) {
+            return $this->notFound();
+        }
+
+        $this->deckService->acknowledgeChanges($deck);
+
+        return new Response(null, Response::HTTP_NO_CONTENT);
+    }
+
     /**
      * JSON only: a cross-site form cannot send application/json without a CORS preflight.
      *

@@ -52,6 +52,25 @@ final class DeckValidator
             }
         }
 
-        return new DeckValidity($missing, $issues);
+        return new DeckValidity($missing, $issues, $this->holoCards($deck, $collection));
+    }
+
+    /**
+     * Safety net behind the ownership listener: owning only holo copies forces holo, none (or only normal) forbids it.
+     *
+     * @param array<string, UserCard> $collection
+     *
+     * @return list<string>
+     */
+    private function holoCards(Deck $deck, array $collection): array
+    {
+        $chosen = $deck->getHoloCardIds();
+        $holo = array_filter(
+            $deck->getCardIds(),
+            static fn (string $id): bool => DeckOwnership::playsHolo($collection[$id] ?? null, \in_array($id, $chosen, true)),
+        );
+        sort($holo);
+
+        return $holo;
     }
 }

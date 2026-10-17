@@ -30,6 +30,7 @@ final readonly class DeckService
         private UserCardRepository $userCardRepository,
         private DeckInputValidator $inputValidator,
         private DeckValidator $validator,
+        private DeckReconciler $reconciler,
         private FeatureFlags $featureFlags,
     ) {
     }
@@ -56,9 +57,39 @@ final readonly class DeckService
         $collection = $this->collection($player);
 
         return array_map(
-            fn (Deck $deck): array => ['deck' => $deck, 'validity' => $this->validator->check($deck, $collection)],
+            function (Deck $deck) use ($collection): array {
+                $this->reconciler->reconcile($deck, $collection);
+
+                return ['deck' => $deck, 'validity' => $this->validator->check($deck, $collection)];
+            },
             $this->deckRepository->findForOwner($player),
         );
+    }
+
+    /**
+     * A deck read (player list or game join): brought in line with the collection first, then checked.
+     *
+     * @throws FeatureDisabledException
+     */
+    public function reconciledValidity(Deck $deck): DeckValidity
+    {
+        $collection = $this->collection($deck->getOwner());
+        $this->reconciler->reconcile($deck, $collection);
+
+        return $this->validator->check($deck, $collection);
+    }
+
+    /**
+     * The player has read the notice of changes.
+     *
+     * @throws FeatureDisabledException
+     */
+    public function acknowledgeChanges(Deck $deck): void
+    {
+        $this->featureFlags->assertEnabled(FeatureEnum::DUEL);
+
+        $deck->acknowledgeChanges();
+        $this->entityManager->flush();
     }
 
     /**
@@ -67,6 +98,18 @@ final readonly class DeckService
     public function validity(Deck $deck): DeckValidity
     {
         return $this->validator->check($deck, $this->collection($deck->getOwner()));
+    }
+
+    /**
+     * The deck cards played in their holo copy: the stored choice normalized to what the player holds now.
+     *
+     * @throws FeatureDisabledException
+     *
+     * @return list<string> sorted card ids
+     */
+    public function holoCardIds(Deck $deck): array
+    {
+        return $this->validity($deck)->holoCards;
     }
 
     /**
@@ -88,7 +131,7 @@ final readonly class DeckService
                 return null;
             }
 
-            $deck = new Deck($player, $draft->name, $draft->cards, $draft->terrain);
+            $deck = new Deck($player, $draft->name, $draft->cards, $draft->terrain, $draft->holoCards);
             $this->entityManager->persist($deck);
 
             return $deck;
@@ -109,7 +152,7 @@ final readonly class DeckService
     {
         $draft = $this->inputValidator->validate($payload, $this->collection($deck->getOwner()));
 
-        $deck->update($draft->name, $draft->cards, $draft->terrain);
+        $deck->update($draft->name, $draft->cards, $draft->terrain, $draft->holoCards);
         $this->entityManager->flush();
 
         return $deck;
