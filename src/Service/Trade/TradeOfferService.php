@@ -403,6 +403,12 @@ final readonly class TradeOfferService
             }
         }
 
+        // read on the locked rows BEFORE any copy moves (same rule as an opening's newCardIds)
+        foreach ($lines as $line) {
+            $takerRow = $this->lockedRow($rows, $locked->getTakerOf($line), $line->getCard());
+            $line->setNewForTaker(0 === $takerRow->getQuantity() && 0 === $takerRow->getHoloQuantity());
+        }
+
         // Both sides validated: move the copies on the locked rows (no second
         // lock pass: a refreshing re-lock would clobber the pending debits)…
         foreach ($lines as $line) {

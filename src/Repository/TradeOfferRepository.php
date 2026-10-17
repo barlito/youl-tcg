@@ -183,6 +183,25 @@ class TradeOfferRepository extends ServiceEntityRepository
     }
 
     /**
+     * Rank of a resolved offer in the reader's history (findHistoryPageFor order), 0 = first.
+     */
+    public function countHistoryBefore(DiscordUser $user, TradeOffer $offer): int
+    {
+        return (int) $this->createQueryBuilder('tradeOffer')
+            ->select('COUNT(tradeOffer.id)')
+            ->andWhere('tradeOffer.proposer = :user OR tradeOffer.receiver = :user')
+            ->andWhere('tradeOffer.status != :pending')
+            ->andWhere('tradeOffer.resolvedAt > :resolvedAt OR (tradeOffer.resolvedAt = :resolvedAt AND tradeOffer.id > :offerId)')
+            ->setParameter('user', $user)
+            ->setParameter('pending', TradeOfferStatusEnum::PENDING->value)
+            ->setParameter('resolvedAt', $offer->getResolvedAt())
+            ->setParameter('offerId', $offer->getId(), 'uuid')
+            ->getQuery()
+            ->getSingleScalarResult()
+        ;
+    }
+
+    /**
      * Atomically flips a PENDING offer to INVALIDATED: the status guard makes
      * the lock-free display-time cleanup safe against a concurrent resolution
      * (an offer accepted in-flight is never overwritten).

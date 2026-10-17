@@ -47,6 +47,14 @@ final class TradeInbox extends AbstractController
     #[LiveProp]
     public int $historyPage = 1;
 
+    /** Resolved offer of the reader whose history entry is opened (notification link, fresh acceptance). */
+    #[LiveProp]
+    public ?string $focus = null;
+
+    /** Whether the received cards of the focused accepted offer are still to be revealed. */
+    #[LiveProp]
+    public bool $revealPending = false;
+
     /**
      * Cards the reader owns, hence may see. Memoized: one query per render,
      * never one per offer.
@@ -65,11 +73,54 @@ final class TradeInbox extends AbstractController
 
     private ?int $historyCount = null;
 
+    private ?TradeOffer $focusedOffer = null;
+
     public function __construct(
         private readonly TradeOfferRepository $tradeOfferRepository,
         private readonly TradeOfferService $tradeOfferService,
         private readonly UserCardRepository $userCardRepository,
     ) {
+    }
+
+    /**
+     * `?offre=` of the notification link: an unknown, pending or foreign offer is ignored silently.
+     */
+    public function mount(?string $focus = null): void
+    {
+        $offer = null !== $focus ? $this->findOwnResolvedOffer($focus) : null;
+
+        if ($offer instanceof TradeOffer) {
+            $this->focusOn($offer);
+        }
+    }
+
+    public function getFocusedOffer(): ?TradeOffer
+    {
+        if (null === $this->focus) {
+            return null;
+        }
+
+        return $this->focusedOffer ??= $this->findOwnResolvedOffer($this->focus);
+    }
+
+    /**
+     * Received cards of the focused accepted offer, rarest (then holo, then new) last.
+     *
+     * @return list<TradeLineView>
+     */
+    public function getRevealLines(): array
+    {
+        $offer = $this->getFocusedOffer();
+
+        if (!$this->revealPending || !$offer instanceof TradeOffer || TradeOfferStatusEnum::ACCEPTED !== $offer->getStatus()) {
+            return [];
+        }
+
+        $lines = $this->historyReceivedView($offer);
+        usort($lines, static fn (TradeLineView $a, TradeLineView $b): int => [$a->rarity->rank(), $a->holoQuantity > 0, $a->new]
+            <=> [$b->rarity->rank(), $b->holoQuantity > 0, $b->new]);
+
+        return $lines;
     }
 
     /**
@@ -174,9 +225,16 @@ final class TradeInbox extends AbstractController
     {
         $this->run($offerId, function (TradeOffer $offer, DiscordUser $user): string {
             $this->tradeOfferService->accept($offer, $user);
+            $this->focusOn($offer);
 
             return 'Échange conclu ! Les cartes ont changé de collection.';
         });
+    }
+
+    #[LiveAction]
+    public function closeReveal(): void
+    {
+        $this->revealPending = false;
     }
 
     #[LiveAction]
@@ -237,7 +295,8 @@ final class TradeInbox extends AbstractController
             $offer->getLines()->toArray(),
             static fn (TradeOfferLine $line): bool => $given === ($offer->getGiverOf($line)->getDiscordId() === $reader),
         ));
-        $everOwned = TradeOfferStatusEnum::ACCEPTED === $offer->getStatus() ? null : $this->everOwnedCardIds();
+        $accepted = TradeOfferStatusEnum::ACCEPTED === $offer->getStatus();
+        $everOwned = $accepted ? null : $this->everOwnedCardIds();
 
         return array_map(
             static fn (TradeOfferLine $line): TradeLineView => new TradeLineView(
@@ -245,9 +304,25 @@ final class TradeInbox extends AbstractController
                 $line->getCard()->getRarity(),
                 $line->getTotalQuantity(),
                 $line->getHoloQuantity(),
+                $accepted && !$given && true === $line->isNewForTaker(),
             ),
             $lines,
         );
+    }
+
+    private function focusOn(TradeOffer $offer): void
+    {
+        $this->focus = (string) $offer->getId();
+        $this->focusedOffer = $offer;
+        $this->revealPending = TradeOfferStatusEnum::ACCEPTED === $offer->getStatus();
+        $this->historyPage = intdiv($this->tradeOfferRepository->countHistoryBefore($this->getDiscordUser(), $offer), self::HISTORY_PER_PAGE) + 1;
+    }
+
+    private function findOwnResolvedOffer(string $offerId): ?TradeOffer
+    {
+        $offer = Uuid::isValid($offerId) ? $this->tradeOfferRepository->find($offerId) : null;
+
+        return $offer instanceof TradeOffer && $offer->involves($this->getDiscordUser()) && !$offer->isPending() ? $offer : null;
     }
 
     /**

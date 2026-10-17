@@ -12,6 +12,7 @@ use App\Service\Trade\TradeMatchScoreService;
 use App\Service\Trade\TradeOfferService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
@@ -21,10 +22,13 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 #[RequiresFeature(FeatureEnum::TRADES)]
 class TradeController extends AbstractController
 {
+    /**
+     * `?offre=<id>` (notification link) opens that offer's history entry.
+     */
     #[Route('/echanges', name: 'trades')]
-    public function inbox(): Response
+    public function inbox(#[MapQueryParameter] ?string $offre = null): Response
     {
-        return $this->render('pages/trades.html.twig');
+        return $this->render('pages/trades.html.twig', ['focus' => $offre]);
     }
 
     /**

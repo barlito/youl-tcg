@@ -41,6 +41,10 @@ class TradeOfferLine
     #[ORM\Column(options: ['default' => 0])]
     private int $holoQuantity = 0;
 
+    /** Whether the taker owned no copy of the card right before the acceptance; null until accepted. */
+    #[ORM\Column(nullable: true)]
+    private ?bool $newForTaker = null;
+
     public function getTradeOffer(): TradeOffer
     {
         return $this->tradeOffer;
@@ -97,6 +101,18 @@ class TradeOfferLine
     public function setHoloQuantity(int $holoQuantity): static
     {
         $this->holoQuantity = $holoQuantity;
+
+        return $this;
+    }
+
+    public function isNewForTaker(): ?bool
+    {
+        return $this->newForTaker;
+    }
+
+    public function setNewForTaker(?bool $newForTaker): static
+    {
+        $this->newForTaker = $newForTaker;
 
         return $this;
     }
