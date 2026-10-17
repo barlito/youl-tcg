@@ -74,6 +74,19 @@ final class NotificationRendererTest extends TestCase
         $this->assertSame('Un joueur te propose un échange', $this->renderer()->describe(NotificationTypeEnum::TRADE_RECEIVED, [])->text);
     }
 
+    public function testAResolvedTradeLinksToItsHistoryEntryWhenTheOfferIsKnown(): void
+    {
+        $offerId = '019a0000-0000-7000-8000-000000000001';
+        $payload = ['playerName' => 'Benj', 'playerId' => '232457563910832129', 'offerId' => $offerId];
+
+        $this->assertSame('/trades?offre=' . $offerId, $this->renderer()->describe(NotificationTypeEnum::TRADE_ACCEPTED, $payload)->link);
+        $this->assertSame('/trades?offre=' . $offerId, $this->renderer()->describe(NotificationTypeEnum::TRADE_REFUSED, $payload)->link);
+
+        // legacy entries (no id) and forged ids keep the plain inbox link
+        $this->assertSame('/trades', $this->renderer()->describe(NotificationTypeEnum::TRADE_ACCEPTED, ['playerName' => 'Benj'])->link);
+        $this->assertSame('/trades', $this->renderer()->describe(NotificationTypeEnum::TRADE_ACCEPTED, ['offerId' => '../admin?x=1'])->link);
+    }
+
     public function testWishlistAlertNamesAWishedCardButNeverAMissingOne(): void
     {
         $named = $this->renderer()->describe(NotificationTypeEnum::WISHLIST_LISTED, ['cardName' => 'Rogue', 'universe' => 'Cyberpunk', 'slug' => 'cyberpunk-2077', 'price' => 40]);

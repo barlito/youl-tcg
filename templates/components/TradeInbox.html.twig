@@ -3,6 +3,7 @@
     {% set received = this.received %}
     {% set sent = this.sent %}
     {% set history = this.history %}
+    {% set focused = this.focusedOffer %}
     <main>
         {# --------------------------------------------------------- En-tête #}
         <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
@@ -148,7 +149,9 @@
                         {% for offer in history %}
                             {% set isMine = offer.proposer.discordId == app.user.discordId %}
                             {% set accepted = offer.status.value == 'accepted' %}
-                            <details id="history-{{ offer.id }}" class="group" data-testid="history-entry">
+                            {% set isFocused = focused and focused.id ~ "" == offer.id ~ "" %}
+                            <details id="history-{{ offer.id }}" class="group{{ isFocused ? ' bg-primary/5 shadow-[inset_3px_0_0_#a435f0]' }}" data-testid="history-entry"
+                                     {%- if isFocused %} open data-focused data-controller="trade-focus"{% endif %}>
                                 <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-surface [&::-webkit-details-marker]:hidden">
                                     <span class="flex min-w-0 items-center gap-2">
                                         <span class="font-mono text-xs text-primary transition-transform group-open:rotate-90" aria-hidden="true">▸</span>
@@ -179,6 +182,15 @@
             </section>
         {% endif %}
     </main>
+
+    {% set revealLines = this.revealLines %}
+    {% if revealLines is not empty %}
+        {{ include('parts/_trade_reveal.html.twig', {
+            offer: focused,
+            lines: revealLines,
+            counterpart: focused.proposer.discordId == app.user.discordId ? focused.receiver.username : focused.proposer.username,
+        }, with_context = false) }}
+    {% endif %}
 </div>
 
 {% macro page_button(target, label, disabled, testid) %}

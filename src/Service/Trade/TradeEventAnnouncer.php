@@ -61,8 +61,8 @@ final readonly class TradeEventAnnouncer
         $this->publishChanged($offer, $status);
 
         match ($status) {
-            TradeOfferStatusEnum::ACCEPTED => $this->notify($offer->getProposer(), NotificationTypeEnum::TRADE_ACCEPTED, $offer->getReceiver()),
-            TradeOfferStatusEnum::REFUSED => $this->notify($offer->getProposer(), NotificationTypeEnum::TRADE_REFUSED, $offer->getReceiver()),
+            TradeOfferStatusEnum::ACCEPTED => $this->notify($offer->getProposer(), NotificationTypeEnum::TRADE_ACCEPTED, $offer->getReceiver(), $offer),
+            TradeOfferStatusEnum::REFUSED => $this->notify($offer->getProposer(), NotificationTypeEnum::TRADE_REFUSED, $offer->getReceiver(), $offer),
             default => null,
         };
     }
@@ -75,12 +75,21 @@ final readonly class TradeEventAnnouncer
         $this->publisher->publish($offer->getReceiver(), UserEventEnum::TRADES_CHANGED, $payload);
     }
 
-    private function notify(DiscordUser $recipient, NotificationTypeEnum $type, DiscordUser $counterpart): void
+    /**
+     * A resolved offer travels with its id: the link opens its history entry.
+     */
+    private function notify(DiscordUser $recipient, NotificationTypeEnum $type, DiscordUser $counterpart, ?TradeOffer $resolved = null): void
     {
-        $this->notificationService->notify($recipient, $type, [
+        $payload = [
             'playerName' => $counterpart->getUsername(),
             'playerId' => $counterpart->getDiscordId(),
-        ]);
+        ];
+
+        if ($resolved instanceof TradeOffer) {
+            $payload['offerId'] = (string) $resolved->getId();
+        }
+
+        $this->notificationService->notify($recipient, $type, $payload);
     }
 
     private function isOpen(): bool

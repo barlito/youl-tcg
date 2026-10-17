@@ -1,0 +1,49 @@
+{#- Received cards of an accepted trade: `lines` = TradeLineView[], sorted rarest last, all in clear -#}
+{% set count = lines|length %}
+<div id="trade-reveal-{{ offer.id }}" class="trade-reveal{{ count > 4 ? ' trade-reveal--many' : (count > 2 ? ' trade-reveal--some') }}"
+     role="dialog" aria-modal="true" aria-labelledby="trade-reveal-title-{{ offer.id }}"
+     data-controller="trade-reveal"
+     data-trade-reveal-key-value="{{ offer.id }}"
+     data-trade-reveal-entry-value="history-{{ offer.id }}"
+     data-testid="trade-reveal">
+    <div class="trade-reveal__backdrop" data-action="click->trade-reveal#close click->live#action" data-live-action-param="closeReveal" aria-hidden="true"></div>
+    <div class="trade-reveal__panel">
+        <p class="eyebrow">Échange conclu · avec {{ counterpart }}</p>
+        <h2 id="trade-reveal-title-{{ offer.id }}" class="trade-reveal__title">Tu as reçu</h2>
+
+        <div class="trade-reveal__cards">
+            {% for line in lines %}
+                {% set rarity = line.rarity.value %}
+                <div class="trade-reveal__card" data-trade-reveal-target="card" data-rarity="{{ rarity }}"
+                     style="--reveal-color: var(--rarity-{{ rarity }});" data-testid="trade-reveal-card"
+                     {%- if line.new %} data-new{% endif %}>
+                    <div class="trade-reveal__stage">
+                        <div class="trade-reveal__flip">
+                            <div class="trade-reveal__face trade-reveal__front">
+                                {{ include('components/CardComponent.html.twig', {
+                                    card: line.card,
+                                    holo: line.holoQuantity > 0,
+                                    id: 'trade-reveal-' ~ offer.id ~ '-' ~ loop.index,
+                                }, with_context = false) }}
+                            </div>
+                            <div class="trade-reveal__face trade-reveal__back">
+                                <img src="{{ asset('images/card-back.svg') }}" alt="" draggable="false">
+                            </div>
+                        </div>
+                        {% if line.new %}{{ include('parts/_new_card_tag.html.twig', {}, with_context = false) }}{% endif %}
+                        <span class="trade-reveal__qty">×{{ line.totalQuantity }}{% if line.holoQuantity > 0 %} <span class="trade-reveal__holo">✦ holo{{ line.holoQuantity > 1 ? ' ×' ~ line.holoQuantity }}</span>{% endif %}</span>
+                    </div>
+                    <p class="trade-reveal__name">{{ line.card.name }}</p>
+                    <p class="trade-reveal__rarity">{{ line.rarity.label }}</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <button type="button" class="btn-arcade trade-reveal__close"
+                data-trade-reveal-target="close"
+                data-action="trade-reveal#close live#action"
+                data-live-action-param="closeReveal"
+                data-testid="trade-reveal-close">Voir l'échange ▸</button>
+    </div>
+    <div class="trade-reveal__flash" data-trade-reveal-target="flash" aria-hidden="true"></div>
+</div>

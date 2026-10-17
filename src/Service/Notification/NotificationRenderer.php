@@ -12,6 +12,7 @@ use App\Enum\Notification\NotificationTypeEnum;
 use App\Service\Booster\BoosterCodeGenerator;
 use App\Service\Coin\CoinAmount;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Turns a stored notification (type + payload) into text and an internal
@@ -70,12 +71,12 @@ final readonly class NotificationRenderer
             NotificationTypeEnum::TRADE_ACCEPTED => new NotificationContent(
                 '✓',
                 \sprintf('%s a accepté ton échange', $this->string($payload, 'playerName', 'Un joueur')),
-                $this->urlGenerator->generate('trades'),
+                $this->tradeLink($payload),
             ),
             NotificationTypeEnum::TRADE_REFUSED => new NotificationContent(
                 '✕',
                 \sprintf('%s a refusé ton échange', $this->string($payload, 'playerName', 'Un joueur')),
-                $this->urlGenerator->generate('trades'),
+                $this->tradeLink($payload),
             ),
             NotificationTypeEnum::UNIVERSE_COMPLETED => new NotificationContent(
                 '★',
@@ -212,6 +213,20 @@ final readonly class NotificationRenderer
         return 1 === preg_match('/^[a-z0-9-]+$/', $slug)
             ? $this->urlGenerator->generate('universes_show', ['slug' => $slug])
             : $this->urlGenerator->generate('universes');
+    }
+
+    /**
+     * The inbox with the offer's history entry opened; older notifications carry no id.
+     *
+     * @param array<string, scalar|null> $payload
+     */
+    private function tradeLink(array $payload): string
+    {
+        $offerId = $this->string($payload, 'offerId', '');
+
+        return Uuid::isValid($offerId)
+            ? $this->urlGenerator->generate('trades', ['offre' => $offerId])
+            : $this->urlGenerator->generate('trades');
     }
 
     /**

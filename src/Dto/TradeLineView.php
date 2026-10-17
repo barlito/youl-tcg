@@ -19,6 +19,7 @@ final readonly class TradeLineView
         public CardRarityEnum $rarity,
         public int $totalQuantity,
         public int $holoQuantity,
+        public bool $new = false,
     ) {
     }
 

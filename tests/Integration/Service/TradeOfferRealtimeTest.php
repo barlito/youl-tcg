@@ -94,7 +94,10 @@ final class TradeOfferRealtimeTest extends KernelTestCase
         $this->assertSame(['inventory-changed', 'trades-changed'], $this->eventTypesOf($this->bob));
         $this->assertSame('accepted', $this->eventsOf($this->bob)[1]['payload']['status']);
         $this->assertSame('Bob a accepté ton échange', $this->eventsOf($this->alice)[2]['payload']['message']);
+        // the toast and the stored entry both open that offer's history entry
+        $this->assertSame('/echanges?offre=' . $offer->getId(), $this->eventsOf($this->alice)[2]['payload']['link']);
         $this->assertNotifications($this->alice, [NotificationTypeEnum::TRADE_ACCEPTED]);
+        $this->assertSame((string) $offer->getId(), $this->notificationsOf($this->alice)[0]->getPayload()['offerId'] ?? null);
     }
 
     public function testRefusalNotifiesTheProposer(): void
