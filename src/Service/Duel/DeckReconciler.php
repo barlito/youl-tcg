@@ -63,7 +63,7 @@ final readonly class DeckReconciler
     {
         $chosen = $deck->getHoloCardIds();
         $diff = [];
-        foreach ($deck->getCards() as $card) {
+        foreach ($this->sortedCards($deck) as $card) {
             $id = (string) $card->getId();
             $row = $collection[$id] ?? null;
             if (!DeckOwnership::ownsAny($row)) {
@@ -79,5 +79,18 @@ final readonly class DeckReconciler
         }
 
         return $diff;
+    }
+
+    /**
+     * The join table has no order: sort by name so the notice lists the changes the same way on every read.
+     *
+     * @return list<Card>
+     */
+    private function sortedCards(Deck $deck): array
+    {
+        $cards = $deck->getCards();
+        usort($cards, static fn (Card $a, Card $b): int => [$a->getName(), (string) $a->getId()] <=> [$b->getName(), (string) $b->getId()]);
+
+        return $cards;
     }
 }
