@@ -1,0 +1,6 @@
+{#- « Nouvelle carte » stamp (styles/cards/new-tag.css): hidden until a controller adds `is-on`,
+    which plays the stamp; pass `size: 'sm'` for grid-sized cards -#}
+<span class="new-tag{{ (size|default(null)) ? ' new-tag--' ~ size }}" data-new-tag data-testid="new-card-tag">
+    <span class="new-tag__burst" aria-hidden="true"></span>
+    <span class="new-tag__label">Nouvelle<span class="new-tag__label-tail"> carte</span></span>
+</span>

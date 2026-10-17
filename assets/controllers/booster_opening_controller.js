@@ -141,6 +141,7 @@ export default class extends Controller {
         }
         // every card face-down again, nothing current
         this.cardTargets?.forEach((node) => node.classList.remove('is-current', 'is-pop'));
+        this.element.querySelectorAll('.opening__reveal-card [data-new-tag]').forEach((tag) => tag.classList.remove('is-on'));
         this.flipTargets?.forEach((flip) => flip.classList.remove('is-flipped'));
         // reveal tracker back to all-mystery, without the fade: the re-render already
         // put the NEXT draw's cards in these tiles, a fade-out would show them
@@ -304,6 +305,7 @@ export default class extends Controller {
             this._retrigger(card, 'is-pop');
         }
         this._retrigger(this.auraTarget, 'is-on');
+        this._stampNew(card);
         this.labelTarget.textContent = card.dataset.label;
         this._retrigger(this.labelTarget, 'is-on');
 
@@ -373,8 +375,11 @@ export default class extends Controller {
         this.phase = 'done';
         this.cardState = 'face';
         this.flipTargets.forEach((flip) => flip.classList.add('is-flipped'));
+        // same end state as the animated reveal: the last card stays on screen
+        this.cardTargets.forEach((node, i) => node.classList.toggle('is-current', i === this.lastIndex));
         this._updateStack(0);
         this.cardTargets.forEach((card, index) => {
+            this._stampNew(card);
             this._revealTrack(index);
             this._unmaskSetTile(card.dataset.cardId);
             this._bumpBest(card.dataset.rarity);
@@ -391,6 +396,14 @@ export default class extends Controller {
         }
         if (this.hasFootTarget) {
             this.footTarget.hidden = false;
+        }
+    }
+
+    // the « Nouvelle carte » stamp only exists on the first copy of a card not owned before the draw
+    _stampNew(card) {
+        const tag = card.querySelector('[data-new-tag]');
+        if (tag) {
+            this._retrigger(tag, 'is-on');
         }
     }
 

@@ -161,6 +161,31 @@ final class BoosterOpeningComponentTest extends WebTestCase
         $this->assertSame($sortedRanks, $ranks, 'Reveal cards must be ordered from common to rarest (climax last).');
     }
 
+    public function testRevealStampsNewCardsOnTheirFirstCopyOnly(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $booster = $this->firstPublishedBooster();
+        $this->claim($user, $booster);
+        $this->claim($user, $booster);
+
+        $component = $this->createLiveComponent(
+            BoosterOpening::class,
+            data: ['boosterId' => (string) $booster->getId()],
+            client: $client,
+        );
+
+        $component->call('open');
+        $this->assertStampsMatchNewCards($component->component()->newCardIds, (string) $component->render());
+
+        // the second draw starts from the first one's cards: those are no longer new
+        $firstCardIds = array_column($component->component()->revealOrder, 'cardId');
+        $component->call('open');
+        $newCardIds = $component->component()->newCardIds;
+        $this->assertSame([], array_values(array_intersect($newCardIds, $firstCardIds)));
+        $this->assertStampsMatchNewCards($newCardIds, (string) $component->render());
+    }
+
     public function testOpeningWithoutInventoryReportsAnError(): void
     {
         $client = static::createClient();
@@ -238,6 +263,24 @@ final class BoosterOpeningComponentTest extends WebTestCase
             '',
             new Crawler((string) $component->render())->filter('.opening')->attr('data-booster-opening-opening-id-value'),
         );
+    }
+
+    /**
+     * @param list<string> $newCardIds
+     */
+    private function assertStampsMatchNewCards(array $newCardIds, string $rendered): void
+    {
+        $stampedIds = new Crawler($rendered)->filter('.opening__reveal-card')->each(
+            static fn (Crawler $card): ?string => $card->filter('[data-new-tag]')->count() > 0 ? (string) $card->attr('data-card-id') : null,
+        );
+        $stampedIds = array_values(array_filter($stampedIds, static fn (?string $id): bool => null !== $id));
+
+        $expected = array_values(array_unique($newCardIds));
+        sort($expected);
+        sort($stampedIds);
+        $this->assertSame($expected, $stampedIds, 'One stamp per new card, on its first copy only.');
+        // played by the reveal controller after the flip, never pre-armed server-side
+        $this->assertStringNotContainsString('new-tag is-on', $rendered);
     }
 
     private function claim(DiscordUser $user, Booster $booster): void

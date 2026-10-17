@@ -58,8 +58,12 @@
                             <span class="opening__stack-layer"></span>
                         </div>
 
+                        {% set taggedNew = [] %}
                         {% for reveal in revealCards %}
                             {% set rarity = reveal.card.rarity.value %}
+                            {#- a new card drawn twice is only new on its first copy -#}
+                            {% set isNew = reveal.card.id ~ '' in newCardIds and reveal.card.id ~ '' not in taggedNew %}
+                            {% if isNew %}{% set taggedNew = taggedNew|merge([reveal.card.id ~ '']) %}{% endif %}
                             <div class="opening__reveal-card"
                                  data-booster-opening-target="card"
                                  data-card-id="{{ reveal.card.id }}"
@@ -79,6 +83,7 @@
                                         <img src="{{ asset('images/card-back.svg') }}" alt="" draggable="false">
                                     </div>
                                 </div>
+                                {% if isNew %}{{ include('parts/_new_card_tag.html.twig') }}{% endif %}
                             </div>
                         {% endfor %}
                     </div>
