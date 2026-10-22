@@ -10,8 +10,15 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 48px;
     align-items: center;
-    padding: 22px 0 22px;
-    background: radial-gradient(ellipse 90% 40% at 70% 0%, #a435f02a, transparent 70%);
+    padding-top: 22px;
+    padding-bottom: 22px;
+}
+
+/* full-bleed band: the halo fades out inside the viewport, never on the container
+ * edge; overflow-x: clip keeps the stage halo from scrolling the page sideways */
+.home-hero-band {
+    overflow-x: clip;
+    background: radial-gradient(ellipse 90% 45% at 70% 0%, #a435f02a, transparent 70%);
 }
 
 .home-hero__title { margin: 0; font-size: 36px; line-height: 1; letter-spacing: -.01em; color: var(--text-strong); }
@@ -19,7 +26,7 @@
 .home-hero__stage { display: none; }
 
 @media (min-width: 768px) {
-    .home-hero { padding: 48px 0 40px; }
+    .home-hero { padding-top: 48px; padding-bottom: 40px; }
     .home-hero__title { font-size: 56px; }
     .home-hero__lead { font-size: 18px; }
 }
@@ -27,11 +34,22 @@
 @media (min-width: 1024px) {
     .home-hero {
         grid-template-columns: minmax(0, 1fr) 420px;
-        padding: 56px 0 40px;
-        background: radial-gradient(ellipse 60% 70% at 78% 50%, #a435f02e, transparent 70%);
+        padding-top: 56px;
+        padding-bottom: 40px;
     }
 
+    .home-hero-band { background: radial-gradient(ellipse 60% 90% at 50% 0%, #a435f014, transparent 70%); }
+
     .home-hero__stage { position: relative; display: block; height: 420px; }
+
+    /* halo behind the cards: closest-side = fully transparent at its own box edges */
+    .home-hero__stage::before {
+        content: "";
+        position: absolute;
+        inset: -12% -45%;
+        background: radial-gradient(closest-side, #a435f040, #a435f014 55%, transparent);
+        pointer-events: none;
+    }
 }
 
 .home-hero__logo {
@@ -293,13 +311,25 @@
         linear-gradient(0deg, var(--bg) 0%, #0b0712cc 45%, #0b071266 100%);
 }
 
+.uni-hero__nav { position: absolute; top: 16px; right: 16px; z-index: 10; }
+
+@media (min-width: 768px) {
+    /* aligned on the page container, not on the viewport edge */
+    .uni-hero__nav { right: max(var(--wrap-pad), calc((100% - var(--wrap-max)) / 2 + var(--wrap-pad))); }
+}
+
 .uni-hero__content { position: relative; z-index: 1; padding-top: 32px; padding-bottom: 32px; pointer-events: none; }
 .uni-hero__content a,
 .uni-hero__content button,
 .uni-hero__content .panel { pointer-events: auto; }
 
 @media (min-width: 1024px) {
-    .uni-hero__media { left: 38%; }
+    /* the banner fades in from the left: no hard edge where it starts */
+    .uni-hero__media {
+        left: 38%;
+        -webkit-mask-image: linear-gradient(90deg, transparent, #000 28%);
+        mask-image: linear-gradient(90deg, transparent, #000 28%);
+    }
 
     .uni-hero__shade {
         background:
@@ -1080,3 +1110,31 @@ select.dd-select option { background: var(--surface); color: var(--text); text-t
 .bell-item__text { display: block; font-size: 14px; line-height: 1.4; }
 .bell-item--new .bell-item__text { color: var(--text-strong); font-weight: 600; }
 .bell-item__cta { align-self: center; color: var(--magenta); white-space: nowrap; }
+
+/* --- Grands écrans : le conteneur s'élargit (ui.css --wrap-max), les grilles de
+ * cartes gagnent des colonnes au lieu d'étirer les cartes ------------------- */
+
+@media (min-width: 1800px) {
+    .set-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .market-grid, .pack-grid, .wishlist-grid, .composer-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .universe-list { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .fusion-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (min-width: 2200px) {
+    .set-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 24px; }
+    .market-grid, .pack-grid, .wishlist-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .composer-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .universe-list { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .player-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .recycle-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 2800px) {
+    .set-grid { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+    .market-grid, .pack-grid, .wishlist-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .composer-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .universe-list { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    .fusion-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .player-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}

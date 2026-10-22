@@ -3,68 +3,70 @@
    parts/_mobile_tabbar.html.twig). #}
 {% set currentRoute = app.request.get('_route')|default('') %}
 <header class="site-header">
-    <a href="{{ path('homepage') }}" class="mr-auto flex shrink-0 items-center gap-2.5 lg:mr-0" aria-label="YOUL, accueil">
-        <img src="{{ asset('images/ytcg_logo.png') }}" alt=""
-             class="h-9 w-9 object-contain [filter:drop-shadow(0_0_10px_#a435f0aa)]">
-        <span class="d text-[18px] tracking-[.04em] text-ink-strong lg:max-xl:hidden xl:text-[20px]">YOUL</span>
-    </a>
+    <div class="site-header__inner">
+        <a href="{{ path('homepage') }}" class="mr-auto flex shrink-0 items-center gap-2.5 lg:mr-0" aria-label="YOUL, accueil">
+            <img src="{{ asset('images/ytcg_logo.png') }}" alt=""
+                 class="h-9 w-9 object-contain [filter:drop-shadow(0_0_10px_#a435f0aa)]">
+            <span class="d text-[18px] tracking-[.04em] text-ink-strong lg:max-xl:hidden xl:text-[20px]">YOUL</span>
+        </a>
 
-    <nav aria-label="Navigation principale" class="hidden min-w-0 flex-1 flex-nowrap items-center lg:flex">
-        {{ _self.nav_link('homepage', 'Accueil', currentRoute == 'homepage') }}
-        {{ component('BoostersNavLink', { active: currentRoute starts with 'booster' }) }}
-        {{ _self.nav_link('collection', 'Collection', currentRoute in ['collection', 'wishlist', 'opening_history', 'recycle', 'fusion']) }}
-        {{ _self.nav_link('universes', 'Univers', currentRoute starts with 'universes') }}
-        <span class="nav-sep" aria-hidden="true"></span>
-        {% if feature_enabled('trades') and app.user %}
-            {{ component('TradesNavLink', { active: currentRoute starts with 'trades' }) }}
-        {% elseif feature_enabled('trades') %}
-            {{ _self.nav_link('trades', 'Échanges', currentRoute starts with 'trades') }}
-        {% else %}
-            {{ _self.nav_soon('Échanges') }}
-        {% endif %}
-        {{ _self.nav_link('market', 'Marché', currentRoute starts with 'market') }}
-        {{ _self.nav_link('leaderboard', 'Classement', currentRoute starts with 'leaderboard') }}
-        <span class="hidden min-[1360px]:contents">{{ _self.nav_soon('Duels') }}</span>
-    </nav>
+        <nav aria-label="Navigation principale" class="hidden min-w-0 flex-1 flex-nowrap items-center lg:flex">
+            {{ _self.nav_link('homepage', 'Accueil', currentRoute == 'homepage') }}
+            {{ component('BoostersNavLink', { active: currentRoute starts with 'booster' }) }}
+            {{ _self.nav_link('collection', 'Collection', currentRoute in ['collection', 'wishlist', 'opening_history', 'recycle', 'fusion']) }}
+            {{ _self.nav_link('universes', 'Univers', currentRoute starts with 'universes') }}
+            <span class="nav-sep" aria-hidden="true"></span>
+            {% if feature_enabled('trades') and app.user %}
+                {{ component('TradesNavLink', { active: currentRoute starts with 'trades' }) }}
+            {% elseif feature_enabled('trades') %}
+                {{ _self.nav_link('trades', 'Échanges', currentRoute starts with 'trades') }}
+            {% else %}
+                {{ _self.nav_soon('Échanges') }}
+            {% endif %}
+            {{ _self.nav_link('market', 'Marché', currentRoute starts with 'market') }}
+            {{ _self.nav_link('leaderboard', 'Classement', currentRoute starts with 'leaderboard') }}
+            <span class="hidden min-[1360px]:contents">{{ _self.nav_soon('Duels') }}</span>
+        </nav>
 
-    {% if app.user %}
-        <div class="flex shrink-0 items-center gap-2 lg:gap-2.5">
-            {% set balance = wallet_balance() %}
-            <a href="{{ youl_coin_hub_url }}" class="wallet-chip"
-               data-controller="wallet-balance"
-               data-action="live-updates:wallet-changed@window->wallet-balance#update"
-               data-testid="wallet-balance"
-               {% if not balance %}title="Solde Youl Coin momentanément indisponible"{% endif %}>
-                <span class="text-soon" aria-hidden="true">¤</span>
-                <span data-wallet-balance-target="amount">{{ balance ? balance.format : '—' }}</span>
-                <span class="text-ink-muted max-xl:sr-only">YLC</span>
-            </a>
+        {% if app.user %}
+            <div class="flex shrink-0 items-center gap-2 lg:gap-2.5">
+                {% set balance = wallet_balance() %}
+                <a href="{{ youl_coin_hub_url }}" class="wallet-chip"
+                   data-controller="wallet-balance"
+                   data-action="live-updates:wallet-changed@window->wallet-balance#update"
+                   data-testid="wallet-balance"
+                   {% if not balance %}title="Solde Youl Coin momentanément indisponible"{% endif %}>
+                    <span class="text-soon" aria-hidden="true">¤</span>
+                    <span data-wallet-balance-target="amount">{{ balance ? balance.format : '—' }}</span>
+                    <span class="text-ink-muted max-xl:sr-only">YLC</span>
+                </a>
 
-            {{ component('NotificationBell') }}
+                {{ component('NotificationBell') }}
 
-            <div class="relative" data-controller="disclosure"
-                 data-action="keydown->disclosure#keydown focusout->disclosure#focusout">
-                <button type="button" class="account-btn max-lg:!h-11 max-lg:!w-11 max-lg:!border-0 max-lg:!bg-transparent max-lg:!p-0 lg:max-xl:!px-1"
-                        aria-expanded="false" aria-controls="account-menu" aria-haspopup="true"
-                        aria-label="Menu du compte"
-                        data-disclosure-target="button" data-action="disclosure#toggle"
-                        data-testid="account-menu-toggle">
-                    <span class="av oct-s h-[34px] w-[34px] text-[15px] max-lg:h-11 max-lg:w-11 max-lg:text-base">{{ app.user.username|first|upper }}</span>
-                    <span class="hidden max-w-[10rem] truncate xl:inline">{{ app.user.username }}</span>
-                    <svg class="hidden xl:block" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b9a8cf" stroke-width="2.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-                </button>
-                <div id="account-menu" class="menu" hidden data-disclosure-target="panel" data-testid="account-menu">
-                    <p class="lbl truncate px-3 pb-1 pt-2">{{ app.user.username }}</p>
-                    <a href="{{ path('collection') }}" class="menu__item">Mon espace</a>
-                    {% if is_granted('ROLE_ADMIN') %}
-                        <a href="{{ path('admin') }}" class="menu__item">Admin</a>
-                    {% endif %}
-                    <span class="menu__sep" aria-hidden="true"></span>
-                    <a href="{{ path('app_logout') }}" class="menu__item menu__item--danger">Quitter</a>
+                <div class="relative" data-controller="disclosure"
+                     data-action="keydown->disclosure#keydown focusout->disclosure#focusout">
+                    <button type="button" class="account-btn max-lg:!h-11 max-lg:!w-11 max-lg:!border-0 max-lg:!bg-transparent max-lg:!p-0 lg:max-xl:!px-1"
+                            aria-expanded="false" aria-controls="account-menu" aria-haspopup="true"
+                            aria-label="Menu du compte"
+                            data-disclosure-target="button" data-action="disclosure#toggle"
+                            data-testid="account-menu-toggle">
+                        <span class="av oct-s h-[34px] w-[34px] text-[15px] max-lg:h-11 max-lg:w-11 max-lg:text-base">{{ app.user.username|first|upper }}</span>
+                        <span class="hidden max-w-[10rem] truncate xl:inline">{{ app.user.username }}</span>
+                        <svg class="hidden xl:block" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b9a8cf" stroke-width="2.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div id="account-menu" class="menu" hidden data-disclosure-target="panel" data-testid="account-menu">
+                        <p class="lbl truncate px-3 pb-1 pt-2">{{ app.user.username }}</p>
+                        <a href="{{ path('collection') }}" class="menu__item">Mon espace</a>
+                        {% if is_granted('ROLE_ADMIN') %}
+                            <a href="{{ path('admin') }}" class="menu__item">Admin</a>
+                        {% endif %}
+                        <span class="menu__sep" aria-hidden="true"></span>
+                        <a href="{{ path('app_logout') }}" class="menu__item menu__item--danger">Quitter</a>
+                    </div>
                 </div>
             </div>
-        </div>
-    {% endif %}
+        {% endif %}
+    </div>
 </header>
 
 {% macro nav_link(route, label, isActive) %}
