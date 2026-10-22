@@ -14,7 +14,6 @@ use App\Enum\FeatureEnum;
 use App\Enum\Trade\TradeOfferSideEnum;
 use App\Exception\Trade\TradeException;
 use App\Exception\Wishlist\WishlistRefusedException;
-use App\Repository\CardRepository;
 use App\Repository\DiscordUserRepository;
 use App\Repository\MarketListingRepository;
 use App\Repository\UserCardRepository;
@@ -80,7 +79,7 @@ final class TradeComposer extends AbstractController
     public string $search = '';
 
     /** Universe filter (extension slug), both sides, mirrored in the url. */
-    #[LiveProp(writable: true, url: new UrlMapping(as: 'univers'))]
+    #[LiveProp(writable: true, onUpdated: 'onUniverseUpdated', url: new UrlMapping(as: 'univers'))]
     public ?string $universe = null;
 
     /** Chip filter of the left column: all|lacks|doubles (what he lacks / my duplicates). */
@@ -109,7 +108,6 @@ final class TradeComposer extends AbstractController
         private readonly TradeOfferService $tradeOfferService,
         private readonly DiscordUserRepository $discordUserRepository,
         private readonly UserCardRepository $userCardRepository,
-        private readonly CardRepository $cardRepository,
         private readonly MarketListingRepository $marketListingRepository,
         private readonly WishlistService $wishlist,
         #[Autowire(param: 'kernel.secret')]
@@ -204,23 +202,13 @@ final class TradeComposer extends AbstractController
     }
 
     /**
-     * Tiles of the shared universe strip: cards on each side per universe.
+     * Options of the universe picker: cards on each side per universe.
      *
-     * @return list<array{extension: Extension, stat: string, caption: string, bar: null, coverImage: string|null}>
+     * @return list<array{extension: Extension, mine: int, theirs: int}>
      */
-    public function getStrip(): array
+    public function getUniverseOptions(): array
     {
-        $counts = $this->countByUniverse();
-        $coverImages = [] === $counts ? [] : $this->cardRepository->findCoverImageNamesByExtension();
-        $theirName = $this->getCounterpart()->getUsername();
-
-        return array_map(static fn (array $universe): array => [
-            'extension' => $universe['extension'],
-            'stat' => \sprintf('%d ⇄ %d', $universe['mine'], $universe['theirs']),
-            'caption' => \sprintf('à toi ⇄ à %s', $theirName),
-            'bar' => null,
-            'coverImage' => $coverImages[(string) $universe['extension']->getId()] ?? null,
-        ], $counts);
+        return $this->countByUniverse();
     }
 
     public function getActiveExtension(): ?Extension
@@ -343,6 +331,48 @@ final class TradeComposer extends AbstractController
         }
 
         $this->writeSelection($sideEnum, $selection);
+    }
+
+    /**
+     * Tile click: selects one copy (normal first) of an unselected card, or drops the card from the offer.
+     */
+    #[LiveAction]
+    public function toggle(#[LiveArg] string $side, #[LiveArg] string $token): void
+    {
+        $this->error = null;
+        $sideEnum = TradeOfferSideEnum::tryFrom($side);
+        $entry = null === $sideEnum ? null : $this->entries($sideEnum)[$token] ?? null;
+
+        if (!$sideEnum instanceof TradeOfferSideEnum || null === $entry) {
+            return;
+        }
+
+        $selection = $this->selectionOf($sideEnum);
+
+        if (isset($selection[$token])) {
+            unset($selection[$token]);
+        } elseif ($entry['normal'] > 0) {
+            $selection[$token] = ['normal' => 1, 'holo' => 0];
+        } elseif ($entry['holo'] > 0) {
+            $selection[$token] = ['normal' => 0, 'holo' => 1];
+        }
+
+        $this->writeSelection($sideEnum, $selection);
+    }
+
+    #[LiveAction]
+    public function clear(): void
+    {
+        $this->error = null;
+        $this->offered = [];
+        $this->requested = [];
+    }
+
+    public function onUniverseUpdated(): void
+    {
+        if ('' === $this->universe) {
+            $this->universe = null;
+        }
     }
 
     #[LiveAction]

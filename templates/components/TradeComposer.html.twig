@@ -1,107 +1,105 @@
-<div {{ attributes }}>
+<div {{ attributes.defaults({ class: 'composer' }) }}>
     {% set theirName = this.counterpart.username %}
     {% set offeredSummary = this.summary('offered') %}
     {% set requestedSummary = this.summary('requested') %}
+    {% set activeExtension = this.activeExtension %}
 
-    {# -------------------------------------------------- Filtre par univers #}
-    {{ include('parts/_completion_strip.html.twig', {
-        strip: this.strip,
-        currentExtension: this.activeExtension,
-        route: 'trades_compose',
-        routeParams: { discordId: counterpartId },
-        slugParam: 'univers',
-        liveAction: 'filterUniverse',
-        presorted: true,
-        eyebrow: 'Filtrer par univers',
-        allStat: this.myTotal ~ ' ⇄ ' ~ this.theirTotal,
-        allCaption: 'à toi ⇄ à ' ~ theirName,
-        allBar: null,
-    }) }}
+    <div class="wrap flex flex-col gap-4 pb-10 pt-5">
+        {% if error %}
+            <div class="panel flash-msg flash-msg--err" role="alert" data-testid="composer-error">⚠ {{ error }}</div>
+        {% endif %}
 
-    <section class="px-4 pb-10 pt-6 md:px-6 lg:px-12">
-        <div class="mx-auto max-w-7xl">
-            {% if error %}
-                <div class="mb-6 border border-magenta/50 bg-magenta/10 px-4 py-3 font-mono text-xs text-magenta" data-testid="composer-error">
-                    ⚠ {{ error }}
-                </div>
-            {% endif %}
-
-            {# ------------------------------------------------ Recherche #}
-            <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <input type="search"
-                       data-model="debounce(300)|search"
-                       value="{{ search }}"
-                       placeholder="Rechercher une carte…"
-                       aria-label="Rechercher une carte par son nom"
-                       data-testid="composer-search"
-                       class="w-full border border-hairline bg-surface px-3 py-2 font-mono text-xs text-ink placeholder:text-ink-dim focus:border-primary focus:outline-none md:w-72">
-                {% if this.hasMaskedCards %}
-                    <p class="text-xs text-ink-dim" data-testid="masking-hint">
-                        Face cachée = carte que tu n'as pas encore : seule sa rareté est visible, la recherche l'ignore.
-                    </p>
-                {% endif %}
-            </div>
-
-            {# ------------------------------------ Onglets (mobile seulement) #}
-            <div class="sticky top-0 z-20 -mx-4 mt-4 grid grid-cols-2 gap-2 border-b border-hairline bg-bg/95 px-4 py-2 backdrop-blur md:-mx-6 md:px-6 lg:hidden" role="tablist" data-testid="composer-tabs">
-                {{ _self.tab('offered', 'Tu proposes', this.offeredCount, tab) }}
-                {{ _self.tab('requested', 'Tu demandes', this.requestedCount, tab) }}
-            </div>
-
-            <div class="mt-6 grid items-start gap-10 lg:mt-8 lg:grid-cols-2 lg:gap-8">
-                {{ _self.column(
-                    'offered',
-                    'Tu proposes',
-                    'Tes exemplaires libres (hors offres en attente).',
-                    this.myGroups,
-                    this.myVisibleCount,
-                    this.myTotal,
-                    tab,
-                    offered,
-                    'Aucun exemplaire disponible : tes cartes sont peut-être déjà engagées dans d\'autres offres.',
-                    this.chips('offered'),
-                    { theirName: theirName, wishlist: this.wishlistEnabled }
-                ) }}
-                {{ _self.column(
-                    'requested',
-                    'Tu demandes à ' ~ theirName,
-                    'Sa collection publiée.',
-                    this.theirGroups,
-                    this.theirVisibleCount,
-                    this.theirTotal,
-                    tab,
-                    requested,
-                    theirName ~ ' n\'a aucune carte pour l\'instant.',
-                    this.chips('requested'),
-                    { theirName: theirName, wishlist: this.wishlistEnabled }
-                ) }}
-            </div>
+        {# -------------------------------------------- Univers + recherche #}
+        <div class="composer-toolbar">
+            <label for="composer-universe" class="lbl max-md:sr-only">Univers</label>
+            <select id="composer-universe" class="dd dd-select composer-toolbar__universe" data-model="universe" data-testid="composer-universe">
+                <option value=""{{ activeExtension is null ? ' selected' }}>Tous les univers · {{ this.myTotal }} ⇄ {{ this.theirTotal }}</option>
+                {% for option in this.universeOptions %}
+                    <option value="{{ option.extension.slug }}"{{ activeExtension and activeExtension.id == option.extension.id ? ' selected' }}>
+                        {{- option.extension.name }} · {{ option.mine }} ⇄ {{ option.theirs -}}
+                    </option>
+                {% endfor %}
+            </select>
+            <span class="muted text-[13px] max-xl:hidden">tes cartes ⇄ celles de {{ theirName }}</span>
+            <label for="composer-search" class="sr">Rechercher une carte</label>
+            <input id="composer-search" type="search"
+                   class="field composer-toolbar__search"
+                   data-model="debounce(300)|search"
+                   value="{{ search }}"
+                   placeholder="Rechercher une carte…"
+                   data-testid="composer-search">
         </div>
-    </section>
+        {% if this.hasMaskedCards %}
+            <p class="muted text-[13px]" data-testid="masking-hint">
+                Carte inconnue = carte que tu n'as pas encore : seule sa rareté est visible, la recherche l'ignore.
+            </p>
+        {% endif %}
 
-    {# ------------------------------------------------ Récapitulatif sticky #}
-    <div class="sticky bottom-0 z-30 border-t border-primary/50 bg-bg/95 px-4 py-2.5 shadow-[0_-8px_24px_#0b0712] backdrop-blur md:px-12 md:py-3"
-         data-testid="composer-bar">
+        {# ------------------------------------ Onglets (mobile seulement) #}
+        <div class="composer-tabs lg:hidden" role="tablist" aria-label="Côté de l'offre" data-testid="composer-tabs">
+            {{ _self.tab('offered', 'Tu proposes', this.offeredCount, tab) }}
+            {{ _self.tab('requested', 'Tu demandes', this.requestedCount, tab) }}
+        </div>
+
+        <div class="grid items-start gap-8 lg:grid-cols-2">
+            {{ _self.column(
+                'offered',
+                'Tu proposes',
+                this.myGroups,
+                this.myVisibleCount,
+                this.myTotal,
+                'libre',
+                tab,
+                offered,
+                'Aucun exemplaire disponible : tes cartes sont peut-être déjà engagées dans d\'autres offres.',
+                this.chips('offered'),
+                { theirName: theirName, wishlist: this.wishlistEnabled }
+            ) }}
+            {{ _self.column(
+                'requested',
+                'Tu demandes à ' ~ theirName,
+                this.theirGroups,
+                this.theirVisibleCount,
+                this.theirTotal,
+                '',
+                tab,
+                requested,
+                theirName ~ ' n\'a aucune carte pour l\'instant.',
+                this.chips('requested'),
+                { theirName: theirName, wishlist: this.wishlistEnabled }
+            ) }}
+        </div>
+    </div>
+
+    {# ------------------------------------------------ Récapitulatif collant #}
+    <div class="composer-bar" data-testid="composer-bar">
         {% if offeredSummary.lastCopies > 0 %}
-            <p class="mx-auto mb-2 max-w-7xl border border-soon/60 bg-soon/10 px-3 py-1.5 font-mono text-[11px] text-soon" data-testid="last-copy-warning">
+            <p class="wrap composer-bar__warning" data-testid="last-copy-warning">
                 ⚠ Ton offre contient {{ offeredSummary.lastCopies > 1 ? offeredSummary.lastCopies ~ ' derniers exemplaires' : 'un dernier exemplaire' }} : tu n'en auras plus après l'échange.
             </p>
         {% endif %}
-        <div class="mx-auto flex max-w-7xl items-center gap-3 md:gap-6">
-            <div class="grid min-w-0 flex-1 grid-cols-[1fr_auto_1fr] items-center gap-2 md:gap-4" data-testid="composer-summary">
+        <div class="wrap composer-bar__inner">
+            <div class="composer-bar__summary" data-testid="composer-summary">
                 {{ _self.recap('Tu donnes', offeredSummary, 'offered') }}
-                <span class="font-display text-lg text-primary md:text-2xl" aria-hidden="true">⇄</span>
+                <span class="d composer-bar__swap" aria-hidden="true">⇄</span>
                 {{ _self.recap('Tu reçois', requestedSummary, 'requested') }}
             </div>
-            <button type="button"
-                    data-action="live#action"
-                    data-live-action-param="submit"
-                    data-loading="addAttribute(disabled) addClass(opacity-50)"
-                    data-testid="submit-offer"
-                    {{ this.isComplete ? '' : 'disabled' }}
-                    class="shrink-0 border border-primary bg-primary px-3 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary disabled:cursor-not-allowed disabled:border-hairline disabled:bg-surface disabled:text-ink-dim md:px-5">
-                Envoyer<span class="hidden sm:inline"> l'offre</span> ▸
-            </button>
+            <div class="composer-bar__actions">
+                {% if offeredSummary.copies + requestedSummary.copies > 0 %}
+                    <button type="button" class="tl composer-bar__clear"
+                            data-action="live#action"
+                            data-live-action-param="clear"
+                            data-testid="clear-offer">Vider</button>
+                {% endif %}
+                <button type="button" class="btn btn-p composer-bar__submit"
+                        data-action="live#action"
+                        data-live-action-param="submit"
+                        data-loading="addAttribute(disabled)"
+                        data-testid="submit-offer"
+                        {{ this.isComplete ? '' : 'disabled' }}>
+                    Envoyer<span class="max-sm:hidden"> l'offre</span>
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -114,21 +112,20 @@
             data-live-action-param="showSide"
             data-live-side-param="{{ side }}"
             data-testid="tab-{{ side }}"
-            class="filter-chip {{ side == current ? 'is-active' }}">
-        {{ label }}{% if count > 0 %} <span class="filter-chip__count">· {{ count }}</span>{% endif %}
+            class="seg{{ side == current ? ' on' }}">
+        {{ label }} · {{ count }}
     </button>
 {% endmacro %}
 
-{% macro column(side, title, subtitle, groups, visibleCount, total, current, selection, emptyMessage, chips, ctx) %}
-    <section class="{{ side != current ? 'hidden lg:block' }}" data-testid="{{ side }}-column">
-        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-hairline pb-3 lg:sticky lg:top-0 lg:z-20 lg:bg-bg/95 lg:pt-3 lg:backdrop-blur">
-            <h2 class="font-display text-base font-bold uppercase tracking-[.08em] text-ink-strong">{{ title }}</h2>
-            <span class="chip-mono text-ink-dim">
-                {{ visibleCount }}{{ visibleCount != total ? ' / ' ~ total }} carte{{ visibleCount > 1 ? 's' }}
+{% macro column(side, title, groups, visibleCount, total, adjective, current, selection, emptyMessage, chips, ctx) %}
+    <section class="composer-col {{ side != current ? 'hidden lg:block' }}" aria-labelledby="composer-{{ side }}-title" data-testid="{{ side }}-column">
+        <div class="composer-col__head">
+            <h2 id="composer-{{ side }}-title" class="h2 text-[18px]">{{ title }}</h2>
+            <span class="lbl">
+                {{ visibleCount }}{{ visibleCount != total ? ' / ' ~ total }} carte{{ visibleCount > 1 ? 's' }}{{ adjective ? ' ' ~ adjective ~ (visibleCount > 1 ? 's') }}
             </span>
         </div>
-        <p class="mt-2 text-xs text-ink-dim">{{ subtitle }}</p>
-        <div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filtrer cette colonne" data-testid="{{ side }}-chips">
+        <div class="composer-chips" role="group" aria-label="{{ side == 'offered' ? 'Filtrer tes cartes' : 'Filtrer ses cartes' }}" data-testid="{{ side }}-chips">
             {% for chip in chips %}
                 <button type="button"
                         data-action="live#action"
@@ -137,24 +134,22 @@
                         data-live-filter-param="{{ chip.value }}"
                         data-testid="chip-{{ side }}-{{ chip.value }}"
                         aria-pressed="{{ chip.active ? 'true' : 'false' }}"
-                        class="filter-chip {{ chip.active ? 'is-active' }}">
+                        class="seg{{ chip.active ? ' on' }}">
                     {{ chip.label }}{% if chip.value != 'all' %} <span class="filter-chip__count">· {{ chip.count }}</span>{% endif %}
                 </button>
             {% endfor %}
         </div>
 
         {% if groups is empty %}
-            <div class="mt-4 border border-dashed border-hairline px-6 py-10 text-center text-sm text-ink-dim" data-testid="{{ side }}-empty">
+            <div class="panel px-6 py-10 text-center text-sm text-ink-muted" data-testid="{{ side }}-empty">
                 {{ total > 0 ? 'Aucune carte ne correspond au filtre.' : emptyMessage }}
             </div>
         {% else %}
-            <div data-testid="{{ side }}-list">
+            <div class="flex flex-col gap-6" data-testid="{{ side }}-list">
                 {% for group in groups %}
-                    <div class="mt-6" data-testid="{{ side }}-universe">
-                        <h3 class="chip-mono mb-3 text-ink-muted">
-                            {{ group.extension.name }} <span class="text-ink-dim">· {{ group.entries|length }}</span>
-                        </h3>
-                        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <div class="flex flex-col gap-3" data-testid="{{ side }}-universe">
+                        <h3 class="lbl">{{ group.extension.name }} · {{ group.entries|length }}</h3>
+                        <div class="composer-grid">
                             {% for entry in group.entries %}
                                 {{ _self.tile(side, entry, selection[entry.token]|default({ normal: 0, holo: 0 }), ctx) }}
                             {% endfor %}
@@ -168,27 +163,11 @@
 
 {% macro tile(side, entry, picked, ctx) %}
     {% set selectedCopies = picked.normal + picked.holo %}
-    <article class="relative flex flex-col border bg-surface p-2 transition-colors {{ selectedCopies > 0 ? 'border-primary/80 shadow-[0_0_16px_#a435f044]' : 'border-hairline' }}"
+    {% set tradable = side == 'requested' or entry.normal + entry.holo > 0 %}
+    {% set rarity = entry.rarity.value %}
+    <article class="cell trade-tile trade-tile--{{ side }}{{ selectedCopies > 0 ? ' is-selected' }}"
              data-testid="trade-tile"{% if selectedCopies > 0 %} data-selected{% endif %}>
-        {% if selectedCopies > 0 %}
-            <span class="chip-mono absolute -right-1.5 -top-1.5 z-10 bg-gradient-to-r from-primary to-magenta px-1.5 py-0.5 font-bold text-black" data-testid="tile-badge">
-                ×{{ selectedCopies }}
-            </span>
-        {% endif %}
-
-        {% if ctx.wishlist and entry.card %}
-            <button type="button"
-                    data-action="live#action" data-live-action-param="toggleWish" data-live-token-param="{{ entry.token }}"
-                    data-loading="addAttribute(disabled)"
-                    aria-pressed="{{ entry.wished ? 'true' : 'false' }}"
-                    aria-label="Ajouter ou retirer de ma wishlist"
-                    data-testid="tile-wish"
-                    class="chip-mono absolute -left-1.5 -top-1.5 z-10 border border-hairline bg-black/90 px-2 py-1 font-bold text-ink-dim transition-colors hover:text-magenta aria-pressed:border-magenta aria-pressed:text-magenta">
-                {{ entry.wished ? '♥' : '♡' }}
-            </button>
-        {% endif %}
-
-        <div class="mx-auto w-full max-w-[11rem]">
+        <div class="cell__art trade-tile__art">
             {% if entry.card %}
                 {{ include('components/CardComponent.html.twig', {
                     card: entry.card,
@@ -198,67 +177,94 @@
                     id: 'trade-' ~ side ~ '-' ~ entry.token,
                 }, with_context = false) }}
             {% else %}
-                {{ include('parts/_masked_card.html.twig', { rarity: entry.rarity.value }, with_context = false) }}
+                {{ include('parts/_masked_card.html.twig', { rarity: rarity }, with_context = false) }}
+            {% endif %}
+            {% if tradable %}
+                <button type="button" class="trade-tile__hit"
+                        aria-pressed="{{ selectedCopies > 0 ? 'true' : 'false' }}"
+                        aria-label="{{ selectedCopies > 0 ? 'Retirer de l\'offre' : (side == 'offered' ? 'Proposer' : 'Demander') }} : {{ entry.card ? entry.card.name : 'carte inconnue ' ~ entry.rarity.label|lower }}"
+                        data-action="live#action"
+                        data-live-action-param="toggle"
+                        data-live-side-param="{{ side }}"
+                        data-live-token-param="{{ entry.token }}"
+                        data-loading="addAttribute(disabled)"
+                        data-testid="tile-toggle"></button>
+            {% endif %}
+            {% if selectedCopies > 0 %}
+                <span class="qty trade-tile__check" data-testid="tile-badge">✓ ×{{ selectedCopies }}</span>
+            {% elseif side == 'offered' and entry.mine > 1 %}
+                <span class="qty">×{{ entry.mine }}</span>
+            {% endif %}
+            {% if ctx.wishlist and entry.card %}
+                <button type="button"
+                        data-action="live#action" data-live-action-param="toggleWish" data-live-token-param="{{ entry.token }}"
+                        data-loading="addAttribute(disabled)"
+                        aria-pressed="{{ entry.wished ? 'true' : 'false' }}"
+                        aria-label="Ajouter ou retirer de ma wishlist"
+                        data-testid="tile-wish"
+                        class="trade-tile__wish">{{ entry.wished ? '♥' : '♡' }}</button>
             {% endif %}
         </div>
 
-        <p class="mt-2 truncate font-display text-xs font-bold uppercase leading-tight {{ entry.card ? 'text-ink-strong' : 'text-ink-dim' }}"
-           {% if entry.card %}title="{{ entry.card.name }}"{% endif %}>
-            {{ entry.card ? entry.card.name : 'Carte inconnue' }}
-        </p>
-        <p class="chip-mono mt-0.5" style="color: var(--rarity-{{ entry.rarity.value }});"{% if not entry.card %} data-testid="masked-rarity"{% endif %}>
-            {{ entry.rarity.label }}
-        </p>
+        {% if entry.card %}
+            <p class="cn truncate" title="{{ entry.card.name }}">{{ entry.card.name }}</p>
+        {% else %}
+            <p class="cm truncate">Carte inconnue</p>
+        {% endif %}
+        <span class="lbl r-{{ rarity|first }}"{% if not entry.card %} data-testid="masked-rarity"{% endif %}>
+            {{ entry.rarity.icon }} {{ entry.rarity.label }}
+        </span>
 
-        {% set tradable = side == 'requested' or entry.normal + entry.holo > 0 %}
         {% set lacks = tradable and (side == 'offered' ? entry.theirs == 0 : not entry.card) %}
         {% set doubleCount = tradable ? (side == 'offered' ? entry.mine : entry.theirs) : 0 %}
         {% set lastCopy = tradable and side == 'offered' and entry.mine == 1 %}
         {% set wantedByHim = side == 'offered' and entry.wanted %}
         {% if lacks or doubleCount >= 2 or lastCopy or wantedByHim %}
-            <p class="mt-1.5 flex flex-wrap gap-1" data-testid="tile-hints">
+            <p class="trade-tile__hints" data-testid="tile-hints">
                 {% if wantedByHim %}
-                    <span class="chip-mono max-w-full truncate border border-magenta/60 bg-magenta/10 px-1 text-magenta" data-testid="hint-wanted">♡ {{ ctx.theirName }} la cherche</span>
+                    <span class="chip chip-holo" data-testid="hint-wanted">♡ {{ ctx.theirName }} la cherche</span>
                 {% endif %}
                 {% if lacks %}
-                    <span class="chip-mono border border-primary/60 bg-primary/10 px-1 text-primary" data-testid="hint-lacks">✚ {{ side == 'offered' ? 'Lui manque' : 'Te manque' }}</span>
+                    <span class="chip chip-live" data-testid="hint-lacks">✚ {{ side == 'offered' ? 'Lui manque' : 'Te manque' }}</span>
                 {% endif %}
                 {% if doubleCount >= 2 %}
-                    <span class="chip-mono border border-hairline px-1 text-ink-muted" data-testid="hint-double">doublon{{ side == 'offered' ? ' ×' ~ doubleCount }}</span>
+                    <span class="chip" data-testid="hint-double">doublon{{ side == 'offered' ? ' ×' ~ doubleCount }}</span>
                 {% endif %}
                 {% if lastCopy %}
-                    <span class="chip-mono border border-soon/60 bg-soon/10 px-1 text-soon" data-testid="hint-last">dernier exemplaire</span>
+                    <span class="chip chip-soon" data-testid="hint-last">dernier exemplaire</span>
                 {% endif %}
             </p>
         {% endif %}
 
-        <div class="mt-2 flex flex-col gap-1.5 border-t border-hairline pt-2">
-            {% if entry.listed > 0 %}
-                <p class="chip-mono text-soon" data-testid="tile-listed">¤ en vente ×{{ entry.listed }}{{ entry.normal + entry.holo == 0 ? ' · verrouillée' }}</p>
-            {% endif %}
-            {% for finish in ['normal', 'holo'] %}
-                {% set available = entry[finish] %}
-                {% if available > 0 %}
-                    <div class="flex items-center justify-between gap-1">
-                        <div class="min-w-0 leading-tight">
-                            <p class="chip-mono {{ finish == 'holo' ? 'text-magenta' : 'text-ink-muted' }}">{{ finish == 'holo' ? '✦ Holo' : 'Normale' }}</p>
-                            <p class="font-mono text-[10px] text-ink-dim" data-testid="cap-{{ side }}-{{ finish }}">{{ available }} dispo</p>
-                        </div>
-                        <div class="flex shrink-0 items-center">
-                            {{ _self.stepper(side, entry.token, finish, -1, picked[finish] <= 0) }}
-                            <span class="w-7 text-center font-mono text-sm font-bold {{ picked[finish] > 0 ? (finish == 'holo' ? 'text-magenta' : 'text-primary') : 'text-ink-dim' }}"
-                                  data-testid="qty-{{ side }}-{{ finish }}">{{ picked[finish] }}</span>
-                            {{ _self.stepper(side, entry.token, finish, 1, picked[finish] >= available) }}
-                        </div>
-                    </div>
+        {% if entry.listed > 0 or tradable %}
+            <div class="trade-tile__finishes">
+                {% if entry.listed > 0 %}
+                    <p class="lbl text-soon" data-testid="tile-listed">¤ en vente ×{{ entry.listed }}{{ entry.normal + entry.holo == 0 ? ' · verrouillée' }}</p>
                 {% endif %}
-            {% endfor %}
-        </div>
+                {% for finish in ['normal', 'holo'] %}
+                    {% set available = entry[finish] %}
+                    {% if available > 0 %}
+                        <div class="trade-tile__finish">
+                            <span class="trade-tile__flabel{{ finish == 'holo' ? ' text-magenta' }}">
+                                {{- finish == 'holo' ? '✦ Holo' : 'Normale' }} · <span data-testid="cap-{{ side }}-{{ finish }}">{{ available }} dispo</span>
+                            </span>
+                            <div class="trade-tile__stepper">
+                                {{ _self.stepper(side, entry.token, finish, -1, picked[finish] <= 0) }}
+                                <span class="trade-tile__picked{{ picked[finish] > 0 ? (finish == 'holo' ? ' text-magenta' : ' text-ink-strong') }}"
+                                      data-testid="qty-{{ side }}-{{ finish }}">{{ picked[finish] }}</span>
+                                {{ _self.stepper(side, entry.token, finish, 1, picked[finish] >= available) }}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
     </article>
 {% endmacro %}
 
 {% macro stepper(side, token, finish, delta, disabled) %}
     <button type="button"
+            class="trade-step"
             aria-label="{{ delta > 0 ? 'Ajouter' : 'Retirer' }} une copie {{ finish == 'holo' ? 'holo' : 'normale' }}"
             data-action="live#action"
             data-live-action-param="adjust"
@@ -267,32 +273,41 @@
             data-live-finish-param="{{ finish }}"
             data-live-delta-param="{{ delta }}"
             data-testid="{{ delta > 0 ? 'plus' : 'minus' }}-{{ side }}-{{ finish }}"
-            {{ disabled ? 'disabled' }}
-            class="h-7 w-7 border border-hairline font-mono text-sm leading-none text-ink-muted transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">
-        {{ delta > 0 ? '+' : '−' }}
-    </button>
+            {{ disabled ? 'disabled' }}>{{ delta > 0 ? '+' : '−' }}</button>
 {% endmacro %}
 
 {% macro recap(label, summary, side) %}
-    <div class="min-w-0" data-testid="recap-{{ side }}">
-        <p class="chip-mono truncate text-ink-muted">{{ label }}</p>
-        <p class="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <span class="font-display text-lg font-bold leading-none md:text-2xl {{ summary.copies > 0 ? 'text-ink-strong' : 'text-ink-dim' }}"
-                  data-testid="recap-{{ side }}-count">{{ summary.copies }}</span>
-            {% for bucket in summary.byRarity %}
-                <span class="chip-mono font-bold" style="color: var(--rarity-{{ bucket.rarity.value }});"
-                      title="{{ bucket.rarity.label }}">● {{ bucket.copies }}<span class="hidden xl:inline"> {{ bucket.rarity.label }}</span></span>
-            {% endfor %}
-        </p>
+    {% set fresh = side == 'requested' ? summary.items|filter(item => not item.entry.card)|length : 0 %}
+    <div class="composer-recap" data-testid="recap-{{ side }}">
+        <span class="flex flex-col">
+            <span class="lbl">{{ label }}</span>
+            <span class="d composer-recap__count{{ summary.copies == 0 ? ' text-ink-dim' }}" data-testid="recap-{{ side }}-count">{{ summary.copies }}</span>
+        </span>
         {% if summary.items is not empty %}
-            <p class="mt-1 hidden truncate font-mono text-[10px] text-ink-dim md:block" data-testid="recap-{{ side }}-items">
+            <span class="composer-recap__thumbs" aria-hidden="true">
+                {% for item in summary.items|slice(0, 4) %}
+                    {% if item.entry.card %}
+                        <img class="card-thumb" src="{{ item.entry.card.imageName ? vich_uploader_asset(item.entry.card) : asset('images/default_card.png') }}" alt="" loading="lazy">
+                    {% else %}
+                        <span class="composer-recap__back" style="--back-color: var(--rarity-{{ item.entry.rarity.value }});"></span>
+                    {% endif %}
+                {% endfor %}
+                {% if summary.items|length > 4 %}<span class="lbl self-center">+{{ summary.items|length - 4 }}</span>{% endif %}
+            </span>
+            <span class="muted composer-recap__digest" data-testid="recap-{{ side }}-digest">
+                {%- for bucket in summary.byRarity -%}
+                    {{ bucket.copies }} {{ bucket.rarity.label|lower }}{{ bucket.copies > 1 ? 's' }}{{ not loop.last ? ', ' }}
+                {%- endfor -%}
+                {%- if fresh > 0 %}, {{ fresh > 1 ? fresh ~ ' nouvelles' : 'nouvelle' }} pour toi{% endif -%}
+            </span>
+            <span class="sr" data-testid="recap-{{ side }}-items">
                 {% for item in summary.items %}
                     {{- item.entry.card ? item.entry.card.name : 'Inconnue (' ~ item.entry.rarity.label ~ ')' -}}
                     {{- item.normal > 0 ? ' ×' ~ item.normal -}}
                     {{- item.holo > 0 ? ' ✦×' ~ item.holo -}}
                     {{- not loop.last ? ' · ' -}}
                 {% endfor %}
-            </p>
+            </span>
         {% endif %}
     </div>
 {% endmacro %}
