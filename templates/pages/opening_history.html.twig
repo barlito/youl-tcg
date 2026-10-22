@@ -6,227 +6,201 @@
 
 {% block body %}
     <main>
-        {% embed 'parts/ui/_page_header.html.twig' with {
-            eyebrow: 'Mon espace',
-            title: 'Mes ouvertures',
-            lead: 'Chaque pack que tu as ouvert, du plus récent au plus ancien.',
-        } %}
-            {% block actions %}
-                <a href="{{ path('boosters') }}" class="btn btn-p">Ouvrir un pack</a>
-            {% endblock %}
-            {% block nav %}
-                {{ include('parts/ui/_my_space_nav.html.twig', { current: 'openings', counts: { openings: total } }) }}
-            {% endblock %}
-        {% endembed %}
+    {% embed 'parts/ui/_page_header.html.twig' with {
+        eyebrow: 'Mon espace',
+        title: 'Mes ouvertures',
+        lead: 'Chaque pack ouvert, du plus récent au plus ancien, et ce que dit ta chance.',
+    } %}
+        {% block actions %}
+            <a href="{{ path('boosters') }}" class="btn btn-p max-md:w-full">Ouvrir un pack{% if unopenedBoosters > 0 %} · {{ unopenedBoosters }}{% endif %}</a>
+        {% endblock %}
+        {% block nav %}
+            {{ include('parts/ui/_my_space_nav.html.twig', { current: 'openings', counts: { openings: total } }) }}
+        {% endblock %}
+    {% endembed %}
 
+    <div class="wrap flex flex-col gap-9 pb-24 pt-6 md:pt-8">
         {# -------------------------------------------------------- Ma chance #}
         {% if stats.openingCount > 0 %}
-            <section class="border-b border-hairline px-6 py-10 lg:px-12" data-testid="luck-section">
-                <div class="mx-auto max-w-7xl">
-                    <p class="eyebrow">Ma chance</p>
-
-                    {# ------------------------------------------- Compteurs #}
-                    <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="luck-tiles">
-                        <div class="border border-hairline bg-surface p-4">
-                            <p class="chip-mono text-ink-dim">Cartes tirées</p>
-                            <p class="mt-2 font-display text-3xl font-bold leading-none text-ink-strong" data-testid="luck-cards">{{ stats.cardCount }}</p>
-                            <p class="chip-mono mt-2 text-ink-dim">doublons compris</p>
+            <section aria-labelledby="luck" class="luck-grid" data-testid="luck-section">
+                <div class="flex min-w-0 flex-col gap-3">
+                    <h2 id="luck" class="h2">Ma chance</h2>
+                    <div class="grid grid-cols-2 gap-3" data-testid="luck-tiles">
+                        <div class="panel p-4">
+                            <span class="lbl">Cartes tirées</span>
+                            <div class="d text-[30px] text-ink-strong" data-testid="luck-cards">{{ stats.cardCount }}</div>
+                            <span class="muted text-[13px]">doublons compris</span>
                         </div>
-                        <div class="border border-hairline bg-surface p-4">
-                            <p class="chip-mono text-ink-dim">Holos</p>
-                            <p class="mt-2 font-display text-3xl font-bold leading-none text-transparent bg-clip-text bg-gradient-to-r from-primary to-magenta" data-testid="luck-holos">✦ {{ stats.holoCount }}</p>
-                            <p class="chip-mono mt-2 text-ink-dim">taux réel · <span class="text-magenta">{{ _self.pct(stats.holoRate) }}</span></p>
+                        <div class="panel p-4">
+                            <span class="lbl">Holos</span>
+                            <div class="d text-[30px] text-ink-strong" data-testid="luck-holos"><span class="text-magenta" aria-hidden="true">✦</span> {{ stats.holoCount }}</div>
+                            <span class="muted text-[13px]">{{ _self.pct(stats.holoRate) }} de tes tirages</span>
                         </div>
-                        <div class="border border-hairline bg-surface p-4">
-                            <p class="chip-mono text-ink-dim">Légendaires</p>
-                            <p class="mt-2 font-display text-3xl font-bold leading-none" style="color: var(--rarity-legendary);" data-testid="luck-legendaries">{{ stats.rarityCounts['legendary'] }}</p>
-                            <p class="chip-mono mt-2 text-ink-dim">{{ _self.pct(stats.rarityShares['legendary']) }} de tes tirages</p>
+                        <div class="panel p-4">
+                            <span class="lbl">Légendaires</span>
+                            <div class="d text-[30px] r-l" data-testid="luck-legendaries">{{ stats.rarityCounts['legendary'] }}</div>
+                            <span class="muted text-[13px]">
+                                {{ _self.pct(stats.rarityShares['legendary']) }} de tes tirages
+                                {%- if stats.expectedRarityShares['legendary'] is defined %} · annoncé : {{ _self.pct(stats.expectedRarityShares['legendary']) }}{% endif %}
+                            </span>
                         </div>
                         {% if stats.bestPull %}
-                            <div class="border p-4" style="border-color: color-mix(in srgb, var(--rarity-{{ stats.bestPull.rarity.value }}) 55%, transparent); background: color-mix(in srgb, var(--rarity-{{ stats.bestPull.rarity.value }}) 8%, var(--surface));" data-testid="luck-best-pull">
-                                <p class="chip-mono" style="color: var(--rarity-{{ stats.bestPull.rarity.value }});">
-                                    {{ stats.bestPull.rarity.value == 'legendary' ? 'Première légendaire' : 'Meilleur pull' }}
-                                </p>
-                                <p class="mt-2 truncate font-display text-lg font-bold uppercase leading-tight text-ink-strong" title="{{ stats.bestPull.card.name }}">
+                            {% set bestRarity = stats.bestPull.rarity %}
+                            <div class="panel hot p-4" data-testid="luck-best-pull">
+                                <span class="lbl r-{{ bestRarity.value|first }}">
+                                    {{ bestRarity.icon }} {{ bestRarity.value == 'legendary' ? 'Première légendaire' : 'Meilleur pull' }}
+                                </span>
+                                <div class="d up truncate pb-1 pt-1.5 text-[17px] text-ink-strong" title="{{ stats.bestPull.card.name }}">
                                     {{ stats.bestPull.holo ? '✦ ' }}{{ stats.bestPull.card.name }}
-                                </p>
-                                <p class="chip-mono mt-2 text-ink-dim">le {{ stats.bestPull.openedAt|date('d/m/Y', 'Europe/Paris') }}</p>
+                                </div>
+                                <span class="muted text-[13px]">le {{ stats.bestPull.openedAt|date('d/m/Y', 'Europe/Paris') }}</span>
                             </div>
                         {% endif %}
                     </div>
 
-                    <div class="mt-8 grid gap-8 lg:grid-cols-2">
-                        {# --------------------------------- Répartition raretés #}
-                        <div data-testid="luck-rarities">
-                            <p class="chip-mono font-bold text-ink-strong">Répartition par rareté</p>
-                            <div class="mt-4 flex flex-col gap-3">
-                                {% for rarity, count in stats.rarityCounts %}
-                                    <div>
-                                        <div class="flex items-baseline justify-between font-mono text-[11px] tracking-[.12em]">
-                                            <span style="color: var(--rarity-{{ rarity }});">{{ rarity_label(rarity) }}</span>
-                                            <span class="text-ink-muted">{{ count }} carte{{ count > 1 ? 's' }} · {{ _self.pct(stats.rarityShares[rarity]) }}</span>
-                                        </div>
-                                        <div class="mt-1 h-1.5 bg-white/10">
-                                            <div class="h-full" style="width: {{ stats.rarityShares[rarity] }}%; background: var(--rarity-{{ rarity }});"></div>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        {# ------------------------------- Observé vs annoncé #}
-                        {# un seul pack affiché à la fois : la liste complète
-                           grandissait avec le catalogue et noyait la page #}
-                        <div data-testid="luck-boosters" data-controller="stat-switcher">
-                            <div class="flex flex-wrap items-center justify-between gap-3">
-                                <p class="chip-mono font-bold text-ink-strong">Observé vs annoncé</p>
-                                <select data-stat-switcher-target="select"
-                                        data-action="stat-switcher#show"
-                                        aria-label="Choisir un pack"
-                                        data-testid="luck-booster-select"
-                                        class="max-w-full border border-hairline bg-surface px-3 py-1.5 font-mono text-[11px] tracking-[.08em] text-ink-strong focus:border-primary focus:outline-none">
-                                    {% for boosterLuck in stats.boosters %}
-                                        <option value="{{ boosterLuck.booster.id }}">
-                                            {{ boosterLuck.booster.displayName }} · {{ boosterLuck.openingCount }} pack{{ boosterLuck.openingCount > 1 ? 's' }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            {% for boosterLuck in stats.boosters %}
-                                <div class="mt-4 border border-hairline bg-surface p-5 {{ not loop.first ? 'hidden' }}"
-                                     data-stat-switcher-target="panel"
-                                     data-panel-id="{{ boosterLuck.booster.id }}"
-                                     data-testid="luck-booster">
-                                    <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                                        <p class="font-display text-sm font-bold uppercase tracking-[-0.02em] text-ink-strong">{{ boosterLuck.booster.displayName }}</p>
-                                        <p class="chip-mono text-ink-dim">{{ boosterLuck.openingCount }} pack{{ boosterLuck.openingCount > 1 ? 's' }} · {{ boosterLuck.cardCount }} carte{{ boosterLuck.cardCount > 1 ? 's' }}</p>
-                                    </div>
-
-                                    <div class="mt-4 flex flex-col gap-3">
-                                        {% for rarity, row in boosterLuck.rarityRows %}
-                                            {{ _self.rate_bar(rarity_label(rarity), 'var(--rarity-' ~ rarity ~ ')', row.observed, row.expected) }}
-                                        {% endfor %}
-                                        {{ _self.rate_bar('✦ Holo', 'var(--magenta)', boosterLuck.observedHoloRate, boosterLuck.expectedHoloRate) }}
-                                    </div>
+                    {# --------------------------------- Répartition raretés #}
+                    <div class="panel flex flex-col gap-3 p-4" data-testid="luck-rarities">
+                        <span class="lbl text-ink">Répartition par rareté</span>
+                        {% for rarity, count in stats.rarityCounts|reverse(true) %}
+                            <div class="flex flex-col gap-1.5">
+                                <div class="flex items-baseline justify-between gap-2 text-[13px]">
+                                    <span class="r-{{ rarity|first }}">{{ rarity_icon(rarity) }} {{ rarity_label(rarity) }}</span>
+                                    <span class="mono text-xs text-ink-muted">{{ count }} carte{{ count > 1 ? 's' }} · {{ _self.pct(stats.rarityShares[rarity]) }}</span>
                                 </div>
-                            {% endfor %}
-
-                            <p class="chip-mono mt-3 text-ink-dim">
-                                Le trait clair marque le taux annoncé du pack (panneau Taux du hub), moyenné sur ses cartes.
-                            </p>
-                        </div>
+                                <div class="bar" aria-hidden="true"><i style="width: {{ stats.rarityShares[rarity] }}%; background: var(--rarity-{{ rarity }});"></i></div>
+                            </div>
+                        {% endfor %}
                     </div>
+                </div>
+
+                {# ------------------------------- Observé vs annoncé #}
+                {# un seul pack affiché à la fois : la liste complète grandissait avec le catalogue #}
+                <div class="flex min-w-0 flex-col gap-3" data-testid="luck-boosters" data-controller="stat-switcher">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <h2 class="h2">Observé vs annoncé</h2>
+                        <select data-stat-switcher-target="select"
+                                data-action="stat-switcher#show"
+                                aria-label="Choisir un pack"
+                                data-testid="luck-booster-select"
+                                class="dd dd-select max-w-full max-md:w-full">
+                            {% for boosterLuck in stats.boosters %}
+                                <option value="{{ boosterLuck.booster.id }}">
+                                    {{ boosterLuck.booster.displayName }} · {{ boosterLuck.openingCount }} ouvert{{ boosterLuck.openingCount > 1 ? 's' }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {% for boosterLuck in stats.boosters %}
+                        <div class="panel p-[18px] {{ not loop.first ? 'hidden' }}"
+                             data-stat-switcher-target="panel"
+                             data-panel-id="{{ boosterLuck.booster.id }}"
+                             data-testid="luck-booster">
+                            <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 pb-3.5">
+                                <span class="d up text-ink-strong" data-testid="luck-booster-name">{{ boosterLuck.booster.displayName }}</span>
+                                <span class="lbl">{{ boosterLuck.openingCount }} pack{{ boosterLuck.openingCount > 1 ? 's' }} · {{ boosterLuck.cardCount }} carte{{ boosterLuck.cardCount > 1 ? 's' }}</span>
+                            </div>
+                            <div class="flex flex-col gap-3.5">
+                                {% for rarity, row in boosterLuck.rarityRows|reverse(true) %}
+                                    {{ _self.rate_bar(rarity_icon(rarity) ~ ' ' ~ rarity_label(rarity), 'var(--rarity-' ~ rarity ~ ')', row.observed, row.expected) }}
+                                {% endfor %}
+                                {{ _self.rate_bar('✦ Holo', 'var(--magenta)', boosterLuck.observedHoloRate, boosterLuck.expectedHoloRate) }}
+                            </div>
+                        </div>
+                    {% endfor %}
+
+                    <p class="muted m-0 text-xs">
+                        Barre = ce que tu as tiré · trait blanc = taux annoncé du pack (panneau Taux du hub), moyenné sur ses cartes.
+                    </p>
                 </div>
             </section>
         {% endif %}
 
         {# ---------------------------------------------------------- Journal #}
-        <section class="px-6 pb-24 pt-10 lg:px-12">
-            <div class="mx-auto max-w-7xl">
-                {% if openings is empty %}
-                    <div class="border border-dashed border-hairline px-8 py-20 text-center text-ink-dim" data-testid="empty-state">
-                        <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Aucune ouverture.</p>
-                        <p class="mt-3 text-sm">Ton journal se remplit à chaque pack ouvert. Va en chercher un, gros youl.</p>
-                        <a href="{{ path('boosters') }}" class="btn-arcade mt-8">Ouvrir un pack ▸</a>
-                    </div>
-                {% else %}
-                    <div class="flex flex-col gap-6" data-testid="openings-list">
-                        {% for opening in openings %}
-                            {% set best = opening.bestRarity %}
-                            {% set holoCount = opening.holoCount %}
-                            {% set cardCount = opening.drawnCardCount %}
-                            <article class="border border-hairline bg-surface p-5 md:p-6" data-testid="opening-entry">
-                                <header class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-b border-hairline pb-4">
-                                    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                                        <h2 class="font-display text-lg font-bold uppercase tracking-[-0.02em] text-ink-strong">
-                                            {{ opening.booster.displayName }}
-                                        </h2>
-                                        <time datetime="{{ opening.openedAt|date('c') }}"
-                                              class="font-mono text-[11px] tracking-[.12em] text-ink-dim">
-                                            {{ opening.openedAt|date('d/m/Y · H:i', 'Europe/Paris') }}
-                                        </time>
-                                    </div>
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <span class="chip-mono border border-hairline px-2 py-1 text-ink-muted">
-                                            {{ cardCount }} carte{{ cardCount > 1 ? 's' }}
-                                        </span>
-                                        {% if best %}
-                                            <span class="chip-mono border px-2 py-1 font-bold"
-                                                  style="color: var(--rarity-{{ best.value }}); border-color: color-mix(in srgb, var(--rarity-{{ best.value }}) 55%, transparent);"
-                                                  data-testid="best-rarity">
-                                                ◆ {{ best.label }}
-                                            </span>
-                                        {% endif %}
-                                        {% if holoCount > 0 %}
-                                            <span class="chip-mono bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black" data-testid="holo-count">
-                                                ✦ {{ holoCount }} holo{{ holoCount > 1 ? 's' }}
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                </header>
+        <section aria-labelledby="hist" class="flex flex-col gap-3">
+            <div class="flex items-baseline justify-between gap-3">
+                <h2 id="hist" class="h2">Historique</h2>
+                <span class="muted">{{ total }} ouverture{{ total > 1 ? 's' }}</span>
+            </div>
 
-                                {# drawnCards is sorted rarest first: the leading card IS the best pull #}
-                                <div class="mt-5 grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8">
-                                    {% for drawn in opening.drawnCards %}
-                                        <div class="card-tile relative">
-                                            {# unique DOM id: the same card can appear in several openings on the page #}
-                                            {{ include('components/CardComponent.html.twig', {
-                                                card: drawn.card,
-                                                holo: drawn.holoQuantity > 0,
-                                                lazy: true,
-                                                id: 'opening-' ~ opening.id ~ '-' ~ drawn.card.id,
-                                            }) }}
-                                            <div class="card-tile__chips pointer-events-none absolute -right-1.5 -top-1.5 z-10 flex gap-1">
-                                                {% if drawn.quantity > 1 %}
-                                                    <span class="chip-mono bg-black/90 px-1.5 py-0.5 font-bold text-white">×{{ drawn.quantity }}</span>
-                                                {% endif %}
-                                                {% if drawn.holoQuantity > 0 %}
-                                                    <span class="chip-mono bg-gradient-to-r from-primary to-magenta px-1.5 py-0.5 font-bold text-black">✦{{ drawn.holoQuantity }}</span>
-                                                {% endif %}
-                                            </div>
-                                            {% if loop.first and best %}
-                                                <span class="card-tile__chips pointer-events-none absolute -left-1.5 -top-1.5 z-10 chip-mono px-1.5 py-0.5 font-bold text-black"
-                                                      style="background: var(--rarity-{{ best.value }});"
-                                                      data-testid="best-pull">
-                                                    ★ Best
-                                                </span>
+            {% if openings is empty %}
+                <div class="panel flex flex-col items-center gap-3 px-8 py-16 text-center" data-testid="empty-state">
+                    <p class="h2">Aucune ouverture.</p>
+                    <p class="muted text-sm">Ton journal se remplit à chaque pack ouvert. Va en chercher un, gros youl.</p>
+                    <a href="{{ path('boosters') }}" class="btn btn-p mt-2">Ouvrir un pack</a>
+                </div>
+            {% else %}
+                <div class="flex flex-col gap-3" data-testid="openings-list">
+                    {% for opening in openings %}
+                        {% set best = opening.bestRarity %}
+                        {% set holoCount = opening.holoCount %}
+                        {% set cardCount = opening.drawnCardCount %}
+                        <article class="panel opening-row" data-testid="opening-entry">
+                            <header class="flex min-w-0 flex-col gap-1">
+                                <h3 class="d up truncate text-[17px] text-ink-strong" title="{{ opening.booster.displayName }}">{{ opening.booster.displayName }}</h3>
+                                <time datetime="{{ opening.openedAt|date('c') }}" class="lbl">{{ opening.openedAt|date('d/m/Y · H:i', 'Europe/Paris') }}</time>
+                                <span class="flex flex-wrap gap-1.5 pt-1.5">
+                                    {% if best %}
+                                        <span class="chip r-{{ best.value|first }}" style="border-color: color-mix(in srgb, var(--rarity-{{ best.value }}) 45%, transparent);" data-testid="best-rarity">{{ best.icon }} {{ best.label }}</span>
+                                    {% endif %}
+                                    {% if holoCount > 0 %}
+                                        <span class="chip chip-holo" data-testid="holo-count">✦ {{ holoCount }} holo{{ holoCount > 1 ? 's' }}</span>
+                                    {% endif %}
+                                </span>
+                            </header>
+
+                            {# drawnCards is sorted rarest first: the leading card IS the best pull #}
+                            <div class="opening-row__cards">
+                                {% for drawn in opening.drawnCards %}
+                                    <div class="card-tile relative">
+                                        {# unique DOM id: the same card can appear in several openings on the page #}
+                                        {{ include('components/CardComponent.html.twig', {
+                                            card: drawn.card,
+                                            holo: drawn.holoQuantity > 0,
+                                            lazy: true,
+                                            id: 'opening-' ~ opening.id ~ '-' ~ drawn.card.id,
+                                        }, with_context = false) }}
+                                        <div class="card-tile__chips pointer-events-none absolute -right-1.5 -top-1.5 z-10 flex gap-1">
+                                            {% if drawn.quantity > 1 %}
+                                                <span class="qty static">×{{ drawn.quantity }}</span>
+                                            {% endif %}
+                                            {% if drawn.holoQuantity > 0 %}
+                                                <span class="chip chip-holo bg-bg px-1 py-0 text-[10px]">✦{{ drawn.holoQuantity }}</span>
                                             {% endif %}
                                         </div>
-                                    {% endfor %}
-                                </div>
-                            </article>
-                        {% endfor %}
-                    </div>
+                                        {% if loop.first and best %}
+                                            <span class="card-tile__chips chip pointer-events-none absolute -left-1.5 -top-1.5 z-10 bg-bg px-1 py-0 text-[10px] r-{{ best.value|first }}"
+                                                  data-testid="best-pull">★ Best</span>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
 
-                    {% if lastPage > 1 %}
-                        <nav class="mt-10 flex items-center justify-center gap-4" aria-label="Pagination" data-testid="pagination">
-                            {% if page > 1 %}
-                                <a href="{{ path('opening_history', page > 2 ? { page: page - 1 } : {}) }}"
-                                   class="border border-hairline px-4 py-2 font-mono text-[11px] uppercase tracking-[.15em] text-ink-muted transition-colors hover:border-primary hover:text-primary"
-                                   data-testid="page-prev">
-                                    ◂ Plus récentes
-                                </a>
-                            {% else %}
-                                <span class="border border-hairline px-4 py-2 font-mono text-[11px] uppercase tracking-[.15em] text-ink-dim opacity-40">◂ Plus récentes</span>
-                            {% endif %}
+                            <span class="muted text-[13px] md:text-right">{{ cardCount }} carte{{ cardCount > 1 ? 's' }}</span>
+                        </article>
+                    {% endfor %}
+                </div>
 
-                            <span class="chip-mono text-ink-dim">page {{ page }} / {{ lastPage }}</span>
+                {% if lastPage > 1 %}
+                    <nav class="mt-4 flex items-center justify-center gap-3" aria-label="Pagination" data-testid="pagination">
+                        {% if page > 1 %}
+                            <a href="{{ path('opening_history', page > 2 ? { page: page - 1 } : {}) }}" class="btn btn-g btn-s" data-testid="page-prev">‹ Plus récentes</a>
+                        {% else %}
+                            <span class="btn btn-g btn-s" aria-disabled="true">‹ Plus récentes</span>
+                        {% endif %}
 
-                            {% if page < lastPage %}
-                                <a href="{{ path('opening_history', { page: page + 1 }) }}"
-                                   class="border border-hairline px-4 py-2 font-mono text-[11px] uppercase tracking-[.15em] text-ink-muted transition-colors hover:border-primary hover:text-primary"
-                                   data-testid="page-next">
-                                    Plus anciennes ▸
-                                </a>
-                            {% else %}
-                                <span class="border border-hairline px-4 py-2 font-mono text-[11px] uppercase tracking-[.15em] text-ink-dim opacity-40">Plus anciennes ▸</span>
-                            {% endif %}
-                        </nav>
-                    {% endif %}
+                        <span class="lbl">page {{ page }} / {{ lastPage }}</span>
+
+                        {% if page < lastPage %}
+                            <a href="{{ path('opening_history', { page: page + 1 }) }}" class="btn btn-g btn-s" data-testid="page-next">Plus anciennes ›</a>
+                        {% else %}
+                            <span class="btn btn-g btn-s" aria-disabled="true">Plus anciennes ›</span>
+                        {% endif %}
+                    </nav>
                 {% endif %}
-            </div>
+            {% endif %}
         </section>
+    </div>
     </main>
 {% endblock %}
 
@@ -236,19 +210,15 @@
 {# Taux observé en barre pleine, taux annoncé en repère : la barre qui dépasse
    le trait = tu es au-dessus de ce que le pack promet. #}
 {% macro rate_bar(label, color, observed, expected) %}
-    <div>
-        <div class="flex items-baseline justify-between font-mono text-[11px] tracking-[.08em]">
-            <span style="color: {{ color }};">{{ label }}</span>
-            <span>
-                <span class="text-ink-strong">{{ _self.pct(observed) }}</span>
-                <span class="text-ink-dim">/ {{ _self.pct(expected) }} annoncé</span>
-            </span>
-        </div>
-        <div class="relative mt-1.5 h-2 bg-white/10">
+    <div class="rate-row">
+        <span style="color: {{ color }};">{{ label }}</span>
+        <div class="relative h-2 bg-white/10" aria-hidden="true">
             <div class="absolute inset-y-0 left-0" style="width: {{ min(observed, 100) }}%; background: {{ color }};"></div>
-            <div class="absolute inset-y-[-2px] w-0.5 bg-white/70"
-                 style="left: {{ min(expected, 100) }}%;"
-                 title="Annoncé : {{ _self.pct(expected) }}"></div>
+            <div class="absolute -inset-y-1 w-0.5 bg-white" style="left: {{ min(expected, 100) }}%;"></div>
         </div>
+        <span class="num text-xs">
+            <span class="text-ink-strong">{{ _self.pct(observed) }}</span>
+            <span class="muted">/ {{ _self.pct(expected) }} annoncé</span>
+        </span>
     </div>
 {% endmacro %}

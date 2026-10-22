@@ -75,6 +75,8 @@ final class OpeningLuckStatsTest extends WebTestCase
         // 1 holo out of 4 copies pulled
         $this->assertStringContainsString('25%', $crawler->filter('[data-testid="luck-tiles"]')->text());
         $this->assertSame('1', $crawler->filter('[data-testid="luck-legendaries"]')->text(normalizeWhitespace: true));
+        // the advertised share, weighted by the cards each pack gave (the pack promises no legendary)
+        $this->assertStringContainsString('25% de tes tirages · annoncé : 0%', $crawler->filter('[data-testid="luck-tiles"]')->text(normalizeWhitespace: true));
     }
 
     public function testRarityDistributionShowsEveryTierEvenEmpty(): void
@@ -172,7 +174,7 @@ final class OpeningLuckStatsTest extends WebTestCase
         $this->assertSame('1', $crawler->filter('[data-testid="luck-legendaries"]')->text(normalizeWhitespace: true));
 
         $names = $crawler->filter('[data-testid="luck-booster"]')->each(
-            static fn (Crawler $node): string => $node->filter('p')->first()->text(normalizeWhitespace: true),
+            static fn (Crawler $node): string => $node->filter('[data-testid="luck-booster-name"]')->text(normalizeWhitespace: true),
         );
         $this->assertSame([$this->booster->getDisplayName(), $secondBooster->getDisplayName()], $names);
 
