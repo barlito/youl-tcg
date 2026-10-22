@@ -3,8 +3,10 @@
   À utiliser avec include (contenu par défaut : le nom) ou embed (blocs top / content).
   Paramètres : extension (Extension, requis), href (défaut : page de l'univers ; false = tuile
   non cliquable), coverUrl (optionnel, remplace l'image de l'extension), class (taille,
-  ex. « h-[280px] »), soon (bool : fond rayé « bientôt »), testid (défaut « universe-tile »).
-  Blocs : top (chip en haut à gauche, ex. ● live), content (sous le nom : description, barre…).
+  ex. « h-[280px] »), soon (bool : fond rayé « bientôt »), testid (défaut « universe-tile »),
+  nameClass (taille du nom, défaut « text-[22px] »).
+  Blocs : top (chip en haut à gauche, ex. ● live), name_aside (à droite du nom, ex. « 94 % »),
+  content (sous le nom : description, barre…).
 #}
 {% set href = href ?? path('universes_show', { slug: extension.slug }) %}
 {% set coverUrl = coverUrl|default(extension.imageName ? vich_uploader_asset(extension) : null) %}
@@ -15,6 +17,12 @@
     data-testid="{{ testid|default('universe-tile') }}">
     {% set topHtml %}{% block top %}{% endblock %}{% endset %}
     {% if topHtml|trim %}<div class="mb-auto flex flex-wrap gap-2">{{ topHtml }}</div>{% endif %}
-    <span class="d up text-[22px] leading-none text-ink-strong">{{ extension.name }}</span>
+    {% set nameHtml %}<span class="d up min-w-0 leading-none text-ink-strong {{ nameClass|default('text-[22px]') }}">{{ extension.name }}</span>{% endset %}
+    {% set asideHtml %}{% block name_aside %}{% endblock %}{% endset %}
+    {% if asideHtml|trim %}
+        <span class="flex items-baseline justify-between gap-3">{{ nameHtml }}{{ asideHtml }}</span>
+    {% else %}
+        {{ nameHtml }}
+    {% endif %}
     {% block content %}{% endblock %}
 </{{ tag }}>

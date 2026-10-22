@@ -103,7 +103,7 @@ final class BoosterShopComponentTest extends WebTestCase
 
         $this->assertSame(BoosterPurchaseStatusEnum::COMPLETED, $this->onlyPurchase()->getStatus());
         $this->assertStringContainsString('ajouté à ton stock', $crawler->filter('[data-testid="purchase-success"]')->text());
-        $this->assertStringContainsString('1 pack à ouvrir', $crawler->filter('[data-testid="boosters-grid"]')->text());
+        $this->assertStringContainsString('1 en stock', $crawler->filter('[data-testid="boosters-grid"]')->text());
         $this->assertSame('Déjà acheté aujourd\'hui', trim($crawler->filter('[data-testid="shop-buy"]')->text()));
         $this->assertNotNull($crawler->filter('[data-testid="shop-buy"]')->attr('disabled'));
         $this->assertCount(1, $crawler->filter('[data-testid="shop-countdown"]'));
@@ -127,7 +127,7 @@ final class BoosterShopComponentTest extends WebTestCase
 
         $this->assertStringContainsString('Solde Youl Coin insuffisant', $crawler->filter('[data-testid="purchase-error"]')->text());
         $this->assertSame(BoosterPurchaseStatusEnum::FAILED, $this->onlyPurchase()->getStatus());
-        $this->assertStringNotContainsString('1 pack à ouvrir', $crawler->filter('[data-testid="boosters-grid"]')->text());
+        $this->assertStringNotContainsString('1 en stock', $crawler->filter('[data-testid="boosters-grid"]')->text());
     }
 
     public function testAnUncertainPaymentShowsThePendingNotice(): void

@@ -45,8 +45,8 @@ final class StreakHubComponentTest extends WebTestCase
         $rendered = (string) $this->createLiveComponent(BoosterHub::class, client: $client)->render();
 
         $tile = $this->streakTile($rendered);
-        $this->assertStringContainsString('3j', $tile);
-        $this->assertStringContainsString('palier à 7j', $tile);
+        $this->assertStringContainsString('3 j', $tile);
+        $this->assertStringContainsString('palier à 7 j', $tile);
         $this->assertStringNotContainsString('aujourd\'hui', $tile);
     }
 
@@ -59,8 +59,8 @@ final class StreakHubComponentTest extends WebTestCase
         $rendered = (string) $this->createLiveComponent(BoosterHub::class, client: $client)->render();
 
         $tile = $this->streakTile($rendered);
-        $this->assertStringContainsString('2j', $tile);
-        $this->assertStringContainsString('ouvre aujourd\'hui !', $tile);
+        $this->assertStringContainsString('2 j', $tile);
+        $this->assertStringContainsString('ouvre un pack aujourd\'hui !', $tile);
     }
 
     public function testAPendingRewardShowsTheBannerWithClaimableChoicesOnly(): void

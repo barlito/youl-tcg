@@ -26,7 +26,7 @@ final class BoosterPageTest extends WebTestCase
         $crawler = $client->request('GET', '/boosters');
 
         $this->assertResponseIsSuccessful();
-        $this->assertSelectorTextContains('section h1', 'Boosters');
+        $this->assertSelectorTextContains('[data-testid="hub-header"] h1', 'Tes packs');
         $this->assertStringContainsString('Récupérer', $client->getResponse()->getContent());
         $this->assertGreaterThan(0, $crawler->filter('[data-live-action-param="claimBooster"]')->count());
     }

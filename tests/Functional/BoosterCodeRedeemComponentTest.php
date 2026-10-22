@@ -49,7 +49,7 @@ final class BoosterCodeRedeemComponentTest extends WebTestCase
 
         $rendered = (string) $this->createLiveComponent(BoosterHub::class, client: $client)->render();
 
-        $this->assertStringContainsString('J\'ai un code', $rendered);
+        $this->assertStringContainsString('Un code booster ?', $rendered);
         $this->assertStringContainsString('data-testid="code-input"', $rendered);
     }
 

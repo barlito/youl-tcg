@@ -48,16 +48,17 @@ final class HomepageTest extends WebTestCase
         $this->assertCount(1, $crawler->filter('#univers'));
         $this->assertCount(1, $crawler->filter('#raretes'));
         $this->assertCount(1, $crawler->filter('#roadmap'));
-        $this->assertCount(1, $crawler->filter('[data-testid="ticker"]'));
+        $this->assertCount(1, $crawler->filter('[data-testid="home-hero"]'));
+        $this->assertCount(1, $crawler->filter('[data-testid="home-live"]'));
 
         // The design uppercases through CSS: the DOM keeps the source case.
         $body = $crawler->filter('main')->text();
-        $this->assertStringContainsString('PRESS START', $body);
+        $this->assertStringContainsString('Salut', $body);
         $this->assertStringContainsString('4 paliers.', $body);
         $this->assertStringContainsString('Prochain univers', $body);
     }
 
-    public function testTickerShowsRealCounters(): void
+    public function testLiveCountersShowTheRealOpeningCounters(): void
     {
         $user = $this->authenticateClient($this->client);
         $this->createOpenings($user, 2);
@@ -65,13 +66,11 @@ final class HomepageTest extends WebTestCase
         $crawler = $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
-        $ticker = $crawler->filter('[data-testid="ticker"]')->text();
-        $this->assertStringContainsString('2 packs ouverts', $ticker);
+        $counters = $crawler->filter('[data-testid="live-counters"]')->text();
+        $this->assertStringContainsString('Packs ouverts 2', $counters);
         // 2 openings × quantity 2 — quantity already includes the holo copy,
         // holoQuantity is a sub-count and must NOT be added on top
-        $this->assertStringContainsString('4 cartes tirées', $ticker);
-        $this->assertStringContainsString('univers', $ticker);
-        $this->assertStringContainsString('2 packs / jour', $ticker);
+        $this->assertStringContainsString('Cartes tirées 4', $counters);
     }
 
     public function testSoonTileTeasesTheUpcomingExtension(): void
@@ -98,7 +97,7 @@ final class HomepageTest extends WebTestCase
         $this->assertStringContainsString('blur-lg', (string) $tile->filter('img')->attr('class'));
         // a draft universe has no page yet: the teaser must not link anywhere
         $this->assertCount(0, $tile->filter('a'));
-        $this->assertStringContainsString('01 SOON', $crawler->filter('#univers')->text());
+        $this->assertStringContainsString('1 bientôt', $crawler->filter('#univers')->text());
     }
 
     public function testSoonTileFallsBackToTheRarestCardArtwork(): void
@@ -175,7 +174,7 @@ final class HomepageTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $badgeIn = static fn (Extension $extension): int => $crawler
             ->filterXPath(\sprintf(
-                '//article[.//a[@href="/univers/%s"]]//*[@data-testid="live-badge"]',
+                '//a[@href="/univers/%s"]//*[@data-testid="live-badge"]',
                 $extension->getSlug(),
             ))
             ->count()
