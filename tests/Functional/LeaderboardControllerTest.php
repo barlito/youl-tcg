@@ -13,6 +13,8 @@ use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Enum\FeatureEnum;
+use App\Tests\FeatureFlagTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -20,6 +22,7 @@ use Symfony\Component\DomCrawler\Crawler;
 
 final class LeaderboardControllerTest extends WebTestCase
 {
+    use FeatureFlagTrait;
     use JwtAuthTrait;
 
     private KernelBrowser $client;
@@ -76,11 +79,11 @@ final class LeaderboardControllerTest extends WebTestCase
         $this->assertLessThan($this->positionOf($rows, $this->user->getUsername()), $rivalPosition);
 
         $rivalRow = $rows->eq($rivalPosition);
-        $this->assertStringContainsString('6 distinctes', $rivalRow->text());
-        $this->assertStringContainsString('✦1', $rivalRow->text());
-        // ▣N is the mobile summary of the opened packs count
-        $this->assertStringContainsString('▣1', $rivalRow->text());
-        $this->assertSame('/joueur/' . $rival->getDiscordId(), $rivalRow->attr('href'));
+        $this->assertMatchesRegularExpression('#\b6 / \d+#', $rivalRow->text());
+        $this->assertStringContainsString('✦ 1', $rivalRow->text());
+        // mobile summary of the holos, uniques and opened packs
+        $this->assertStringContainsString('1 pack', $rivalRow->filter('[data-testid="leaderboard-summary"]')->text());
+        $this->assertSame('/joueur/' . $rival->getDiscordId(), $rivalRow->filter('[data-testid="leaderboard-player-link"]')->attr('href'));
     }
 
     public function testTiesBreakOnTotalCopiesThenUsername(): void
@@ -128,7 +131,7 @@ final class LeaderboardControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $rows = $crawler->filter('[data-testid="leaderboard-row"]');
         $rivalRow = $rows->eq($this->positionOf($rows, $rival->getUsername()));
-        $this->assertStringContainsString('◆1', $rivalRow->text());
+        $this->assertStringContainsString('★ 1', $rivalRow->text());
         // the count shows, the card itself stays a mystery
         $this->assertStringNotContainsString($unique->getName(), (string) $this->client->getResponse()->getContent());
     }
@@ -141,6 +144,75 @@ final class LeaderboardControllerTest extends WebTestCase
         $navLink = $crawler->filter('header nav a[href="/classement"]');
         $this->assertCount(1, $navLink);
         $this->assertSame('Classement', trim($navLink->text()));
+    }
+
+    public function testHolosSortRanksOnHoloCopiesFirst(): void
+    {
+        $collector = $this->createPlayer('Collector');
+        $shiny = $this->createPlayer('Shiny');
+        $cards = array_map(fn (): Card => $this->createCard(), range(1, 3));
+        foreach ($cards as $card) {
+            $this->giveCard($collector, $card, quantity: 1000);
+        }
+        // fewer distinct cards, but more holo copies than any fixture collection
+        $this->giveCard($shiny, $cards[0], quantity: 100000, holoQuantity: 100000);
+        $this->entityManager->flush();
+
+        $byCompletion = $this->client->request('GET', '/classement')->filter('[data-testid="leaderboard-row"]');
+        $this->assertLessThan($this->positionOf($byCompletion, $shiny->getUsername()), $this->positionOf($byCompletion, $collector->getUsername()));
+
+        $crawler = $this->client->request('GET', '/classement?tri=holos');
+
+        self::assertResponseIsSuccessful();
+        $rows = $crawler->filter('[data-testid="leaderboard-row"]');
+        $this->assertSame(0, $this->positionOf($rows, $shiny->getUsername()));
+        // the rank shown is the rank of THIS ranking
+        $this->assertStringStartsWith('01', trim($rows->eq(0)->text()));
+        $this->assertSame('true', $crawler->filter('[data-testid="leaderboard-sorts"] [data-sort="holos"]')->attr('aria-current'));
+    }
+
+    public function testPacksSortRanksOnOpenedPacksThenCompletion(): void
+    {
+        $opener = $this->createPlayer('Opener');
+        $hoarder = $this->createPlayer('Hoarder');
+        $card = $this->createCard();
+        $this->giveCard($hoarder, $card, quantity: 3);
+
+        $booster = new Booster()
+            ->setExtension($this->extension)
+            ->setName('Pack tri')
+            ->setRarityRates([['rarities' => ['common' => 100], 'holoChance' => 0]])
+        ;
+        $this->entityManager->persist($booster);
+        $this->entityManager->persist(new BoosterOpening($opener, $booster, 7, new \DateTimeImmutable()));
+        $this->entityManager->flush();
+
+        $byCompletion = $this->client->request('GET', '/classement')->filter('[data-testid="leaderboard-row"]');
+        $this->assertLessThan($this->positionOf($byCompletion, $opener->getUsername()), $this->positionOf($byCompletion, $hoarder->getUsername()));
+
+        $byPacks = $this->client->request('GET', '/classement?tri=packs')->filter('[data-testid="leaderboard-row"]');
+        $this->assertLessThan($this->positionOf($byPacks, $hoarder->getUsername()), $this->positionOf($byPacks, $opener->getUsername()));
+    }
+
+    public function testUnknownSortFallsBackToCompletion(): void
+    {
+        $crawler = $this->client->request('GET', '/classement?tri=bogus');
+
+        self::assertResponseIsSuccessful();
+        $this->assertSame('true', $crawler->filter('[data-testid="leaderboard-sorts"] [data-sort="completion"]')->attr('aria-current'));
+    }
+
+    public function testTradeButtonsFollowTheTradesFlagAndSkipMyOwnRow(): void
+    {
+        $crawler = $this->client->request('GET', '/classement');
+
+        self::assertResponseIsSuccessful();
+        $this->assertCount(0, $crawler->filter('[data-testid="leaderboard-row"][data-current] [data-testid="leaderboard-trade"]'));
+        $this->assertGreaterThan(0, $crawler->filter('[data-testid="leaderboard-trade"]')->count());
+
+        $this->setFeature(FeatureEnum::TRADES, false);
+        $crawler = $this->client->request('GET', '/classement');
+        $this->assertCount(0, $crawler->filter('[data-testid="leaderboard-trade"]'));
     }
 
     private function positionOf(Crawler $rows, string $username): int

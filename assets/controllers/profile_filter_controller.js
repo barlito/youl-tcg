@@ -8,18 +8,19 @@ import { Controller } from '@hotwired/stimulus';
  * sits above a single tile.
  */
 export default class extends Controller {
-    static targets = ['tile', 'universe', 'button', 'count', 'counters', 'empty', 'status'];
+    static targets = ['tile', 'universe', 'button', 'count', 'counters', 'empty', 'status', 'hint'];
 
     select(event) {
-        this.apply(event.currentTarget.dataset.state);
+        this.apply(event.currentTarget.dataset.state, event.currentTarget.dataset.hint);
     }
 
-    apply(state) {
+    apply(state, hint) {
         const filtering = state !== 'all';
 
         this.buttonTargets.forEach((button) => {
             const active = button.dataset.state === state;
             button.classList.toggle('is-active', active);
+            button.classList.toggle('on', active);
             button.setAttribute('aria-pressed', active ? 'true' : 'false');
         });
 
@@ -42,6 +43,9 @@ export default class extends Controller {
             universe.querySelector('[data-profile-filter-target="counters"]')?.classList.toggle('opacity-40', filtering);
         });
 
+        if (this.hasHintTarget && hint) {
+            this.hintTarget.textContent = hint;
+        }
         if (this.hasEmptyTarget) {
             this.emptyTarget.hidden = total > 0;
         }

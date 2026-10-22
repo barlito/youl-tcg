@@ -7,11 +7,14 @@ namespace App\Controller;
 use App\Dto\ProfileComparison;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
+use App\Enum\Leaderboard\LeaderboardSortEnum;
 use App\Repository\DiscordUserRepository;
 use App\Service\Collection\CompletionStripBuilder;
 use App\Service\Leaderboard\LeaderboardService;
 use App\Service\Leaderboard\ProfileComparisonService;
+use App\Service\Trade\TradeMatchScoreService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -28,15 +31,22 @@ class LeaderboardController extends AbstractController
         private readonly DiscordUserRepository $discordUserRepository,
         private readonly ProfileComparisonService $profileComparisonService,
         private readonly CompletionStripBuilder $stripBuilder,
+        private readonly TradeMatchScoreService $tradeMatchScoreService,
     ) {
     }
 
     #[Route('/classement', name: 'leaderboard')]
-    public function index(#[CurrentUser] DiscordUser $user): Response
+    public function index(Request $request, #[CurrentUser] DiscordUser $user): Response
     {
+        $tri = $request->query->all()['tri'] ?? null;
+        // unknown or malformed value: the default ranking, never an error
+        $sort = (\is_string($tri) ? LeaderboardSortEnum::tryFrom($tri) : null) ?? LeaderboardSortEnum::COMPLETION;
+
         return $this->render('pages/leaderboard.html.twig', [
-            'entries' => $this->leaderboardService->getLeaderboard(),
+            'entries' => $this->leaderboardService->getLeaderboard($sort),
             'currentUser' => $user,
+            'sort' => $sort,
+            'sorts' => LeaderboardSortEnum::cases(),
         ]);
     }
 
@@ -70,6 +80,7 @@ class LeaderboardController extends AbstractController
             'visible' => $this->profileComparisonService->restrictTo($comparison, $currentExtension),
             'strip' => $this->stripBuilder->build($comparison->universes),
             'currentExtension' => $currentExtension,
+            'match' => $this->tradeMatchScoreService->scoreAgainst($visitor, $profile),
         ]);
     }
 

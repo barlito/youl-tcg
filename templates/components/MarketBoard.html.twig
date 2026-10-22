@@ -9,12 +9,13 @@
     {% if shop and total == 0 and not error and not success %}
         {# une boutique vide n'affiche rien : le composant reste monté pour apparaître dès la première annonce #}
     {% else %}
-        <section class="{{ shop ? 'mb-12' : 'px-6 pb-24 pt-8 lg:px-12' }}">
+        <section class="{{ shop ? 'flex flex-col' : 'px-6 pb-24 pt-8 lg:px-12' }}"{{ shop ? ' aria-labelledby="player-shop-title"' }}>
             <div class="{{ shop ? '' : 'mx-auto max-w-7xl' }}">
                 {% if shop %}
-                    <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
-                        Boutique <span class="text-primary">{{ '%02d'|format(total) }}</span>
-                    </h2>
+                    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <h2 id="player-shop-title" class="h2">Sa boutique</h2>
+                        <span class="muted" data-testid="player-shop-count">{{ total }} carte{{ total > 1 ? 's' }} en vente</span>
+                    </div>
                 {% else %}
                     {{ _self.filters(this) }}
                 {% endif %}
@@ -42,13 +43,13 @@
                         {% endif %}
                     </div>
                 {% else %}
-                    <div class="mt-6 grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3 xl:grid-cols-4" data-testid="market-grid">
+                    <div class="{{ shop ? 'mt-3.5 grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4' : 'mt-6 grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3 xl:grid-cols-4' }}" data-testid="market-grid">
                         {% for listing in listings %}
                             {% set card = listing.card %}
                             {% set block = this.buyBlock(listing) %}
                             {% set isConfirming = confirming == (listing.id ~ '') %}
                             {% set own = not shop and this.isOwn(listing) %}
-                            <article class="relative flex flex-col border bg-surface p-3 {{ isConfirming ? 'border-primary/80 shadow-[0_0_16px_#a435f044]' : (own ? 'border-live/60 shadow-[0_0_14px_#5be58426]' : 'border-hairline') }}"
+                            <article class="relative flex min-w-0 flex-col border bg-surface {{ shop ? 'p-3 md:p-4' : 'p-3' }} {{ isConfirming ? 'border-primary/80 shadow-[0_0_16px_#a435f044]' : (own ? 'border-live/60 shadow-[0_0_14px_#5be58426]' : 'border-hairline') }}"
                                      data-testid="market-listing" {{ own ? 'data-own-listing' }}>
                                 {% if listing.holo %}
                                     <span class="chip-mono absolute -right-1.5 -top-1.5 z-10 bg-gradient-to-r from-primary to-magenta px-1.5 py-0.5 font-bold text-black">✦ Holo</span>
@@ -66,7 +67,7 @@
                                         {{ this.isWished(listing) ? '♥' : '♡' }}
                                     </button>
                                 {% endif %}
-                                <div class="mx-auto w-full max-w-[13rem]">
+                                <div class="mx-auto w-full {{ shop ? 'max-w-[64%]' : 'max-w-[13rem]' }}">
                                     {{ include('components/CardComponent.html.twig', {
                                         card: card,
                                         holo: listing.holo,
@@ -75,10 +76,20 @@
                                         id: 'market-' ~ listing.id,
                                     }, with_context = false) }}
                                 </div>
-                                <p class="mt-3 truncate font-display text-xs font-bold uppercase leading-tight text-ink-strong" title="{{ card.name }}">{{ card.name }}</p>
-                                <p class="chip-mono mt-0.5 truncate" style="color: var(--rarity-{{ card.rarity.value }});">
-                                    {{ card.rarity.label }} · <span class="text-ink-dim">{{ card.extension.name }}</span>
-                                </p>
+                                {% if shop %}
+                                    <span class="cn mt-3" title="{{ card.name }}">{{ card.name }}</span>
+                                    <span class="lbl mt-1 truncate"><span class="r-{{ card.rarity.value|first }}">{{ card.rarity.icon }} {{ card.rarity.label }}</span> · {{ card.extension.name }}</span>
+                                    {% if this.isOwnedByMe(listing) %}
+                                        <span class="muted mt-1 text-[13px]" data-testid="listing-owned">tu l'as déjà</span>
+                                    {% else %}
+                                        <span class="mt-1 text-[13px] text-live" data-testid="listing-missing">te manque</span>
+                                    {% endif %}
+                                {% else %}
+                                    <p class="mt-3 truncate font-display text-xs font-bold uppercase leading-tight text-ink-strong" title="{{ card.name }}">{{ card.name }}</p>
+                                    <p class="chip-mono mt-0.5 truncate" style="color: var(--rarity-{{ card.rarity.value }});">
+                                        {{ card.rarity.label }} · <span class="text-ink-dim">{{ card.extension.name }}</span>
+                                    </p>
+                                {% endif %}
                                 {% if own %}
                                     <p class="chip-mono mt-1 truncate text-ink-dim">par <span class="text-live">toi</span></p>
                                 {% elseif not shop %}
@@ -86,7 +97,7 @@
                                         par <a href="{{ path('leaderboard_player', { discordId: listing.seller.discordId }) }}" class="text-ink-muted hover:text-primary">{{ listing.seller.username }}</a>
                                     </p>
                                 {% endif %}
-                                <p class="mt-2 font-display text-lg font-bold text-primary" data-testid="listing-price">{{ coin_amount(listing.price) }} <span class="text-xs">YLC</span></p>
+                                <p class="mt-2 font-display text-lg font-bold {{ shop ? 'text-ink-strong' : 'text-primary' }}" data-testid="listing-price">{{ coin_amount(listing.price) }} <span class="{{ shop ? 'lbl' : 'text-xs' }}">YLC</span></p>
 
                                 <div class="mt-3 flex flex-col gap-2 border-t border-hairline pt-3">
                                     {% if own %}
@@ -117,7 +128,7 @@
                                     {% else %}
                                         <button type="button" data-action="live#action" data-live-action-param="askBuy" data-live-listing-id-param="{{ listing.id }}"
                                                 data-testid="listing-buy"
-                                                class="border border-primary bg-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary">
+                                                class="{{ shop ? 'btn btn-s ' ~ (this.isOwnedByMe(listing) ? 'btn-g' : 'btn-p') : 'border border-primary bg-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary' }}">
                                             Acheter
                                         </button>
                                     {% endif %}
