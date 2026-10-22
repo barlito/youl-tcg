@@ -175,4 +175,21 @@ final class LayoutTest extends WebTestCase
         $this->assertCount(1, $tabbar->filter('a[href="/univers"]'), 'Univers takes the trades slot.');
         $this->assertCount(0, $sheet->filter('a[href="/univers"], a[href="/fusion"], a[href="/wishlist"]'));
     }
+
+    public function testMySpaceSubNavMarksTheCurrentTabAndFollowsTheFlags(): void
+    {
+        $client = self::createClient();
+        $this->authenticateClient($client);
+
+        $crawler = $client->request('GET', '/mes-ouvertures');
+        $nav = $crawler->filter('main [data-testid="my-space-nav"]');
+
+        $this->assertSame('page', $nav->filter('a[href="/mes-ouvertures"]')->attr('aria-current'));
+        $this->assertCount(5, $nav->filter('a.tab'));
+
+        $this->setFeature(FeatureEnum::RECYCLING, false);
+        $crawler = $client->request('GET', '/mes-ouvertures');
+
+        $this->assertCount(0, $crawler->filter('main [data-testid="my-space-nav"] a[href="/recyclage"]'));
+    }
 }
