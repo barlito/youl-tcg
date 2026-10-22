@@ -185,15 +185,16 @@ class CardCrudController extends AbstractGuardedCrudController
         return parent::configureAssets($assets)->addHtmlContentToBody(<<<'HTML'
             <div id="card-live-preview" hidden
                  style="position: fixed; top: 90px; right: 24px; z-index: 1030; width: 300px;
-                        background: #12121a; border: 1px solid #2c2c3a; border-radius: 14px;
+                        background: #160e22; border: 1px solid #a435f066;
                         padding: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.45);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <strong style="color: #cfcfe0; font-size: 12px; letter-spacing: .08em;">PREVIEW LIVE</strong>
+                    <strong style="color: #ff3db0; font: 500 11px/16px 'JetBrains Mono', monospace; letter-spacing: .12em;">APERÇU LIVE</strong>
                     <button type="button" id="card-live-preview-close"
-                            style="border: 0; background: none; color: #8a8aa0; cursor: pointer; font-size: 14px;">✕</button>
+                            aria-label="Fermer l'aperçu"
+                            style="border: 0; background: none; color: #b9a8cf; cursor: pointer; font-size: 14px;">✕</button>
                 </div>
                 <iframe id="card-live-preview-frame" title="Preview"
-                        style="width: 276px; height: 400px; border: 0; border-radius: 10px; background: #0b0712;"></iframe>
+                        style="width: 276px; height: 400px; border: 0; background: #0b0712;"></iframe>
             </div>
             <script>
             (() => {

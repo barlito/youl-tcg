@@ -1,0 +1,450 @@
+/* Violet Arcade back-office theme, loaded on every admin page by DashboardController.
+   Unlayered on purpose: EasyAdmin ships its CSS in cascade layers, so these rules win
+   without !important. Dark only — the scheme is pinned by the layout override. */
+
+.ea-dark-scheme {
+    --va-bg: #0b0712;
+    --va-surface: #160e22;
+    --va-surface-2: #120b1d;
+    --va-surface-hot: #24113a;
+    --va-row-hover: #1d1030;
+    --va-sidebar: #0e0918;
+    --va-primary: #a435f0;
+    --va-primary-hover: #8a1fd6;
+    --va-magenta: #ff3db0;
+    --va-text: #f0e8f7;
+    --va-text-strong: #fff;
+    --va-muted: #b9a8cf;
+    --va-faint: #8d7ca8;
+    --va-link: #d9a8ff;
+    --va-hairline: #a435f033;
+    --va-hairline-soft: #a435f022;
+    --va-hairline-strong: #a435f066;
+    --va-live: #5be584;
+    --va-soon: #ffd24a;
+    --va-danger: #ff5c7a;
+    --va-danger-soft: #ff8fa3;
+    --va-info: #54a8ff;
+    --va-font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    --va-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+    /* violet-tinted neutral ramp: every EA surface, border and text derives from it */
+    --gray-50: #fff;
+    --gray-100: #f7f2fc;
+    --gray-200: #f0e8f7;
+    --gray-300: #d8cce8;
+    --gray-400: #b9a8cf;
+    --gray-500: #8d7ca8;
+    --gray-600: #6a5a8a;
+    --gray-700: #2b1d40;
+    --gray-800: #1d1129;
+    --gray-900: #160e22;
+    --gray-950: #0b0712;
+
+    --ea-primary: var(--va-primary);
+    --ea-primary-foreground: #fff;
+    --ea-radius: 0;
+    --border-radius-full: 0;
+
+    --font-family-sans-serif: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-family-monospace: var(--va-font-mono);
+
+    --text-color: var(--va-text);
+    --text-muted: var(--va-muted);
+    --text-tertiary-color: var(--va-faint);
+    --link-color: var(--va-link);
+    --link-hover-color: #f0d4ff;
+    --color-primary: var(--va-link);
+    --color-success: var(--va-live);
+    --color-warning: var(--va-soon);
+    --color-danger: var(--va-danger);
+    --border-color: var(--va-hairline);
+
+    --body-bg: var(--va-bg);
+    --content-bg: var(--va-bg);
+    --content-panel-bg: var(--va-surface);
+    --content-top-border-color: var(--va-hairline);
+    --content-section-border-color: var(--va-hairline);
+    --content-search-input-bg: var(--va-bg);
+
+    --sidebar-bg: var(--va-sidebar);
+    --sidebar-border-color: var(--va-hairline);
+    --sidebar-logo-color: var(--va-text-strong);
+    --sidebar-menu-color: var(--va-muted);
+    --sidebar-menu-header-color: var(--va-faint);
+    --sidebar-menu-icon-color: var(--va-faint);
+    --sidebar-menu-active-item-bg: var(--va-primary);
+    --sidebar-menu-active-item-color: #fff;
+    --sidebar-menu-hover-color: var(--va-text-strong);
+    --sidebar-item-hover-bg: var(--va-surface);
+    --responsive-header-bg: var(--va-sidebar);
+    --responsive-header-border-color: var(--va-hairline);
+
+    --dropdown-bg: var(--va-surface);
+    --dropdown-border-color: var(--va-hairline-strong);
+    --dropdown-color: var(--va-text);
+    --dropdown-link-color: var(--va-text);
+    --dropdown-link-hover-bg: var(--va-surface-hot);
+    --dropdown-toggle-bg: var(--va-surface);
+    --dropdown-toggle-border-color: var(--va-hairline-strong);
+    --popover-bg: var(--va-surface);
+    --popover-border-color: var(--va-hairline-strong);
+
+    --table-thead-color: var(--va-muted);
+    --table-cell-color: var(--va-text);
+    --table-cell-border-color: var(--va-hairline-soft);
+    --table-hover-cell-bg: var(--va-row-hover);
+    --table-selected-cell-bg: var(--va-surface-hot);
+    --table-thead-sorted-color: var(--va-text-strong);
+    --table-thead-sorted-marker-color: var(--va-link);
+    --datalist-border-color: var(--va-hairline);
+    --datalist-label-color: var(--va-muted);
+    --datalist-value-color: var(--va-text);
+    --datagrid-noresults-placeholder-bg: var(--va-surface);
+
+    --pagination-color: var(--va-muted);
+    --pagination-hover-border-color: var(--va-hairline-strong);
+    --pagination-active-bg: var(--va-primary);
+    --pagination-active-color: #fff;
+    --pagination-disabled-color: var(--gray-600);
+
+    --modal-bg: var(--va-surface);
+    --modal-border-color: var(--va-hairline-strong);
+    --modal-header-bg: var(--va-surface-2);
+    --modal-header-border-color: var(--va-hairline);
+    --modal-footer-bg: var(--va-surface-2);
+    --modal-title-color: var(--va-text);
+
+    --form-label-color: var(--va-text);
+    --form-control-bg: var(--va-bg);
+    --form-control-disabled-bg: var(--gray-800);
+    --form-control-disabled-color: var(--va-muted);
+    --form-input-border-color: var(--va-hairline-strong);
+    --form-input-hover-border-color: var(--va-primary);
+    --form-input-text-color: var(--va-text-strong);
+    --form-input-group-text-bg: var(--va-surface);
+    --form-input-group-text-border-color: var(--va-hairline-strong);
+    --form-input-addon-color: var(--va-muted);
+    --form-help-color: var(--va-muted);
+    --form-help-active-color: var(--va-text);
+    --form-tabs-border-color: var(--va-hairline);
+    --form-tabs-indicator-color: var(--va-magenta);
+    --form-tabs-item-hover-bg: var(--va-surface);
+    --form-fieldset-header-color: var(--va-muted);
+    --form-fieldset-border-color: var(--va-hairline);
+    --form-fieldset-header-border-color: var(--va-hairline);
+    --form-type-check-input-border-color: var(--va-faint);
+    --form-type-autocomplete-dropdown-bg: var(--va-surface);
+    --form-type-autocomplete-dropdown-input-wrapper-bg: var(--va-bg);
+    --form-type-autocomplete-dropdown-active-item-bg: var(--va-surface-hot);
+    --form-type-autocomplete-multi-item-bg: var(--va-surface-hot);
+    --form-type-autocomplete-multi-item-border-color: var(--va-hairline-strong);
+    --form-type-collection-item-collapsed-hover-bg: var(--va-surface);
+    --switch-bg: var(--gray-600);
+    --switch-thumb-bg: #fff;
+
+    --button-primary-bg: var(--va-primary);
+    --button-primary-hover-bg: var(--va-primary-hover);
+    --button-primary-active-bg: var(--va-primary-hover);
+    --button-primary-color: #fff;
+    --button-primary-hover-color: #fff;
+    --button-primary-active-color: #fff;
+    --button-primary-border-color: var(--va-primary);
+    --button-primary-hover-border-color: var(--va-primary-hover);
+    --button-primary-active-border-color: var(--va-primary-hover);
+    --button-primary-box-shadow: none;
+    --button-primary-active-box-shadow: none;
+    --button-secondary-bg: var(--va-surface);
+    --button-secondary-hover-bg: var(--va-surface-hot);
+    --button-secondary-active-bg: var(--va-surface-hot);
+    --button-secondary-color: var(--va-text);
+    --button-secondary-hover-color: var(--va-text-strong);
+    --button-secondary-active-color: var(--va-text-strong);
+    --button-secondary-icon-color: var(--va-muted);
+    --button-secondary-border-color: var(--va-hairline-strong);
+    --button-secondary-hover-border-color: var(--va-primary);
+    --button-secondary-active-border-color: var(--va-primary);
+    --button-secondary-box-shadow: none;
+    --button-secondary-active-box-shadow: none;
+    --button-danger-bg: transparent;
+    --button-danger-color: var(--va-danger-soft);
+    --button-danger-border-color: #ff5c7a66;
+    --button-danger-hover-bg: #ff5c7a22;
+    --button-danger-hover-color: #ffc2cd;
+    --button-danger-hover-border-color: var(--va-danger);
+    --button-danger-active-bg: #ff5c7a33;
+    --button-danger-active-color: #ffc2cd;
+    --button-danger-box-shadow: none;
+    --button-success-bg: transparent;
+    --button-success-color: var(--va-live);
+    --button-success-border-color: #5be58466;
+    --button-success-hover-bg: #5be58422;
+    --button-success-hover-color: #c8f5d5;
+    --button-warning-bg: transparent;
+    --button-warning-color: var(--va-soon);
+    --button-warning-border-color: #ffd24a66;
+    --button-warning-hover-bg: #ffd24a22;
+    --button-warning-hover-color: #fff0b8;
+
+    --badge-primary-bg: #a435f033;
+    --badge-primary-color: #e6c6ff;
+    --badge-secondary-bg: var(--gray-700);
+    --badge-secondary-color: var(--gray-300);
+    --badge-success-bg: #5be58422;
+    --badge-success-color: var(--va-live);
+    --badge-warning-bg: #ffd24a22;
+    --badge-warning-color: var(--va-soon);
+    --badge-danger-bg: #ff5c7a22;
+    --badge-danger-color: var(--va-danger-soft);
+    --badge-info-bg: #54a8ff22;
+    --badge-info-color: #8cc4ff;
+    --badge-light-bg: var(--gray-700);
+    --badge-light-color: var(--va-text);
+    --badge-boolean-true-bg: #5be58422;
+    --badge-boolean-true-color: var(--va-live);
+    --badge-boolean-true-box-shadow: none;
+    --badge-boolean-false-bg: var(--gray-700);
+    --badge-boolean-false-color: var(--va-muted);
+    --badge-boolean-false-box-shadow: none;
+
+    --alert-primary-bg: var(--va-surface-hot);
+    --alert-primary-color: var(--va-text);
+    --alert-primary-border-color: var(--va-primary);
+    --alert-secondary-bg: var(--va-surface);
+    --alert-secondary-color: var(--va-text);
+    --alert-secondary-border-color: var(--va-hairline-strong);
+    --alert-success-bg: #0f2a1a;
+    --alert-success-color: #c8f5d5;
+    --alert-success-border-color: #5be58466;
+    --alert-info-bg: #0d1c2f;
+    --alert-info-color: #cfe6ff;
+    --alert-info-border-color: #54a8ff66;
+    --alert-warning-bg: #2a1d0a;
+    --alert-warning-color: #f0dcb0;
+    --alert-warning-border-color: #ffd24a66;
+    --alert-danger-bg: #2a0d16;
+    --alert-danger-color: #ffc2cd;
+    --alert-danger-border-color: #ff5c7a66;
+}
+
+/* Typography: Space Grotesk titles, Inter text, JetBrains Mono labels */
+.ea-dark-scheme .content-header-title .title,
+.ea-dark-scheme .content-wrapper h1,
+.ea-dark-scheme .content-wrapper h2,
+.ea-dark-scheme .content-wrapper h3,
+.ea-dark-scheme .modal-title {
+    font-family: var(--va-font-display);
+    font-weight: 700;
+    color: var(--va-text);
+}
+
+.ea-dark-scheme .content-header-title .title {
+    font-size: 30px;
+    letter-spacing: -.01em;
+}
+
+.ea-dark-scheme .ea-sidebar-group-label,
+.ea-dark-scheme .datagrid thead th,
+.ea-dark-scheme .datagrid thead th a,
+.ea-dark-scheme .form-fieldset-title,
+.ea-dark-scheme .field-group legend,
+.ea-dark-scheme .badge {
+    font-family: var(--va-font-mono);
+}
+
+.ea-dark-scheme .ea-sidebar-group-label {
+    font-size: 11px;
+    letter-spacing: .12em;
+    color: var(--va-faint);
+}
+
+/* Sidebar */
+.ea-dark-scheme .sidebar-wrapper,
+.ea-dark-scheme .sidebar {
+    background: var(--va-sidebar);
+}
+
+.ea-dark-scheme .ea-sidebar-logo .logo {
+    font-family: var(--va-font-display);
+    font-weight: 700;
+    color: var(--va-text-strong);
+}
+
+.ea-dark-scheme .ytcg-admin-logo {
+    width: 40px;
+    height: 30px;
+    object-fit: cover;
+    margin-inline-end: 8px;
+    vertical-align: middle;
+}
+
+.ea-dark-scheme .ea-sidebar-item.is-active > .ea-sidebar-item-link .ea-sidebar-item-label {
+    font-weight: 600;
+}
+
+.ea-dark-scheme .ytcg-menu-exit {
+    margin-block-start: 12px;
+    padding-block-start: 12px;
+    border-top: 1px solid var(--va-hairline);
+}
+
+.ea-dark-scheme .ytcg-menu-exit .ea-sidebar-group-label {
+    display: none;
+}
+
+/* Content header: hairline under the title, like the site page header */
+.ea-dark-scheme .content-header {
+    border-bottom: 1px solid var(--va-hairline);
+}
+
+/* Datagrid (index pages) */
+.ea-dark-scheme .datagrid {
+    background: var(--va-surface);
+    border: 1px solid var(--va-hairline);
+}
+
+.ea-dark-scheme .datagrid thead th {
+    background: var(--va-surface-2);
+    border-bottom: 1px solid var(--va-hairline);
+    color: var(--va-muted);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.ea-dark-scheme .datagrid thead th a {
+    color: inherit;
+}
+
+.ea-dark-scheme .datagrid td {
+    background: transparent;
+}
+
+.ea-dark-scheme .datagrid tbody tr:hover td {
+    background: var(--va-row-hover);
+}
+
+.ea-dark-scheme .datagrid tbody tr.selected-row td,
+.ea-dark-scheme .datagrid tbody tr:has(.form-batch-checkbox:checked) td {
+    background: var(--va-surface-hot);
+}
+
+.ea-dark-scheme .datagrid td a:not(.btn):not(.action-menu-item) {
+    font-weight: 600;
+}
+
+/* Badges: square mono pills (.pill of the mockups) */
+.ea-dark-scheme .badge {
+    letter-spacing: .06em;
+    font-weight: 600;
+}
+
+/* Forms: fieldsets become surfaces */
+.ea-dark-scheme .form-fieldset,
+.ea-dark-scheme .ea-edit-form fieldset.field-group,
+.ea-dark-scheme .ea-new-form fieldset.field-group {
+    background: var(--va-surface);
+    border: 1px solid var(--va-hairline);
+}
+
+.ea-dark-scheme .form-control,
+.ea-dark-scheme .form-select {
+    background-color: var(--va-bg);
+    border-color: var(--va-hairline-strong);
+    color: var(--va-text-strong);
+}
+
+.ea-dark-scheme .form-control::placeholder {
+    color: var(--va-faint);
+}
+
+.ea-dark-scheme .form-control:focus,
+.ea-dark-scheme .form-select:focus {
+    border-color: var(--va-primary);
+    box-shadow: 0 0 0 3px #a435f055;
+}
+
+.ea-dark-scheme .form-check-input:checked {
+    background-color: var(--va-primary);
+    border-color: var(--va-primary);
+}
+
+/* Bootstrap tables of the custom pages (codes, announcements) */
+.ea-dark-scheme .table {
+    --bs-table-bg: var(--va-surface);
+    --bs-table-striped-bg: var(--va-surface-2);
+    --bs-table-striped-color: var(--va-text);
+    --bs-table-color: var(--va-text);
+    --bs-table-border-color: var(--va-hairline-soft);
+}
+
+.ea-dark-scheme .table > thead th {
+    color: var(--va-muted);
+    font: 500 11px/16px var(--va-font-mono);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.ea-dark-scheme hr {
+    border-color: var(--va-hairline);
+    opacity: 1;
+}
+
+.ea-dark-scheme code,
+.ea-dark-scheme pre {
+    color: #f0d4ff;
+}
+
+.ea-dark-scheme .text-muted {
+    color: var(--va-muted) !important;
+}
+
+.ea-dark-scheme .border {
+    border-color: var(--va-hairline-strong) !important;
+}
+
+.ea-dark-scheme .form-fieldset {
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.ea-dark-scheme .form-fieldset-header .form-fieldset-title .form-fieldset-title-content {
+    box-shadow: none;
+    color: var(--va-muted);
+    font: 500 11px/16px var(--va-font-mono);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+.ea-dark-scheme .datagrid .ea-lightbox-thumbnail img {
+    background: transparent;
+    border-color: var(--va-hairline);
+    padding: 0;
+}
+
+.ea-dark-scheme .form-fieldset-header .form-fieldset-help {
+    font: 400 13px/1.45 var(--font-family-sans-serif);
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--va-muted);
+}
+
+.ea-dark-scheme .ea-vich-image img {
+    box-shadow: 0 0 0 1px var(--va-hairline-strong);
+}
+
+.ea-dark-scheme {
+    accent-color: var(--va-primary);
+}
+
+/* Bootstrap bg-* utilities used by the custom field templates carry !important */
+.ea-dark-scheme .badge.bg-info {
+    background: #c27bff26 !important;
+    color: #e6c6ff !important;
+}
+
+.ea-dark-scheme .badge.bg-warning {
+    background: #ffd24a22 !important;
+    color: var(--va-soon) !important;
+}

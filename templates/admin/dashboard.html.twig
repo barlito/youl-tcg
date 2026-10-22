@@ -22,8 +22,8 @@
     </div>
 {% endblock %}
 
-{% macro tile(testid, label, value, hint = null) %}
-    <div class="eco-tile" data-testid="kpi-{{ testid }}">
+{% macro tile(testid, label, value, hint = null, tone = null) %}
+    <div class="eco-tile{{ tone ? ' eco-tile--' ~ tone }}" data-testid="kpi-{{ testid }}">
         <span class="eco-tile__label">{{ label }}</span>
         <span class="eco-tile__value">{{ value }}</span>
         {% if hint %}<span class="eco-tile__hint">{{ hint }}</span>{% endif %}
@@ -45,6 +45,7 @@
 {% block main %}
     {% set kpis = dashboard.kpis %}
     {% set rarity = dashboard.rarityComparison %}
+    {% set alerts = dashboard.coin.alerts %}
 
     <div class="eco-dashboard">
         <p class="eco-meta">
@@ -52,7 +53,22 @@
             calculé le {{ dashboard.generatedAt|date('d/m/Y à H:i', 'Europe/Paris') }}, en cache {{ cacheMinutes }} min.
         </p>
 
-        <section class="eco-tiles" aria-label="Indicateurs clés">
+        {% if alerts.total > 0 %}
+            <section class="eco-alerts" role="alert" aria-label="À traiter" data-testid="coin-alerts">
+                <strong class="eco-alerts__title">{{ alerts.total|number_format(0, ',', ' ') }} point{{ alerts.total > 1 ? 's' }} à traiter</strong>
+                <ul>
+                    {{ _self.alert('booster-pending', alerts.pendingBoosterPurchases, 'achat(s) de booster en attente (paiement incertain)', 'admin_booster_purchase_index', 'pending', 'app:coin:reconcile-purchases') }}
+                    {{ _self.alert('booster-failed', alerts.failedBoosterPurchases, 'achat(s) de booster échoué(s) (aucun coin débité)', 'admin_booster_purchase_index', 'failed', null) }}
+                    {{ _self.alert('reward-pending', alerts.pendingRewards, 'récompense(s) d\'univers en attente de paiement', 'admin_universe_completion_reward_index', 'pending', 'app:coin:pay-pending-rewards') }}
+                    {{ _self.alert('reward-failed', alerts.failedRewards, 'récompense(s) d\'univers échouée(s)', 'admin_universe_completion_reward_index', 'failed', 'app:coin:pay-pending-rewards --retry-failed') }}
+                    {{ _self.alert('market-payment', alerts.paymentPendingSales, 'achat(s) du marché au paiement à vérifier', 'admin_market_purchase_index', 'payment_pending', 'app:coin:reconcile-market') }}
+                    {{ _self.alert('market-payout', alerts.payoutPendingSales, 'vente(s) dont le versement au vendeur est en cours', 'admin_market_purchase_index', 'card_transferred', 'app:coin:reconcile-market') }}
+                    {{ _self.alert('market-refund', alerts.refundPendingSales, 'remboursement(s) d\'acheteur en cours', 'admin_market_purchase_index', 'refund_pending', 'app:coin:reconcile-market') }}
+                </ul>
+            </section>
+        {% endif %}
+
+        <section class="eco-tiles eco-tiles--kpis" aria-label="Indicateurs clés">
             {{ _self.tile('players', 'Joueurs inscrits', kpis.registeredPlayers|number_format(0, ',', ' ')) }}
             {{ _self.tile('active', 'Joueurs actifs', kpis.activePlayers7Days|number_format(0, ',', ' ') ~ ' / ' ~ kpis.activePlayers30Days|number_format(0, ',', ' '), '7 j / 30 j · ouverture, claim ou échange') }}
             {{ _self.tile('openings', 'Packs ouverts', kpis.openingsToday|number_format(0, ',', ' '), 'aujourd\'hui · ' ~ kpis.openings7Days|number_format(0, ',', ' ') ~ ' sur 7 j · ' ~ kpis.openingsTotal|number_format(0, ',', ' ') ~ ' au total') }}
@@ -102,30 +118,16 @@
 
             <section class="eco-card eco-card--wide" data-testid="coin">
                 {% set coin = dashboard.coin %}
-                {% set alerts = coin.alerts %}
                 <h2>Youl Coin</h2>
                 <p class="eco-meta">Calculé depuis les tables de ytcg uniquement (l'API du coin n'est jamais appelée) : c'est le point de vue de ytcg, pas le solde réel de la banque.</p>
-                {% if alerts.total > 0 %}
-                    <div class="eco-alerts" role="alert" data-testid="coin-alerts">
-                        <strong>À traiter</strong>
-                        <ul>
-                            {{ _self.alert('booster-pending', alerts.pendingBoosterPurchases, 'achat(s) de booster en attente (paiement incertain)', 'admin_booster_purchase_index', 'pending', 'app:coin:reconcile-purchases') }}
-                            {{ _self.alert('booster-failed', alerts.failedBoosterPurchases, 'achat(s) de booster échoué(s) (aucun coin débité)', 'admin_booster_purchase_index', 'failed', null) }}
-                            {{ _self.alert('reward-pending', alerts.pendingRewards, 'récompense(s) d\'univers en attente de paiement', 'admin_universe_completion_reward_index', 'pending', 'app:coin:pay-pending-rewards') }}
-                            {{ _self.alert('reward-failed', alerts.failedRewards, 'récompense(s) d\'univers échouée(s)', 'admin_universe_completion_reward_index', 'failed', 'app:coin:pay-pending-rewards --retry-failed') }}
-                            {{ _self.alert('market-payment', alerts.paymentPendingSales, 'achat(s) du marché au paiement à vérifier', 'admin_market_purchase_index', 'payment_pending', 'app:coin:reconcile-market') }}
-                            {{ _self.alert('market-payout', alerts.payoutPendingSales, 'vente(s) dont le versement au vendeur est en cours', 'admin_market_purchase_index', 'card_transferred', 'app:coin:reconcile-market') }}
-                            {{ _self.alert('market-refund', alerts.refundPendingSales, 'remboursement(s) d\'acheteur en cours', 'admin_market_purchase_index', 'refund_pending', 'app:coin:reconcile-market') }}
-                        </ul>
-                    </div>
-                {% else %}
+                {% if alerts.total == 0 %}
                     <p class="eco-meta" data-testid="coin-no-alert">Rien en attente : aucun paiement, versement ou remboursement à réconcilier.</p>
                 {% endif %}
 
                 <div class="eco-tiles eco-tiles--inline">
-                    {{ _self.tile('coin-bank-in', 'Entrées banque', '+' ~ coin_minor(coin.bankInMinor) ~ ' YLC', 'achats de boosters + paiements du marché') }}
-                    {{ _self.tile('coin-bank-out', 'Sorties banque', '−' ~ coin_minor(coin.bankOutMinor) ~ ' YLC', 'récompenses + versements + remboursements') }}
-                    {{ _self.tile('coin-bank-net', 'Solde net', (coin.bankNetMinor > 0 ? '+' : (coin.bankNetMinor < 0 ? '−' : '')) ~ coin_minor(coin.bankNetMinor|abs) ~ ' YLC', 'entrées − sorties sur la période') }}
+                    {{ _self.tile('coin-bank-in', 'Entrées banque', '+' ~ coin_minor(coin.bankInMinor) ~ ' YLC', 'achats de boosters + paiements du marché', coin.bankInMinor > 0 ? 'up') }}
+                    {{ _self.tile('coin-bank-out', 'Sorties banque', '−' ~ coin_minor(coin.bankOutMinor) ~ ' YLC', 'récompenses + versements + remboursements', coin.bankOutMinor > 0 ? 'down') }}
+                    {{ _self.tile('coin-bank-net', 'Solde net', (coin.bankNetMinor > 0 ? '+' : (coin.bankNetMinor < 0 ? '−' : '')) ~ coin_minor(coin.bankNetMinor|abs) ~ ' YLC', 'entrées − sorties sur la période', coin.bankNetMinor > 0 ? 'up' : (coin.bankNetMinor < 0 ? 'down')) }}
                     {{ _self.tile('coin-fees', 'Commissions encaissées', coin_minor(coin.marketFeesMinor) ~ ' YLC', 'ventes du marché de la période') }}
                     {{ _self.tile('coin-listings', 'Annonces actives', coin.activeListings|number_format(0, ',', ' '), 'en vente maintenant') }}
                 </div>
