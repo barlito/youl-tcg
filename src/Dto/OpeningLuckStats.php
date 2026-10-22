@@ -11,9 +11,10 @@ namespace App\Dto;
 final readonly class OpeningLuckStats
 {
     /**
-     * @param array<string, int>     $rarityCounts rarity value => copies pulled, ascending rarity order, zeros included
-     * @param array<string, float>   $rarityShares rarity value => share of pulled copies in %
-     * @param list<BoosterLuckStats> $boosters     most-opened boosters first
+     * @param array<string, int>     $rarityCounts         rarity value => copies pulled, ascending rarity order, zeros included
+     * @param array<string, float>   $rarityShares         rarity value => share of pulled copies in %
+     * @param list<BoosterLuckStats> $boosters             most-opened boosters first
+     * @param array<string, float>   $expectedRarityShares rarity value => advertised share in %, averaged over every pulled card
      */
     public function __construct(
         public int $openingCount,
@@ -24,6 +25,7 @@ final readonly class OpeningLuckStats
         public array $rarityShares,
         public array $boosters,
         public ?BestPull $bestPull,
+        public array $expectedRarityShares = [],
     ) {
     }
 }

@@ -29,6 +29,61 @@ final readonly class TradeMatchScoreService
      */
     public function scoresFor(DiscordUser $me): array
     {
+        ['owned' => $myOwned, 'freeDoubles' => $myFreeDoubles] = $this->mySide($me);
+        $theirOwned = $this->userCardRepository->findPublishedOwnedCardIdsByPlayer($me);
+        $scores = [];
+
+        foreach ($this->discordUserRepository->findOthersOrderedByUsername($me) as $player) {
+            $scores[] = $this->score($player, $theirOwned[$player->getDiscordId()] ?? [], $myOwned, $myFreeDoubles);
+        }
+
+        usort($scores, static fn (TradeMatchScore $a, TradeMatchScore $b): int => $b->total() <=> $a->total()
+            ?: strcasecmp($a->player->getUsername(), $b->player->getUsername())
+            ?: $a->player->getDiscordId() <=> $b->player->getDiscordId());
+
+        return $scores;
+    }
+
+    /**
+     * The same score against ONE player (« Entre vous deux » of a profile): a
+     * constant number of queries, never the whole player base.
+     */
+    public function scoreAgainst(DiscordUser $me, DiscordUser $other): TradeMatchScore
+    {
+        ['owned' => $myOwned, 'freeDoubles' => $myFreeDoubles] = $this->mySide($me);
+        $theirOwned = [];
+
+        foreach ($this->userCardRepository->findOwnedWithCards($other, publishedOnly: true) as $row) {
+            if ($row->getQuantity() > 0 || $row->getHoloQuantity() > 0) {
+                $theirOwned[(string) $row->getCard()->getId()] = true;
+            }
+        }
+
+        return $this->score($other, $theirOwned, $myOwned, $myFreeDoubles);
+    }
+
+    /**
+     * @param array<string, true> $theirOwned
+     * @param array<string, true> $myOwned
+     * @param array<string, true> $myFreeDoubles
+     */
+    private function score(DiscordUser $player, array $theirOwned, array $myOwned, array $myFreeDoubles): TradeMatchScore
+    {
+        return new TradeMatchScore(
+            $player,
+            \count(array_diff_key($theirOwned, $myOwned)),
+            \count(array_diff_key($myFreeDoubles, $theirOwned)),
+        );
+    }
+
+    /**
+     * My published cards, and those I hold at least twice with a copy free of
+     * any pending offer or listing.
+     *
+     * @return array{owned: array<string, true>, freeDoubles: array<string, true>}
+     */
+    private function mySide(DiscordUser $me): array
+    {
         $reserved = $this->engagedCopies->reservedQuantities($me);
         $myOwned = [];
         $myFreeDoubles = [];
@@ -49,23 +104,6 @@ final readonly class TradeMatchScoreService
             }
         }
 
-        $theirOwned = $this->userCardRepository->findPublishedOwnedCardIdsByPlayer($me);
-        $scores = [];
-
-        foreach ($this->discordUserRepository->findOthersOrderedByUsername($me) as $player) {
-            $owned = $theirOwned[$player->getDiscordId()] ?? [];
-
-            $scores[] = new TradeMatchScore(
-                $player,
-                \count(array_diff_key($owned, $myOwned)),
-                \count(array_diff_key($myFreeDoubles, $owned)),
-            );
-        }
-
-        usort($scores, static fn (TradeMatchScore $a, TradeMatchScore $b): int => $b->total() <=> $a->total()
-            ?: strcasecmp($a->player->getUsername(), $b->player->getUsername())
-            ?: $a->player->getDiscordId() <=> $b->player->getDiscordId());
-
-        return $scores;
+        return ['owned' => $myOwned, 'freeDoubles' => $myFreeDoubles];
     }
 }

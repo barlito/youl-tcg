@@ -389,6 +389,9 @@ final class MarketComponentTest extends WebTestCase
         $this->assertCount(1, $shop->filter('[data-testid="market-listing"]'));
         $this->assertStringContainsString($card->getName(), $shop->text());
         $this->assertCount(0, $shop->filter('[data-testid="market-filters"]'));
+        // the visitor does not own the card: the shop says so
+        $this->assertCount(1, $shop->filter('[data-testid="listing-missing"]'));
+        $this->assertStringContainsString('1 carte en vente', $shop->filter('[data-testid="player-shop-count"]')->text());
     }
 
     public function testAnEmptyPlayerShopShowsNothing(): void

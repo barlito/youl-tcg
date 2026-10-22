@@ -6,235 +6,223 @@
 
 {% block body %}
     <main>
-        {# ----------------------------------------------------- Bandeau user #}
-        <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
-            <div class="glow-ambient" aria-hidden="true"></div>
-            <div class="relative mx-auto grid max-w-7xl items-center gap-8 md:grid-cols-[auto_1fr_auto]">
-                <div class="notched-avatar h-[100px] w-[100px] bg-gradient-to-br from-primary to-magenta p-[3px]">
-                    <div class="notched-avatar flex h-full w-full items-center justify-center bg-bg font-display text-[44px] font-bold text-primary">
-                        {{ app.user.username|first|upper }}
-                    </div>
-                </div>
+    {% set query = view.query %}
+    {% set slugParams = currentExtension ? { slug: currentExtension.slug } : {} %}
+    {% set rarityOptions = card_rarities()|reverse %}
 
-                <div>
-                    <h1 class="font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
-                        {{ app.user.username }}
-                    </h1>
-                    <p class="mt-1.5 font-mono text-xs text-ink-dim">joueur depuis {{ app.user.createdAt|date('m/Y') }}</p>
-
-                    <div class="mt-4 max-w-md" data-testid="global-completion">
-                        <div class="chip-mono mb-1 flex justify-between text-ink-muted">
-                            <span>Complétion</span>
-                            <span>{{ comparison.owned }} / {{ comparison.total }} cartes · {{ comparison.completionPct }}%</span>
-                        </div>
-                        <div class="h-2 border border-hairline bg-surface">
-                            <div class="h-full bg-gradient-to-r from-primary to-magenta shadow-[0_0_10px_#a435f0]"
-                                 style="width: {{ comparison.completionPct }}%;"></div>
-                        </div>
+    {% embed 'parts/ui/_profile_head.html.twig' with {
+        player: app.user,
+        entry: entry,
+        owned: comparison.owned,
+        total: comparison.total,
+        percentage: comparison.completionPct,
+    } %}
+        {% block top %}<p class="eyebrow">Mon espace</p>{% endblock %}
+        {% block meta %}
+            joueur depuis {{ app.user.createdAt|date('m/Y') }} ·
+            <a href="{{ path('leaderboard') }}" class="text-ink-muted hover:text-ink-strong" data-testid="leaderboard-link">#{{ entry.rank }} au classement</a>
+        {% endblock %}
+        {% block aside %}
+            <div class="flex flex-col gap-2.5 md:min-w-[340px]">
+                <a href="{{ path('boosters') }}" class="btn btn-p" data-testid="open-pack-link">
+                    Ouvrir un pack{% if unopenedBoosters > 0 %} · {{ unopenedBoosters }}{% endif %}
+                </a>
+                {% if feature_enabled('recycling') or feature_enabled('fusion') %}
+                    <div class="flex gap-2.5">
+                        {% if feature_enabled('recycling') %}
+                            <a href="{{ path('recycle') }}" class="btn btn-g btn-s flex-1" data-testid="recycle-link">Recycler</a>
+                        {% endif %}
+                        {% if feature_enabled('fusion') %}
+                            <a href="{{ path('fusion') }}" class="btn btn-g btn-s flex-1" data-testid="fusion-link">Fusionner</a>
+                        {% endif %}
                     </div>
-
-                    <div class="chip-mono mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-ink-muted" data-testid="profile-stats">
-                        <span>◈ {{ entry.totalCards }} carte{{ entry.totalCards > 1 ? 's' }} au total</span>
-                        <span class="{{ entry.holoCards > 0 ? 'text-primary' : '' }}">✦ {{ entry.holoCards }} holo{{ entry.holoCards > 1 ? 's' }}</span>
-                        <span class="{{ entry.uniqueCards > 0 ? 'text-magenta' : '' }}">◆ {{ entry.uniqueCards }} unique{{ entry.uniqueCards > 1 ? 's' }} 1/1</span>
-                        <span>▣ {{ entry.openedBoosters }} pack{{ entry.openedBoosters > 1 ? 's' }} ouvert{{ entry.openedBoosters > 1 ? 's' }}</span>
-                    </div>
-                </div>
-
-                <div class="flex flex-col items-start gap-2.5 md:items-end">
-                    <div class="bg-primary px-5 py-3.5 text-black" data-testid="daily-packs">
-                        <p class="font-mono text-[10px] font-bold tracking-[.2em]">PACKS / JOUR</p>
-                        <p class="mt-1 font-display text-3xl font-bold leading-none">
-                            {{ remainingClaims }}<span class="text-lg opacity-50"> / {{ dailyLimit }}</span>
-                        </p>
-                    </div>
-                    <a href="{{ path('boosters') }}"
-                       class="border border-primary bg-black px-5 py-3.5 font-display text-[13px] font-bold uppercase tracking-[.15em] text-primary">
-                        Ouvrir un pack ▸
-                    </a>
-                    {% if feature_enabled('recycling') %}
-                        <a href="{{ path('recycle') }}"
-                           data-testid="recycle-link"
-                           class="border border-hairline bg-black px-5 py-3.5 font-display text-[13px] font-bold uppercase tracking-[.15em] text-ink-muted transition-colors hover:border-primary hover:text-primary">
-                            ♻ Recycler mes doublons
-                        </a>
-                    {% endif %}
-                    {% if feature_enabled('fusion') %}
-                        <a href="{{ path('fusion') }}"
-                           data-testid="fusion-link"
-                           class="border border-hairline bg-black px-5 py-3.5 font-display text-[13px] font-bold uppercase tracking-[.15em] text-ink-muted transition-colors hover:border-primary hover:text-primary">
-                            ✦ Fusionner mes doublons
-                        </a>
-                    {% endif %}
-                    {% if wishlistEnabled %}
-                        <a href="{{ path('wishlist') }}"
-                           class="chip-mono text-ink-dim transition-colors hover:text-primary"
-                           data-testid="wishlist-link">
-                            ♡ Ma wishlist ▸
-                        </a>
-                    {% endif %}
-                    <a href="{{ path('opening_history') }}"
-                       class="chip-mono text-ink-dim transition-colors hover:text-primary"
-                       data-testid="history-link">
-                        ◎ Mes ouvertures ▸
-                    </a>
-                    <a href="{{ path('leaderboard') }}"
-                       class="chip-mono text-ink-dim transition-colors hover:text-primary"
-                       data-testid="leaderboard-link">
-                        ▲ #{{ entry.rank }} au classement ▸
-                    </a>
-                </div>
+                {% endif %}
+                <p class="lbl text-center md:text-right" data-testid="daily-packs">
+                    Packs gratuits du jour : <span class="text-ink-strong">{{ remainingClaims }} / {{ dailyLimit }}</span>
+                </p>
             </div>
-        </section>
+        {% endblock %}
+        {% block nav %}
+            {{ include('parts/ui/_my_space_nav.html.twig', {
+                current: 'collection',
+                counts: { wishlist: wishlistEnabled ? wishedIds|length : null, openings: entry.openedBoosters },
+            }) }}
+        {% endblock %}
+    {% endembed %}
 
-        {{ include('parts/_completion_strip.html.twig', {
+    <div class="wrap flex flex-col gap-7 pb-24 pt-6 md:pt-8">
+        {{ include('parts/ui/_universe_strip.html.twig', {
             strip: strip,
             currentExtension: currentExtension,
             route: 'collection',
+            query: query.params(),
             owned: comparison.owned,
             total: comparison.total,
             percentage: comparison.completionPct,
         }) }}
 
-        {# ---------------------------------------------------------- Grille #}
-        <section class="px-6 pb-24 pt-8 lg:px-12" data-controller="profile-filter">
-            <div class="mx-auto max-w-7xl">
-                {% if visible.owned == 0 %}
-                    <div class="mb-10 border border-dashed border-hairline px-8 py-16 text-center text-ink-dim" data-testid="empty-state">
-                        <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Vide.</p>
-                        <p class="mt-3 text-sm">
-                            {{ currentExtension is not null ? 'Aucune carte de cet univers. Ouvre un pack, gros youl.' : 'Aucune carte pour le moment. Ouvre un pack, gros youl.' }}
-                        </p>
-                        <a href="{{ path('boosters') }}" class="btn-arcade mt-8">Ouvrir un pack ▸</a>
-                    </div>
-                {% endif %}
+        {% if visible.owned == 0 %}
+            <div class="panel flex flex-col items-center gap-3 px-8 py-12 text-center" data-testid="empty-state">
+                <p class="h2">Vide.</p>
+                <p class="muted text-sm">
+                    {{ currentExtension is not null ? 'Aucune carte de cet univers. Ouvre un pack, gros youl.' : 'Aucune carte pour le moment. Ouvre un pack, gros youl.' }}
+                </p>
+                <a href="{{ path('boosters') }}" class="btn btn-p mt-2">Ouvrir un pack</a>
+            </div>
+        {% endif %}
 
-                {% if visible.total > 0 %}
-                    <div class="mb-8 flex flex-wrap items-center gap-2" role="group" aria-label="Filtrer la collection" data-testid="collection-filters">
+        {% if visible.total > 0 %}
+            {# filtres dans l'url (GET) : partageables, et la recherche reste côté serveur,
+               où une carte face cachée n'est jamais comparée à un nom #}
+            <form method="get" action="{{ path('collection', slugParams) }}" role="search"
+                  class="panel coll-filters" aria-label="Filtres"
+                  data-controller="collection-filters" data-testid="collection-filters">
+                <div class="coll-filters__top">
+                    <label for="collection-search" class="sr">Rechercher une de mes cartes</label>
+                    <input id="collection-search" class="field coll-filters__q" type="search" name="q"
+                           value="{{ query.search }}" maxlength="{{ constant('App\\Dto\\CollectionQuery::MAX_SEARCH_LENGTH') }}"
+                           placeholder="Rechercher une carte…" autocomplete="off" data-testid="collection-search">
+                    <button type="button" class="seg coll-filters__toggle{{ query.panelFilterCount > 0 ? ' on' }}"
+                            aria-expanded="false" aria-controls="collection-filter-panel"
+                            data-collection-filters-target="toggle" data-action="collection-filters#toggle"
+                            data-testid="collection-filters-toggle">
+                        Filtres{% if query.panelFilterCount > 0 %} · {{ query.panelFilterCount }}{% endif %}
+                    </button>
+                </div>
+
+                <div id="collection-filter-panel" class="coll-filters__panel" data-collection-filters-target="panel">
+                    <div role="group" aria-label="Possession" class="flex flex-wrap gap-1.5" data-testid="possession-filters">
                         {% for filter in [
-                            { state: 'all', label: 'Tout', count: visible.total },
-                            { state: 'common', label: 'Possédées', count: visible.owned },
-                            { state: 'missing-both', label: 'Manquantes', count: visible.missingBoth },
+                            { value: 'toutes', label: 'Toutes', count: visible.total },
+                            { value: 'possedees', label: 'Possédées', count: visible.owned },
+                            { value: 'manquantes', label: 'Manquantes', count: visible.missingBoth },
                         ] %}
-                            {# un filtre à 0 n'a rien à montrer : il reste lisible mais inactif #}
-                            <button type="button"
-                                    class="filter-chip{{ loop.first ? ' is-active' }}"
-                                    data-state="{{ filter.state }}"
-                                    data-profile-filter-target="button"
-                                    data-action="profile-filter#select"
-                                    aria-pressed="{{ loop.first ? 'true' : 'false' }}"
-                                    {{ filter.count == 0 and not loop.first ? 'disabled' }}>
-                                {{ filter.label }} <span class="filter-chip__count">{{ filter.count }}</span>
-                            </button>
+                            {% set active = query.possession.value == filter.value %}
+                            {% if filter.count == 0 and not active and not loop.first %}
+                                {# rien à montrer : lisible mais inactif #}
+                                <span class="seg opacity-40" aria-disabled="true" data-filter="{{ filter.value }}">{{ filter.label }} · 0</span>
+                            {% else %}
+                                <a href="{{ path('collection', slugParams|merge(query.params({ filtre: loop.first ? null : filter.value }))) }}"
+                                   class="seg{{ active ? ' on' }}"{{ active ? ' aria-current="true"' }}
+                                   data-filter="{{ filter.value }}">{{ filter.label }} · {{ filter.count }}</a>
+                            {% endif %}
                         {% endfor %}
                     </div>
+                    {% if query.possession.value != 'toutes' %}<input type="hidden" name="filtre" value="{{ query.possession.value }}">{% endif %}
 
-                    <p class="chip-mono mb-8 border border-hairline bg-surface px-3 py-2 text-ink-muted" data-testid="masking-hint">
-                        Face cachée = carte pas encore trouvée. <span class="text-magenta">◆ 1/1</span> = carte unique.
-                    </p>
-                {% endif %}
+                    <span class="coll-filters__sep" aria-hidden="true"></span>
 
-                {# annonce le résultat du filtrage aux lecteurs d'écran #}
-                <p class="sr-only" aria-live="polite" data-profile-filter-target="status"></p>
+                    <label class="sr" for="collection-rarity">Rareté</label>
+                    <select id="collection-rarity" name="rarete" class="dd dd-select{{ query.rarity ? ' on' }}"
+                            data-action="collection-filters#submit" data-testid="collection-rarity">
+                        <option value="">Rareté : toutes</option>
+                        {% for rarity in rarityOptions %}
+                            <option value="{{ rarity.value }}" {{ query.rarity == rarity ? 'selected' }}>{{ rarity.icon }} {{ rarity.label }}</option>
+                        {% endfor %}
+                    </select>
 
-                {% for universe in visible.universes %}
-                    <div class="mb-12" data-profile-filter-target="universe" data-testid="collection-universe">
-                        {# deux compteurs seulement : ils tiennent sur la ligne du titre,
-                           et repassent dessous d'eux-mêmes quand la place manque #}
-                        <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                            <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
-                                <a href="{{ path('universes_show', { slug: universe.extension.slug }) }}"
-                                   class="transition-colors hover:text-primary">{{ universe.extension.name }}</a>
-                            </h2>
-                            <span class="chip-mono text-ink-muted"
-                                  data-profile-filter-target="count"
-                                  data-total="{{ universe.total }}"
-                                  data-testid="universe-count">
-                                {{ universe.total }} carte{{ universe.total > 1 ? 's' }}
-                            </span>
-                            {# compteurs du catalogue complet : estompés dès qu'un filtre restreint la grille #}
-                            <span class="chip-mono flex flex-wrap gap-x-5 gap-y-1.5 text-ink-muted transition-opacity"
-                                  data-profile-filter-target="counters"
-                                  data-testid="universe-compare">
-                                <span>◈ {{ universe.owned }} possédée{{ universe.owned > 1 ? 's' }}</span>
-                                <span>✕ {{ universe.missingBoth }} manquante{{ universe.missingBoth > 1 ? 's' }}</span>
-                            </span>
-                        </div>
+                    <label class="sr" for="collection-finish">Finition</label>
+                    <select id="collection-finish" name="finition" class="dd dd-select{{ query.finish ? ' on' }}"
+                            data-action="collection-filters#submit" data-testid="collection-finish">
+                        <option value="">Finition : toutes</option>
+                        <option value="holo" {{ query.finish and query.finish.value == 'holo' ? 'selected' }}>✦ Holo</option>
+                        <option value="normale" {{ query.finish and query.finish.value == 'normale' ? 'selected' }}>Normale</option>
+                    </select>
 
-                        <div class="mt-6 grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5" data-testid="collection-grid">
-                            {% for item in universe.cards %}
-                                {% set userCard = item.profileCard %}
-                                {% set ownsHolo = userCard is not null and userCard.holoQuantity > 0 %}
-                                {# quantity is the TOTAL (holo copies included): a normal
-                                   copy exists only when quantity > holoQuantity. The
-                                   toggle only makes sense when BOTH versions are owned. #}
-                                {% set ownsNormal = userCard is not null and userCard.quantity > userCard.holoQuantity %}
-                                <div class="card-tile relative"
-                                     data-state="{{ item.state.value }}"
-                                     data-profile-filter-target="tile"
-                                     data-testid="collection-tile"
-                                     {%- if ownsHolo and ownsNormal %} data-controller="holo-toggle"
-                                     data-holo-toggle-holo-class-value="{{ card_visual(item.card).holoEffect.cssClass ?? 'holo--basic' }}"
-                                     {%- endif %}>
-                                    {# le voile des manquantes va sur la carte, jamais sur la tuile :
-                                       il éteindrait les chips, qui portent toute l'information #}
-                                    <div class="{{ userCard is null ? 'opacity-60' }}">
-                                        {% if userCard is not null %}
-                                            {{ include('components/CardComponent.html.twig', { card: item.card, holo: ownsHolo, lazy: true }) }}
-                                        {% else %}
-                                            {{ include('parts/_masked_card.html.twig', with_context = false) }}
-                                        {% endif %}
-                                    </div>
+                    <label class="sr" for="collection-sort">Trier par</label>
+                    <select id="collection-sort" name="tri" class="dd dd-select md:ml-auto{{ query.sort.value != 'univers' ? ' on' }}"
+                            data-action="collection-filters#submit" data-testid="collection-sort">
+                        {% for sort in enum('App\\Enum\\Collection\\CollectionSortEnum').cases() %}
+                            <option value="{{ sort.value }}" {{ query.sort == sort ? 'selected' }}>Tri : {{ sort.label|lower }}</option>
+                        {% endfor %}
+                    </select>
 
-                                    <div class="card-tile__chips pointer-events-none absolute -right-2 -top-2 z-10 flex max-w-full flex-col items-end gap-1.5 sm:flex-row sm:flex-wrap sm:justify-end">
-                                        {% if item.card.isUnique %}
-                                            <span class="chip-mono border border-magenta bg-black/90 px-2 py-1 font-bold text-magenta" data-testid="chip-unique">
-                                                ◆<span class="sr-only sm:not-sr-only sm:ml-1">1/1</span>
-                                            </span>
-                                        {% endif %}
-                                        {% if userCard is not null %}
-                                            <span class="chip-mono bg-black/90 px-2 py-1 font-bold text-white">×{{ userCard.quantity }}</span>
-                                            {% if ownsHolo %}
-                                                <span class="chip-mono bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black">✦{{ userCard.holoQuantity }}</span>
-                                            {% endif %}
-                                        {% endif %}
-                                    </div>
-
-                                    {% if userCard is not null and wishlistEnabled %}
-                                        {{ include('parts/_wish_button.html.twig', {
-                                            url: path('wishlist_card_toggle', { id: item.card.id }),
-                                            active: wishedIds[item.card.id ~ ''] is defined,
-                                        }, with_context = false) }}
-                                    {% endif %}
-
-                                    {% if ownsHolo and ownsNormal %}
-                                        {# toggle OUTSIDE the .card element: a click on the card itself triggers the 3D zoom.
-                                           card-tile__toggle (et pas card-tile__chips) : c'est une commande, elle ne
-                                           s'efface pas et reste au-dessus de la carte inclinée #}
-                                        <button type="button"
-                                                class="card-tile__toggle chip-mono absolute -left-2 -top-2 border border-hairline bg-black/90 px-2 py-1 font-bold text-ink-dim transition-colors hover:text-ink-strong aria-pressed:border-transparent aria-pressed:bg-gradient-to-r aria-pressed:from-primary aria-pressed:to-magenta aria-pressed:text-black"
-                                                aria-pressed="true"
-                                                data-action="holo-toggle#toggle"
-                                                data-holo-toggle-target="button"
-                                                data-testid="holo-toggle">
-                                            ✦ HOLO
-                                        </button>
-                                    {% endif %}
-                                </div>
-                            {% endfor %}
-                        </div>
+                    <div class="flex items-center gap-4 max-md:w-full max-md:justify-between">
+                        {% if query.isFiltered %}
+                            <a href="{{ path('collection', slugParams) }}" class="tl" data-testid="collection-reset">Réinitialiser</a>
+                        {% endif %}
+                        <button type="submit" class="btn btn-p btn-s coll-filters__apply">Appliquer</button>
                     </div>
-                {% endfor %}
-
-                {# filtre qui ne ramène rien : sans ça la page tombe dans le vide #}
-                <div class="border border-dashed border-hairline px-8 py-16 text-center text-ink-dim"
-                     data-profile-filter-target="empty"
-                     data-testid="filter-empty"
-                     hidden>
-                    <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Rien dans cet état.</p>
-                    <p class="mt-3 text-sm">Choisis un autre filtre.</p>
                 </div>
-            </div>
-        </section>
+            </form>
+
+            {% if query.search %}
+                <p class="muted -mt-3 text-[13px]" data-testid="collection-search-hint">
+                    La recherche ne porte que sur tes cartes : une carte face cachée n'a pas encore de nom pour toi.
+                </p>
+            {% endif %}
+        {% endif %}
+
+        {% for section in view.sections %}
+            {% set universe = section.universe %}
+            <section class="flex flex-col gap-4"
+                     {% if universe %}aria-labelledby="u-{{ universe.extension.slug }}" data-testid="collection-universe"{% else %}aria-labelledby="u-results" data-testid="collection-results"{% endif %}>
+                <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                    {% if universe %}
+                        <h2 id="u-{{ universe.extension.slug }}" class="h2">
+                            <a href="{{ path('universes_show', { slug: universe.extension.slug }) }}" class="text-ink-strong no-underline hover:text-primary">{{ universe.extension.name }}</a>
+                        </h2>
+                        <span class="muted" data-testid="universe-count">
+                            {{ universe.owned }} / {{ universe.total }} possédée{{ universe.owned > 1 ? 's' }} · {{ universe.missingBoth }} à trouver
+                            {%- if query.isFiltered %} · {{ section.items|length }} affichée{{ section.items|length > 1 ? 's' }}{% endif %}
+                        </span>
+                    {% else %}
+                        <h2 id="u-results" class="h2">{{ view.resultCount }} carte{{ view.resultCount > 1 ? 's' }}</h2>
+                        <span class="muted">triées par {{ query.sort.label|lower }}</span>
+                    {% endif %}
+                    {% if loop.first %}
+                        <span class="muted text-[13px] md:ml-auto" data-testid="masking-hint">Face cachée = pas encore trouvée, seule la rareté est visible</span>
+                    {% endif %}
+                </div>
+
+                <div class="set-grid set-grid--dense" data-testid="collection-grid">
+                    {% for item in section.items %}
+                        {% set userCard = item.profileCard %}
+                        {% set suffix = universe ? null : item.card.extension.name %}
+                        {% if userCard %}
+                            {% set ownsHolo = userCard.holoQuantity > 0 %}
+                            {# quantity = TOUTES les copies (holos compris) : une normale existe si quantity > holoQuantity #}
+                            {% set ownsNormal = userCard.quantity > userCard.holoQuantity %}
+                            {% set showHolo = query.finish ? query.finish.value == 'holo' : ownsHolo %}
+                            {{ include('parts/ui/_card_cell.html.twig', {
+                                card: item.card,
+                                quantity: userCard.quantity,
+                                holoQuantity: userCard.holoQuantity,
+                                holo: showHolo,
+                                interactive: true,
+                                suffix: suffix,
+                                state: item.state.value,
+                                testid: 'collection-tile',
+                                holoToggleClass: ownsHolo and ownsNormal and not query.finish ? (card_visual(item.card).holoEffect.cssClass ?? 'holo--basic') : null,
+                                wishUrl: wishlistEnabled ? path('wishlist_card_toggle', { id: item.card.id }) : null,
+                                wished: wishedIds[item.card.id ~ ''] is defined,
+                            }, with_context = false) }}
+                        {% else %}
+                            {# carte manquante : dos de carte, rareté seule (jamais nom, artwork ni id) #}
+                            {{ include('parts/ui/_card_cell.html.twig', {
+                                card: null,
+                                rarity: item.card.rarity.value,
+                                unique: item.card.isUnique,
+                                suffix: suffix,
+                                state: item.state.value,
+                                testid: 'collection-tile',
+                                artClass: 'opacity-60',
+                            }, with_context = false) }}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </section>
+        {% else %}
+            {% if visible.total > 0 %}
+                <div class="panel flex flex-col items-center gap-3 px-8 py-12 text-center" data-testid="filter-empty">
+                    <p class="h2">Aucune carte.</p>
+                    <p class="muted text-sm">
+                        {{ query.search ? 'Aucune de tes cartes ne correspond à « ' ~ query.search ~ ' ».' : 'Rien ne correspond à ces filtres.' }}
+                    </p>
+                    <a href="{{ path('collection', slugParams) }}" class="btn btn-g btn-s mt-2">Réinitialiser les filtres</a>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
     </main>
 {% endblock %}

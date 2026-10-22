@@ -6,74 +6,92 @@
 
 {% block body %}
     <main>
-        <section class="relative px-6 pb-24 pt-10 lg:px-12">
-            <div class="glow-ambient" aria-hidden="true"></div>
-            <div class="relative mx-auto max-w-7xl">
-                <p class="eyebrow">Classement</p>
-                <h1 class="mt-1 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
-                    Les collectionneurs
-                </h1>
-                <p class="mt-2 max-w-2xl text-sm leading-relaxed text-ink-muted">
-                    Tous les joueurs, classés par complétion globale de la collection. Les 1/1 restent secrètes : on affiche combien, jamais lesquelles.
-                </p>
+    {% set tradesOn = feature_enabled('trades') %}
+    {% set rankColors = { 1: 'var(--soon)', 2: '#e3e6ec', 3: '#e8a46a' } %}
 
-                <div class="mt-10 border border-hairline bg-surface" data-testid="leaderboard">
-                    {# en-tête de colonnes (desktop) #}
-                    <div class="hidden items-center gap-4 border-b border-hairline px-5 py-3 font-mono text-[10px] uppercase tracking-[.2em] text-ink-dim md:grid md:grid-cols-[3rem_minmax(0,1fr)_minmax(0,14rem)_4.5rem_4.5rem_4.5rem_4.5rem_4.5rem]">
-                        <span>#</span>
-                        <span>Joueur</span>
-                        <span>Complétion</span>
-                        <span class="text-right">Cartes</span>
-                        <span class="text-right">Total</span>
-                        <span class="text-right">Holos</span>
-                        <span class="text-right">1/1</span>
-                        <span class="text-right">Packs</span>
-                    </div>
+    {% embed 'parts/ui/_page_header.html.twig' with {
+        eyebrow: 'Social',
+        title: 'Les collectionneurs',
+        lead: sort.lead ~ ' Les uniques 1/1 restent secrètes : on affiche combien, jamais lesquelles.',
+    } %}
+        {% block actions %}
+            <nav aria-label="Classer par" class="flex flex-wrap gap-1.5" data-testid="leaderboard-sorts">
+                {% for option in sorts %}
+                    {% set active = option == sort %}
+                    <a href="{{ path('leaderboard', option.value == 'completion' ? {} : { tri: option.value }) }}"
+                       class="seg{{ active ? ' on' }}"{{ active ? ' aria-current="true"' }}
+                       data-sort="{{ option.value }}">{{ option.label }}</a>
+                {% endfor %}
+            </nav>
+        {% endblock %}
+    {% endembed %}
 
-                    {% for entry in entries %}
-                        {% set isMe = entry.user.discordId == currentUser.discordId %}
-                        <a href="{{ path('leaderboard_player', { discordId: entry.user.discordId }) }}"
-                           data-testid="leaderboard-row"
-                           {{ isMe ? 'data-current="true"' }}
-                           class="group grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-4 border-b border-hairline px-5 py-4 transition-colors last:border-b-0 hover:bg-white/[.03] md:grid-cols-[3rem_minmax(0,1fr)_minmax(0,14rem)_4.5rem_4.5rem_4.5rem_4.5rem_4.5rem] {{ isMe ? 'border-l-2 border-l-primary bg-primary/5' : 'border-l-2 border-l-transparent' }}">
-                            <span class="font-display text-xl font-bold tracking-[-0.04em] {{ entry.rank <= 3 ? 'text-primary [text-shadow:0_0_12px_#a435f077]' : 'text-ink-dim' }}">
-                                {{ '%02d'|format(entry.rank) }}
-                            </span>
-
-                            <span class="flex min-w-0 items-center gap-3">
-                                <span class="flex h-9 w-9 shrink-0 items-center justify-center bg-gradient-to-br from-primary to-magenta font-display text-base font-bold text-black">
-                                    {{ entry.user.username|first|upper }}
-                                </span>
-                                <span class="min-w-0">
-                                    <span class="block truncate font-display text-sm font-bold uppercase tracking-[.05em] text-ink-strong transition-colors group-hover:text-primary">
-                                        {{ entry.user.username }}
-                                        {% if isMe %}<span class="font-mono text-[9px] tracking-[.2em] text-primary">· TOI</span>{% endif %}
+    <div class="wrap pb-24 pt-6 md:pt-8">
+        <div class="panel" data-testid="leaderboard">
+            {% if entries is empty %}
+                <p class="muted px-8 py-16 text-center">Aucun joueur pour le moment.</p>
+            {% else %}
+                <table class="tbl lb-table">
+                    <caption class="sr">Classement des joueurs par {{ sort.label|lower }}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col" class="w-[60px]">#</th>
+                            <th scope="col">Joueur</th>
+                            <th scope="col" class="lb-table__completion"{{ sort.value == 'completion' ? ' aria-sort="descending"' }}><span class="max-md:sr-only">Complétion</span><span class="md:hidden" aria-hidden="true">%</span></th>
+                            <th scope="col" class="num max-md:hidden">Total</th>
+                            <th scope="col" class="num max-md:hidden"{{ sort.value == 'holos' ? ' aria-sort="descending"' }}>Holos</th>
+                            <th scope="col" class="num max-md:hidden">Uniques</th>
+                            <th scope="col" class="num max-md:hidden"{{ sort.value == 'packs' ? ' aria-sort="descending"' }}>Packs</th>
+                            {% if tradesOn %}<th scope="col" class="w-[170px] max-lg:hidden"><span class="sr">Actions</span></th>{% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in entries %}
+                            {% set isMe = entry.user.discordId == currentUser.discordId %}
+                            <tr class="{{ isMe ? 'me' }}" data-testid="leaderboard-row"{{ isMe ? ' data-current="true" aria-current="true"' }}>
+                                <td class="d text-[22px]" style="color: {{ rankColors[entry.rank] ?? 'var(--text-muted)' }};">{{ '%02d'|format(entry.rank) }}</td>
+                                <td>
+                                    <span class="flex min-w-0 items-center gap-3">
+                                        <span class="av oct-s h-9 w-9 shrink-0{{ isMe ? '' : ' bg-[#6d2bb0]' }}" aria-hidden="true">{{ entry.user.username|first|upper }}</span>
+                                        <span class="flex min-w-0 flex-col">
+                                            <span class="flex min-w-0 items-center gap-1.5">
+                                                <a href="{{ path('leaderboard_player', { discordId: entry.user.discordId }) }}"
+                                                   class="truncate font-semibold text-ink-strong hover:text-primary"
+                                                   data-testid="leaderboard-player-link">{{ entry.user.username }}</a>
+                                                {% if isMe %}<span class="chip chip-fill">toi</span>{% endif %}
+                                            </span>
+                                            <span class="lbl md:hidden" data-testid="leaderboard-summary">
+                                                <span class="text-magenta">✦</span> {{ entry.holoCards }} · <span class="r-s">★</span> {{ entry.uniqueCards }} · {{ entry.openedBoosters }} pack{{ entry.openedBoosters > 1 ? 's' }}
+                                            </span>
+                                        </span>
                                     </span>
-                                    <span class="chip-mono block text-ink-dim md:hidden">{{ entry.distinctCards }} cartes · ✦{{ entry.holoCards }} · ▣{{ entry.openedBoosters }}</span>
-                                </span>
-                            </span>
-
-                            <span class="block">
-                                <span class="chip-mono flex justify-between text-ink-muted">
-                                    <span class="hidden md:inline">{{ entry.distinctCards }} distinctes</span>
-                                    <span class="font-bold text-primary">{{ entry.completionPct }}%</span>
-                                </span>
-                                <span class="mt-1.5 block h-1 bg-white/10">
-                                    <span class="block h-full bg-gradient-to-r from-primary to-magenta shadow-[0_0_8px_#a435f077]" style="width: {{ entry.completionPct }}%;"></span>
-                                </span>
-                            </span>
-
-                            <span class="hidden text-right font-mono text-sm text-ink md:block">{{ entry.distinctCards }}</span>
-                            <span class="hidden text-right font-mono text-sm text-ink-muted md:block">{{ entry.totalCards }}</span>
-                            <span class="hidden text-right font-mono text-sm md:block {{ entry.holoCards > 0 ? 'text-primary' : 'text-ink-dim' }}">✦{{ entry.holoCards }}</span>
-                            <span class="hidden text-right font-mono text-sm md:block {{ entry.uniqueCards > 0 ? 'text-magenta' : 'text-ink-dim' }}">◆{{ entry.uniqueCards }}</span>
-                            <span class="hidden text-right font-mono text-sm text-ink-muted md:block">{{ entry.openedBoosters }}</span>
-                        </a>
-                    {% else %}
-                        <p class="px-8 py-16 text-center text-ink-dim">Aucun joueur pour le moment.</p>
-                    {% endfor %}
-                </div>
-            </div>
-        </section>
+                                </td>
+                                <td class="lb-table__completion">
+                                    <span class="flex flex-col gap-1.5">
+                                        <span class="flex justify-between gap-2">
+                                            <span class="mono text-xs max-md:hidden">{{ entry.distinctCards }} / {{ entry.catalogueSize }}</span>
+                                            <span class="mono text-xs text-ink-strong">{{ entry.completionPct }} %</span>
+                                        </span>
+                                        <span class="bar" aria-hidden="true"><i style="width: {{ entry.completionPct }}%"></i></span>
+                                    </span>
+                                </td>
+                                <td class="num max-md:hidden">{{ entry.totalCards }}</td>
+                                <td class="num max-md:hidden {{ entry.holoCards > 0 ? 'text-magenta' : 'muted' }}">✦ {{ entry.holoCards }}</td>
+                                <td class="num max-md:hidden {{ entry.uniqueCards > 0 ? 'r-s' : 'muted' }}">★ {{ entry.uniqueCards }}</td>
+                                <td class="num max-md:hidden">{{ entry.openedBoosters }}</td>
+                                {% if tradesOn %}
+                                    <td class="max-lg:hidden">
+                                        {% if not isMe %}
+                                            <a href="{{ path('trades_compose', { discordId: entry.user.discordId }) }}" class="btn btn-g btn-s whitespace-nowrap" data-testid="leaderboard-trade">⇄ Échanger</a>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
+    </div>
     </main>
 {% endblock %}

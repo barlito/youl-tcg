@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Dto\CollectionQuery;
 use App\Dto\ProfileComparison;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
+use App\Repository\UserBoosterRepository;
 use App\Service\Booster\BoosterClaimQuotaInterface;
+use App\Service\Collection\CollectionBrowser;
 use App\Service\Collection\CompletionStripBuilder;
 use App\Service\Leaderboard\LeaderboardService;
 use App\Service\Leaderboard\ProfileComparisonService;
@@ -35,6 +38,8 @@ class CollectionController extends AbstractController
         private readonly LeaderboardService $leaderboardService,
         private readonly BoosterClaimQuotaInterface $boosterClaimQuota,
         private readonly WishlistService $wishlist,
+        private readonly CollectionBrowser $collectionBrowser,
+        private readonly UserBoosterRepository $userBoosterRepository,
     ) {
     }
 
@@ -65,12 +70,15 @@ class CollectionController extends AbstractController
         }
 
         $currentExtension = $this->resolveExtensionFilter($comparison, $slug);
+        // grid and filter chips follow the extension actually rendered
+        $visible = $this->profileComparisonService->restrictTo($comparison, $currentExtension);
 
         return $this->render('pages/collection.html.twig', [
             'entry' => $this->leaderboardService->getEntryFor($user),
             'comparison' => $comparison,
-            // grid and filter chips follow the extension actually rendered
-            'visible' => $this->profileComparisonService->restrictTo($comparison, $currentExtension),
+            'visible' => $visible,
+            'view' => $this->collectionBrowser->browse($visible, CollectionQuery::fromQuery($request->query)),
+            'unopenedBoosters' => $this->userBoosterRepository->sumQuantityFor($user),
             'strip' => $this->stripBuilder->build($comparison->universes),
             'currentExtension' => $currentExtension,
             'wishlistEnabled' => $this->wishlist->isEnabled(),
