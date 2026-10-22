@@ -10,9 +10,11 @@
 {% block body %}
     {% set claims = today.claims %}
     {% set unopened = today.unopenedBoosters %}
-    <main class="wrap pb-24">
+    <main class="pb-24">
         {# ------------------------------------------------------------ Hero #}
-        <section class="home-hero" data-testid="home-hero">
+        {#- the band carries the halo full-bleed, the hero content stays in the container -#}
+        <div class="home-hero-band">
+        <section class="wrap home-hero" data-testid="home-hero">
             <div class="flex min-w-0 flex-col gap-4 md:gap-5">
                 <p class="eyebrow">Ton QG · {{ days['now'|date('w', 'Europe/Paris')] }} {{ 'now'|date('j', 'Europe/Paris') }} {{ months['now'|date('n', 'Europe/Paris') - 1] }}</p>
                 <h1 class="home-hero__title d up">Salut <span class="grad">{{ app.user.username }}</span>.</h1>
@@ -45,7 +47,9 @@
                 {% endfor %}
             </div>
         </section>
+        </div>
 
+        <div class="wrap">
         {# ---------------------------------------------- À faire + bande QG #}
         {{ include('parts/home/_today.html.twig') }}
 
@@ -178,5 +182,6 @@
                 {% endfor %}
             </ol>
         </section>
+        </div>
     </main>
 {% endblock %}

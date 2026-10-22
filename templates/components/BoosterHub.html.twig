@@ -258,24 +258,39 @@
                                     </div>
                                 {% endif %}
 
-                                {# action principale #}
-                                {% if owned > 0 and drawable %}
-                                    <a href="{{ path('booster_open', {id: booster.id}) }}" class="btn btn-p btn-w" aria-label="Ouvrir un pack {{ booster.displayName }} ({{ owned }} en stock)">Ouvrir · {{ owned }}</a>
-                                {% elseif not drawable %}
+                                {# actions : « Récupérer » et « Ouvrir » ont chacun leur place fixe — un clic
+                                   ne transforme jamais le bouton sous le pointeur en une autre action #}
+                                {% if not drawable %}
                                     <span class="btn btn-g btn-w" aria-disabled="true" title="Cette extension n'a pas encore de carte publiée.">À venir</span>
-                                {% elseif not booster.claimable and onSale %}
-                                    <span class="btn btn-g btn-w" aria-disabled="true" data-testid="shop-only">Boutique uniquement</span>
-                                {% elseif not booster.claimable %}
-                                    <span class="btn btn-g btn-w" aria-disabled="true" data-testid="not-claimable"
-                                          title="Ce pack se gagne en event ou via un code — il n'est pas récupérable ici.">✕ Non récupérable</span>
-                                {% elseif retrievable %}
-                                    <button type="button" class="btn btn-g btn-w"
-                                            data-action="live#action"
-                                            data-live-action-param="claimBooster"
-                                            data-live-booster-id-param="{{ booster.id }}"
-                                            data-loading="addClass(opacity-50)">Récupérer</button>
                                 {% else %}
-                                    <span class="btn btn-g btn-w" aria-disabled="true">Reviens demain</span>
+                                    <div class="pack__actions" data-testid="pack-actions">
+                                        {% if not booster.claimable and onSale %}
+                                            <span class="btn btn-g btn-s" aria-disabled="true" data-testid="shop-only">Boutique uniquement</span>
+                                        {% elseif not booster.claimable %}
+                                            <span class="btn btn-g btn-s" aria-disabled="true" data-testid="not-claimable"
+                                                  title="Ce pack se gagne en event ou via un code — il n'est pas récupérable ici.">✕ Non récupérable</span>
+                                        {% else %}
+                                            <button type="button" class="btn {{ owned > 0 ? 'btn-g' : 'btn-p' }} btn-s"
+                                                    data-testid="pack-claim"
+                                                    {% if retrievable %}
+                                                        data-action="live#action"
+                                                        data-live-action-param="claimBooster"
+                                                        data-live-booster-id-param="{{ booster.id }}"
+                                                        data-loading="addAttribute(disabled) addClass(is-loading)"
+                                                        aria-label="Récupérer un pack {{ booster.displayName }} ({{ remainingClaims }} gratuit{{ remainingClaims > 1 ? 's' }} restant{{ remainingClaims > 1 ? 's' }} aujourd'hui)"
+                                                    {% else %}
+                                                        disabled
+                                                        title="{{ remainingClaims > 0 ? 'Ce pack ne peut pas être récupéré pour le moment.' : 'Plus de pack gratuit aujourd\'hui : reviens demain.' }}"
+                                                    {% endif %}>Récupérer <span class="pack__count" data-testid="pack-claims-left">{{ remainingClaims }}</span></button>
+                                        {% endif %}
+                                        {% if owned > 0 %}
+                                            <a href="{{ path('booster_open', {id: booster.id}) }}" class="btn btn-p btn-s" data-testid="pack-open"
+                                               aria-label="Ouvrir un pack {{ booster.displayName }} ({{ owned }} en stock)">Ouvrir · {{ owned }}</a>
+                                        {% else %}
+                                            <span class="btn btn-g btn-s" aria-disabled="true" data-testid="pack-open"
+                                                  title="Aucun pack {{ booster.displayName }} en stock">Ouvrir · 0</span>
+                                        {% endif %}
+                                    </div>
                                 {% endif %}
 
                                 {% if onSale %}
@@ -301,16 +316,7 @@
 
                                 {# ligne basse : récupérer en plus du stock / reste à trouver, puis « Taux » #}
                                 <div class="pack__foot">
-                                    {% if owned > 0 and drawable and retrievable %}
-                                        <button type="button" class="tl"
-                                                data-action="live#action"
-                                                data-live-action-param="claimBooster"
-                                                data-live-booster-id-param="{{ booster.id }}"
-                                                data-loading="addClass(opacity-50)">+ Récupérer</button>
-                                    {% elseif owned > 0 and not booster.claimable %}
-                                        <span class="text-xs text-soon" data-testid="{{ onSale ? 'shop-only' : 'not-claimable' }}"
-                                              title="Ce pack se gagne en event ou via un code — il n'est pas récupérable ici.">{{ onSale ? 'Boutique uniquement' : '✕ Non récupérable' }}</span>
-                                    {% elseif universe and universe.owned >= universe.total %}
+                                    {% if universe and universe.owned >= universe.total %}
                                         <span class="text-xs text-live">✓ Univers complet</span>
                                     {% elseif universe %}
                                         {% set missing = universe.total - universe.owned %}
