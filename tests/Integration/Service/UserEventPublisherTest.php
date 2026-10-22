@@ -55,7 +55,9 @@ final class UserEventPublisherTest extends KernelTestCase
         $this->assertSame('at+jwt', $header['typ']);
         // must equal the hub's `issuer` block and `resource_identifier` (Caddyfile)
         $this->assertSame('https://localhost', $claims['iss']);
-        $this->assertSame('https://localhost/.well-known/mercure', $claims['aud']);
+        // mercure-bundle 0.6.1+ also adds the internal `url` (where publications are sent);
+        // the hub only requires its resource_identifier (the public URL) to be among them
+        $this->assertSame(['http://localhost/.well-known/mercure', 'https://localhost/.well-known/mercure'], $claims['aud']);
         // client credentials: the app is its own subject
         $this->assertSame('youl-tcg', $claims['sub']);
         $this->assertSame('youl-tcg', $claims['client_id']);
