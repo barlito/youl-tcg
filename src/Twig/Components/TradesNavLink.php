@@ -21,4 +21,8 @@ final class TradesNavLink
     /** Frozen at mount: a re-render request no longer carries the page route. */
     #[LiveProp]
     public bool $active = false;
+
+    /** 'nav' (desktop header) or 'tab' (mobile tab bar). */
+    #[LiveProp]
+    public string $variant = 'nav';
 }

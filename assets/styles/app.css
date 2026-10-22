@@ -3,29 +3,30 @@
 @tailwind utilities;
 
 @layer components {
-    /* Bouton primaire arcade : plein, biseauté, typo display condensée */
+    /* Legacy helpers aligned on ui.css .btn.btn-p / .btn.btn-g (same corners
+     * and colours), kept for the pages not restyled yet */
     .btn-arcade {
         @apply inline-block bg-primary px-6 py-3.5 font-display text-sm font-bold uppercase tracking-[.15em] text-white;
-        clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+        clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
     }
 
     .btn-arcade:hover {
         @apply bg-magenta;
     }
 
-    /* Bouton secondaire : transparent, hairline */
     .btn-ghost {
-        @apply inline-block border border-white/20 px-6 py-3.5 font-display text-sm font-bold uppercase tracking-[.15em] text-white;
+        @apply inline-block bg-surface px-6 py-3.5 font-display text-sm font-bold uppercase tracking-[.15em] text-ink;
+        outline: 1px solid #a435f066;
+        outline-offset: -1px;
+        clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
     }
 
     .btn-ghost:hover {
-        @apply border-primary text-primary;
+        @apply text-white;
+        outline-color: #a435f0;
     }
 
-    /* Eyebrow de section : "01 / CONCEPT" */
-    .eyebrow {
-        @apply font-mono text-[11px] uppercase tracking-[.25em] text-magenta;
-    }
+    /* .eyebrow lives in ui.css (plain CSS, loaded before this file) */
 
     /* Petites étiquettes monospace (codes, méta) */
     .chip-mono {

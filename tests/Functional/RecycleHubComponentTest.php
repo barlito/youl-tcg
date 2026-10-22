@@ -524,8 +524,8 @@ final class RecycleHubComponentTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $nav = $client->getCrawler()->filter('header nav');
-        $this->assertStringContainsString('active', (string) $nav->filter('a[href="/collection"]')->attr('class'));
-        $this->assertStringNotContainsString('active', (string) $nav->filter('a[href="/boosters"]')->attr('class'));
+        $this->assertSame('page', $nav->filter('a[href="/collection"]')->attr('aria-current'));
+        $this->assertNull($nav->filter('a[href="/boosters"]')->attr('aria-current'));
     }
 
     public function testABoosterWithNothingToDrawIsNotOffered(): void

@@ -19,8 +19,20 @@
     --text-dim: #6a5a8a;
 
     --hairline: #a435f033;
+    --hairline-mid: #a435f044;
+    --hairline-strong: #a435f066;
     --live: #5be584;
     --soon: #ffd24a;
+
+    /* Refonte légère (ui.css) */
+    --surface-hot: #24113a;
+    --track: #2b1d40;
+    --text-faint: #8d7ca8;
+    --danger: #ff5c7a;
+    --danger-soft: #ff8fa3;
+    --holo: #c27bff;
+    --header-h: 72px;
+    --tabbar-h: 72px;
 
     /* Raretés — 4 paliers (common → legendary ; « unique » est un flag, pas un palier) */
     --rarity-common: #9aa3b2;
