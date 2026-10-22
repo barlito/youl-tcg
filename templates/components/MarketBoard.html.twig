@@ -6,224 +6,233 @@
     {% set currentPage = this.currentPage %}
     {% set shop = sellerId is not null %}
 
+    {% if not shop %}
+        {% embed 'parts/ui/_page_header.html.twig' with {
+            eyebrow: 'Social',
+            title: 'Marché',
+            lead: 'Les cartes mises en vente par les joueurs, payées en Youl Coin. La banque prélève une commission sur chaque vente.',
+            board: this,
+        } %}
+            {% block actions %}
+                {% if board.wishlistEnabled %}
+                    <a href="{{ path('wishlist') }}" class="btn btn-g max-md:flex-1 max-md:px-3 max-md:text-xs" data-testid="wishlist-link">♡ Ma wishlist</a>
+                {% endif %}
+                <a href="{{ path('market_my_shop') }}" class="btn btn-p max-md:flex-1 max-md:px-3 max-md:text-xs" data-testid="my-shop-link">Ma boutique · {{ board.myEngagedCount }}/{{ board.maxListings }}</a>
+            {% endblock %}
+        {% endembed %}
+    {% endif %}
+
     {% if shop and total == 0 and not error and not success %}
         {# une boutique vide n'affiche rien : le composant reste monté pour apparaître dès la première annonce #}
     {% else %}
-        <section class="{{ shop ? 'flex flex-col' : 'px-6 pb-24 pt-8 lg:px-12' }}"{{ shop ? ' aria-labelledby="player-shop-title"' }}>
-            <div class="{{ shop ? '' : 'mx-auto max-w-7xl' }}">
-                {% if shop %}
-                    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                        <h2 id="player-shop-title" class="h2">Sa boutique</h2>
-                        <span class="muted" data-testid="player-shop-count">{{ total }} carte{{ total > 1 ? 's' }} en vente</span>
-                    </div>
-                {% else %}
-                    {{ _self.filters(this) }}
-                {% endif %}
+        <section class="{{ shop ? 'flex flex-col' : 'wrap flex flex-col gap-5 pb-24 pt-6 md:pt-8' }}"{{ shop ? ' aria-labelledby="player-shop-title"' : ' aria-label="Annonces"' }}>
+            {% if shop %}
+                <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <h2 id="player-shop-title" class="h2">Sa boutique</h2>
+                    <span class="muted" data-testid="player-shop-count">{{ total }} carte{{ total > 1 ? 's' }} en vente</span>
+                </div>
+            {% else %}
+                {{ _self.filters(this) }}
+            {% endif %}
 
-                {% if error %}
-                    <div class="mt-4 border border-magenta/50 bg-magenta/10 px-4 py-3 font-mono text-xs text-magenta" data-testid="market-error">⚠ {{ error }}</div>
-                {% elseif success %}
-                    <div class="mt-4 border border-live/50 bg-live/10 px-4 py-3 font-mono text-xs text-live" data-testid="market-success">✦ {{ success }}</div>
-                {% endif %}
+            {% if error %}
+                <div class="panel flash-msg flash-msg--err{{ shop ? ' mt-4' }}" role="alert" data-testid="market-error">⚠ {{ error }}</div>
+            {% elseif success %}
+                <div class="panel flash-msg flash-msg--ok{{ shop ? ' mt-4' }}" role="status" data-testid="market-success">✦ {{ success }}</div>
+            {% endif %}
 
-                {% if listings is empty %}
-                    <div class="mt-6 border border-dashed border-hairline px-8 py-16 text-center text-ink-dim" data-testid="market-empty">
-                        <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Rien en vente.</p>
-                        <p class="mt-3 text-sm">
-                            {% if total == 0 and (universe or rarity or finish or (wishlistOnly and not this.mineFilterActive)) %}
-                                Aucune annonce ne correspond à ces filtres.
-                            {% elseif this.mineFilterActive %}
-                                Tu n'as aucune carte en vente pour le moment.
-                            {% else %}
-                                Aucune carte n'est proposée pour le moment.
-                            {% endif %}
-                        </p>
-                        {% if this.mineFilterActive %}
-                            <a href="{{ path('market_my_shop') }}" class="btn-arcade mt-6 inline-flex" data-testid="market-empty-my-shop">Mettre une carte en vente ▸</a>
+            {% if not shop %}
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="muted text-[13px]" data-testid="market-count">{{ total }} annonce{{ total > 1 ? 's' }}</span>
+                    {{ _self.sort(this) }}
+                </div>
+            {% endif %}
+
+            {% if listings is empty %}
+                <div class="panel flex flex-col items-center gap-2.5 border-dashed px-6 py-14 text-center" data-testid="market-empty">
+                    <span class="d up text-lg text-ink-strong">Rien en vente</span>
+                    <span class="muted max-w-[46ch]">
+                        {% if total == 0 and this.hasActiveFilters and not this.mineFilterActive %}
+                            Aucune annonce ne correspond à ces filtres.
+                        {% elseif this.mineFilterActive %}
+                            Tu n'as aucune carte en vente pour le moment.
+                        {% else %}
+                            Aucune carte n'est proposée pour le moment.
                         {% endif %}
-                    </div>
-                {% else %}
-                    <div class="{{ shop ? 'mt-3.5 grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4' : 'mt-6 grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3 xl:grid-cols-4' }}" data-testid="market-grid">
-                        {% for listing in listings %}
-                            {% set card = listing.card %}
-                            {% set block = this.buyBlock(listing) %}
-                            {% set isConfirming = confirming == (listing.id ~ '') %}
-                            {% set own = not shop and this.isOwn(listing) %}
-                            <article class="relative flex min-w-0 flex-col border bg-surface {{ shop ? 'p-3 md:p-4' : 'p-3' }} {{ isConfirming ? 'border-primary/80 shadow-[0_0_16px_#a435f044]' : (own ? 'border-live/60 shadow-[0_0_14px_#5be58426]' : 'border-hairline') }}"
-                                     data-testid="market-listing" {{ own ? 'data-own-listing' }}>
-                                {% if listing.holo %}
-                                    <span class="chip-mono absolute -right-1.5 -top-1.5 z-10 bg-gradient-to-r from-primary to-magenta px-1.5 py-0.5 font-bold text-black">✦ Holo</span>
-                                {% endif %}
-                                {% if own %}
-                                    <span class="chip-mono absolute -left-1.5 -top-1.5 z-10 border border-live bg-black/90 px-2 py-1 font-bold text-live" data-testid="own-listing-badge">★ Ton annonce</span>
-                                {% elseif this.wishlistEnabled %}
-                                    <button type="button"
-                                            data-action="live#action" data-live-action-param="toggleWish" data-live-listing-id-param="{{ listing.id }}"
-                                            data-loading="addAttribute(disabled)"
-                                            aria-pressed="{{ this.isWished(listing) ? 'true' : 'false' }}"
-                                            aria-label="Ajouter ou retirer de ma wishlist"
-                                            data-testid="listing-wish"
-                                            class="chip-mono absolute -left-1.5 -top-1.5 z-10 border border-hairline bg-black/90 px-2 py-1 font-bold text-ink-dim transition-colors hover:text-magenta aria-pressed:border-magenta aria-pressed:text-magenta">
-                                        {{ this.isWished(listing) ? '♥' : '♡' }}
-                                    </button>
-                                {% endif %}
-                                <div class="mx-auto w-full {{ shop ? 'max-w-[64%]' : 'max-w-[13rem]' }}">
-                                    {{ include('components/CardComponent.html.twig', {
-                                        card: card,
-                                        holo: listing.holo,
-                                        interactive: false,
-                                        lazy: true,
-                                        id: 'market-' ~ listing.id,
-                                    }, with_context = false) }}
-                                </div>
-                                {% if shop %}
-                                    <span class="cn mt-3" title="{{ card.name }}">{{ card.name }}</span>
-                                    <span class="lbl mt-1 truncate"><span class="r-{{ card.rarity.value|first }}">{{ card.rarity.icon }} {{ card.rarity.label }}</span> · {{ card.extension.name }}</span>
-                                    {% if this.isOwnedByMe(listing) %}
-                                        <span class="muted mt-1 text-[13px]" data-testid="listing-owned">tu l'as déjà</span>
-                                    {% else %}
-                                        <span class="mt-1 text-[13px] text-live" data-testid="listing-missing">te manque</span>
-                                    {% endif %}
-                                {% else %}
-                                    <p class="mt-3 truncate font-display text-xs font-bold uppercase leading-tight text-ink-strong" title="{{ card.name }}">{{ card.name }}</p>
-                                    <p class="chip-mono mt-0.5 truncate" style="color: var(--rarity-{{ card.rarity.value }});">
-                                        {{ card.rarity.label }} · <span class="text-ink-dim">{{ card.extension.name }}</span>
-                                    </p>
-                                {% endif %}
-                                {% if own %}
-                                    <p class="chip-mono mt-1 truncate text-ink-dim">par <span class="text-live">toi</span></p>
-                                {% elseif not shop %}
-                                    <p class="chip-mono mt-1 truncate text-ink-dim">
-                                        par <a href="{{ path('leaderboard_player', { discordId: listing.seller.discordId }) }}" class="text-ink-muted hover:text-primary">{{ listing.seller.username }}</a>
-                                    </p>
-                                {% endif %}
-                                <p class="mt-2 font-display text-lg font-bold {{ shop ? 'text-ink-strong' : 'text-primary' }}" data-testid="listing-price">{{ coin_amount(listing.price) }} <span class="{{ shop ? 'lbl' : 'text-xs' }}">YLC</span></p>
-
-                                <div class="mt-3 flex flex-col gap-2 border-t border-hairline pt-3">
-                                    {% if own %}
-                                        <a href="{{ path('market_my_shop') }}" data-testid="listing-manage"
-                                           class="border border-live/60 px-3 py-2 text-center font-display text-xs font-bold uppercase tracking-[.12em] text-live transition hover:bg-live hover:text-black">
-                                            Gérer dans ma boutique
-                                        </a>
-                                    {% elseif block %}
-                                        <button type="button" disabled data-testid="listing-buy"
-                                                class="cursor-not-allowed border border-hairline px-3 py-2 font-mono text-[11px] uppercase tracking-[.1em] text-ink-dim">
-                                            {{ block }}
-                                        </button>
-                                    {% elseif isConfirming %}
-                                        <p class="text-xs text-ink-muted" data-testid="buy-confirmation">
-                                            {{ coin_amount(listing.price) }} YLC seront débités de ton solde, sans retour possible.
-                                        </p>
-                                        <div class="flex gap-2">
-                                            <button type="button" data-action="live#action" data-live-action-param="buy" data-live-listing-id-param="{{ listing.id }}"
-                                                    data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="listing-confirm"
-                                                    class="flex-1 border border-primary bg-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-black">
-                                                Confirmer
-                                            </button>
-                                            <button type="button" data-action="live#action" data-live-action-param="abortBuy" data-testid="listing-abort"
-                                                    class="border border-hairline px-3 py-2 font-mono text-[11px] uppercase tracking-[.1em] text-ink-dim hover:text-ink-strong">
-                                                Annuler
-                                            </button>
-                                        </div>
-                                    {% else %}
-                                        <button type="button" data-action="live#action" data-live-action-param="askBuy" data-live-listing-id-param="{{ listing.id }}"
-                                                data-testid="listing-buy"
-                                                class="{{ shop ? 'btn btn-s ' ~ (this.isOwnedByMe(listing) ? 'btn-g' : 'btn-p') : 'border border-primary bg-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary' }}">
-                                            Acheter
-                                        </button>
-                                    {% endif %}
-                                </div>
-                            </article>
-                        {% endfor %}
-                    </div>
-
-                    {% if pageCount > 1 %}
-                        <nav class="mt-10 flex items-center justify-center gap-4" aria-label="Pagination" data-testid="market-pagination">
-                            {{ _self.page_button(currentPage - 1, '◂ Précédent', currentPage <= 1, 'market-prev') }}
-                            <span class="chip-mono text-ink-muted">Page {{ currentPage }} / {{ pageCount }}</span>
-                            {{ _self.page_button(currentPage + 1, 'Suivant ▸', currentPage >= pageCount, 'market-next') }}
-                        </nav>
+                    </span>
+                    {% if this.mineFilterActive %}
+                        <a href="{{ path('market_my_shop') }}" class="btn btn-p btn-s mt-2" data-testid="market-empty-my-shop">Mettre une carte en vente</a>
+                    {% elseif this.hasActiveFilters %}
+                        <button type="button" class="tl mt-1" data-action="live#action" data-live-action-param="resetFilters">Tout effacer</button>
                     {% endif %}
+                </div>
+            {% else %}
+                <div class="market-grid{{ shop ? ' mt-3.5' }}" data-testid="market-grid">
+                    {% for listing in listings %}
+                        {{ _self.listing(this, listing, shop, confirming) }}
+                    {% endfor %}
+                </div>
+
+                {% if pageCount > 1 %}
+                    <nav class="mt-6 flex items-center justify-center gap-4" aria-label="Pagination" data-testid="market-pagination">
+                        {{ _self.page_button(currentPage - 1, '‹ Précédent', currentPage <= 1, 'market-prev') }}
+                        <span class="lbl">Page {{ currentPage }} / {{ pageCount }}</span>
+                        {{ _self.page_button(currentPage + 1, 'Suivant ›', currentPage >= pageCount, 'market-next') }}
+                    </nav>
                 {% endif %}
-            </div>
+            {% endif %}
         </section>
     {% endif %}
 </div>
 
+{% macro since(date) %}
+    {%- set days = (('now'|date('U') - date|date('U')) / 86400)|round(0, 'floor') -%}
+    {%- if days < 1 -%}en vente depuis aujourd'hui
+    {%- elseif days < 2 -%}en vente depuis 1 jour
+    {%- else -%}en vente depuis {{ days }} jours
+    {%- endif -%}
+{% endmacro %}
+
+{% macro listing(board, listing, shop, confirming) %}
+    {% set card = listing.card %}
+    {% set block = board.buyBlock(listing) %}
+    {% set isConfirming = confirming == (listing.id ~ '') %}
+    {% set own = not shop and board.isOwn(listing) %}
+    {% set owned = not own and board.isOwnedByMe(listing) %}
+    <article class="panel market-listing{{ own ? ' market-listing--own' }}{{ isConfirming ? ' hot market-listing--confirming' }}"
+             data-testid="market-listing" {{ own ? 'data-own-listing' }}>
+        <div class="market-listing__chips">
+            {% if own %}
+                <span class="chip chip-live" data-testid="own-listing-badge">★ Ton annonce</span>
+            {% endif %}
+            {% if listing.holo %}
+                <span class="chip chip-holo">✦ holo</span>
+            {% endif %}
+        </div>
+        {% if not own and board.wishlistEnabled %}
+            {% set wished = board.isWished(listing) %}
+            <button type="button" class="market-listing__wish"
+                    data-action="live#action" data-live-action-param="toggleWish" data-live-listing-id-param="{{ listing.id }}"
+                    data-loading="addAttribute(disabled)"
+                    aria-pressed="{{ wished ? 'true' : 'false' }}"
+                    aria-label="Ajouter ou retirer de ma wishlist"
+                    data-testid="listing-wish">{{ wished ? '♥' : '♡' }}</button>
+        {% endif %}
+        <div class="market-listing__art">
+            {{ include('components/CardComponent.html.twig', {
+                card: card,
+                holo: listing.holo,
+                interactive: false,
+                lazy: true,
+                id: 'market-' ~ listing.id,
+            }, with_context = false) }}
+        </div>
+        <span class="cn" title="{{ card.name }}" data-testid="listing-name">{{ card.name }}</span>
+        <span class="lbl truncate"><span class="r-{{ card.rarity.value|first }}">{{ card.rarity.icon }} {{ card.rarity.label }}</span> · {{ card.extension.name }}</span>
+        <span class="muted truncate text-[13px]">
+            {%- if own -%}
+                {{ _self.since(listing.createdAt) }}
+            {%- else -%}
+                {%- if not shop -%}
+                    par <a href="{{ path('leaderboard_player', { discordId: listing.seller.discordId }) }}">{{ listing.seller.username }}</a> ·
+                {% endif -%}
+                {%- if owned -%}
+                    <span data-testid="listing-owned">tu l'as déjà</span>
+                {%- else -%}
+                    <span class="text-live" data-testid="listing-missing">te manque</span>
+                {%- endif -%}
+            {%- endif -%}
+        </span>
+        <div class="market-listing__foot">
+            <span class="d market-listing__price" data-testid="listing-price">{{ coin_amount(listing.price) }} <span class="lbl">YLC</span></span>
+            {% if own %}
+                <a href="{{ path('market_my_shop') }}" class="btn btn-g btn-s" data-testid="listing-manage">Gérer</a>
+            {% elseif block %}
+                <button type="button" class="btn btn-g btn-s market-listing__blocked" disabled data-testid="listing-buy">{{ block }}</button>
+            {% elseif not isConfirming %}
+                <button type="button" class="btn btn-s {{ owned ? 'btn-g' : 'btn-p' }}"
+                        data-action="live#action" data-live-action-param="askBuy" data-live-listing-id-param="{{ listing.id }}"
+                        data-testid="listing-buy">Acheter</button>
+            {% endif %}
+        </div>
+        {% if isConfirming %}
+            <div class="market-listing__confirm">
+                <p class="muted text-xs" data-testid="buy-confirmation">{{ coin_amount(listing.price) }} YLC seront débités de ton solde, sans retour possible.</p>
+                <div class="flex gap-2">
+                    <button type="button" class="btn btn-g btn-s" data-action="live#action" data-live-action-param="abortBuy" data-testid="listing-abort">Annuler</button>
+                    <button type="button" class="btn btn-p btn-s flex-1"
+                            data-action="live#action" data-live-action-param="buy" data-live-listing-id-param="{{ listing.id }}"
+                            data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="listing-confirm">Confirmer</button>
+                </div>
+            </div>
+        {% endif %}
+    </article>
+{% endmacro %}
+
 {% macro page_button(target, label, disabled, testid) %}
-    <button type="button"
+    <button type="button" class="btn btn-g btn-s"
             data-action="live#action"
             data-live-action-param="goToPage"
             data-live-page-param="{{ target }}"
             data-loading="addAttribute(disabled) addClass(opacity-50)"
             data-testid="{{ testid }}"
-            {{ disabled ? 'disabled' }}
-            class="border border-hairline px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-muted transition-colors enabled:hover:border-primary enabled:hover:text-primary disabled:opacity-30">
-        {{ label }}
-    </button>
+            {{ disabled ? 'disabled' }}>{{ label }}</button>
 {% endmacro %}
 
 {% macro filters(board) %}
-    <div class="flex flex-col gap-4" data-testid="market-filters">
-        <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrer par univers">
-            <button type="button" class="filter-chip {{ board.universe ? '' : 'is-active' }}"
-                    data-action="live#action" data-live-action-param="filterUniverse" data-live-slug-param=""
-                    data-testid="universe-chip-all">
-                Tous les univers
-            </button>
+    {% set activeExtension = board.activeExtension %}
+    {% set activeRarity = board.activeRarity %}
+    <div class="panel market-filters" data-testid="market-filters">
+        <label for="market-q" class="sr">Chercher une carte</label>
+        <input id="market-q" class="field market-filters__q" type="search" placeholder="Chercher une carte…" autocomplete="off"
+               data-model="debounce(300)|query" value="{{ board.query }}" data-testid="filter-search">
+        <label for="market-universe" class="sr">Univers</label>
+        <select id="market-universe" data-model="universe" class="dd dd-select{{ activeExtension ? ' on' }}" data-testid="filter-universe">
+            <option value="">Univers : tous</option>
             {% for extension in board.universeChips %}
-                <button type="button" class="filter-chip {{ board.universe == extension.slug ? 'is-active' }}"
-                        data-action="live#action" data-live-action-param="filterUniverse" data-live-slug-param="{{ extension.slug }}"
-                        data-testid="universe-chip">
-                    {{ extension.name }}
-                </button>
+                <option value="{{ extension.slug }}" {{ activeExtension and activeExtension.slug == extension.slug ? 'selected' }}>{{ extension.name }}</option>
             {% endfor %}
-        </div>
-        <div class="flex flex-wrap items-end gap-4">
-            <label class="flex flex-col gap-1">
-                <span class="chip-mono text-ink-dim">Rareté</span>
-                <select data-model="rarity" class="border border-hairline bg-surface px-3 py-2 font-mono text-xs text-ink" data-testid="filter-rarity">
-                    <option value="">Toutes</option>
-                    {% for rarity in board.rarities %}
-                        <option value="{{ rarity.value }}" {{ board.rarity == rarity.value ? 'selected' }}>{{ rarity.label }}</option>
-                    {% endfor %}
-                </select>
-            </label>
-            <label class="flex flex-col gap-1">
-                <span class="chip-mono text-ink-dim">Finition</span>
-                <select data-model="finish" class="border border-hairline bg-surface px-3 py-2 font-mono text-xs text-ink" data-testid="filter-finish">
-                    <option value="">Toutes</option>
-                    <option value="normal" {{ board.finish == 'normal' ? 'selected' }}>Normale</option>
-                    <option value="holo" {{ board.finish == 'holo' ? 'selected' }}>Holo</option>
-                </select>
-            </label>
-            <label class="flex flex-col gap-1">
-                <span class="chip-mono text-ink-dim">Tri</span>
-                <select data-model="sort" class="border border-hairline bg-surface px-3 py-2 font-mono text-xs text-ink" data-testid="filter-sort">
-                    {% for value, label in { date_desc: 'Plus récentes', date_asc: 'Plus anciennes', price_asc: 'Prix croissant', price_desc: 'Prix décroissant' } %}
-                        <option value="{{ value }}" {{ board.activeSort == value ? 'selected' }}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </label>
-            <button type="button" class="filter-chip {{ board.mineFilterActive ? 'is-active' }}"
-                    data-action="live#action" data-live-action-param="toggleMineFilter"
-                    aria-pressed="{{ board.mineFilterActive ? 'true' : 'false' }}"
-                    data-testid="filter-mine">
-                ★ Mes annonces <span class="filter-chip__count">{{ '%02d'|format(board.mineTotal) }}</span>
-            </button>
-            {% if board.wishlistEnabled %}
-                <button type="button" class="filter-chip {{ board.wishlistOnly ? 'is-active' }}"
-                        data-action="live#action" data-live-action-param="toggleWishlistFilter"
-                        aria-pressed="{{ board.wishlistOnly ? 'true' : 'false' }}"
-                        data-testid="filter-wishlist">
-                    ♡ Ma wishlist
-                </button>
-                <a href="{{ path('wishlist') }}" class="chip-mono text-ink-dim hover:text-primary" data-testid="wishlist-page-link">Gérer ▸</a>
-            {% endif %}
-            {% if board.universe or board.rarity or board.finish or board.wishlistOnly or board.mineFilterActive %}
-                <button type="button" data-action="live#action" data-live-action-param="resetFilters" data-testid="reset-filters"
-                        class="chip-mono text-ink-dim hover:text-primary">Réinitialiser ✕</button>
-            {% endif %}
-        </div>
+        </select>
+        <label for="market-rarity" class="sr">Rareté</label>
+        <select id="market-rarity" data-model="rarity" class="dd dd-select{{ activeRarity ? ' on' }}" data-testid="filter-rarity">
+            <option value="">Rareté : toutes</option>
+            {% for rarity in board.rarities %}
+                <option value="{{ rarity.value }}" {{ activeRarity == rarity ? 'selected' }}>{{ rarity.icon }} {{ rarity.label }}</option>
+            {% endfor %}
+        </select>
+        <label for="market-finish" class="sr">Finition</label>
+        <select id="market-finish" data-model="finish" class="dd dd-select{{ board.finish in ['normal', 'holo'] ? ' on' }}" data-testid="filter-finish">
+            <option value="">Finition : toutes</option>
+            <option value="normal" {{ board.finish == 'normal' ? 'selected' }}>Normale</option>
+            <option value="holo" {{ board.finish == 'holo' ? 'selected' }}>✦ Holo</option>
+        </select>
+        <button type="button" class="seg{{ board.missingFilterActive ? ' on' }}"
+                data-action="live#action" data-live-action-param="toggleMissingFilter"
+                aria-pressed="{{ board.missingFilterActive ? 'true' : 'false' }}"
+                data-testid="filter-missing">Me manquent</button>
+        {% if board.wishlistEnabled %}
+            <button type="button" class="seg{{ board.wishlistOnly ? ' on' }}"
+                    data-action="live#action" data-live-action-param="toggleWishlistFilter"
+                    aria-pressed="{{ board.wishlistOnly ? 'true' : 'false' }}"
+                    data-testid="filter-wishlist">♡ Ma wishlist</button>
+        {% endif %}
+        <button type="button" class="seg{{ board.mineFilterActive ? ' on' }}"
+                data-action="live#action" data-live-action-param="toggleMineFilter"
+                aria-pressed="{{ board.mineFilterActive ? 'true' : 'false' }}"
+                data-testid="filter-mine">★ Mes annonces <span class="filter-chip__count">{{ '%02d'|format(board.mineTotal) }}</span></button>
+        {% if board.hasActiveFilters %}
+            <button type="button" class="tl" data-action="live#action" data-live-action-param="resetFilters" data-testid="reset-filters">Tout effacer</button>
+        {% endif %}
     </div>
+{% endmacro %}
+
+{% macro sort(board) %}
+    <span>
+        <label for="market-sort" class="sr">Tri</label>
+        <select id="market-sort" data-model="sort" class="dd dd-select" data-testid="filter-sort">
+            {% for value, label in { date_desc: 'Tri : plus récentes', date_asc: 'Tri : plus anciennes', price_asc: 'Tri : prix croissant', price_desc: 'Tri : prix décroissant' } %}
+                <option value="{{ value }}" {{ board.activeSort == value ? 'selected' }}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </span>
 {% endmacro %}

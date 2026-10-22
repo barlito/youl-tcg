@@ -51,6 +51,8 @@ final class NotificationBellComponentTest extends WebTestCase
         $this->assertStringContainsString('Barlito a tiré une carte unique dans Cosmos', $items->eq(0)->text());
         $this->assertStringContainsString('Palier de série 7 jours atteint', $items->eq(1)->text());
         $this->assertCount(2, $crawler->filter('[data-testid="notification-item"][data-unread]'));
+        $this->assertSame('Nouveau', trim($crawler->filter('.bell-panel__group')->first()->text()));
+        $this->assertCount(2, $crawler->filter('[data-testid="notification-item"] .bell-item__cta'), 'Unread entries with a link announce it.');
     }
 
     public function testMarkAllReadClearsTheBadge(): void
@@ -66,6 +68,8 @@ final class NotificationBellComponentTest extends WebTestCase
         $this->assertCount(0, $crawler->filter('[data-testid="notification-badge"]'));
         $this->assertCount(0, $crawler->filter('[data-testid="notification-item"][data-unread]'));
         $this->assertCount(2, $crawler->filter('[data-testid="notification-item"]'), 'Read entries stay listed.');
+        $groups = $crawler->filter('.bell-panel__group')->each(static fn ($node): string => trim($node->text()));
+        $this->assertSame('Plus tôt', end($groups), 'Read entries move under « Plus tôt » (the daily boosters entry stays « Nouveau »).');
     }
 
     public function testOpeningAnEntryMarksItReadAndFollowsItsLink(): void

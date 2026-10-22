@@ -6,8 +6,10 @@ namespace App\Twig\Components;
 
 use App\Entity\Card;
 use App\Entity\DiscordUser;
+use App\Entity\Extension;
 use App\Entity\MarketListing;
 use App\Entity\MarketPurchase;
+use App\Enum\Entity\CardRarityEnum;
 use App\Exception\Market\MarketException;
 use App\Repository\CardRepository;
 use App\Repository\MarketListingRepository;
@@ -51,8 +53,29 @@ final class MyShop extends AbstractController
     #[LiveProp(writable: true)]
     public string $search = '';
 
+    #[LiveProp(writable: true)]
+    public string $universe = '';
+
+    #[LiveProp(writable: true)]
+    public string $rarity = '';
+
+    #[LiveProp(writable: true)]
+    public string $finish = '';
+
+    #[LiveProp(writable: true)]
+    public bool $duplicatesOnly = false;
+
+    #[LiveProp(writable: true)]
+    public string $sort = 'copies';
+
     /** @var list<array{card: Card, normal: int, holo: int}>|null */
     private ?array $sellable = null;
+
+    /** @var list<array{card: Card, finish: string, copies: int, cardCopies: int}>|null */
+    private ?array $rows = null;
+
+    /** @var array<string, int>|null */
+    private ?array $lastSales = null;
 
     private bool $reconciled = false;
 
@@ -78,20 +101,90 @@ final class MyShop extends AbstractController
         return MarketListingService::MAX_ACTIVE_LISTINGS;
     }
 
-    /** @return list<array{card: Card, normal: int, holo: int}> */
+    /**
+     * One row per (card, finish) with free copies, filtered and sorted, capped at SELLABLE_LIMIT.
+     *
+     * @return list<array{card: Card, finish: string, copies: int, cardCopies: int}>
+     */
     public function getSellable(): array
     {
-        $needle = mb_trim(mb_strtolower($this->search));
-
-        return \array_slice(array_values(array_filter(
-            $this->allSellable(),
-            static fn (array $copy): bool => '' === $needle || str_contains(mb_strtolower($copy['card']->getName()), $needle),
-        )), 0, self::SELLABLE_LIMIT);
+        return \array_slice($this->getFilteredRows(), 0, self::SELLABLE_LIMIT);
     }
 
+    public function getMatchingCount(): int
+    {
+        return \count($this->getFilteredRows());
+    }
+
+    /** Sellable (card, finish) rows before any filter. */
     public function getSellableCount(): int
     {
-        return \count($this->allSellable());
+        return array_sum(array_map(static fn (array $copy): int => ($copy['normal'] > 0 ? 1 : 0) + ($copy['holo'] > 0 ? 1 : 0), $this->allSellable()));
+    }
+
+    /**
+     * Universes holding sellable copies, with their count of cards, by name.
+     *
+     * @return list<array{extension: Extension, count: int}>
+     */
+    public function getUniverseOptions(): array
+    {
+        $options = [];
+        foreach ($this->allSellable() as $copy) {
+            $extension = $copy['card']->getExtension();
+            if (!$extension instanceof Extension) {
+                continue;
+            }
+
+            $options[(string) $extension->getId()] ??= ['extension' => $extension, 'count' => 0];
+            ++$options[(string) $extension->getId()]['count'];
+        }
+
+        $options = array_values($options);
+        usort($options, static fn (array $a, array $b): int => $a['extension']->getName() <=> $b['extension']->getName());
+
+        return $options;
+    }
+
+    /** @return list<CardRarityEnum> */
+    public function getRarities(): array
+    {
+        return array_reverse(CardRarityEnum::ascending());
+    }
+
+    public function hasActiveFilters(): bool
+    {
+        return '' !== mb_trim($this->search) || '' !== $this->universe || $this->getActiveRarity() instanceof CardRarityEnum
+            || \in_array($this->finish, ['normal', 'holo'], true) || $this->duplicatesOnly;
+    }
+
+    /**
+     * Price of the last concluded market sale of this card in this finish, null when never sold.
+     */
+    public function lastSale(Card $card, string $finish): ?int
+    {
+        if (null === $this->lastSales) {
+            $cardIds = array_values(array_unique(array_map(static fn (array $row): string => (string) $row['card']->getId(), $this->getSellable())));
+            $this->lastSales = $this->purchaseRepository->findLastSalePrices($cardIds);
+        }
+
+        return $this->lastSales[$card->getId() . '|' . $finish] ?? null;
+    }
+
+    #[LiveAction]
+    public function toggleDuplicates(): void
+    {
+        $this->duplicatesOnly = !$this->duplicatesOnly;
+    }
+
+    #[LiveAction]
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->universe = '';
+        $this->rarity = '';
+        $this->finish = '';
+        $this->duplicatesOnly = false;
     }
 
     /** @return list<MarketPurchase> */
@@ -199,7 +292,57 @@ final class MyShop extends AbstractController
             $this->selling = null;
             $this->sellPrice = '';
             $this->sellable = null;
+            $this->rows = null;
+            $this->lastSales = null;
         }
+    }
+
+    /** @return list<array{card: Card, finish: string, copies: int, cardCopies: int}> */
+    private function getFilteredRows(): array
+    {
+        if (null !== $this->rows) {
+            return $this->rows;
+        }
+
+        $rows = [];
+
+        foreach ($this->allSellable() as $copy) {
+            $card = $copy['card'];
+            if (!$this->matchesFilters($card, $copy['normal'] + $copy['holo'])) {
+                continue;
+            }
+
+            foreach (['normal', 'holo'] as $finish) {
+                if ($copy[$finish] > 0 && \in_array($this->finish, ['', $finish], true)) {
+                    $rows[] = ['card' => $card, 'finish' => $finish, 'copies' => $copy[$finish], 'cardCopies' => $copy['normal'] + $copy['holo']];
+                }
+            }
+        }
+
+        usort($rows, match ($this->sort) {
+            'rarity' => static fn (array $a, array $b): int => CardRarityEnum::compareRarestFirst($a['card']->getRarity(), $b['card']->getRarity())
+                ?: $a['card']->getName() <=> $b['card']->getName(),
+            'name' => static fn (array $a, array $b): int => $a['card']->getName() <=> $b['card']->getName() ?: $a['finish'] <=> $b['finish'],
+            default => static fn (array $a, array $b): int => $b['copies'] <=> $a['copies'] ?: $a['card']->getName() <=> $b['card']->getName(),
+        });
+
+        return $this->rows = $rows;
+    }
+
+    private function matchesFilters(Card $card, int $freeCopies): bool
+    {
+        $needle = mb_strtolower(mb_trim($this->search));
+        $rarity = $this->getActiveRarity();
+
+        return ('' === $needle || str_contains(mb_strtolower($card->getName()), $needle))
+            && ('' === $this->universe || $card->getExtension()?->getSlug() === $this->universe)
+            && (!$rarity instanceof CardRarityEnum || $card->getRarity() === $rarity)
+            && (!$this->duplicatesOnly || $freeCopies >= 2);
+    }
+
+    private function getActiveRarity(): ?CardRarityEnum
+    {
+        return CardRarityEnum::tryFrom($this->rarity);
     }
 
     /** @return list<array{card: Card, normal: int, holo: int}> */

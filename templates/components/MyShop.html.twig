@@ -3,189 +3,251 @@
     {% set listings = this.listings %}
     {% set sellable = this.sellable %}
     {% set history = this.history %}
+    {% set max = this.maxListings %}
     <main>
-        <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
-            <div class="glow-ambient" aria-hidden="true"></div>
-            <div class="relative mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-end md:justify-between">
-                <div>
-                    <p class="eyebrow">05 / Marché</p>
-                    <h1 class="mt-2 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">Ma boutique</h1>
-                    <p class="mt-2 max-w-lg text-sm text-ink-muted">
-                        Mets jusqu'à {{ this.maxListings }} cartes en vente à ton prix. Une carte en vente est réservée :
-                        elle ne peut être ni échangée ni recyclée. Tu reçois le prix moins la commission de la banque.
-                    </p>
+        {% embed 'parts/ui/_page_header.html.twig' with {
+            title: 'Ma boutique',
+            lead: 'Jusqu\'à ' ~ max ~ ' cartes en vente à ton prix. Une carte en vente est réservée : ni échangeable, ni recyclable. Tu reçois le prix moins la commission.',
+        } %}
+            {% block aside %}
+                <a href="{{ path('market') }}" class="lbl order-first no-underline" data-testid="back-to-market">‹ Marché</a>
+            {% endblock %}
+        {% endembed %}
+
+        <div class="wrap flex flex-col gap-10 pb-24 pt-6 md:pt-8">
+            {% if error %}
+                <div class="panel flash-msg flash-msg--err" role="alert" data-testid="shop-error">⚠ {{ error }}</div>
+            {% elseif success %}
+                <div class="panel flash-msg flash-msg--ok" role="status" data-testid="shop-success">✦ {{ success }}</div>
+            {% endif %}
+
+            {# ------------------------------------------------ En vente #}
+            <section aria-labelledby="shop-sale" class="flex flex-col gap-3.5">
+                <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <h2 id="shop-sale" class="h2">En vente</h2>
+                    <span class="muted" data-testid="quota">{{ listings|length }} / {{ max }} emplacements</span>
                 </div>
-                <div class="flex items-center gap-4">
-                    <span class="chip-mono border border-primary bg-black px-3 py-2 font-bold text-primary" data-testid="quota">
-                        {{ listings|length }}/{{ this.maxListings }} annonces
-                    </span>
-                    <a href="{{ path('market') }}" class="btn-ghost">◂ Le marché</a>
-                </div>
-            </div>
-        </section>
-
-        {% if error or success %}
-            <div class="mx-auto mt-6 max-w-7xl px-6 lg:px-12">
-                {% if error %}
-                    <div class="border border-magenta/50 bg-magenta/10 px-4 py-3 font-mono text-xs text-magenta" data-testid="shop-error">⚠ {{ error }}</div>
-                {% else %}
-                    <div class="border border-live/50 bg-live/10 px-4 py-3 font-mono text-xs text-live" data-testid="shop-success">✦ {{ success }}</div>
-                {% endif %}
-            </div>
-        {% endif %}
-
-        {# ------------------------------------------------ Mes annonces #}
-        <section class="px-6 py-10 lg:px-12">
-            <div class="mx-auto max-w-7xl">
-                <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">En vente <span class="text-primary">{{ '%02d'|format(listings|length) }}</span></h2>
-
-                {% if listings is empty %}
-                    <div class="mt-4 border border-dashed border-hairline px-8 py-12 text-center text-ink-dim" data-testid="no-listings">
-                        <p class="text-sm">Aucune annonce. Choisis une carte ci-dessous pour la mettre en vente.</p>
-                    </div>
-                {% else %}
-                    <div class="mt-4 grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3" data-testid="my-listings">
-                        {% for listing in listings %}
-                            {% set card = listing.card %}
-                            {% set busy = listing.status.value == 'reserved_for_purchase' %}
-                            <article class="relative flex flex-col border border-hairline bg-surface p-3" data-testid="my-listing">
-                                {% if listing.holo %}
-                                    <span class="chip-mono absolute -right-1.5 -top-1.5 z-10 bg-gradient-to-r from-primary to-magenta px-1.5 py-0.5 font-bold text-black">✦ Holo</span>
-                                {% endif %}
-                                <div class="mx-auto w-full max-w-[13rem]">
-                                    {{ include('components/CardComponent.html.twig', {
-                                        card: card, holo: listing.holo, interactive: false, lazy: true, id: 'shop-' ~ listing.id,
-                                    }, with_context = false) }}
-                                </div>
-                                <p class="mt-3 truncate font-display text-xs font-bold uppercase leading-tight text-ink-strong" title="{{ card.name }}">{{ card.name }}</p>
-                                <p class="chip-mono mt-0.5" style="color: var(--rarity-{{ card.rarity.value }});">{{ card.rarity.label }}</p>
-
+                <div class="shop-slots" data-testid="my-listings">
+                    {% for listing in listings %}
+                        {% set card = listing.card %}
+                        {% set busy = listing.status.value == 'reserved_for_purchase' %}
+                        <article class="panel hot shop-slot" data-testid="my-listing">
+                            {{ include('parts/ui/_card_thumb.html.twig', { card: card, holo: listing.holo }, with_context = false) }}
+                            <div class="flex min-w-0 flex-col gap-1.5">
+                                <span class="cn" title="{{ card.name }}">{{ card.name }}</span>
+                                <span class="lbl r-{{ card.rarity.value|first }} truncate">{{ card.rarity.icon }} {{ card.rarity.label }} · {{ card.extension.name }}{% if listing.holo %} <span class="text-magenta">· ✦ holo</span>{% endif %}</span>
                                 {% if editingId == (listing.id ~ '') %}
-                                    <div class="mt-3 flex flex-col gap-2 border-t border-hairline pt-3">
-                                        <label class="chip-mono text-ink-dim" for="edit-price-{{ listing.id }}">Nouveau prix (YLC)</label>
-                                        <input id="edit-price-{{ listing.id }}" type="text" inputmode="numeric" data-model="editPrice" value="{{ editPrice }}"
-                                               data-testid="edit-price"
-                                               class="border border-hairline bg-bg px-3 py-2 font-mono text-sm text-ink">
-                                        <div class="flex gap-2">
-                                            <button type="button" data-action="live#action" data-live-action-param="savePrice" data-live-listing-id-param="{{ listing.id }}"
-                                                    data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="save-price"
-                                                    class="flex-1 border border-primary bg-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-black">Enregistrer</button>
-                                            <button type="button" data-action="live#action" data-live-action-param="cancelEdit"
-                                                    class="border border-hairline px-3 py-2 font-mono text-[11px] uppercase tracking-[.1em] text-ink-dim hover:text-ink-strong">Annuler</button>
-                                        </div>
-                                    </div>
+                                    <label class="lbl" for="edit-price-{{ listing.id }}">Nouveau prix (YLC)</label>
+                                    <input id="edit-price-{{ listing.id }}" class="field w-full" type="text" inputmode="numeric"
+                                           data-model="editPrice" value="{{ editPrice }}" data-testid="edit-price">
+                                    <span class="mt-auto flex gap-2">
+                                        <button type="button" class="btn btn-p btn-s flex-1"
+                                                data-action="live#action" data-live-action-param="savePrice" data-live-listing-id-param="{{ listing.id }}"
+                                                data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="save-price">Enregistrer</button>
+                                        <button type="button" class="btn btn-g btn-s" data-action="live#action" data-live-action-param="cancelEdit">Annuler</button>
+                                    </span>
                                 {% else %}
-                                    <p class="mt-2 font-display text-lg font-bold text-primary" data-testid="my-listing-price">{{ coin_amount(listing.price) }} <span class="text-xs">YLC</span></p>
+                                    <span class="d text-2xl text-ink-strong" data-testid="my-listing-price">{{ coin_amount(listing.price) }} <span class="lbl">YLC</span></span>
                                     {% if busy %}
-                                        <p class="chip-mono mt-1 text-soon" data-testid="listing-busy">⏳ Achat en cours de vérification</p>
+                                        <span class="text-xs text-soon" data-testid="listing-busy">⏳ Achat en cours de vérification</span>
+                                    {% else %}
+                                        <span class="muted text-xs">commission déduite à la vente · {{ _self.since(listing.createdAt) }}</span>
                                     {% endif %}
-                                    <div class="mt-3 flex gap-2 border-t border-hairline pt-3">
-                                        <button type="button" data-action="live#action" data-live-action-param="startEdit" data-live-listing-id-param="{{ listing.id }}"
-                                                data-testid="edit-listing" {{ busy ? 'disabled' }}
-                                                class="flex-1 border border-hairline px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-muted transition-colors enabled:hover:border-primary enabled:hover:text-primary disabled:opacity-30">Prix</button>
-                                        <button type="button" data-action="live#action" data-live-action-param="withdraw" data-live-listing-id-param="{{ listing.id }}"
-                                                data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="withdraw-listing" {{ busy ? 'disabled' }}
-                                                class="flex-1 border border-hairline px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-muted transition-colors enabled:hover:border-magenta enabled:hover:text-magenta disabled:opacity-30">Retirer</button>
-                                    </div>
+                                    <span class="mt-auto flex gap-2">
+                                        <button type="button" class="btn btn-g btn-s flex-1"
+                                                data-action="live#action" data-live-action-param="startEdit" data-live-listing-id-param="{{ listing.id }}"
+                                                data-testid="edit-listing" {{ busy ? 'disabled' }}>Prix</button>
+                                        <button type="button" class="btn btn-x btn-s"
+                                                data-action="live#action" data-live-action-param="withdraw" data-live-listing-id-param="{{ listing.id }}"
+                                                data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="withdraw-listing" {{ busy ? 'disabled' }}>Retirer</button>
+                                    </span>
                                 {% endif %}
-                            </article>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-        </section>
+                            </div>
+                        </article>
+                    {% endfor %}
+                    {% for i in (listings|length < max ? range(1, max - listings|length) : []) %}
+                        <a href="#vendre" class="panel shop-slot--empty" data-testid="{{ listings is empty and loop.first ? 'no-listings' : 'empty-slot' }}">
+                            <span class="d text-[28px] text-primary" aria-hidden="true">+</span>
+                            <span class="lbl text-ink">Mettre une carte en vente</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </section>
 
-        {# ------------------------------------------- Mettre en vente #}
-        <section class="border-t border-hairline px-6 py-10 lg:px-12">
-            <div class="mx-auto max-w-7xl">
-                <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">Mettre en vente</h2>
+            {# ------------------------------------------- Mettre en vente #}
+            <section id="vendre" aria-labelledby="shop-sell" class="flex scroll-mt-24 flex-col gap-3.5">
+                <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <h2 id="shop-sell" class="h2">Mettre en vente</h2>
+                    {% if this.sellableCount > 0 %}
+                        <span class="muted" data-testid="sellable-count">{{ this.matchingCount }} carte{{ this.matchingCount > 1 ? 's' }} sur {{ this.sellableCount }} vendable{{ this.sellableCount > 1 ? 's' }}</span>
+                    {% endif %}
+                </div>
 
                 {% if not this.canPublish %}
-                    <p class="mt-3 text-sm text-ink-muted" data-testid="quota-reached">Tu as atteint la limite de {{ this.maxListings }} annonces : retires-en une pour en publier une autre.</p>
+                    <p class="panel flash-msg text-soon" data-testid="quota-reached">Tu as atteint la limite de {{ max }} annonces : retires-en une pour en publier une autre.</p>
                 {% elseif this.sellableCount == 0 %}
-                    <div class="mt-4 border border-dashed border-hairline px-8 py-12 text-center text-ink-dim" data-testid="nothing-sellable">
-                        <p class="text-sm">Aucune carte disponible : les copies engagées dans un échange ou déjà en vente ne comptent pas.</p>
+                    <div class="panel flex flex-col items-center gap-2 border-dashed px-6 py-12 text-center" data-testid="nothing-sellable">
+                        <span class="muted">Aucune carte disponible : les copies engagées dans un échange ou déjà en vente ne comptent pas.</span>
                     </div>
                 {% else %}
-                    <label class="mt-4 flex max-w-sm flex-col gap-1">
-                        <span class="chip-mono text-ink-dim">Chercher une carte</span>
-                        <input type="search" data-model="debounce(250)|search" value="{{ search }}" data-testid="sell-search" placeholder="Nom de la carte"
-                               class="border border-hairline bg-surface px-3 py-2 font-mono text-sm text-ink">
-                    </label>
+                    <div class="panel shop-filters">
+                        <div class="shop-filters__row">
+                            <label for="sell-q" class="sr">Chercher une carte</label>
+                            <input id="sell-q" class="field shop-filters__q" type="search" placeholder="Chercher une carte…" autocomplete="off"
+                                   data-model="debounce(250)|search" value="{{ search }}" data-testid="sell-search">
+                            <label for="sell-universe" class="sr">Univers</label>
+                            <select id="sell-universe" data-model="universe" class="dd dd-select{{ universe ? ' on' }}" data-testid="sell-universe">
+                                <option value="">Univers : tous</option>
+                                {% for option in this.universeOptions %}
+                                    <option value="{{ option.extension.slug }}" {{ universe == option.extension.slug ? 'selected' }}>{{ option.extension.name }} · {{ option.count }}</option>
+                                {% endfor %}
+                            </select>
+                            <label for="sell-rarity" class="sr">Rareté</label>
+                            <select id="sell-rarity" data-model="rarity" class="dd dd-select{{ rarity ? ' on' }}" data-testid="sell-rarity">
+                                <option value="">Rareté : toutes</option>
+                                {% for option in this.rarities %}
+                                    <option value="{{ option.value }}" {{ rarity == option.value ? 'selected' }}>{{ option.icon }} {{ option.label }}</option>
+                                {% endfor %}
+                            </select>
+                            <label for="sell-finish" class="sr">Finition</label>
+                            <select id="sell-finish" data-model="finish" class="dd dd-select{{ finish ? ' on' }}" data-testid="sell-finish">
+                                <option value="">Finition : toutes</option>
+                                <option value="normal" {{ finish == 'normal' ? 'selected' }}>Normale</option>
+                                <option value="holo" {{ finish == 'holo' ? 'selected' }}>✦ Holo</option>
+                            </select>
+                            <button type="button" class="seg{{ duplicatesOnly ? ' on' }}" aria-pressed="{{ duplicatesOnly ? 'true' : 'false' }}"
+                                    data-action="live#action" data-live-action-param="toggleDuplicates" data-testid="sell-duplicates">Doublons seulement</button>
+                            <label for="sell-sort" class="sr">Tri</label>
+                            <select id="sell-sort" data-model="sort" class="dd dd-select" data-testid="sell-sort">
+                                {% for value, label in { copies: 'Tri : exemplaires', rarity: 'Tri : rareté', name: 'Tri : nom' } %}
+                                    <option value="{{ value }}" {{ sort == value ? 'selected' }}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            {% if this.hasActiveFilters %}
+                                <button type="button" class="tl" data-action="live#action" data-live-action-param="resetFilters" data-testid="sell-reset">Tout effacer</button>
+                            {% endif %}
+                            <span class="muted text-[13px] md:ml-auto">Les cartes déjà en vente ou engagées dans un échange n'apparaissent pas</span>
+                        </div>
+                    </div>
 
-                    <ul class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3" data-testid="sellable-list">
-                        {% for copy in sellable %}
-                            {% for finish in ['normal', 'holo'] %}
-                                {% set available = copy[finish] %}
-                                {% if available > 0 %}
-                                    {% set key = copy.card.id ~ '|' ~ finish %}
-                                    <li class="border bg-surface px-4 py-3 {{ selling == key ? 'border-primary/80' : 'border-hairline' }}" data-testid="sellable">
-                                        <div class="flex items-center justify-between gap-3">
-                                            <div class="min-w-0">
-                                                <p class="truncate font-display text-sm font-bold uppercase text-ink-strong" title="{{ copy.card.name }}">{{ copy.card.name }}</p>
-                                                <p class="chip-mono" style="color: var(--rarity-{{ copy.card.rarity.value }});">
-                                                    {{ copy.card.rarity.label }} · <span class="{{ finish == 'holo' ? 'text-magenta' : 'text-ink-muted' }}">{{ finish == 'holo' ? '✦ Holo' : 'Normale' }}</span> · ×{{ available }}
-                                                </p>
-                                            </div>
+                    <div class="panel overflow-x-auto">
+                        <table class="tbl shop-table" data-testid="sellable-list">
+                            <thead>
+                                <tr>
+                                    <th>Carte</th>
+                                    <th class="max-md:hidden">Rareté</th>
+                                    <th class="max-md:hidden">Finition</th>
+                                    <th class="num">Exemplaires</th>
+                                    <th class="num max-md:hidden">Dernière vente</th>
+                                    <th class="shop-table__action"><span class="sr">Action</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in sellable %}
+                                    {% set card = row.card %}
+                                    {% set key = card.id ~ '|' ~ row.finish %}
+                                    {% set lastSale = this.lastSale(card, row.finish) %}
+                                    <tr class="{{ selling == key ? 'me' }}" data-testid="sellable">
+                                        <td>
+                                            <strong class="text-ink-strong">{{ card.name }}</strong> <span class="muted">· {{ card.extension.name }}</span>
+                                            <span class="lbl mt-1 block md:hidden"><span class="r-{{ card.rarity.value|first }}">{{ card.rarity.icon }} {{ card.rarity.label }}</span>{% if row.finish == 'holo' %} <span class="text-magenta">· ✦ holo</span>{% endif %}</span>
+                                        </td>
+                                        <td class="r-{{ card.rarity.value|first }} max-md:hidden">{{ card.rarity.icon }} {{ card.rarity.label }}</td>
+                                        <td class="max-md:hidden{{ row.finish == 'holo' ? ' text-magenta' }}">{{ row.finish == 'holo' ? '✦ holo' : 'normale' }}</td>
+                                        <td class="num">×{{ row.copies }}</td>
+                                        <td class="num max-md:hidden{{ lastSale is null ? ' muted' }}" data-testid="last-sale">{{ lastSale is null ? '—' : coin_amount(lastSale) ~ ' YLC' }}</td>
+                                        <td class="shop-table__action">
                                             {% if selling != key %}
-                                                <button type="button" data-action="live#action" data-live-action-param="startSelling"
-                                                        data-live-card-id-param="{{ copy.card.id }}" data-live-finish-param="{{ finish }}"
-                                                        data-testid="sell-copy"
-                                                        class="shrink-0 border border-primary bg-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary">Vendre</button>
+                                                <button type="button" class="btn btn-p btn-s"
+                                                        data-action="live#action" data-live-action-param="startSelling"
+                                                        data-live-card-id-param="{{ card.id }}" data-live-finish-param="{{ row.finish }}"
+                                                        data-testid="sell-copy">Vendre</button>
                                             {% endif %}
-                                        </div>
-                                        {% if selling == key %}
-                                            <div class="mt-3 flex flex-col gap-2 border-t border-hairline pt-3">
-                                                <label class="chip-mono text-ink-dim" for="sell-price">Prix (YLC, entier)</label>
-                                                <input id="sell-price" type="text" inputmode="numeric" data-model="sellPrice" value="{{ sellPrice }}" data-testid="sell-price"
-                                                       class="border border-hairline bg-bg px-3 py-2 font-mono text-sm text-ink">
-                                                <div class="flex gap-2">
-                                                    <button type="button" data-action="live#action" data-live-action-param="publish"
-                                                            data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="publish-listing"
-                                                            class="flex-1 border border-primary bg-primary px-3 py-2 font-display text-xs font-bold uppercase tracking-[.12em] text-black">Mettre en vente</button>
-                                                    <button type="button" data-action="live#action" data-live-action-param="cancelSelling"
-                                                            class="border border-hairline px-3 py-2 font-mono text-[11px] uppercase tracking-[.1em] text-ink-dim hover:text-ink-strong">Annuler</button>
+                                        </td>
+                                    </tr>
+                                    {% if selling == key %}
+                                        <tr class="me">
+                                            <td colspan="6">
+                                                <div class="flex flex-wrap items-end gap-2">
+                                                    <span class="flex min-w-[160px] flex-1 flex-col gap-1.5">
+                                                        <label class="lbl" for="sell-price">Prix (YLC, entier)</label>
+                                                        <input id="sell-price" class="field w-full" type="text" inputmode="numeric" data-model="sellPrice" value="{{ sellPrice }}" data-testid="sell-price">
+                                                    </span>
+                                                    <button type="button" class="btn btn-p btn-s"
+                                                            data-action="live#action" data-live-action-param="publish"
+                                                            data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="publish-listing">Mettre en vente</button>
+                                                    <button type="button" class="btn btn-g btn-s" data-action="live#action" data-live-action-param="cancelSelling">Annuler</button>
                                                 </div>
-                                            </div>
-                                        {% endif %}
-                                    </li>
-                                {% endif %}
-                            {% endfor %}
-                        {% endfor %}
-                    </ul>
-                    {% if this.sellableCount > sellable|length and search == '' %}
-                        <p class="chip-mono mt-3 text-ink-dim">Affine ta recherche pour voir les {{ this.sellableCount - sellable|length }} autres cartes.</p>
-                    {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% else %}
+                                    <tr><td colspan="6" class="muted text-center">Aucune carte ne correspond à ces filtres.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% if sellable is not empty %}
+                            <p class="lbl px-4 py-3 text-center">
+                                {%- if this.matchingCount > sellable|length -%}
+                                    {{ this.matchingCount - sellable|length }} autre{{ this.matchingCount - sellable|length > 1 ? 's' }} carte{{ this.matchingCount - sellable|length > 1 ? 's' }} · affine les filtres pour les voir
+                                {%- else -%}
+                                    Fin des résultats
+                                {%- endif -%}
+                            </p>
+                        {% endif %}
+                    </div>
                 {% endif %}
-            </div>
-        </section>
+            </section>
 
-        {# ------------------------------------------------ Historique #}
-        <section class="border-t border-hairline px-6 pb-24 pt-10 lg:px-12">
-            <div class="mx-auto max-w-7xl">
-                <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">Historique</h2>
-
+            {# ------------------------------------------------ Historique #}
+            <section aria-labelledby="shop-hist" class="flex flex-col gap-3.5">
+                <h2 id="shop-hist" class="h2">Historique</h2>
                 {% if history is empty %}
-                    <p class="mt-3 text-sm text-ink-dim" data-testid="no-history">Aucune vente ni aucun achat pour l'instant.</p>
+                    <p class="muted" data-testid="no-history">Aucune vente ni aucun achat pour l'instant.</p>
                 {% else %}
-                    <ul class="mt-4 flex flex-col gap-2" data-testid="shop-history">
-                        {% for purchase in history %}
-                            {% set sold = this.isSeller(purchase) %}
-                            <li class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border border-hairline bg-surface px-4 py-3 text-sm" data-testid="history-entry">
-                                <span class="min-w-0 truncate">
-                                    <span class="chip-mono {{ sold ? 'text-live' : 'text-primary' }}">{{ sold ? 'Vendue' : 'Achetée' }}</span>
-                                    <span class="font-display font-bold uppercase text-ink-strong">{{ purchase.listing.card.name }}</span>{% if purchase.listing.holo %} <span class="text-magenta">✦</span>{% endif %}
-                                    <span class="text-ink-muted">{{ sold ? 'à ' ~ purchase.buyer.username : 'à ' ~ purchase.seller.username }}</span>
-                                </span>
-                                <span class="chip-mono text-ink-muted">
-                                    {{ coin_amount(purchase.price) }} YLC{% if sold and purchase.status.value == 'completed' %} (reçus : {{ this.netPayout(purchase) }}){% endif %}
-                                    · {{ purchase.status.label }} · {{ purchase.requestedAt|date('d/m/Y H:i', 'Europe/Paris') }}
-                                </span>
-                            </li>
-                        {% endfor %}
-                    </ul>
+                    <div class="panel overflow-x-auto">
+                        <table class="tbl shop-table" data-testid="shop-history">
+                            <thead>
+                                <tr>
+                                    <th class="w-[90px]">Sens</th>
+                                    <th>Carte</th>
+                                    <th class="max-md:hidden">Avec</th>
+                                    <th class="num">Prix</th>
+                                    <th>Statut</th>
+                                    <th class="num max-md:hidden">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for purchase in history %}
+                                    {% set sold = this.isSeller(purchase) %}
+                                    {% set status = purchase.status.value %}
+                                    <tr data-testid="history-entry">
+                                        <td class="lbl {{ sold ? 'text-live' : 'tone-violet' }}">{{ sold ? 'Vente' : 'Achat' }}</td>
+                                        <td class="text-ink-strong">
+                                            {{ purchase.listing.card.name }}{% if purchase.listing.holo %} <span class="text-magenta">✦</span>{% endif %}
+                                            <span class="muted mt-1 block text-xs md:hidden">{{ sold ? purchase.buyer.username : purchase.seller.username }} · {{ purchase.requestedAt|date('d/m · H:i', 'Europe/Paris') }}</span>
+                                        </td>
+                                        <td class="max-md:hidden">{{ sold ? purchase.buyer.username : purchase.seller.username }}</td>
+                                        <td class="num whitespace-nowrap">{{ coin_amount(purchase.price) }} YLC{% if sold and status == 'completed' %} <span class="muted">(reçu {{ this.netPayout(purchase) }})</span>{% endif %}</td>
+                                        <td><span class="chip {{ status == 'completed' ? 'chip-live' : (status == 'failed' ? 'chip-err' : (status == 'refunded' ? '' : 'chip-soon')) }}">{{ purchase.status.label }}</span></td>
+                                        <td class="num muted max-md:hidden whitespace-nowrap">{{ purchase.requestedAt|date('d/m · H:i', 'Europe/Paris') }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 {% endif %}
-            </div>
-        </section>
+            </section>
+        </div>
     </main>
 </div>
+
+{% macro since(date) %}
+    {%- set days = (('now'|date('U') - date|date('U')) / 86400)|round(0, 'floor') -%}
+    {%- if days < 1 -%}depuis aujourd'hui
+    {%- elseif days < 2 -%}depuis 1 j
+    {%- else -%}depuis {{ days }} j
+    {%- endif -%}
+{% endmacro %}

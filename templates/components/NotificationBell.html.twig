@@ -32,58 +32,73 @@
     </button>
 
     {% if open %}
-        <div class="fixed inset-x-4 top-[72px] z-50 border border-hairline bg-surface shadow-[0_20px_50px_#000c,0_0_30px_#a435f022] md:absolute md:inset-x-auto md:right-0 md:top-[calc(100%+10px)] md:w-[380px]"
-             role="dialog" aria-label="Notifications" data-testid="notification-panel">
-            <div class="flex items-center justify-between border-b border-hairline px-4 py-3">
-                <p class="eyebrow">Notifications</p>
+        {% set notifications = this.notifications %}
+        {% set fresh = notifications|filter(n => n.unread) %}
+        {% set earlier = notifications|filter(n => not n.unread) %}
+        <section class="bell-panel" role="dialog" aria-label="Notifications" data-testid="notification-panel">
+            <header class="bell-panel__head">
+                <span class="lbl text-magenta">Notifications</span>
+                {% if unread > 0 %}<span class="badge">{{ unread > 9 ? '9+' : unread }}</span>{% endif %}
                 {% if unread > 0 %}
-                    <button type="button" class="chip-mono text-ink-muted hover:text-primary"
+                    <button type="button" class="tl ml-auto"
                             data-action="live#action" data-live-action-param="markAllRead"
                             data-testid="notification-mark-all">Tout marquer comme lu</button>
                 {% endif %}
-            </div>
+            </header>
 
-            <ul class="max-h-[min(70vh,480px)] overflow-y-auto">
+            <div class="bell-panel__list">
+                {% if remainingClaims > 0 or fresh is not empty %}
+                    <span class="lbl bell-panel__group">Nouveau</span>
+                {% endif %}
                 {% if remainingClaims > 0 %}
-                    <li>
-                        <a href="{{ path('boosters') }}" class="flex items-start gap-3 border-b border-hairline bg-live/5 px-4 py-3 hover:bg-live/10"
-                           data-testid="notification-daily-boosters">
-                            <span class="mt-0.5 w-4 shrink-0 text-center font-mono text-sm text-live" aria-hidden="true">✦</span>
-                            <span class="flex-1 text-sm text-ink-strong">Tes boosters du jour sont disponibles</span>
-                            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 bg-live" aria-hidden="true"></span>
-                        </a>
-                    </li>
+                    <a href="{{ path('boosters') }}" class="bell-item bell-item--new" data-testid="notification-daily-boosters">
+                        <span class="bell-item__ic text-live" aria-hidden="true">●</span>
+                        <span class="min-w-0">
+                            <span class="bell-item__text">Tes packs du jour sont disponibles</span>
+                            <span class="muted text-xs">{{ remainingClaims }} gratuit{{ remainingClaims > 1 ? 's' }}</span>
+                        </span>
+                        <span class="lbl bell-item__cta">Récupérer ›</span>
+                    </a>
+                {% endif %}
+                {% for notification in fresh %}
+                    {{ _self.item(notification) }}
+                {% endfor %}
+
+                {% if earlier is not empty %}
+                    <span class="lbl bell-panel__group{{ remainingClaims > 0 or fresh is not empty ? ' bell-panel__group--sep' }}">Plus tôt</span>
+                    {% for notification in earlier %}
+                        {{ _self.item(notification) }}
+                    {% endfor %}
                 {% endif %}
 
-                {% for notification in this.notifications %}
-                    <li>
-                        <button type="button"
-                                class="flex w-full items-start gap-3 border-b border-hairline px-4 py-3 text-left hover:bg-primary/10 {{ notification.unread ? 'bg-primary/5' }}"
-                                data-action="live#action" data-live-action-param="openNotification"
-                                data-live-id-param="{{ notification.id }}"
-                                data-testid="notification-item"{{ notification.unread ? ' data-unread' }}>
-                            <span class="mt-0.5 w-4 shrink-0 text-center font-mono text-sm {{ notification.unread ? 'text-magenta' : 'text-ink-dim' }}" aria-hidden="true">{{ notification.icon }}</span>
-                            <span class="flex flex-1 flex-col gap-1">
-                                <span class="text-sm {{ notification.unread ? 'text-ink-strong' : 'text-ink-muted' }}">{{ notification.text }}</span>
-                                {% if notification.body %}
-                                    {# plain text, auto-escaped: line breaks kept by CSS, never |raw #}
-                                    <span class="line-clamp-4 whitespace-pre-line break-words text-xs text-ink-muted" data-testid="notification-body">{{ notification.body }}</span>
-                                {% endif %}
-                                {% if notification.createdAt %}
-                                    <span class="chip-mono text-ink-dim">{{ notification.createdAt|date('d/m · H:i', 'Europe/Paris') }}</span>
-                                {% endif %}
-                            </span>
-                            {% if notification.unread %}
-                                <span class="mt-1.5 h-1.5 w-1.5 shrink-0 bg-magenta" aria-hidden="true"></span>
-                            {% endif %}
-                        </button>
-                    </li>
-                {% else %}
-                    {% if remainingClaims == 0 %}
-                        <li class="px-4 py-8 text-center text-sm text-ink-dim" data-testid="notification-empty">Rien de neuf pour l'instant.</li>
-                    {% endif %}
-                {% endfor %}
-            </ul>
-        </div>
+                {% if notifications is empty and remainingClaims == 0 %}
+                    <p class="muted px-4 py-8 text-center text-sm" data-testid="notification-empty">Rien de neuf pour l'instant.</p>
+                {% endif %}
+            </div>
+        </section>
     {% endif %}
 </div>
+
+{% macro item(notification) %}
+    {% set tones = { '◆': 'text-soon', '★': 'text-live', '✓': 'text-live', '▲': 'text-soon', '+': 'tone-violet', '⇄': 'tone-violet', '✕': 'tone-danger', '$': 'text-live', '♡': 'text-magenta', '!': 'text-magenta', '#': 'tone-violet' } %}
+    <button type="button"
+            class="bell-item{{ notification.unread ? ' bell-item--new' }}"
+            data-action="live#action" data-live-action-param="openNotification"
+            data-live-id-param="{{ notification.id }}"
+            data-testid="notification-item"{{ notification.unread ? ' data-unread' }}>
+        <span class="bell-item__ic {{ tones[notification.icon] ?? 'text-ink-muted' }}" aria-hidden="true">{{ notification.icon }}</span>
+        <span class="flex min-w-0 flex-col gap-0.5">
+            <span class="bell-item__text">{{ notification.text }}</span>
+            {% if notification.body %}
+                {# plain text, auto-escaped: line breaks kept by CSS, never |raw #}
+                <span class="muted line-clamp-4 whitespace-pre-line break-words text-xs" data-testid="notification-body">{{ notification.body }}</span>
+            {% endif %}
+            {% if notification.createdAt %}
+                <span class="muted text-xs">{{ notification.createdAt|date('d/m · H:i', 'Europe/Paris') }}</span>
+            {% endif %}
+        </span>
+        {% if notification.unread and notification.link %}
+            <span class="lbl bell-item__cta">Voir ›</span>
+        {% endif %}
+    </button>
+{% endmacro %}

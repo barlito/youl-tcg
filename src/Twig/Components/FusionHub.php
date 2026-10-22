@@ -106,6 +106,29 @@ final class FusionHub extends AbstractController
         return $universes;
     }
 
+    /**
+     * Cards with at least one fusion available on FREE normal copies, the most fusions first.
+     *
+     * @return list<UserCard>
+     */
+    public function getReady(): array
+    {
+        $ready = array_values(array_filter($this->getRowMap(), fn (UserCard $row): bool => $this->maxFusions($row) > 0));
+        usort($ready, fn (UserCard $a, UserCard $b): int => $this->maxFusions($b) <=> $this->maxFusions($a));
+
+        return $ready;
+    }
+
+    /**
+     * Enough normal copies, but some are held back by a listing or a pending trade offer.
+     *
+     * @return list<UserCard>
+     */
+    public function getAlmost(): array
+    {
+        return array_values(array_filter($this->getRowMap(), fn (UserCard $row): bool => $this->maxFusions($row) < 1));
+    }
+
     public function hasRows(): bool
     {
         return [] !== $this->getRowMap();

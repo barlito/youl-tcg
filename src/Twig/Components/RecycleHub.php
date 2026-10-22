@@ -18,6 +18,7 @@ use App\Repository\BoosterRepository;
 use App\Repository\CardRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterAvailabilityService;
+use App\Service\Recycle\RecycleAutoFill;
 use App\Service\Recycle\RecycleService;
 use App\Service\Trade\EngagedCopies;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -61,6 +62,12 @@ final class RecycleHub extends AbstractController
      */
     #[LiveProp(writable: true, url: new UrlMapping(as: 'univers'))]
     public ?string $universe = null;
+
+    #[LiveProp(writable: true, url: new UrlMapping(as: 'rarete'))]
+    public ?string $rarity = null;
+
+    #[LiveProp(writable: true, url: new UrlMapping(as: 'holo'))]
+    public bool $holoOnly = false;
 
     #[LiveProp]
     public ?string $error = null;
@@ -143,11 +150,36 @@ final class RecycleHub extends AbstractController
     public function getVisibleUniverses(): array
     {
         $active = $this->getActiveExtension();
+        $rarity = $this->getActiveRarity();
+        $visible = [];
 
-        return array_values(array_filter(
-            $this->getUniverses(),
-            static fn (array $universe): bool => !$active instanceof Extension || $universe['extension'] === $active,
-        ));
+        foreach ($this->getUniverses() as $universe) {
+            if ($active instanceof Extension && $universe['extension'] !== $active) {
+                continue;
+            }
+
+            $universe['rows'] = array_values(array_filter(
+                $universe['rows'],
+                fn (UserCard $row): bool => (!$rarity instanceof CardRarityEnum || $row->getCard()->getRarity() === $rarity)
+                    && (!$this->holoOnly || $row->getHoloQuantity() > 0),
+            ));
+
+            if ([] !== $universe['rows']) {
+                $visible[] = $universe;
+            }
+        }
+
+        return $visible;
+    }
+
+    public function getActiveRarity(): ?CardRarityEnum
+    {
+        return null === $this->rarity ? null : CardRarityEnum::tryFrom($this->rarity);
+    }
+
+    public function hasActiveFilters(): bool
+    {
+        return $this->getActiveExtension() instanceof Extension || $this->getActiveRarity() instanceof CardRarityEnum || $this->holoOnly;
     }
 
     public function getActiveExtension(): ?Extension
@@ -443,6 +475,85 @@ final class RecycleHub extends AbstractController
     public function filterUniverse(#[LiveArg] string $slug): void
     {
         $this->universe = '' === $slug ? null : $slug;
+    }
+
+    #[LiveAction]
+    public function toggleHoloOnly(): void
+    {
+        $this->holoOnly = !$this->holoOnly;
+    }
+
+    #[LiveAction]
+    public function resetFilters(): void
+    {
+        $this->universe = null;
+        $this->rarity = null;
+        $this->holoOnly = false;
+    }
+
+    /**
+     * « Compléter automatiquement »: tops the selection up to the booster cost with
+     * the least precious free duplicates, as a minimal selection (RecycleAutoFill).
+     * Filters are ignored: every recyclable copy is a candidate.
+     */
+    #[LiveAction]
+    public function autoComplete(): void
+    {
+        $this->resetMessages();
+
+        if ($this->hasRecycledToday()) {
+            $this->error = 'Tu as déjà recyclé aujourd\'hui, reviens après minuit.';
+
+            return;
+        }
+
+        if ($this->getPoints() >= RecycleService::BOOSTER_COST) {
+            $this->error = \sprintf('Ta sélection atteint déjà %d points.', RecycleService::BOOSTER_COST);
+
+            return;
+        }
+
+        $candidates = [];
+        foreach ($this->getRowMap() as $cardId => $row) {
+            $selected = $this->selectionFor($cardId);
+            $total = $this->recyclableCopies($row) - $selected[self::KIND_NORMAL] - $selected[self::KIND_HOLO];
+            $normal = $this->normalCap($row) - $selected[self::KIND_NORMAL];
+            $holo = $this->holoCap($row) - $selected[self::KIND_HOLO];
+
+            if ($total < 1 || ($normal < 1 && $holo < 1)) {
+                continue;
+            }
+
+            $rarity = $row->getCard()->getRarity();
+            $candidates[(string) $cardId] = [
+                'normalPoints' => $rarity->recyclePoints(),
+                'holoPoints' => $rarity->holoRecyclePoints(),
+                'normal' => max(0, $normal),
+                'holo' => max(0, $holo),
+                'total' => $total,
+            ];
+        }
+
+        $additions = RecycleAutoFill::complete($this->getPoints(), $this->getCheapestSelectedPoints(), $candidates);
+
+        if (null === $additions) {
+            $this->error = $this->getMaxPointsTotal() < RecycleService::BOOSTER_COST
+                ? \sprintf('Pas assez de doublons recyclables pour atteindre %d points.', RecycleService::BOOSTER_COST)
+                : \sprintf('Impossible de compléter ta sélection sans dépasser %d points : retire des copies et réessaie.', RecycleService::BOOSTER_COST);
+
+            return;
+        }
+
+        $added = 0;
+        foreach ($additions as $cardId => $copies) {
+            $selected = $this->selectionFor($cardId);
+            $selected[self::KIND_NORMAL] += $copies[self::KIND_NORMAL];
+            $selected[self::KIND_HOLO] += $copies[self::KIND_HOLO];
+            $this->selection[$cardId] = $selected;
+            $added += $copies[self::KIND_NORMAL] + $copies[self::KIND_HOLO];
+        }
+
+        $this->success = \sprintf('Sélection complétée : %d copie%s ajoutée%s, %d points.', $added, $added > 1 ? 's' : '', $added > 1 ? 's' : '', $this->getPoints());
     }
 
     #[LiveAction]

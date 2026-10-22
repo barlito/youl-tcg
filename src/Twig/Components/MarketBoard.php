@@ -16,6 +16,7 @@ use App\Repository\MarketListingRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Coin\CoinAmount;
 use App\Service\Coin\WalletBalances;
+use App\Service\Market\MarketListingService;
 use App\Service\Market\MarketPurchaseService;
 use App\Service\Wishlist\WishlistService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -55,6 +56,12 @@ final class MarketBoard extends AbstractController
 
     #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'mine'))]
     public bool $mineOnly = false;
+
+    #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'manquantes'))]
+    public bool $missingOnly = false;
+
+    #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'q'))]
+    public string $query = '';
 
     #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'tri'))]
     public string $sort = 'date_desc';
@@ -119,6 +126,8 @@ final class MarketBoard extends AbstractController
             $this->getCurrentPage(),
             self::PER_PAGE,
             $this->getWishOf(),
+            $this->getSearch(),
+            $this->getMissingFor(),
         );
     }
 
@@ -131,6 +140,8 @@ final class MarketBoard extends AbstractController
             $this->getActiveRarity(),
             $this->getActiveHolo(),
             $this->getWishOf(),
+            $this->getSearch(),
+            $this->getMissingFor(),
         );
     }
 
@@ -153,6 +164,28 @@ final class MarketBoard extends AbstractController
     public function getMineTotal(): int
     {
         return $this->mineTotal ??= $this->listingRepository->countActive($this->getDiscordUser(), null, null, null, null);
+    }
+
+    /** Engaged listings of the player (active + reserved), the « x/3 » of the shop button. */
+    public function getMyEngagedCount(): int
+    {
+        return $this->listingRepository->countEngagedBySeller($this->getDiscordUser());
+    }
+
+    public function getMaxListings(): int
+    {
+        return MarketListingService::MAX_ACTIVE_LISTINGS;
+    }
+
+    public function isMissingFilterActive(): bool
+    {
+        return $this->missingOnly && null === $this->sellerId && !$this->isMineFilterActive();
+    }
+
+    public function hasActiveFilters(): bool
+    {
+        return null !== $this->getSearch() || $this->getActiveExtension() instanceof Extension || $this->getActiveRarity() instanceof CardRarityEnum
+            || null !== $this->getActiveHolo() || $this->wishlistOnly || $this->isMineFilterActive() || $this->missingOnly;
     }
 
     public function isMineFilterActive(): bool
@@ -224,6 +257,15 @@ final class MarketBoard extends AbstractController
     {
         $this->mineOnly = !$this->mineOnly;
         $this->wishlistOnly = $this->wishlistOnly && !$this->mineOnly;
+        $this->missingOnly = $this->missingOnly && !$this->mineOnly;
+        $this->resetPage();
+    }
+
+    #[LiveAction]
+    public function toggleMissingFilter(): void
+    {
+        $this->missingOnly = !$this->missingOnly;
+        $this->mineOnly = $this->mineOnly && !$this->missingOnly;
         $this->resetPage();
     }
 
@@ -242,6 +284,8 @@ final class MarketBoard extends AbstractController
         $this->finish = null;
         $this->wishlistOnly = false;
         $this->mineOnly = false;
+        $this->missingOnly = false;
+        $this->query = '';
         $this->page = 1;
     }
 
@@ -359,6 +403,19 @@ final class MarketBoard extends AbstractController
         return isset($this->myCardIds[(string) $listing->getCard()->getId()]);
     }
 
+    private function getSearch(): ?string
+    {
+        $query = mb_trim($this->query);
+
+        return null === $this->sellerId && '' !== $query ? mb_substr($query, 0, 80) : null;
+    }
+
+    // « Me manquent »: one NOT EXISTS in the listing query itself, never one query per card
+    private function getMissingFor(): ?DiscordUser
+    {
+        return $this->isMissingFilterActive() ? $this->getDiscordUser() : null;
+    }
+
     private function getWishOf(): ?DiscordUser
     {
         return $this->wishlistOnly && null === $this->sellerId && !$this->isMineFilterActive() && $this->wishlist->isEnabled() ? $this->getDiscordUser() : null;
@@ -385,7 +442,7 @@ final class MarketBoard extends AbstractController
         return $this->discordUserRepository->find($this->sellerId) ?? throw $this->createNotFoundException('Unknown seller.');
     }
 
-    private function getActiveExtension(): ?Extension
+    public function getActiveExtension(): ?Extension
     {
         if (null === $this->universe || '' === $this->universe) {
             return null;
@@ -400,9 +457,9 @@ final class MarketBoard extends AbstractController
         return null;
     }
 
-    private function getActiveRarity(): ?CardRarityEnum
+    public function getActiveRarity(): ?CardRarityEnum
     {
-        return null === $this->rarity ? null : CardRarityEnum::tryFrom($this->rarity);
+        return null === $this->rarity || '' === $this->rarity ? null : CardRarityEnum::tryFrom($this->rarity);
     }
 
     private function getActiveHolo(): ?bool

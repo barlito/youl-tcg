@@ -146,7 +146,7 @@ final class RecycleHubComponentTest extends WebTestCase
 
         $this->assertSame([(string) $scenario['cards'][1]->getId()], array_keys($component->component()->selection), 'The requested card stays selectable.');
         $crawler = new Crawler((string) $component->render());
-        $this->assertSame('5', trim($crawler->filter('[data-testid="recyclable-total"] p')->eq(1)->text()), 'The requested and the free cards count.');
+        $this->assertSame('5', trim($crawler->filter('[data-testid="recyclable-count"]')->text()), 'The requested and the free cards count.');
         $engaged = $crawler->filter('[data-testid="recycle-card"][data-engaged="true"]');
         $this->assertCount(1, $engaged);
         $this->assertStringContainsString('⇄ engagée dans un échange', $engaged->text());
@@ -437,7 +437,7 @@ final class RecycleHubComponentTest extends WebTestCase
         $crawler = $client->getCrawler();
 
         $badges = $crawler->filter('[data-testid="recyclable-badge"]')->each(static fn ($node): string => trim($node->text()));
-        $this->assertSame(['♻ 3 recyclables', '♻ 1 recyclable'], $badges, 'Rarest first: the rare then the common.');
+        $this->assertSame(['×4 dont ✦ 1 · 3 recyclables', '×2 dont ✦ 2 · 1 recyclable'], $badges, 'Rarest first: the rare then the common.');
 
         $mixed = $crawler->filter('[data-testid="recycle-card"]')->eq(0);
         $this->assertSame('0/3', $mixed->filter('[data-testid="normal-count"]')->text());
@@ -450,7 +450,7 @@ final class RecycleHubComponentTest extends WebTestCase
         $this->assertStringContainsString('4', $total);
         $this->assertStringContainsString('exemplaires recyclables', $total);
         // best pick keeps the cheapest copy: 2 normal rares + 1 holo rare (6 + 4) + 1 holo common (2)
-        $this->assertStringContainsString('Jusqu\'à 12 pts', $total);
+        $this->assertStringContainsString('jusqu\'à 12 pts', $total);
     }
 
     public function testTheCardsAreGroupedAndFilterableByUniverse(): void
@@ -465,11 +465,11 @@ final class RecycleHubComponentTest extends WebTestCase
         $component = $this->createLiveComponent(RecycleHub::class, client: $client);
         $crawler = $component->render()->crawler();
 
-        // most recyclable universe first, one strip tile each plus « Tout »
+        // most recyclable universe first, one select option each plus « tous »
         $this->assertCount(2, $crawler->filter('[data-testid="recycle-universe"]'));
         $this->assertStringContainsString($firstExtension->getName(), $crawler->filter('[data-testid="recycle-universe"]')->eq(0)->text());
-        $this->assertCount(2, $crawler->filter('[data-testid="strip-tile"]'));
-        $this->assertCount(1, $crawler->filter('[data-testid="strip-tile-all"][data-carousel-active]'));
+        $this->assertCount(3, $crawler->filter('[data-testid="filter-universe"] option'));
+        $this->assertCount(0, $crawler->filter('[data-testid="filter-universe"] option[selected]'));
 
         $component->call('filterUniverse', ['slug' => $secondExtension->getSlug()]);
         $crawler = $component->render()->crawler();
@@ -477,7 +477,7 @@ final class RecycleHubComponentTest extends WebTestCase
         $this->assertCount(1, $crawler->filter('[data-testid="recycle-universe"]'));
         $this->assertStringContainsString($second['cards'][0]->getName(), $crawler->filter('[data-testid="recycle-grid"]')->text());
         $this->assertStringNotContainsString($first['cards'][0]->getName(), $crawler->filter('[data-testid="recycle-grid"]')->text());
-        $this->assertCount(1, $crawler->filter('[data-testid="strip-tile"][data-carousel-active]'));
+        $this->assertSame($secondExtension->getSlug(), $crawler->filter('[data-testid="filter-universe"] option[selected]')->attr('value'));
 
         $component->call('filterUniverse', ['slug' => '']);
         $this->assertCount(2, $component->render()->crawler()->filter('[data-testid="recycle-universe"]'));
@@ -553,6 +553,93 @@ final class RecycleHubComponentTest extends WebTestCase
         $component = $this->createLiveComponent(RecycleHub::class, client: $client);
 
         $this->assertStringNotContainsString($emptyBooster->getName() ?? '', (string) $component->render(), 'A pack without drawable card is not offered.');
+    }
+
+    public function testAutoCompleteFillsAMinimalSelectionWithTheCheapestDuplicatesAndRecycles(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $scenario = $this->createScenario($user, [
+            ['name' => 'Auto legendary', 'rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 3],
+            ['name' => 'Auto common', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 6],
+            ['name' => 'Auto uncommon', 'rarity' => CardRarityEnum::UNCOMMON, 'quantity' => 4],
+        ]);
+        [, $common, $uncommon] = $scenario['cards'];
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        $component->call('autoComplete');
+
+        // 5 commons + 3 uncommons are free (keep-one): 4 × 1 + 3 × 2 = 10 exactly, no legendary
+        $selection = $component->component()->selection;
+        $this->assertArrayNotHasKey((string) $scenario['cards'][0]->getId(), $selection, 'A legendary is never picked while cheaper copies fit.');
+        $this->assertSame(['normal' => 4, 'holo' => 0], $selection[(string) $common->getId()]);
+        $this->assertSame(['normal' => 3, 'holo' => 0], $selection[(string) $uncommon->getId()]);
+        $this->assertStringContainsString('Sélection complétée', (string) $component->component()->success);
+        $this->assertSame('→ 1 booster', trim($component->render()->crawler()->filter('[data-testid="recycle-outcome"]')->text()));
+
+        // the service accepts it as is
+        $component->set('boosterId', (string) $scenario['booster']->getId());
+        $component->call('recycle');
+        $this->assertStringContainsString('1 pack « ', (string) $component->component()->success);
+    }
+
+    public function testAutoCompleteKeepsTheCurrentSelectionAndSkipsEngagedCopies(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $scenario = $this->createScenario($user, [
+            ['name' => 'Auto offered', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 11],
+            ['name' => 'Auto rare', 'rarity' => CardRarityEnum::RARE, 'quantity' => 4],
+            ['name' => 'Auto picked', 'rarity' => CardRarityEnum::UNCOMMON, 'quantity' => 2],
+        ]);
+        [$offered, $rare, $picked] = $scenario['cards'];
+        $this->engage($user, $offered, asProposer: true, side: TradeOfferSideEnum::OFFERED);
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        $component->call('addCopy', ['cardId' => (string) $picked->getId(), 'kind' => 'normal']);
+        $component->call('autoComplete');
+
+        $selection = $component->component()->selection;
+        $this->assertArrayNotHasKey((string) $offered->getId(), $selection, 'A card offered in a pending trade is never picked.');
+        $this->assertSame(['normal' => 1, 'holo' => 0], $selection[(string) $picked->getId()], 'The player\'s own pick stays.');
+        // 2 + 3 + 3 = 8 < 10, 2 + 3×3 = 11 with 11 − 2 < 10: minimal
+        $this->assertSame(['normal' => 3, 'holo' => 0], $selection[(string) $rare->getId()]);
+    }
+
+    public function testAutoCompleteExplainsWhyItCannotFill(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $this->createScenario($user, [['name' => 'Auto short', 'rarity' => CardRarityEnum::RARE, 'quantity' => 3]]);
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        $component->call('autoComplete');
+
+        $this->assertSame([], $component->component()->selection);
+        $this->assertStringContainsString('Pas assez de doublons', (string) $component->component()->error);
+    }
+
+    public function testTheRarityAndHoloFiltersNarrowTheList(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $scenario = $this->createScenario($user, [
+            ['name' => 'Filter rare holo', 'rarity' => CardRarityEnum::RARE, 'quantity' => 3, 'holoQuantity' => 1],
+            ['name' => 'Filter common', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 3],
+        ]);
+        [$rare, $common] = $scenario['cards'];
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        $component->set('rarity', 'common');
+        $text = $component->render()->crawler()->filter('[data-testid="recycle-grid"]')->text();
+        $this->assertStringContainsString($common->getName(), $text);
+        $this->assertStringNotContainsString($rare->getName(), $text);
+
+        $component->set('rarity', '');
+        $component->call('toggleHoloOnly');
+        $text = $component->render()->crawler()->filter('[data-testid="recycle-grid"]')->text();
+        $this->assertStringContainsString($rare->getName(), $text);
+        $this->assertStringNotContainsString($common->getName(), $text);
     }
 
     private function engage(DiscordUser $player, Card $card, bool $asProposer, TradeOfferSideEnum $side): void
