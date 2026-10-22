@@ -7,200 +7,200 @@
 {% block body %}
     {% set ownedCount = ownedByCardId|length %}
     {% set totalCount = catalog|length %}
-    {% set percentage = totalCount > 0 ? ((ownedCount / totalCount) * 100)|round : 0 %}
+    {% set missingCount = totalCount - ownedCount %}
+    {% set percentage = totalCount > 0 ? ((ownedCount / totalCount) * 100)|round(0, 'floor') : 0 %}
     {% set banners = extension.banners|filter(banner => banner.imageName) %}
+    {% set packsInStock = 0 %}
+    {% set openable = null %}
+    {% set claimable = false %}
+    {% for booster in boosters %}
+        {% set owned = ownedBoosterCounts[booster.id ~ '']|default(0) %}
+        {% set packsInStock = packsInStock + owned %}
+        {% if owned > 0 and openable is null %}{% set openable = booster %}{% endif %}
+        {% if booster.claimable %}{% set claimable = true %}{% endif %}
+    {% endfor %}
 
     <main>
-        {# --------------------------------------------- Héro / bannières #}
-        <section class="relative border-b border-hairline" data-controller="carousel">
-            <div class="scrollbar-hidden flex h-80 snap-x snap-mandatory overflow-x-auto md:h-[26rem]"
-                 data-carousel-target="track"
-                 data-action="wheel->carousel#wheel:!passive"
-                 data-testid="banner-carousel">
-                {% if banners|length > 0 %}
-                    {% for banner in banners %}
-                        <div class="relative h-full w-full shrink-0 snap-center">
-                            <img src="{{ vich_uploader_asset(banner) }}" alt=""
-                                 class="absolute inset-0 h-full w-full object-cover" {{ not loop.first ? 'loading="lazy"' }}>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    {# pas de bannière uploadée : image extension → artwork de la carte
-                       la plus rare → gradient seul #}
-                    <div class="relative h-full w-full shrink-0">
-                        <div class="absolute inset-0 bg-gradient-to-br from-[#2a0f44] via-[#7a1f9c] to-magenta opacity-60" aria-hidden="true"></div>
-                        {% set fallbackUrl = extension.imageName
-                            ? vich_uploader_asset(extension)
-                            : (coverImage ? asset('uploads/cards/' ~ coverImage)) %}
-                        {% if fallbackUrl %}
-                            <img src="{{ fallbackUrl }}" alt="" onerror="this.remove()"
-                                 class="absolute inset-0 h-full w-full object-cover object-top opacity-50">
-                        {% endif %}
+    {# --------------------------------------------- Héro / bannières #}
+    <section class="uni-hero" data-controller="carousel">
+        <div class="uni-hero__media scrollbar-hidden snap-x snap-mandatory overflow-x-auto"
+             data-carousel-target="track"
+             data-action="wheel->carousel#wheel:!passive"
+             data-testid="banner-carousel">
+            {% if banners|length > 0 %}
+                {% for banner in banners %}
+                    <div class="relative h-full w-full shrink-0 snap-center">
+                        <img src="{{ vich_uploader_asset(banner) }}" alt=""
+                             class="absolute inset-0 h-full w-full object-cover" {{ not loop.first ? 'loading="lazy"' }}>
                     </div>
-                {% endif %}
-            </div>
-
-            {# contenu par-dessus les slides (laisse passer les gestes de swipe) #}
-            <div class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/65 to-transparent px-6 pb-8 pt-28 lg:px-12">
-                <div class="mx-auto max-w-7xl">
-                    <p class="eyebrow">Univers</p>
-                    <h1 class="mt-1 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-white md:text-6xl">
-                        {{ extension.name }}
-                    </h1>
-                    <p class="mt-2 max-w-2xl text-sm leading-relaxed text-white/80">{{ extension.description }}</p>
-
-                    <div class="chip-mono mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-white/90" data-testid="universe-stats">
-                        <span>◈ Complétion <span class="font-bold text-primary">{{ ownedCount }}/{{ totalCount }}</span> · {{ percentage }}%</span>
-                        {% if boosters|length > 0 %}
-                            <span>▣ {{ boosters|length }} booster{{ boosters|length > 1 ? 's' }}</span>
-                        {% endif %}
-                        {% if uniquesTotal > 0 %}
-                            <span data-testid="uniques-status">
-                                ◆ Unique{{ uniquesTotal > 1 ? 's' }} 1/1 :
-                                {% if uniquesClaimed == uniquesTotal %}
-                                    <span class="text-magenta">{{ uniquesClaimed }}/{{ uniquesTotal }} droppée{{ uniquesTotal > 1 ? 's' }}</span>
-                                {% else %}
-                                    <span class="text-live">{{ uniquesTotal - uniquesClaimed }}/{{ uniquesTotal }} encore dans le pool</span>
-                                {% endif %}
-                            </span>
-                        {% endif %}
-                    </div>
-                    {% if reward %}
-                        <p class="chip-mono mt-3 max-w-2xl text-white/80" data-testid="universe-reward">
-                            {% if reward.rewarded %}
-                                ★ Récompense de complétion obtenue
-                            {% else %}
-                                ★ Récompense : <span class="font-bold text-primary">{{ reward.drawn }}/{{ reward.total }}</span> cartes tirées par toi (+{{ reward.amount }} YLC) — les cartes reçues par échange ou achetées ne comptent pas
-                            {% endif %}
-                        </p>
+                {% endfor %}
+            {% else %}
+                {# pas de bannière uploadée : image extension → artwork de la carte la plus rare → gradient seul #}
+                <div class="relative h-full w-full shrink-0">
+                    <div class="absolute inset-0 bg-gradient-to-br from-[#2a0f44] via-[#7a1f9c] to-magenta opacity-60" aria-hidden="true"></div>
+                    {% set fallbackUrl = extension.imageName
+                        ? vich_uploader_asset(extension)
+                        : (coverImage ? asset('uploads/cards/' ~ coverImage)) %}
+                    {% if fallbackUrl %}
+                        <img src="{{ fallbackUrl }}" alt="" onerror="this.remove()"
+                             class="absolute inset-0 h-full w-full object-cover object-top">
                     {% endif %}
-                    <div class="mt-3 h-1 max-w-md bg-white/15">
-                        <div class="h-full bg-gradient-to-r from-primary to-magenta shadow-[0_0_10px_#a435f0]" style="width: {{ percentage }}%;"></div>
-                    </div>
-                </div>
-            </div>
-
-            {% if banners|length > 1 %}
-                <div class="absolute right-6 top-6 flex gap-1.5">
-                    <button type="button" data-action="carousel#prev" aria-label="Bannière précédente"
-                            class="border border-white/25 bg-black/60 px-3 py-1 font-mono text-sm text-white/80 backdrop-blur transition-colors hover:border-primary hover:text-primary">◂</button>
-                    <button type="button" data-action="carousel#next" aria-label="Bannière suivante"
-                            class="border border-white/25 bg-black/60 px-3 py-1 font-mono text-sm text-white/80 backdrop-blur transition-colors hover:border-primary hover:text-primary">▸</button>
                 </div>
             {% endif %}
-        </section>
+        </div>
+        <div class="uni-hero__shade" aria-hidden="true"></div>
 
-        {# ------------------------------------------------------------ Set #}
-        <section class="px-6 pb-16 pt-10 lg:px-12">
-            <div class="mx-auto max-w-7xl">
-                <div class="flex items-center justify-between">
-                    <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
-                        Le set · {{ totalCount }} cartes
-                    </h2>
-                    <div class="flex flex-wrap items-center justify-end gap-x-5 gap-y-2">
-                        {% if wishlistEnabled and (watching or ownedCount < totalCount) %}
-                            {{ include('parts/_wish_button.html.twig', {
-                                variant: 'universe',
-                                url: path('wishlist_universe_toggle', { slug: extension.slug }),
-                                active: watching,
-                            }, with_context = false) }}
-                        {% endif %}
-                        <a href="{{ path('collection', { slug: extension.slug }) }}"
-                           class="chip-mono text-ink-dim transition-colors hover:text-primary"
-                           data-testid="collection-link">
-                            ◈ Voir dans ma collection ▸
-                        </a>
-                        <span class="font-mono text-[11px] tracking-[.15em] text-ink-dim">TRI: RARETÉ ↓</span>
+        <div class="wrap uni-hero__content">
+            <div class="flex max-w-[760px] flex-col gap-3.5">
+                <a href="{{ path('universes') }}" class="lbl no-underline hover:text-ink-strong">‹ Tous les univers</a>
+                <h1 class="h1">{{ extension.name }}</h1>
+                {% if extension.description %}<p class="lead text-ink">{{ extension.description }}</p>{% endif %}
+
+                <div class="grid gap-3 pt-1.5 sm:grid-cols-2">
+                    <div class="panel flex flex-col gap-2 bg-surface/90 p-3.5" data-testid="universe-stats">
+                        <span class="flex items-baseline justify-between gap-2"><span class="lbl">Ta complétion</span><span class="mono text-ink-strong">{{ ownedCount }} / {{ totalCount }} · {{ percentage }} %</span></span>
+                        <span class="bar" aria-hidden="true"><i style="width: {{ percentage }}%"></i></span>
+                        <span class="text-[13px] {{ missingCount > 0 ? 'text-magenta' : 'text-live' }}">
+                            {{ missingCount > 0 ? 'il en manque ' ~ missingCount : (totalCount > 0 ? '✓ univers complet' : 'aucune carte publiée') }}
+                        </span>
                     </div>
-                </div>
-
-                <div class="mt-8 grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5" data-testid="set-grid">
-                    {% for card in catalog %}
-                        {% set userCard = ownedByCardId[card.id ~ ''] ?? null %}
-                        <div class="card-tile relative">
-                            {% if userCard %}
-                                {{ include('components/CardComponent.html.twig', { card: card, holo: userCard.holoQuantity > 0, lazy: true }) }}
-                                <div class="card-tile__chips pointer-events-none absolute -right-2 -top-2 z-10 flex gap-1.5">
-                                    <span class="chip-mono bg-black/90 px-2 py-1 font-bold text-white">×{{ userCard.quantity }}</span>
-                                    {% if userCard.holoQuantity > 0 %}
-                                        <span class="chip-mono bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black">✦{{ userCard.holoQuantity }}</span>
-                                    {% endif %}
-                                </div>
-                                {% if wishlistEnabled %}
-                                    {{ include('parts/_wish_button.html.twig', {
-                                        url: path('wishlist_card_toggle', { id: card.id }),
-                                        active: wishedIds[card.id ~ ''] is defined,
-                                    }, with_context = false) }}
-                                {% endif %}
+                    {% if reward %}
+                        {# la récompense ne compte que les cartes tirées par le joueur lui-même #}
+                        {% set rewardPct = reward.total > 0 ? ((reward.drawn / reward.total) * 100)|round(0, 'floor') : 0 %}
+                        <div class="panel flex flex-col gap-2 bg-surface/90 p-3.5" data-testid="universe-reward">
+                            {% if reward.rewarded %}
+                                <span class="lbl text-soon">★ Récompense de complétion obtenue</span>
+                                <span class="text-[13px] text-ink-muted">Tu as déjà touché la récompense de cet univers.</span>
                             {% else %}
-                                {{ include('parts/_masked_card.html.twig', with_context = false) }}
+                                <span class="flex items-baseline justify-between gap-2"><span class="lbl">Récompense · {{ reward.amount }} YLC</span><span class="mono text-ink-strong">{{ reward.drawn }} / {{ reward.total }}</span></span>
+                                <span class="bar" aria-hidden="true"><i style="width: {{ rewardPct }}%; background: var(--soon)"></i></span>
+                                <span class="text-[13px] text-ink-muted">cartes tirées par toi — celles reçues par échange ou achetées ne comptent pas</span>
                             {% endif %}
                         </div>
-                    {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    {% if boosters|length > 0 %}
+                        <span class="lbl">▣ {{ boosters|length }} booster{{ boosters|length > 1 ? 's' }}</span>
+                    {% endif %}
+                    {% if uniquesTotal > 0 %}
+                        <span class="lbl" data-testid="uniques-status">
+                            ◆ Unique{{ uniquesTotal > 1 ? 's' }} 1/1 :
+                            {% if uniquesClaimed == uniquesTotal %}
+                                <span class="text-magenta">{{ uniquesClaimed }}/{{ uniquesTotal }} droppée{{ uniquesTotal > 1 ? 's' }}</span>
+                            {% else %}
+                                <span class="text-live">{{ uniquesTotal - uniquesClaimed }}/{{ uniquesTotal }} encore dans le pool</span>
+                            {% endif %}
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 pt-1.5">
+                    {% if openable and totalCount > 0 %}
+                        <a class="btn btn-p max-md:w-full" href="{{ path('booster_open', { id: openable.id }) }}" data-testid="universe-open">Ouvrir · {{ packsInStock }} en stock</a>
+                    {% endif %}
+                    {% if claimable and totalCount > 0 and remaining_booster_claims() > 0 %}
+                        <a class="btn btn-g max-md:w-full" href="{{ path('boosters') }}" data-testid="universe-claim">Récupérer un pack gratuit</a>
+                    {% endif %}
+                    {% if wishlistEnabled and (watching or ownedCount < totalCount) %}
+                        {{ include('parts/_wish_button.html.twig', {
+                            variant: 'universe',
+                            url: path('wishlist_universe_toggle', { slug: extension.slug }),
+                            active: watching,
+                        }, with_context = false) }}
+                    {% endif %}
+                    <a href="{{ path('collection', { slug: extension.slug }) }}" class="lbl hover:text-ink-strong" data-testid="collection-link">◈ Voir dans ma collection</a>
                 </div>
             </div>
-        </section>
+        </div>
+
+        {% if banners|length > 1 %}
+            <div class="absolute right-4 top-4 z-10 flex gap-1.5 md:right-10">
+                <button type="button" data-action="carousel#prev" aria-label="Bannière précédente" class="ib">◂</button>
+                <button type="button" data-action="carousel#next" aria-label="Bannière suivante" class="ib">▸</button>
+            </div>
+        {% endif %}
+    </section>
+
+    <div class="wrap flex flex-col gap-5 pb-24 pt-8">
+        {# ------------------------------------------------------------ Set #}
+        <div class="flex flex-wrap items-center gap-3">
+            <h2 class="h2 mr-3">Le set · {{ totalCount }} carte{{ totalCount > 1 ? 's' }}</h2>
+            <nav aria-label="Filtrer par possession" class="flex flex-wrap gap-1.5">
+                {% for key, label in { toutes: 'Toutes', possedees: 'Possédées · ' ~ ownedCount, manquantes: 'Manquantes · ' ~ missingCount } %}
+                    <a href="{{ path('universes_show', key == 'toutes' ? { slug: extension.slug } : { slug: extension.slug, filtre: key }) }}"
+                       class="seg{{ filter == key ? ' on' }}"{{ filter == key ? ' aria-current="true"' }}
+                       data-testid="set-filter-{{ key }}">{{ label }}</a>
+                {% endfor %}
+            </nav>
+            <span class="lbl md:ml-auto">Tri : rareté ↓</span>
+        </div>
+
+        <div class="set-grid" data-testid="set-grid">
+            {% for card in catalog %}
+                {% set userCard = ownedByCardId[card.id ~ ''] ?? null %}
+                {% if filter == 'toutes' or (filter == 'possedees' and userCard) or (filter == 'manquantes' and not userCard) %}
+                    {% if userCard %}
+                        {{ include('parts/ui/_card_cell.html.twig', {
+                            card: card,
+                            quantity: userCard.quantity,
+                            holoQuantity: userCard.holoQuantity,
+                            holo: userCard.holoQuantity > 0,
+                            interactive: true,
+                            wishUrl: wishlistEnabled ? path('wishlist_card_toggle', { id: card.id }) : null,
+                            wished: wishedIds[card.id ~ ''] is defined,
+                        }, with_context = false) }}
+                    {% else %}
+                        {# carte manquante : dos de carte, rareté seule (jamais nom, artwork ni id) #}
+                        {{ include('parts/ui/_card_cell.html.twig', { card: null, rarity: card.rarity.value }, with_context = false) }}
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% if filter != 'toutes' and (filter == 'possedees' ? ownedCount : missingCount) == 0 %}
+            <p class="panel px-6 py-8 text-center text-sm text-ink-muted">
+                {{ filter == 'possedees' ? 'Tu n\'as encore aucune carte de cet univers.' : 'Rien ne manque : univers complet !' }}
+            </p>
+        {% endif %}
 
         {# ------------------------------------------------------- Boosters #}
         {% if boosters|length > 0 %}
-            <section class="border-t border-hairline px-6 pb-24 pt-10 lg:px-12">
-                <div class="mx-auto max-w-7xl">
-                    <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
-                        Boosters de l'univers
-                    </h2>
-
-                    <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4" data-testid="universe-boosters">
-                        {% for booster in boosters %}
-                            {% set owned = ownedBoosterCounts[booster.id ~ '']|default(0) %}
-                            <article class="group relative flex flex-col rounded-2xl border border-hairline bg-surface p-4 transition duration-300 hover:-translate-y-1 hover:border-primary/40">
-                                <p class="text-center font-mono text-[10px] font-bold uppercase tracking-[.2em] text-ink-dim">Cartes de {{ booster.extension.name }}</p>
-                                <h3 class="mt-1 text-center font-display text-lg font-bold uppercase leading-tight tracking-[-0.02em] text-ink-strong">{{ booster.displayName }}</h3>
-
-                                <div class="relative mx-auto mt-4 flex h-52 w-full items-center justify-center">
-                                    <canvas width="840" height="1300"
-                                            data-controller="pack-front"
-                                            data-pack-front-bg-url-value="{{ booster.imageName ? vich_uploader_asset(booster) : (booster.extension.imageName ? vich_uploader_asset(booster.extension) : '') }}"
-                                            data-pack-front-fallback-url-value="{{ asset('images/ytcg_background.png') }}"
-                                            data-pack-front-logo-url-value="{{ asset('images/ytcg_logo.png') }}"
-                                            data-pack-front-name-value="{{ booster.displayName }}"
-                                            data-pack-front-count-value="{{ booster.cardCount }}"
-                                            data-pack-front-plain-value="{{ booster.imageName ? 'true' : 'false' }}"
-                                            class="relative h-full w-auto -rotate-3 rounded-xl shadow-2xl ring-1 ring-white/10 transition duration-300 group-hover:-rotate-1 group-hover:scale-[1.04]"></canvas>
-                                </div>
-
-                                <div class="mt-4 border-t border-hairline pt-3">
-                                    <div class="flex min-h-7 items-center justify-between gap-2">
-                                        {% if owned > 0 %}
-                                            <span class="chip-mono border border-primary/40 bg-primary/10 px-2 py-1 font-bold text-primary">
-                                                ◈ {{ owned }} pack{{ owned > 1 ? 's' }}
-                                            </span>
-                                            <a href="{{ path('booster_open', { id: booster.id }) }}"
-                                               class="flex items-center gap-1 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-strong transition hover:text-primary">
-                                                Ouvrir <span aria-hidden="true">›</span>
-                                            </a>
-                                        {% else %}
-                                            <span class="chip-mono border border-transparent px-2 py-1 text-ink-dim">◈ Aucun pack</span>
-                                        {% endif %}
-                                    </div>
-                                    <div class="mt-2 flex items-center">
-                                        {% if booster.claimable %}
-                                            <a href="{{ path('boosters') }}"
-                                               class="px-2 font-mono text-[11px] font-bold uppercase tracking-[.1em] text-primary transition hover:text-ink-strong">
-                                                + Récupérer sur le hub
-                                            </a>
-                                        {% else %}
-                                            <span class="px-2 font-mono text-[11px] uppercase tracking-[.1em] text-soon"
-                                                  title="Ce pack se gagne en event ou via un code — il n'est pas récupérable.">
-                                                ✕ Non récupérable
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </article>
-                        {% endfor %}
-                    </div>
+            <section aria-labelledby="u-boosters" class="flex flex-col gap-4 pt-10">
+                <h2 id="u-boosters" class="h2">Boosters de l'univers</h2>
+                <div class="pack-grid" data-testid="universe-boosters">
+                    {% for booster in boosters %}
+                        {% set owned = ownedBoosterCounts[booster.id ~ '']|default(0) %}
+                        <article class="pack{{ owned > 0 ? ' pack--has' }}">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="lbl min-w-0 truncate text-ink-strong">{{ booster.displayName }}</span>
+                                <span class="lbl shrink-0 px-2{{ owned > 0 ? ' bg-primary text-ink-strong' }}">{{ owned }} en stock</span>
+                            </div>
+                            <div class="pack__art">
+                                <canvas width="840" height="1300"
+                                        data-controller="pack-front"
+                                        data-pack-front-bg-url-value="{{ booster.imageName ? vich_uploader_asset(booster) : (booster.extension.imageName ? vich_uploader_asset(booster.extension) : '') }}"
+                                        data-pack-front-fallback-url-value="{{ asset('images/ytcg_background.png') }}"
+                                        data-pack-front-logo-url-value="{{ asset('images/ytcg_logo.png') }}"
+                                        data-pack-front-name-value="{{ booster.displayName }}"
+                                        data-pack-front-count-value="{{ booster.cardCount }}"
+                                        data-pack-front-plain-value="{{ booster.imageName ? 'true' : 'false' }}"
+                                        aria-label="Pack {{ booster.displayName }}" role="img"
+                                        class="pack__canvas"></canvas>
+                            </div>
+                            {% if owned > 0 and totalCount > 0 %}
+                                <a href="{{ path('booster_open', { id: booster.id }) }}" class="btn btn-p btn-w">Ouvrir · {{ owned }}</a>
+                            {% elseif booster.claimable %}
+                                <a href="{{ path('boosters') }}" class="btn btn-g btn-w">Récupérer sur le hub</a>
+                            {% endif %}
+                            {% if not booster.claimable %}
+                                <span class="text-xs text-soon" title="Ce pack se gagne en event ou via un code — il n'est pas récupérable.">✕ Non récupérable</span>
+                            {% endif %}
+                        </article>
+                    {% endfor %}
                 </div>
             </section>
         {% endif %}
+    </div>
     </main>
 {% endblock %}

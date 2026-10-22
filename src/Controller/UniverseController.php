@@ -23,6 +23,7 @@ use App\Service\Coin\UniverseCompletionChecker;
 use App\Service\Feature\FeatureFlags;
 use App\Service\Wishlist\WishlistService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -56,39 +57,76 @@ class UniverseController extends AbstractController
     ) {
     }
 
+    public const string SORT_NEARLY_DONE = 'presque';
+
+    public const string SORT_RECENT = 'recents';
+
+    public const string SORT_ALPHA = 'az';
+
     #[Route('/univers', name: 'universes')]
-    public function index(#[CurrentUser] DiscordUser $user): Response
+    public function index(#[CurrentUser] DiscordUser $user, Request $request): Response
     {
+        $sort = $request->query->getString('tri');
+        $sort = \in_array($sort, [self::SORT_RECENT, self::SORT_ALPHA], true) ? $sort : self::SORT_NEARLY_DONE;
+        $search = mb_substr(trim($request->query->getString('q')), 0, 60);
+
         $extensions = $this->extensionRepository->findPublishedWithPublishedCardCount();
         $ownedByExtension = $this->userCardRepository->countOwnedGroupedByExtension($user);
         $coverImages = $this->cardRepository->findCoverImageNamesByExtension();
 
         $universes = array_map(static function (array $item) use ($ownedByExtension, $coverImages): array {
             $extensionId = (string) $item['extension']->getId();
-            $owned = $ownedByExtension[$extensionId] ?? 0;
+            $owned = min($ownedByExtension[$extensionId] ?? 0, $item['cardCount']);
 
             return [
                 'extension' => $item['extension'],
                 'total' => $item['cardCount'],
                 'owned' => $owned,
-                'percentage' => $item['cardCount'] > 0 ? (int) round($owned / $item['cardCount'] * 100) : 0,
+                'percentage' => $item['cardCount'] > 0 ? (int) floor($owned / $item['cardCount'] * 100) : 0,
                 'coverImage' => $coverImages[$extensionId] ?? null,
                 'hasClaimableBooster' => $item['hasClaimableBooster'],
             ];
         }, $extensions);
 
+        if ('' !== $search) {
+            $universes = array_values(array_filter(
+                $universes,
+                static fn (array $universe): bool => str_contains(mb_strtolower((string) $universe['extension']->getName()), mb_strtolower($search)),
+            ));
+        }
+
+        usort($universes, static fn (array $a, array $b): int => match ($sort) {
+            self::SORT_RECENT => $b['extension']->getCreatedAt() <=> $a['extension']->getCreatedAt(),
+            self::SORT_ALPHA => 0,
+            default => [$b['percentage'], $b['owned']] <=> [$a['percentage'], $a['owned']],
+        } ?: strcasecmp((string) $a['extension']->getName(), (string) $b['extension']->getName()));
+
+        $completed = array_values(array_filter($universes, static fn (array $universe): bool => $universe['total'] > 0 && $universe['owned'] >= $universe['total']));
+        $toComplete = array_values(array_filter($universes, static fn (array $universe): bool => !\in_array($universe, $completed, true)));
+
+        $rewardsOn = $this->featureFlags->isEnabled(FeatureEnum::UNIVERSE_REWARDS);
         $upcoming = $this->extensionRepository->findUpcoming();
 
         return $this->render('pages/universes.html.twig', [
-            'universes' => $universes,
-            'upcoming' => $upcoming,
+            'toComplete' => $toComplete,
+            'completed' => $completed,
+            'universeCount' => \count($extensions),
+            'sort' => $sort,
+            'search' => $search,
+            // honest wording: a reward needs every card pulled by the player himself
+            'rewardsOn' => $rewardsOn && array_any($extensions, fn (array $item): bool => $this->completionChecker->rewardAmount($item['extension']) > 0),
+            'coinsEarned' => $rewardsOn ? $this->rewardRepository->sumPaidCoins($user) : 0,
+            'upcoming' => '' === $search ? $upcoming : null,
             'upcomingCover' => $upcoming instanceof Extension ? $this->cardRepository->findTeaserCoverImageName($upcoming) : null,
         ]);
     }
 
     #[Route('/univers/{slug}', name: 'universes_show', requirements: ['slug' => '[a-z0-9-]+'])]
-    public function show(#[CurrentUser] DiscordUser $user, string $slug): Response
+    public function show(#[CurrentUser] DiscordUser $user, string $slug, Request $request): Response
     {
+        $filter = $request->query->getString('filtre');
+        $filter = \in_array($filter, ['possedees', 'manquantes'], true) ? $filter : 'toutes';
+
         $extension = $this->extensionRepository->findOneBy([
             'slug' => $slug,
             'status' => ExtensionStatusEnum::PUBLISHED,
@@ -124,6 +162,7 @@ class UniverseController extends AbstractController
         return $this->render('pages/universe.html.twig', [
             'extension' => $extension,
             'catalog' => $catalog,
+            'filter' => $filter,
             'ownedByCardId' => $ownedByCardId,
             'boosters' => $this->visibleBoosters($extension, $user),
             'ownedBoosterCounts' => $this->ownedBoosterCounts($user),

@@ -5,73 +5,119 @@
 {% endblock %}
 
 {% block body %}
-    <main>
-        {# ------------------------------------------------------------ Hero #}
-        <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
-            <div class="glow-ambient" aria-hidden="true"></div>
-            <div class="relative mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                <div>
-                    <p class="eyebrow">02 / Univers</p>
-                    <h1 class="mt-2 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
-                        Les <span class="text-primary">univers</span>.
-                    </h1>
-                    <p class="mt-2 max-w-md text-sm text-ink-muted">
-                        Chaque univers est une extension : ses cartes, ses raretés, ses uniques.
-                        Explore le pokédex de chacun et traque ce qui te manque.
-                    </p>
-                </div>
-                <span class="font-mono text-xs text-ink-dim">{{ '%02d'|format(universes|length) }} UNIVERS LIVE</span>
-            </div>
-        </section>
-
-        {# ----------------------------------------------------------- Grille #}
-        <section class="px-6 pb-24 pt-10 lg:px-12">
-            <div class="mx-auto grid max-w-7xl gap-5 sm:grid-cols-2 lg:grid-cols-3" data-testid="universes-grid">
-                {% for universe in universes %}
-                    {% set extension = universe.extension %}
-                    <a href="{{ path('universes_show', { slug: extension.slug }) }}"
-                       class="group relative h-72 overflow-hidden border border-hairline bg-surface transition-colors hover:border-primary/60">
-                        <div class="absolute inset-0 bg-gradient-to-br from-[#2a0f44] via-[#7a1f9c] to-magenta opacity-50" aria-hidden="true"></div>
-                        {% set coverUrl = extension.imageName
-                            ? vich_uploader_asset(extension)
-                            : (universe.coverImage ? asset('uploads/cards/' ~ universe.coverImage)) %}
-                        {% if coverUrl %}
-                            <img src="{{ coverUrl }}" alt="" loading="lazy" onerror="this.remove()"
-                                 class="absolute inset-0 h-full w-full object-cover object-top opacity-60 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-80">
-                        {% endif %}
-                        <div class="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/95" aria-hidden="true"></div>
-
-                        {# live = at least one claimable booster right now #}
-                        {% if universe.hasClaimableBooster %}
-                            <div class="absolute left-4 right-4 top-4">
-                                <span class="chip-mono bg-black/80 px-2 py-0.5 font-bold text-live" data-testid="live-badge">● LIVE</span>
-                            </div>
-                        {% endif %}
-
-                        <div class="absolute bottom-4 left-4 right-4">
-                            <h2 class="font-display text-2xl font-bold uppercase leading-[.95] tracking-[-0.03em] text-white">
-                                {{ extension.name }}
-                            </h2>
-                            <p class="mt-1.5 text-[11px] text-white/80">
-                                {{ extension.description|slice(0, 90) }}{{ extension.description|length > 90 ? '…' }}
-                            </p>
-                            <div class="mt-3 border-t border-white/20 pt-2.5">
-                                <div class="chip-mono flex justify-between text-white/90">
-                                    <span>{{ universe.owned }}/{{ universe.total }} cartes</span>
-                                    <span class="font-bold text-primary">{{ universe.percentage }}%</span>
-                                </div>
-                                <div class="mt-1.5 h-1 bg-white/15">
-                                    <div class="h-full bg-gradient-to-r from-primary to-magenta" style="width: {{ universe.percentage }}%;"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
+    {% embed 'parts/ui/_page_header.html.twig' with {
+        eyebrow: 'Jouer',
+        title: 'Les univers',
+        lead: 'Chaque univers a ses cartes, ses raretés et ses uniques.'
+            ~ (rewardsOn ? ' Complète-en un avec des cartes tirées toi-même pour gagner des Youl Coin.' : ''),
+        testid: 'universes-header',
+    } %}
+        {% block actions %}
+            <form method="get" action="{{ path('universes') }}" role="search" class="flex w-full items-center gap-2 md:w-auto">
+                <label for="universe-search" class="sr">Chercher un univers</label>
+                <input id="universe-search" class="field h-10 w-full md:w-60" type="search" name="q" value="{{ search }}"
+                       placeholder="Chercher un univers…" autocomplete="off" data-testid="universe-search">
+                {% if sort != 'presque' %}<input type="hidden" name="tri" value="{{ sort }}">{% endif %}
+            </form>
+            <nav aria-label="Trier les univers" class="flex flex-wrap gap-1.5">
+                {% for key, label in { presque: 'Presque finis', recents: 'Plus récents', az: 'A → Z' } %}
+                    <a href="{{ path('universes', (key == 'presque' ? {} : { tri: key })|merge(search ? { q: search } : {})) }}"
+                       class="seg{{ sort == key ? ' on' }}"{{ sort == key ? ' aria-current="true"' }}
+                       data-testid="universe-sort-{{ key }}">{{ label }}</a>
                 {% endfor %}
+            </nav>
+        {% endblock %}
+    {% endembed %}
 
-                {% if upcoming %}
-                    {{ include('parts/_soon_tile.html.twig', { upcoming, class: 'h-72' }) }}
+    <main class="wrap flex flex-col gap-10 pb-24 pt-8" data-testid="universes-grid">
+        {% if search and toComplete is empty and completed is empty %}
+            <p class="panel px-6 py-10 text-center text-ink-muted" data-testid="universe-search-empty">
+                Aucun univers ne correspond à « {{ search }} ».
+                <a href="{{ path('universes', sort != 'presque' ? { tri: sort } : {}) }}" class="tl ml-2">Tout afficher</a>
+            </p>
+        {% endif %}
+
+        {# ------------------------------------------------------ À compléter #}
+        {% if toComplete is not empty %}
+            <section aria-labelledby="u-todo" class="flex flex-col gap-3.5" data-testid="universes-todo">
+                <div class="flex items-baseline gap-3">
+                    <h2 id="u-todo" class="h2">À compléter</h2>
+                    <span class="muted">{{ toComplete|length }} univers</span>
+                </div>
+                {# les 4 premiers en grand, le reste en liste compacte #}
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {% for universe in toComplete|slice(0, 4) %}
+                        {% set extension = universe.extension %}
+                        {% embed 'parts/ui/_universe_tile.html.twig' with {
+                            extension: extension,
+                            coverUrl: extension.imageName ? vich_uploader_asset(extension) : (universe.coverImage ? asset('uploads/cards/' ~ universe.coverImage)),
+                            class: 'h-[230px] md:h-[280px]',
+                            universe: universe,
+                        } only %}
+                            {% block top %}
+                                {# live = at least one claimable booster right now #}
+                                {% if universe.hasClaimableBooster %}<span class="chip chip-live bg-bg/80" data-testid="live-badge">● live</span>{% endif %}
+                            {% endblock %}
+                            {% block content %}
+                                {% if extension.description %}<span class="line-clamp-2 text-[13px] text-ink">{{ extension.description }}</span>{% endif %}
+                                {{ include('parts/_universe_progress.html.twig', { universe: universe }, with_context = false) }}
+                            {% endblock %}
+                        {% endembed %}
+                    {% endfor %}
+                </div>
+                {% if toComplete|length > 4 %}
+                    <div class="panel universe-list">
+                        {% for universe in toComplete|slice(4) %}
+                            {% set extension = universe.extension %}
+                            <a href="{{ path('universes_show', { slug: extension.slug }) }}" class="universe-list__item" data-testid="universe-tile">
+                                <span class="flex items-baseline justify-between gap-3">
+                                    <span class="d up min-w-0 truncate text-ink-strong">{{ extension.name }}</span>
+                                    <span class="mono shrink-0 text-ink-strong">{{ universe.percentage }} %</span>
+                                </span>
+                                {{ include('parts/_universe_progress.html.twig', { universe: universe, compact: true }, with_context = false) }}
+                            </a>
+                        {% endfor %}
+                    </div>
                 {% endif %}
-            </div>
-        </section>
+            </section>
+        {% endif %}
+
+        {# -------------------------------------------------------- Complétés #}
+        {% if completed is not empty %}
+            <section aria-labelledby="u-done" class="flex flex-col gap-3.5" data-testid="universes-done">
+                <div class="flex flex-wrap items-baseline gap-3">
+                    <h2 id="u-done" class="h2">Complétés <span class="text-live">✓</span></h2>
+                    <span class="muted">
+                        {{ completed|length }} univers
+                        {%- if rewardsOn and coinsEarned > 0 %} · {{ coinsEarned|number_format(0, ',', ' ') }} YLC gagnés{% endif %}
+                    </span>
+                </div>
+                <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    {% for universe in completed %}
+                        {% embed 'parts/ui/_universe_tile.html.twig' with {
+                            extension: universe.extension,
+                            coverUrl: universe.extension.imageName ? vich_uploader_asset(universe.extension) : (universe.coverImage ? asset('uploads/cards/' ~ universe.coverImage)),
+                            class: 'h-[150px] md:h-[180px]',
+                            nameClass: 'text-base md:text-xl',
+                            universe: universe,
+                        } only %}
+                            {% block content %}
+                                <span class="lbl text-live">✓ {{ universe.owned }} / {{ universe.total }} · {{ universe.percentage }} %</span>
+                            {% endblock %}
+                        {% endembed %}
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+
+        {# ---------------------------------------------------------- Bientôt #}
+        {% if upcoming %}
+            <section aria-labelledby="u-soon" class="flex flex-col gap-3.5">
+                <h2 id="u-soon" class="h2">Bientôt</h2>
+                <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    {{ include('parts/_soon_tile.html.twig', { upcoming, upcomingCover, class: 'h-[150px] md:h-[180px]' }, with_context = false) }}
+                </div>
+            </section>
+        {% endif %}
     </main>
 {% endblock %}

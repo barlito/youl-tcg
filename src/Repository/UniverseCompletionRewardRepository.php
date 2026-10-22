@@ -51,6 +51,22 @@ class UniverseCompletionRewardRepository extends ServiceEntityRepository
     }
 
     /**
+     * Whole coins actually paid to the player for completed universes (pending, failed and cancelled rows excluded).
+     */
+    public function sumPaidCoins(DiscordUser $discordUser): int
+    {
+        return (int) $this->createQueryBuilder('reward')
+            ->select('COALESCE(SUM(reward.amount), 0)')
+            ->andWhere('reward.discordUser = :user')
+            ->andWhere('reward.status = :paid')
+            ->setParameter('user', $discordUser)
+            ->setParameter('paid', UniverseRewardStatusEnum::PAID->value)
+            ->getQuery()
+            ->getSingleScalarResult()
+        ;
+    }
+
+    /**
      * @return array<string, true> "discordId|extensionId" keys
      */
     public function findRewardedPairs(): array
