@@ -253,6 +253,17 @@
 }
 
 .pack:hover .pack__canvas { transform: rotate(-1deg) scale(1.03); }
+.pack__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.pack__actions .btn { min-width: 0; min-height: 44px; padding: 0 8px; gap: 6px; letter-spacing: .06em; white-space: nowrap; }
+.pack__actions .btn[aria-disabled="true"] { font-size: 11px; letter-spacing: .02em; }
+.pack__count {
+    min-width: 20px;
+    padding: 0 5px;
+    background: #ffffff1f;
+    font: 700 11px/18px "JetBrains Mono", monospace;
+    letter-spacing: 0;
+}
+.pack__actions .btn.is-loading { cursor: progress; opacity: .6; }
 .pack__foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 20px; }
 
 /* « Taux » : le panneau recouvre le bas de la tuile */

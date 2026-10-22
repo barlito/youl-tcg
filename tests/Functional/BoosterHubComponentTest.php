@@ -167,6 +167,75 @@ final class BoosterHubComponentTest extends WebTestCase
         $this->assertStringContainsString('/boosters/' . $booster->getId() . '/open', $rendered);
     }
 
+    public function testClaimAndOpenKeepTheirOwnSlotsAcrossAClaim(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $booster = $this->firstPublishedBooster();
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        $actions = $this->packActions($component->render()->crawler(), $booster);
+
+        // 0 in stock: « Récupérer » (with the claims left) first, a dead « Ouvrir · 0 » next to it
+        $claim = $actions->children()->eq(0);
+        $this->assertSame('pack-claim', $claim->attr('data-testid'));
+        $this->assertSame('claimBooster', $claim->attr('data-live-action-param'));
+        $this->assertNull($claim->attr('disabled'));
+        $this->assertStringContainsString('addAttribute(disabled)', (string) $claim->attr('data-loading'));
+        $this->assertSame('2', $claim->filter('[data-testid="pack-claims-left"]')->text());
+        $open = $actions->children()->eq(1);
+        $this->assertSame('pack-open', $open->attr('data-testid'));
+        $this->assertSame('span', $open->nodeName());
+        $this->assertSame('true', $open->attr('aria-disabled'));
+        $this->assertSame('Ouvrir · 0', $open->text(normalizeWhitespace: true));
+
+        // after a claim the claim button is still the claim button, in the same slot: a second
+        // click claims again instead of leading to the opening page
+        $component->call('claimBooster', ['boosterId' => (string) $booster->getId()]);
+        $actions = $this->packActions($component->render()->crawler(), $booster);
+
+        $claim = $actions->children()->eq(0);
+        $this->assertSame('pack-claim', $claim->attr('data-testid'));
+        $this->assertSame('claimBooster', $claim->attr('data-live-action-param'));
+        $this->assertSame('1', $claim->filter('[data-testid="pack-claims-left"]')->text());
+        $open = $actions->children()->eq(1);
+        $this->assertSame('a', $open->nodeName());
+        $this->assertSame('/boosters/' . $booster->getId() . '/open', $open->attr('href'));
+        $this->assertSame('Ouvrir · 1', $open->text(normalizeWhitespace: true));
+    }
+
+    public function testTheClaimButtonIsDisabledOnceTheDailyQuotaIsSpent(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $booster = $this->firstPublishedBooster();
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        $component->call('claimBooster', ['boosterId' => (string) $booster->getId()]);
+        $component->call('claimBooster', ['boosterId' => (string) $booster->getId()]);
+
+        $actions = $this->packActions($component->render()->crawler(), $booster);
+        $claim = $actions->children()->eq(0);
+        $this->assertSame('pack-claim', $claim->attr('data-testid'));
+        $this->assertNotNull($claim->attr('disabled'));
+        $this->assertNull($claim->attr('data-live-action-param'));
+        $this->assertSame('0', $claim->filter('[data-testid="pack-claims-left"]')->text());
+        $this->assertSame('Ouvrir · 2', $actions->filter('[data-testid="pack-open"]')->text(normalizeWhitespace: true));
+    }
+
+    /**
+     * The « Récupérer / Ouvrir » row of a booster's tile.
+     */
+    private function packActions(Crawler $crawler, \App\Entity\Booster $booster): Crawler
+    {
+        $tile = $crawler->filter('[data-testid="booster-card"]')->reduce(
+            static fn (Crawler $card): bool => str_contains($card->text(), $booster->getDisplayName()),
+        );
+        $this->assertCount(1, $tile, 'Pack tile not found.');
+
+        return $tile->filter('[data-testid="pack-actions"]');
+    }
+
     public function testBoosterOverExtensionWithoutPublishedCardsIsNotDrawable(): void
     {
         $client = static::createClient();
