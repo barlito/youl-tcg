@@ -65,6 +65,9 @@ final class BoosterOpening extends AbstractController
 
     private ?Booster $boosterCache = null;
 
+    /** @var list<Card>|null */
+    private ?array $catalogCache = null;
+
     /**
      * Owned card ids for the mask (see getOwnedCardIds). Memoized per request:
      * open() seeds it with its pre-draw snapshot — the post-credit owned set
@@ -107,6 +110,10 @@ final class BoosterOpening extends AbstractController
      */
     public function getExtensionCatalog(): array
     {
+        if (null !== $this->catalogCache) {
+            return $this->catalogCache;
+        }
+
         $cards = $this->cardRepository->findPublishedByExtension($this->getBooster()->getExtension());
 
         usort(
@@ -115,7 +122,107 @@ final class BoosterOpening extends AbstractController
                 ?: $a->getName() <=> $b->getName(),
         );
 
-        return $cards;
+        return $this->catalogCache = $cards;
+    }
+
+    /**
+     * « Taux de ce pack »: each rarity's share of the pack's cards (the per-slot
+     * percentages averaged over the slots), plus the average holo and 1/1 chances.
+     *
+     * @return array{rarities: array<string, float>, holo: float, unique: float}
+     */
+    public function getPackRates(): array
+    {
+        $slots = $this->getBooster()->getDropRates();
+        $count = \count($slots);
+        $rarities = [];
+        $holo = 0.0;
+        $unique = 0.0;
+
+        foreach (CardRarityEnum::ascending() as $rarity) {
+            $sum = 0.0;
+            foreach ($slots as $slot) {
+                $sum += $slot['rates'][$rarity->value] ?? 0.0;
+            }
+            if ($sum > 0) {
+                $rarities[$rarity->value] = round($sum / $count, 1);
+            }
+        }
+
+        foreach ($slots as $slot) {
+            $holo += $slot['holoChance'];
+            $unique += $slot['uniqueRate'];
+        }
+
+        return [
+            'rarities' => $rarities,
+            'holo' => $count > 0 ? round($holo / $count, 1) : 0.0,
+            'unique' => $count > 0 ? round($unique / $count, 2) : 0.0,
+        ];
+    }
+
+    /**
+     * Published cards of the set the player already owned BEFORE the ongoing
+     * opening (the mask), i.e. the « x / y trouvées » counter before the reveal.
+     */
+    public function getFoundCount(): int
+    {
+        $owned = $this->getOwnedCardIds();
+
+        return \count(array_filter(
+            $this->getExtensionCatalog(),
+            static fn (Card $card): bool => isset($owned[(string) $card->getId()]),
+        ));
+    }
+
+    /**
+     * End-of-opening summary: best find (1/1, then rarest, then holo, then new,
+     * first in draw order), new card count and the universe completion before →
+     * after the draw — all derived from data already loaded, no extra query.
+     *
+     * @return array{
+     *     best: array{card: Card, holo: bool, new: bool, index: int},
+     *     cardCount: int,
+     *     newCount: int,
+     *     before: array{owned: int, total: int, percentage: int},
+     *     after: array{owned: int, total: int, percentage: int},
+     * }|null
+     */
+    public function getRecap(): ?array
+    {
+        $reveal = $this->getRevealCards();
+        if ([] === $reveal) {
+            return null;
+        }
+
+        $best = null;
+        $bestScore = -1;
+        foreach ($reveal as $index => $slot) {
+            $card = $slot['card'];
+            $new = \in_array((string) $card->getId(), $this->newCardIds, true);
+            $score = ($card->isUnique() ? 100 : $card->getRarity()->rank() * 10) + ($slot['holo'] ? 2 : 0) + ($new ? 1 : 0);
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $best = ['card' => $card, 'holo' => $slot['holo'], 'new' => $new, 'index' => $index];
+            }
+        }
+        \assert(null !== $best);
+
+        $catalog = $this->getExtensionCatalog();
+        $total = \count($catalog);
+        $ownedBefore = $this->getFoundCount();
+        $newInSet = \count(array_filter(
+            $catalog,
+            fn (Card $card): bool => \in_array((string) $card->getId(), $this->newCardIds, true),
+        ));
+
+        return [
+            'best' => $best,
+            'cardCount' => \count($reveal),
+            'newCount' => \count(array_unique($this->newCardIds)),
+            'before' => $this->completion($ownedBefore, $total),
+            'after' => $this->completion($ownedBefore + $newInSet, $total),
+        ];
     }
 
     /**
@@ -249,6 +356,18 @@ final class BoosterOpening extends AbstractController
         $this->newCardIds = [];
         $this->revealOrder = [];
         $this->error = null;
+    }
+
+    /**
+     * @return array{owned: int, total: int, percentage: int}
+     */
+    private function completion(int $owned, int $total): array
+    {
+        return [
+            'owned' => $owned,
+            'total' => $total,
+            'percentage' => $total > 0 ? (int) round($owned / $total * 100) : 0,
+        ];
     }
 
     private function getDiscordUser(): DiscordUser

@@ -16,10 +16,11 @@ import { Controller } from '@hotwired/stimulus';
  * in the centre showcase, each face-DOWN with the remaining cards stacked behind
  * it (packs.com style). Clicking the card flips it (3D rotateY) to reveal the
  * face — per-card state machine 'back' → 'flipping' → 'face' — which flips the
- * matching tile in the right-hand reveal tracker (zone 1 of the aside) from its
- * back to the real card. Cards run common → rarest (climax last); when the last
- * one is up it surfaces the "open another / back" footer. The lower aside zone
- * (set contents: search/sort) is a separate `set-contents` controller.
+ * matching tile in the reveal tracker (« Tes cartes », under the pack) from its
+ * back to the real card. Once the last card is face-up, « Voir le récap » (or a
+ * tap on the card) swaps the page for the server-rendered summary. The aside
+ * (pack rates + set contents: search, missing filter) is a separate
+ * `set-contents` controller; this one only unmasks the freshly won tiles.
  *
  * No anime.js: plain `setTimeout` timelines + CSS animations.
  */
@@ -30,13 +31,6 @@ const RARITY_COLOR = {
     rare: '#54a8ff',
     legendary: '#ff8a2b',
 };
-const RARITY_LABEL = {
-    common: 'Commune',
-    uncommon: 'Peu commune',
-    rare: 'Rare',
-    legendary: 'Légendaire',
-};
-const RARITY_RANK = { common: 0, uncommon: 1, rare: 2, legendary: 3 };
 const SHINY = new Set(['rare', 'legendary']);
 
 // must match the .opening__flip CSS transition duration
@@ -45,7 +39,7 @@ const FLIP_MS = 560;
 export default class extends Controller {
     static targets = [
         'showcase', 'aura', 'label', 'card', 'flip', 'stack', 'next', 'counter',
-        'track', 'best', 'revealedCount', 'flash', 'foot', 'cta',
+        'track', 'revealedCount', 'flash', 'cta', 'toRecap', 'recap', 'asideToggle',
     ];
 
     static values = {
@@ -134,7 +128,6 @@ export default class extends Controller {
         this.phase = 'idle';
         this.revealIndex = -1;
         this.cardState = 'back'; // back → flipping → face, per current card
-        this.bestRank = -1;
         if (this.hasShowcaseTarget) {
             this.showcaseTarget.hidden = true;
             this.showcaseTarget.style.pointerEvents = '';
@@ -148,20 +141,22 @@ export default class extends Controller {
         this.trackTargets?.forEach((tile) => {
             tile.classList.add('is-resetting');
             tile.classList.remove('is-revealed', 'is-popping');
-            const name = tile.querySelector('.opening__track-name');
-            if (name) {
-                name.textContent = 'Non révélée';
-            }
             void tile.offsetWidth;
             tile.classList.remove('is-resetting');
         });
+        this._updateRevealedCount(0);
         if (this.hasLabelTarget) {
             this.labelTarget.textContent = '';
             this.labelTarget.classList.remove('is-on');
         }
         this._updateStack(0);
-        if (this.hasFootTarget) {
-            this.footTarget.hidden = true;
+        // the summary of the previous draw goes away with it
+        this.element.classList.remove('is-recap', 'is-revealing');
+        if (this.hasRecapTarget) {
+            this.recapTarget.hidden = true;
+        }
+        if (this.hasToRecapTarget) {
+            this.toRecapTarget.classList.remove('is-shown');
         }
         // The "carte suivante" button and counter keep their slot in the flow at all
         // times — we only fade them (is-shown / is-hidden), never display:none them,
@@ -211,6 +206,7 @@ export default class extends Controller {
         }
         this.phase = 'reveal';
         this.showcaseTarget.hidden = false;
+        this.element.classList.add('is-revealing');
         // the pack is open now — drop the tear instruction / "ouvrir d'un coup" CTA
         if (this.hasCtaTarget) {
             this.ctaTarget.hidden = true;
@@ -222,6 +218,11 @@ export default class extends Controller {
     // single entry point for clicks on the showcase: flip the current card, or
     // (once it is face-up) advance to the next one.
     tap() {
+        if (this.phase === 'done') {
+            this.showRecap();
+
+            return;
+        }
         if (this.phase !== 'reveal') {
             return;
         }
@@ -322,7 +323,6 @@ export default class extends Controller {
 
         this._revealTrack(index);
         this._unmaskSetTile(card.dataset.cardId);
-        this._bumpBest(rarity);
         this._updateRevealedCount(index + 1);
         this._updateStack(this.lastIndex - index);
 
@@ -349,24 +349,48 @@ export default class extends Controller {
 
     _end() {
         this.phase = 'done';
-        // keep the last card on screen; retire the in-showcase prompt + tear CTA
-        // and surface the back / open-another actions under the booster
+        // keep the last card on screen; « Voir le récap » takes the « next » slot
         if (this.hasNextTarget) {
             this.nextTarget.classList.remove('is-shown');
         }
+        if (this.hasToRecapTarget) {
+            this.toRecapTarget.classList.add('is-shown');
+        }
         if (this.hasCounterTarget) {
-            this.counterTarget.classList.add('is-hidden');
+            this.counterTarget.textContent = `${this.countValue} / ${this.countValue} · CLIQUE POUR LE RÉCAP`;
         }
         if (this.hasCtaTarget) {
             this.ctaTarget.hidden = true;
         }
-        // the card stays visible, but the overlay must stop eating clicks meant for
-        // the actions sitting under the booster
-        if (this.hasShowcaseTarget) {
-            this.showcaseTarget.style.pointerEvents = 'none';
+    }
+
+    // end-of-opening summary, rendered with the draw but hidden until every card was seen
+    showRecap(event) {
+        if (event) {
+            event.stopPropagation();
         }
-        if (this.hasFootTarget) {
-            this.footTarget.hidden = false;
+        if (this.phase !== 'done' || !this.hasRecapTarget) {
+            return;
+        }
+        this.phase = 'recap';
+        this.recapTarget.hidden = false;
+        this.element.classList.remove('is-revealing');
+        this.element.classList.add('is-recap');
+        window.scrollTo({ top: 0 });
+    }
+
+    // « Ouvrir le suivant »: seal the pack and clear the table BEFORE the open()
+    // round-trip, so the summary never shows the next draw
+    leaveRecap() {
+        this._sealPack();
+    }
+
+    toggleAside() {
+        const open = !this.element.classList.contains('is-aside-open');
+        this.element.classList.toggle('is-aside-open', open);
+        if (this.hasAsideToggleTarget) {
+            this.asideToggleTarget.setAttribute('aria-expanded', String(open));
+            this.asideToggleTarget.textContent = open ? 'Masquer le contenu et les taux' : 'Voir le contenu et les taux';
         }
     }
 
@@ -382,21 +406,13 @@ export default class extends Controller {
             this._stampNew(card);
             this._revealTrack(index);
             this._unmaskSetTile(card.dataset.cardId);
-            this._bumpBest(card.dataset.rarity);
         });
         this._updateRevealedCount(this.countValue);
-        // keep the showcase visible (the footer lives inside it now), just let
-        // clicks through to the actions
-        if (this.hasShowcaseTarget) {
-            this.showcaseTarget.hidden = false;
-            this.showcaseTarget.style.pointerEvents = 'none';
-        }
         if (this.hasCtaTarget) {
             this.ctaTarget.hidden = true;
         }
-        if (this.hasFootTarget) {
-            this.footTarget.hidden = false;
-        }
+        // nothing to choreograph: straight to the summary
+        this.showRecap();
     }
 
     // the « Nouvelle carte » stamp only exists on the first copy of a card not owned before the draw
@@ -407,26 +423,22 @@ export default class extends Controller {
         }
     }
 
-    // -------------------------------------------- reveal tracker (zone 1 aside)
-    // flip the matching tile in the top "Révélé x/N" grid from its back to the
-    // real card, in sync with the centre flip
+    // -------------------------------------------- reveal tracker (« Tes cartes »)
+    // flip the matching slot under the pack from its back to the real card, in
+    // sync with the centre flip
     _revealTrack(index) {
         const tile = this.trackTargets[index];
         if (!tile) {
             return;
         }
         tile.classList.add('is-revealed');
-        const nameEl = tile.querySelector('.opening__track-name');
-        if (nameEl && nameEl.dataset.name) {
-            nameEl.textContent = nameEl.dataset.name;
-        }
         this._retrigger(tile, 'is-popping');
     }
 
-    // -------------------------------------------- set contents (zone 2 aside)
+    // -------------------------------------------- set contents (aside)
     // A card FIRST won by this opening is server-rendered masked (`is-pending`,
-    // full data carried in data-* attributes) so the set list cannot spoil the
-    // showcase; flip by flip we promote its tile to the regular owned rendering.
+    // its real cell hidden next to the card back) so the set list cannot spoil
+    // the showcase; flip by flip we swap the card back for the real cell.
     _unmaskSetTile(cardId) {
         if (!cardId) {
             return;
@@ -434,37 +446,15 @@ export default class extends Controller {
         this.element.querySelectorAll(`.opening__card-tile.is-pending[data-card-id="${cardId}"]`).forEach((tile) => {
             tile.classList.remove('is-masked', 'is-pending');
             tile.dataset.name = tile.dataset.pendingName || '';
-            tile.dataset.rarity = tile.dataset.pendingRarity || '';
-            if (tile.dataset.rarity) {
-                tile.style.setProperty('--tile-rar', `var(--rarity-${tile.dataset.rarity})`);
-            }
-            tile.querySelector('.opening__card-back')?.remove();
-            // the rendered card, not an <img>: the component carries both faces
-            const render = tile.querySelector('.opening__card-render');
-            if (render) {
-                render.hidden = false;
-            }
-            const name = tile.querySelector('.opening__card-name');
-            if (name && name.dataset.revealName) {
-                name.textContent = name.dataset.revealName;
-            }
-            const tier = tile.querySelector('.opening__card-tier');
-            if (tier && tier.dataset.revealTier) {
-                tier.textContent = tier.dataset.revealTier;
-                tier.hidden = false;
+            tile.querySelector('[data-opening-masked]')?.remove();
+            const reveal = tile.querySelector('[data-opening-reveal]');
+            if (reveal) {
+                reveal.hidden = false;
             }
             this._retrigger(tile, 'is-popping');
+            // the set-contents controller recounts « trouvées » and re-applies its filters
+            tile.dispatchEvent(new CustomEvent('opening:unmasked', { bubbles: true }));
         });
-    }
-
-    _bumpBest(rarity) {
-        const rank = RARITY_RANK[rarity] ?? -1;
-        if (rank <= this.bestRank || !this.hasBestTarget) {
-            return;
-        }
-        this.bestRank = rank;
-        this.bestTarget.textContent = RARITY_LABEL[rarity] || rarity;
-        this.bestTarget.style.color = RARITY_COLOR[rarity] || '#fff';
     }
 
     _updateRevealedCount(count) {
