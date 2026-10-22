@@ -92,9 +92,9 @@ class MarketListingRepository extends ServiceEntityRepository
     /**
      * @return list<MarketListing>
      */
-    public function findActivePage(?DiscordUser $seller, ?DiscordUser $excludedSeller, ?Extension $extension, ?CardRarityEnum $rarity, ?bool $holo, string $sort, int $page, int $perPage, ?DiscordUser $wishOf = null): array
+    public function findActivePage(?DiscordUser $seller, ?DiscordUser $excludedSeller, ?Extension $extension, ?CardRarityEnum $rarity, ?bool $holo, string $sort, int $page, int $perPage, ?DiscordUser $wishOf = null, ?string $search = null, ?DiscordUser $missingFor = null): array
     {
-        $queryBuilder = $this->activeQuery($seller, $excludedSeller, $extension, $rarity, $holo, $wishOf)
+        $queryBuilder = $this->activeQuery($seller, $excludedSeller, $extension, $rarity, $holo, $wishOf, $search, $missingFor)
             ->addSelect('card', 'extension', 'seller')
             ->setFirstResult(max(0, $page - 1) * $perPage)
             ->setMaxResults($perPage)
@@ -111,9 +111,9 @@ class MarketListingRepository extends ServiceEntityRepository
         return array_values(iterator_to_array(new Paginator($queryBuilder->getQuery(), fetchJoinCollection: false)));
     }
 
-    public function countActive(?DiscordUser $seller, ?DiscordUser $excludedSeller, ?Extension $extension, ?CardRarityEnum $rarity, ?bool $holo, ?DiscordUser $wishOf = null): int
+    public function countActive(?DiscordUser $seller, ?DiscordUser $excludedSeller, ?Extension $extension, ?CardRarityEnum $rarity, ?bool $holo, ?DiscordUser $wishOf = null, ?string $search = null, ?DiscordUser $missingFor = null): int
     {
-        return (int) $this->activeQuery($seller, $excludedSeller, $extension, $rarity, $holo, $wishOf)
+        return (int) $this->activeQuery($seller, $excludedSeller, $extension, $rarity, $holo, $wishOf, $search, $missingFor)
             ->select('COUNT(listing.id)')
             ->getQuery()
             ->getSingleScalarResult()
@@ -171,7 +171,7 @@ class MarketListingRepository extends ServiceEntityRepository
         return array_fill_keys(array_map(static fn (array $row): string => (string) $row['id'], $rows), true);
     }
 
-    private function activeQuery(?DiscordUser $seller, ?DiscordUser $excludedSeller, ?Extension $extension, ?CardRarityEnum $rarity, ?bool $holo, ?DiscordUser $wishOf = null): QueryBuilder
+    private function activeQuery(?DiscordUser $seller, ?DiscordUser $excludedSeller, ?Extension $extension, ?CardRarityEnum $rarity, ?bool $holo, ?DiscordUser $wishOf = null, ?string $search = null, ?DiscordUser $missingFor = null): QueryBuilder
     {
         $queryBuilder = $this->createQueryBuilder('listing')
             ->join('listing.card', 'card')
@@ -203,6 +203,21 @@ class MarketListingRepository extends ServiceEntityRepository
 
         if (null !== $holo) {
             $queryBuilder->andWhere('listing.holo = :holo')->setParameter('holo', $holo);
+        }
+
+        if (null !== $search && '' !== mb_trim($search)) {
+            $queryBuilder
+                ->andWhere('LOWER(card.name) LIKE :search')
+                ->setParameter('search', '%' . addcslashes(mb_strtolower(mb_trim($search)), '%_\\') . '%')
+            ;
+        }
+
+        // « Me manquent »: cards the player owns no copy of (quantity already counts the holos)
+        if ($missingFor instanceof DiscordUser) {
+            $queryBuilder
+                ->andWhere('NOT EXISTS (SELECT 1 FROM App\Entity\UserCard mine WHERE mine.discordUser = :missingFor AND mine.card = card AND mine.quantity > 0)')
+                ->setParameter('missingFor', $missingFor)
+            ;
         }
 
         if ($wishOf instanceof DiscordUser) {

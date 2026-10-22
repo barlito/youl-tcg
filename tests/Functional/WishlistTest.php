@@ -244,7 +244,7 @@ final class WishlistTest extends WebTestCase
         $this->assertStringNotContainsString($this->hidden->getName(), $text);
         $this->assertCount(1, $crawler->filter('[data-testid="wishlist-grid"] [data-testid="masked-card"]'));
         $this->assertStringNotContainsString((string) $this->hidden->getId(), $crawler->html());
-        $this->assertStringContainsString('2/30', $crawler->filter('[data-testid="wishlist-count"]')->text());
+        $this->assertStringContainsString('2 / 30', $crawler->filter('[data-testid="wishlist-count"]')->text());
     }
 
     public function testThePanelCountsTheMissingCardsOfAWatchedUniverseWithoutListingThem(): void
@@ -276,6 +276,39 @@ final class WishlistTest extends WebTestCase
 
         $this->assertCount(0, $crawler->filter('[data-testid="wishlist-entry"]'));
         $this->assertCount(1, $crawler->filter('[data-testid="wishlist-empty"]'));
+    }
+
+    public function testThePanelWatchesAUniverseFromTheSelect(): void
+    {
+        $panel = $this->createLiveComponent(WishlistPanel::class, client: $this->client);
+        $option = $panel->render()->crawler()->filter('[data-testid="wishlist-watch-select"] option[value="' . $this->extension->getSlug() . '"]');
+        $this->assertCount(1, $option);
+        $this->assertStringContainsString('1 manquante', $option->text());
+
+        $panel->set('watchSlug', $this->extension->getSlug());
+        $crawler = $panel->call('watch')->render()->crawler();
+
+        $this->assertCount(1, $this->entityManager->getRepository(WishlistUniverse::class)->findBy(['player' => $this->me]));
+        $this->assertCount(1, $crawler->filter('[data-testid="wishlist-universe"]'));
+        $this->assertCount(0, $crawler->filter('[data-testid="wishlist-watch-select"] option[value="' . $this->extension->getSlug() . '"]'), 'A watched universe leaves the select.');
+    }
+
+    public function testThePanelListsTheMissingCardsOnSaleAndWishesThem(): void
+    {
+        $missingListing = new MarketListing($this->other, $this->hidden, false, 33);
+        $this->entityManager->persist($missingListing);
+        $this->entityManager->persist(new MarketListing($this->other, $this->owned, false, 12));
+        $this->entityManager->flush();
+
+        $panel = $this->createLiveComponent(WishlistPanel::class, client: $this->client);
+        $items = $panel->render()->crawler()->filter('[data-testid="wishlist-on-sale-item"]');
+        $this->assertCount(1, $items, 'Only the cards I own no copy of.');
+        $this->assertStringContainsString($this->hidden->getName(), $items->text());
+        $this->assertStringContainsString('33 YLC chez', $items->text());
+
+        $crawler = $panel->call('toggleListingWish', ['listingId' => (string) $missingListing->getId()])->render()->crawler();
+        $this->assertCount(1, $this->entityManager->getRepository(WishlistEntry::class)->findBy(['player' => $this->me]));
+        $this->assertSame('true', $crawler->filter('[data-testid="wishlist-on-sale-wish"]')->attr('aria-pressed'));
     }
 
     // --------------------------------------------------------------- market

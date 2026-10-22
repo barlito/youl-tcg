@@ -101,7 +101,7 @@ final class MarketComponentTest extends WebTestCase
         $mine = $this->card('My common');
         $this->listing($this->seller, $rare, false, 30);
         $this->listing($this->buyer, $mine, false, 10);
-        $names = static fn (TestLiveComponent $component): array => $component->render()->crawler()->filter('[data-testid="market-listing"] p.truncate.font-display')->each(static fn ($node): string => trim($node->text()));
+        $names = static fn (TestLiveComponent $component): array => $component->render()->crawler()->filter('[data-testid="market-listing"] [data-testid="listing-name"]')->each(static fn ($node): string => trim($node->text()));
         $board = $this->board();
 
         $board->set('sort', 'price_asc');
@@ -210,7 +210,7 @@ final class MarketComponentTest extends WebTestCase
         $this->listing($this->seller, $elsewhere, false, 60);
         $board = $this->board();
 
-        $names = static fn (TestLiveComponent $component): array => $component->render()->crawler()->filter('[data-testid="market-listing"] p.truncate.font-display')->each(static fn ($node): string => trim($node->text()));
+        $names = static fn (TestLiveComponent $component): array => $component->render()->crawler()->filter('[data-testid="market-listing"] [data-testid="listing-name"]')->each(static fn ($node): string => trim($node->text()));
         $this->assertCount(3, $names($board));
 
         $board->set('rarity', 'rare');
@@ -422,7 +422,7 @@ final class MarketComponentTest extends WebTestCase
 
         $crawler = $this->myShop()->render()->crawler();
 
-        $this->assertStringContainsString('1/3 annonces', $crawler->filter('[data-testid="quota"]')->text());
+        $this->assertStringContainsString('1 / 3 emplacements', $crawler->filter('[data-testid="quota"]')->text());
         $this->assertCount(1, $crawler->filter('[data-testid="my-listing"]'));
         $this->assertStringContainsString('12 YLC', $crawler->filter('[data-testid="my-listing-price"]')->text());
     }
@@ -556,9 +556,9 @@ final class MarketComponentTest extends WebTestCase
 
         $this->assertCount(2, $entries);
         $text = implode(' ', $entries->each(static fn ($entry): string => $entry->text()));
-        $this->assertStringContainsString('Vendue', $text);
-        $this->assertStringContainsString('reçus : 190', $text);
-        $this->assertStringContainsString('Achetée', $text);
+        $this->assertStringContainsString('Vente', $text);
+        $this->assertStringContainsString('(reçu 190)', $text);
+        $this->assertStringContainsString('Achat', $text);
     }
 
     public function testACopyOnSaleShowsLockedInTheRecycleHubAndTheComposer(): void
@@ -603,6 +603,68 @@ final class MarketComponentTest extends WebTestCase
         $notification = static::getContainer()->get(\App\Service\Notification\NotificationRenderer::class)->describe(\App\Enum\Notification\NotificationTypeEnum::MARKET_SOLD, ['buyerName' => 'Barlito', 'cardName' => 'X', 'price' => 5]);
 
         $this->assertSame('/marche/ma-boutique', $notification->link);
+    }
+
+    public function testMissingFilterAndSearchNarrowTheBoard(): void
+    {
+        $owned = $this->card('Already mine');
+        $this->give($this->buyer, $owned, 1);
+        $missing = $this->card('Not yet mine');
+        $this->listing($this->seller, $owned, false, 15);
+        $this->listing($this->seller, $missing, false, 25);
+        $names = static fn (TestLiveComponent $component): array => $component->render()->crawler()->filter('[data-testid="market-listing"] [data-testid="listing-name"]')->each(static fn ($node): string => trim($node->text()));
+        $board = $this->board();
+
+        $crawler = $board->render()->crawler();
+        $this->assertCount(1, $crawler->filter('[data-testid="listing-owned"]'), '« tu l\'as déjà » on the card I own.');
+        $this->assertCount(1, $crawler->filter('[data-testid="listing-missing"]'));
+
+        $board->call('toggleMissingFilter');
+        $this->assertSame([$missing->getName()], $names($board));
+        $this->assertSame('true', $board->render()->crawler()->filter('[data-testid="filter-missing"]')->attr('aria-pressed'));
+
+        $board->call('toggleMissingFilter');
+        $board->set('query', 'already');
+        $this->assertSame([$owned->getName()], $names($board));
+
+        $board->call('resetFilters');
+        $this->assertCount(2, $names($board));
+    }
+
+    public function testTheShopButtonCountsTheEngagedListings(): void
+    {
+        $card = $this->card('Quota card');
+        $this->give($this->buyer, $card, 2);
+        $this->listingViaService($this->buyer, $card, false, 9);
+
+        $this->assertStringContainsString('1/3', $this->board()->render()->crawler()->filter('[data-testid="my-shop-link"]')->text());
+    }
+
+    public function testTheSellTableShowsTheLastSaleOfTheCardAndFilters(): void
+    {
+        $sold = $this->card('Last sale card', CardRarityEnum::RARE);
+        $this->give($this->buyer, $sold, 2);
+        $this->give($this->seller, $sold, 1);
+        $other = $this->card('Never sold card');
+        $this->give($this->buyer, $other, 1);
+        $listing = $this->listingViaService($this->seller, $sold, false, 77);
+        static::getContainer()->get(MarketPurchaseService::class)->purchase($this->buyer, $listing, 'jwt');
+
+        $shop = $this->myShop();
+        $rows = $shop->render()->crawler()->filter('[data-testid="sellable"]');
+        $this->assertCount(2, $rows);
+        $soldRow = $rows->reduce(static fn ($row): bool => str_contains($row->text(), $sold->getName()));
+        $this->assertSame('77 YLC', trim($soldRow->filter('[data-testid="last-sale"]')->text()));
+        $otherRow = $rows->reduce(static fn ($row): bool => str_contains($row->text(), $other->getName()));
+        $this->assertSame('—', trim($otherRow->filter('[data-testid="last-sale"]')->text()));
+
+        $shop->set('rarity', 'rare');
+        $this->assertCount(1, $shop->render()->crawler()->filter('[data-testid="sellable"]'));
+        $shop->call('resetFilters');
+        $shop->call('toggleDuplicates');
+        $rows = $shop->render()->crawler()->filter('[data-testid="sellable"]');
+        $this->assertCount(1, $rows, 'A single copy is not a duplicate.');
+        $this->assertStringContainsString($sold->getName(), $rows->text());
     }
 
     private function board(): TestLiveComponent

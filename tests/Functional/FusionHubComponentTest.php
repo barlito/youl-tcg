@@ -134,6 +134,8 @@ final class FusionHubComponentTest extends WebTestCase
         $this->assertSame(1, $crawler->filter('[data-testid="engaged-badge"]')->count());
         $this->assertStringContainsString('en vente', $crawler->filter('[data-testid="engaged-badge"]')->text());
         $this->assertCount(0, $crawler->filter('[data-testid="fusion-ask"]'));
+        $this->assertCount(1, $crawler->filter('[data-testid="fusion-almost-grid"] [data-testid="fusion-card"]'), 'Listed copies push the card into « Presque ».');
+        $this->assertSame('/marche/ma-boutique', $crawler->filter('[data-testid="fusion-almost-grid"] a.btn')->attr('href'));
     }
 
     public function testACardListedAfterTheConfirmationIsRefusedByTheService(): void

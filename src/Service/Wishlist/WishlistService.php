@@ -242,6 +242,35 @@ final readonly class WishlistService
     }
 
     /**
+     * Published universes the player does not watch yet and still misses cards of,
+     * by name (same two grouped queries as listUniverses()).
+     *
+     * @return list<array{extension: Extension, missing: int}>
+     */
+    public function listWatchableUniverses(DiscordUser $player): array
+    {
+        $owned = $this->userCardRepository->countOwnedGroupedByExtension($player);
+        $watched = [];
+        foreach ($this->universeRepository->findForPlayer($player) as $watch) {
+            $watched[(string) $watch->getExtension()->getId()] = true;
+        }
+
+        $watchable = [];
+        foreach ($this->extensionRepository->findPublishedWithPublishedCardCount() as $item) {
+            $id = (string) $item['extension']->getId();
+            $missing = max(0, $item['cardCount'] - ($owned[$id] ?? 0));
+
+            if ($missing > 0 && !isset($watched[$id])) {
+                $watchable[] = ['extension' => $item['extension'], 'missing' => $missing];
+            }
+        }
+
+        usort($watchable, static fn (array $a, array $b): int => $a['extension']->getName() <=> $b['extension']->getName());
+
+        return $watchable;
+    }
+
+    /**
      * Cards among $cardIds the player is looking for (wished, or missing in a
      * watched universe). Only meant for cards the viewer already owns.
      *
