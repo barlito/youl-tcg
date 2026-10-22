@@ -8,29 +8,54 @@
     holo          rendre la carte en holo (défaut false)
     interactive   tilt 3D (défaut false : grilles)
     lazy          chargement différé de l'image (défaut true)
+    id            id DOM de la carte (défaut : id de la carte ; à fixer si elle apparaît deux fois)
     maskedLabel   libellé d'une carte masquée (défaut « Carte à trouver »)
     showRarity    afficher la ligne de rareté (défaut true)
+    suffix        texte ajouté à la ligne de rareté (ex. nom de l'univers, optionnel)
+    unique        marque « 1/1 » d'une carte MASQUÉE (une carte visible la porte d'elle-même)
     wishUrl       URL du ♡ wishlist (carte VISIBLE uniquement, ignoré pour une carte masquée)
     wished        état du ♡ (défaut false)
+    holoToggleClass  preset holo : ajoute le bouton « ✦ HOLO » (carte visible possédée en holo ET en normale)
+    badge         pastille sur le visuel { text, class, testid } (optionnel, ex. « Sa collection »)
+    artClass      classes du visuel (ex. voile d'un état de comparaison)
+    state         attribut data-state de la cellule (optionnel)
+    attrs         attributs supplémentaires de la cellule (map, ex. cible Stimulus)
     testid        défaut « card-cell »
 #}
 {% set card = card|default(null) %}
 {% set quantity = quantity|default(null) %}
 {% set holoQuantity = holoQuantity|default(0) %}
 {% set rarityValue = card ? card.rarity.value : rarity|default(null) %}
-<div class="cell" data-testid="{{ testid|default('card-cell') }}"{% if rarityValue %} data-rarity="{{ rarityValue }}"{% endif %}>
+{% set holoToggleClass = card ? holoToggleClass|default(null) : null %}
+{% set badge = badge|default(null) %}
+<div class="cell" data-testid="{{ testid|default('card-cell') }}"
+     {%- if rarityValue %} data-rarity="{{ rarityValue }}"{% endif %}
+     {%- if state|default(null) %} data-state="{{ state }}"{% endif %}
+     {%- for name, value in attrs|default({}) %} {{ name }}="{{ value }}"{% endfor %}
+     {%- if holoToggleClass %} data-controller="holo-toggle" data-holo-toggle-holo-class-value="{{ holoToggleClass }}"{% endif %}>
     <div class="cell__art">
-        {% if card %}
-            {{ include('components/CardComponent.html.twig', {
-                card: card,
-                holo: holo|default(false),
-                interactive: interactive|default(false),
-                lazy: lazy ?? true,
-            }, with_context = false) }}
-        {% else %}
-            {{ include('parts/_masked_card.html.twig', rarityValue ? { rarity: rarityValue } : {}, with_context = false) }}
-        {% endif %}
+        <div class="{{ artClass|default('') }}">
+            {% if card %}
+                {{ include('components/CardComponent.html.twig', {
+                    card: card,
+                    holo: holo|default(false),
+                    interactive: interactive|default(false),
+                    lazy: lazy ?? true,
+                    id: id|default(card.id),
+                }, with_context = false) }}
+            {% else %}
+                {{ include('parts/_masked_card.html.twig', rarityValue ? { rarity: rarityValue } : {}, with_context = false) }}
+            {% endif %}
+        </div>
         {% if quantity %}<span class="qty">×{{ quantity }}</span>{% endif %}
+        {% if badge %}
+            <span class="cell__badge chip {{ badge.class|default('') }}"{% if badge.testid|default(null) %} data-testid="{{ badge.testid }}"{% endif %}>{{ badge.text }}</span>
+        {% endif %}
+        {% if holoToggleClass %}
+            {# hors de .card : un clic sur la carte déclenche le zoom 3D #}
+            <button type="button" class="cell__toggle chip chip-holo" aria-pressed="true"
+                    data-action="holo-toggle#toggle" data-holo-toggle-target="button" data-testid="holo-toggle">✦ Holo</button>
+        {% endif %}
         {% if card and wishUrl|default(null) %}
             {{ include('parts/_wish_button.html.twig', { url: wishUrl, active: wished|default(false) }, with_context = false) }}
         {% endif %}
@@ -43,8 +68,9 @@
     {% if (showRarity ?? true) and rarityValue %}
         <span class="lbl r-{{ rarityValue|first }}">
             {{ rarity_icon(rarityValue) }} {{ rarity_label(rarityValue) }}
-            {%- if card and card.isUnique %} <span class="r-s">· 1/1</span>{% endif %}
+            {%- if (card and card.isUnique) or (not card and unique|default(false)) %} <span class="r-s" data-testid="chip-unique">· 1/1</span>{% endif %}
             {%- if holoQuantity > 0 %} <span class="text-magenta">· ✦ {{ holoQuantity }}</span>{% endif %}
+            {%- if suffix|default(null) %} <span class="text-ink-muted">· {{ suffix }}</span>{% endif %}
         </span>
     {% endif %}
 </div>

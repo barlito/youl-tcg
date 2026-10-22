@@ -64,7 +64,7 @@ final class CollectionControllerTest extends WebTestCase
 
         // the profile stats moved in with the merge: 3 (1 holo copy included) + 1 + 0
         $stats = $crawler->filter('[data-testid="profile-stats"]')->text();
-        $this->assertStringContainsString('4 cartes au total', $stats);
+        $this->assertStringContainsString('4 cartes', $stats);
         $this->assertStringContainsString('1 holo', $stats);
         $this->assertStringContainsString('0 unique 1/1', $stats);
         $this->assertStringContainsString('0 pack ouvert', $stats);
@@ -75,7 +75,8 @@ final class CollectionControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/collection');
 
         self::assertResponseIsSuccessful();
-        $this->assertSame('/mes-ouvertures', $crawler->filter('[data-testid="history-link"]')->attr('href'));
+        $this->assertCount(1, $crawler->filter('[data-testid="my-space-nav"] a[href="/mes-ouvertures"]'));
+        $this->assertSame('page', $crawler->filter('[data-testid="my-space-nav"] a[href="/collection"]')->attr('aria-current'));
 
         $rank = $crawler->filter('[data-testid="leaderboard-link"]');
         $this->assertSame('/classement', $rank->attr('href'));
@@ -89,7 +90,7 @@ final class CollectionControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $strip = $crawler->filter('[data-testid="completion-strip"]')->text();
         // Extension A: 2 owned out of 4 published (the draft card must not count).
-        $this->assertStringContainsString('50%', $strip);
+        $this->assertStringContainsString('50 %', $strip);
         $this->assertStringContainsString('2/4 cartes', $strip);
         // Extension B: nothing owned.
         $this->assertStringContainsString('0/2 cartes', $strip);
@@ -105,8 +106,8 @@ final class CollectionControllerTest extends WebTestCase
         // top of the scenario's, so only the owned count (2) is asserted exactly.
         $allTile = $crawler->filter('[data-testid="completion-strip"] > a')->first();
         $this->assertStringContainsString('Tout', $allTile->text());
-        $this->assertMatchesRegularExpression('#\b\d+%.*\b2/\d+ cartes#s', $allTile->text());
-        $this->assertNotNull($allTile->attr('data-carousel-active'));
+        $this->assertMatchesRegularExpression('#\b\d+ %.*\b2/\d+ cartes#s', $allTile->text());
+        $this->assertSame('true', $allTile->attr('aria-current'));
     }
 
     public function testGridShowsOwnedCardsWithQuantityBadges(): void
@@ -116,7 +117,7 @@ final class CollectionControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $grid = $this->universeBlock($crawler, $this->extensionA)->filter('[data-testid="collection-grid"]');
         $this->assertStringContainsString('×3', $grid->text());
-        $this->assertStringContainsString('✦1', $grid->text());
+        $this->assertStringContainsString('✦ 1', $grid->text());
     }
 
     public function testCardsNotOwnedAreMaskedWithoutLeakingTheirNames(): void
@@ -141,19 +142,19 @@ final class CollectionControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug());
 
         self::assertResponseIsSuccessful();
-        $filters = $crawler->filter('[data-testid="collection-filters"] button');
-        $states = $filters->each(static fn (Crawler $node): string => (string) $node->attr('data-state'));
-        $this->assertSame(['all', 'common', 'missing-both'], $states);
+        $filters = $crawler->filter('[data-testid="possession-filters"] [data-filter]');
+        $states = $filters->each(static fn (Crawler $node): string => (string) $node->attr('data-filter'));
+        $this->assertSame(['toutes', 'possedees', 'manquantes'], $states);
 
         // scoped to the filtered universe, not to the whole catalogue
         $this->assertStringContainsString('4', $filters->eq(0)->text());
         $this->assertStringContainsString('2', $filters->eq(1)->text());
         $this->assertStringContainsString('2', $filters->eq(2)->text());
 
-        // the client-side fallback exists (hidden until a filter empties the grid)
-        $fallback = $crawler->filter('[data-testid="filter-empty"]');
-        $this->assertCount(1, $fallback);
-        $this->assertNotNull($fallback->attr('hidden'));
+        // links keep the universe, « Toutes » is the active one
+        $this->assertSame('/collection/' . $this->extensionA->getSlug() . '?filtre=possedees', $filters->eq(1)->attr('href'));
+        $this->assertSame('true', $filters->eq(0)->attr('aria-current'));
+        $this->assertCount(0, $crawler->filter('[data-testid="filter-empty"]'));
     }
 
     public function testHoloOwnedTileRendersToggleAndHoloCard(): void
@@ -224,7 +225,7 @@ final class CollectionControllerTest extends WebTestCase
         // The filtered universe's tile is the active one in the completion strip.
         $this->assertStringContainsString(
             $this->extensionA->getName(),
-            $crawler->filter('[data-testid="completion-strip"] a[data-carousel-active]')->text(),
+            $crawler->filter('[data-testid="completion-strip"] a[aria-current]')->text(),
         );
     }
 
@@ -239,8 +240,9 @@ final class CollectionControllerTest extends WebTestCase
         $this->assertCount(0, $crawler->filter('[data-testid="collection-tile"][data-state="common"]'));
 
         // « Possédées » has nothing to show: readable but not clickable
-        $owned = $crawler->filter('[data-testid="collection-filters"] button[data-state="common"]');
-        $this->assertNotNull($owned->attr('disabled'));
+        $owned = $crawler->filter('[data-testid="possession-filters"] [data-filter="possedees"]');
+        $this->assertSame('span', $owned->nodeName());
+        $this->assertSame('true', $owned->attr('aria-disabled'));
     }
 
     public function testUniverseHeadingLinksToTheUniversePage(): void
@@ -297,7 +299,7 @@ final class CollectionControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $html = (string) $this->client->getResponse()->getContent();
         // the draft card of the scenario is not part of extension A's published set
-        $this->assertStringContainsString('4 cartes', $this->universeBlock($crawler, $this->extensionA)->filter('[data-testid="universe-count"]')->text());
+        $this->assertStringContainsString('2 / 4 possédées', $this->universeBlock($crawler, $this->extensionA)->filter('[data-testid="universe-count"]')->text());
         $this->assertStringNotContainsString($draftExtension->getName(), $html);
         $this->assertStringNotContainsString($hidden->getName(), $html);
     }
@@ -320,6 +322,119 @@ final class CollectionControllerTest extends WebTestCase
 
         $this->assertSame($legendary->getName(), $names[0] ?? null, 'Rarest card must come first.');
         $this->assertSame($rare->getName(), $names[1] ?? null, 'Then the rare, before the commons.');
+    }
+
+    public function testPossessionFilterIsAppliedServerSide(): void
+    {
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug() . '?filtre=manquantes');
+
+        self::assertResponseIsSuccessful();
+        $this->assertCount(2, $crawler->filter('[data-testid="collection-tile"][data-state="missing-both"]'));
+        $this->assertCount(0, $crawler->filter('[data-testid="collection-tile"][data-state="common"]'));
+        $this->assertSame('true', $crawler->filter('[data-testid="possession-filters"] [data-filter="manquantes"]')->attr('aria-current'));
+    }
+
+    public function testSearchOnlyMatchesOwnedCards(): void
+    {
+        // « Card A » is the prefix of the 4 published cards: only the 2 owned ones come back
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug() . '?q=card+a');
+
+        self::assertResponseIsSuccessful();
+        $tiles = $crawler->filter('[data-testid="collection-tile"]');
+        $this->assertCount(2, $tiles);
+        $this->assertCount(0, $crawler->filter('[data-testid="masked-card"]'));
+        $this->assertCount(1, $crawler->filter(\sprintf('img[alt="%s"]', $this->cardsA[0]->getName())));
+        $this->assertSame('card a', $crawler->filter('[data-testid="collection-search"]')->attr('value'));
+    }
+
+    public function testSearchingTheExactNameOfAMissingCardFindsNothing(): void
+    {
+        // no oracle: the full name of a face-down card answers exactly like a made-up one
+        $hidden = $this->client->request('GET', '/collection?q=' . rawurlencode($this->cardsA[3]->getName()));
+        self::assertResponseIsSuccessful();
+        $this->assertCount(0, $hidden->filter('[data-testid="collection-tile"]'));
+        $this->assertCount(1, $hidden->filter('[data-testid="filter-empty"]'));
+
+        $madeUp = $this->client->request('GET', '/collection?q=' . rawurlencode('Card A9 ' . uniqid()));
+        $this->assertCount(0, $madeUp->filter('[data-testid="collection-tile"]'));
+        $this->assertCount(1, $madeUp->filter('[data-testid="filter-empty"]'));
+    }
+
+    public function testRarityFilterKeepsMaskedCardsOfThatRarity(): void
+    {
+        $ownedRare = $this->createCard($this->extensionA, 'Rare owned ' . uniqid(), rarity: CardRarityEnum::RARE);
+        $this->createCard($this->extensionA, 'Rare missing ' . uniqid(), rarity: CardRarityEnum::RARE);
+        $this->createUserCard($ownedRare, quantity: 1);
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug() . '?rarete=rare');
+
+        self::assertResponseIsSuccessful();
+        $tiles = $crawler->filter('[data-testid="collection-tile"]');
+        $this->assertCount(2, $tiles);
+        $this->assertSame(['rare', 'rare'], $tiles->each(static fn (Crawler $tile): string => (string) $tile->attr('data-rarity')));
+        $this->assertCount(1, $tiles->filter('[data-testid="masked-card"]'));
+        $this->assertStringContainsString('Filtres · 1', $crawler->filter('[data-testid="collection-filters-toggle"]')->text());
+    }
+
+    public function testFinishFilterKeepsOwnedCardsWithACopyOfThatFinish(): void
+    {
+        $holo = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug() . '?finition=holo');
+        self::assertResponseIsSuccessful();
+        $this->assertCount(1, $holo->filter('[data-testid="collection-tile"]'));
+        $this->assertCount(1, $holo->filter(\sprintf('img[alt="%s"]', $this->cardsA[0]->getName())));
+        $this->assertCount(1, $holo->filter('[data-testid="collection-tile"] .card.holo'));
+
+        // cardsA[0] (3 copies, 1 holo) also has normal copies, rendered normal here
+        $normal = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug() . '?finition=normale');
+        $this->assertCount(2, $normal->filter('[data-testid="collection-tile"]'));
+        $this->assertCount(0, $normal->filter('[data-testid="masked-card"]'));
+        $this->assertCount(0, $normal->filter('[data-testid="collection-tile"] .card.holo'));
+        $this->assertCount(0, $normal->filter('[data-testid="holo-toggle"]'));
+    }
+
+    public function testNameSortFlattensTheGridAndKeepsMaskedCardsLast(): void
+    {
+        $zed = $this->createCard($this->extensionA, 'Aaa first by name ' . uniqid(), rarity: CardRarityEnum::LEGENDARY);
+        $this->createUserCard($zed, quantity: 1);
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug() . '?tri=nom');
+
+        self::assertResponseIsSuccessful();
+        $this->assertCount(0, $crawler->filter('[data-testid="collection-universe"]'));
+        $this->assertCount(1, $crawler->filter('[data-testid="collection-results"]'));
+
+        $states = $crawler->filter('[data-testid="collection-tile"]')->each(static fn (Crawler $tile): string => (string) $tile->attr('data-state'));
+        $this->assertSame(['common', 'common', 'common', 'missing-both', 'missing-both'], $states);
+
+        $names = $crawler->filter('[data-testid="collection-tile"] .cn')->each(static fn (Crawler $name): string => $name->text());
+        $this->assertSame([$zed->getName(), $this->cardsA[0]->getName(), $this->cardsA[1]->getName()], $names);
+        // flattened: each cell names its universe
+        $this->assertStringContainsString($this->extensionA->getName(), $crawler->filter('[data-testid="collection-tile"]')->first()->text());
+    }
+
+    public function testQuantitySortPutsTheBiggestStackFirst(): void
+    {
+        $stack = $this->createCard($this->extensionA, 'Zzz stack ' . uniqid());
+        $this->createUserCard($stack, quantity: 7);
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug() . '?tri=quantite');
+
+        self::assertResponseIsSuccessful();
+        $names = $crawler->filter('[data-testid="collection-tile"] .cn')->each(static fn (Crawler $name): string => $name->text());
+        $this->assertSame([$stack->getName(), $this->cardsA[0]->getName(), $this->cardsA[1]->getName()], $names);
+    }
+
+    public function testUnknownFilterValuesFallBackToTheDefaults(): void
+    {
+        $crawler = $this->client->request('GET', '/collection/' . $this->extensionA->getSlug() . '?tri=bogus&rarete=mythic&finition=gold&filtre=all&q[]=x');
+
+        self::assertResponseIsSuccessful();
+        $this->assertCount(1, $crawler->filter('[data-testid="collection-universe"]'));
+        $this->assertCount(4, $crawler->filter('[data-testid="collection-tile"]'));
+        $this->assertSame('Filtres', trim($crawler->filter('[data-testid="collection-filters-toggle"]')->text()));
     }
 
     /**

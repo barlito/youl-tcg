@@ -284,6 +284,7 @@
 
 .seg:hover { color: var(--text-strong); border-color: var(--hairline-strong); }
 .seg.on { background: var(--primary); border-color: var(--primary); color: var(--text-strong); }
+.seg:disabled { opacity: .4; cursor: not-allowed; }
 
 /* Menu déroulant de filtre (bouton) */
 .dd {

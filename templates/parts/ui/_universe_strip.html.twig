@@ -1,0 +1,62 @@
+{#
+  Bande « Par univers » (collection, profil joueur) : tuile « Tout » puis un univers par tuile,
+  du plus complet au moins complet. Tuiles image à partir de md, segments `.seg` défilants en mobile.
+  Paramètres :
+    strip            tuiles de CompletionStripBuilder (extension, owned, total, percentage, coverImage)
+    currentExtension univers filtré (null = « Tout » actif)
+    route            route du lien de chaque tuile, routeParams (optionnel) ses paramètres fixes
+    query            paramètres d'url conservés d'une tuile à l'autre (optionnel, ex. filtres)
+    owned, total, percentage   complétion globale de la tuile « Tout »
+    title            titre de la section (défaut « Par univers »)
+#}
+{% set routeParams = routeParams|default({}) %}
+{% set query = query|default({}) %}
+{% set tiles = strip|sort((a, b) => (b.percentage - a.percentage) ?: (a.extension.name < b.extension.name ? -1 : 1)) %}
+<section aria-labelledby="universe-strip-title" class="flex min-w-0 flex-col gap-3" data-testid="universe-strip">
+    <h2 id="universe-strip-title" class="lbl text-ink">{{ title|default('Par univers') }}</h2>
+
+    {# desktop : tuiles image #}
+    <div class="strip-row max-md:hidden" data-testid="completion-strip">
+        <a href="{{ path(route, routeParams|merge(query)) }}"
+           class="strip-tile strip-tile--all{{ currentExtension is null ? ' on' }}"
+           {{ currentExtension is null ? 'aria-current="true"' }}
+           data-testid="strip-tile-all">
+            <span class="d up text-[13px] text-ink-strong">Tout</span>
+            <span class="d text-2xl text-ink-strong">{{ percentage }} %</span>
+            <span class="lbl">{{ owned }}/{{ total }} cartes</span>
+            <span class="bar" aria-hidden="true"><i style="width: {{ percentage }}%"></i></span>
+        </a>
+        {% for tile in tiles %}
+            {% set isActive = currentExtension is not null and currentExtension.id == tile.extension.id %}
+            {% set coverUrl = tile.extension.imageName
+                ? vich_uploader_asset(tile.extension)
+                : (tile.coverImage ? asset('uploads/cards/' ~ tile.coverImage)) %}
+            <a href="{{ path(route, routeParams|merge({ slug: tile.extension.slug })|merge(query)) }}"
+               class="strip-tile{{ isActive ? ' on' }}"
+               {% if coverUrl %}style="--tile-img: url('{{ coverUrl }}')"{% endif %}
+               {{ isActive ? 'aria-current="true"' }}
+               data-testid="strip-tile">
+                <span class="d up truncate text-[13px] text-ink-strong" title="{{ tile.extension.name }}">
+                    {{- tile.extension.name -}}
+                    {% if tile.total > 0 and tile.owned == tile.total %} <span class="text-live" aria-hidden="true">✓</span><span class="sr"> complet</span>{% endif %}
+                </span>
+                <span class="d text-2xl text-ink-strong">{{ tile.percentage }} %</span>
+                <span class="lbl">{{ tile.owned }}/{{ tile.total }} cartes</span>
+                <span class="bar" aria-hidden="true"><i style="width: {{ tile.percentage }}%"></i></span>
+            </a>
+        {% endfor %}
+    </div>
+
+    {# mobile : segments défilants #}
+    <nav aria-label="{{ title|default('Par univers') }}" class="strip-segs md:hidden" data-testid="universe-segs">
+        <a href="{{ path(route, routeParams|merge(query)) }}" class="seg{{ currentExtension is null ? ' on' }}"
+           {{ currentExtension is null ? 'aria-current="true"' }}>Tout · {{ percentage }} %</a>
+        {% for tile in tiles %}
+            {% set isActive = currentExtension is not null and currentExtension.id == tile.extension.id %}
+            <a href="{{ path(route, routeParams|merge({ slug: tile.extension.slug })|merge(query)) }}"
+               class="seg{{ isActive ? ' on' }}" {{ isActive ? 'aria-current="true"' }}>
+                {{- tile.extension.name }} · {{ tile.total > 0 and tile.owned == tile.total ? '✓' : tile.percentage ~ ' %' -}}
+            </a>
+        {% endfor %}
+    </nav>
+</section>
