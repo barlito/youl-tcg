@@ -46,6 +46,19 @@ enum CardRarityEnum: string
     }
 
     /**
+     * Shape that doubles the rarity colour (never colour alone).
+     */
+    public function icon(): string
+    {
+        return match ($this) {
+            self::COMMON => '●',
+            self::UNCOMMON => '◆',
+            self::RARE => '★',
+            self::LEGENDARY => '★★',
+        };
+    }
+
+    /**
      * Rarest-first usort comparator; name tiebreaks stay at the call sites.
      */
     public static function compareRarestFirst(self $a, self $b): int

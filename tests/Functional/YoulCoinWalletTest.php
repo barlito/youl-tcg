@@ -34,7 +34,7 @@ final class YoulCoinWalletTest extends WebTestCase
         $crawler = $client->request('GET', '/');
 
         $this->assertResponseIsSuccessful();
-        $this->assertSame('1 500 YLC', preg_replace('/\s+/u', ' ', trim($crawler->filter('[data-testid="wallet-balance"]')->text())));
+        $this->assertSame('¤ 1 500 YLC', preg_replace('/\s+/u', ' ', trim($crawler->filter('[data-testid="wallet-balance"]')->text())));
         $this->assertSame('https://yc.youlz.fr', $crawler->filter('[data-testid="wallet-balance"]')->attr('href'));
         $this->assertNull($crawler->filter('[data-testid="wallet-balance"]')->attr('title'));
     }

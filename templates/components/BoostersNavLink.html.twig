@@ -1,0 +1,16 @@
+{% set remaining = remaining_booster_claims() %}
+{% set label = 'Boosters' ~ (remaining > 0 ? ', ' ~ remaining ~ ' pack' ~ (remaining > 1 ? 's') ~ ' gratuit' ~ (remaining > 1 ? 's') ~ ' à récupérer') %}
+<a href="{{ path('boosters') }}"
+   {{ attributes.defaults({
+       class: (variant == 'tab' ? 'mtab' : 'nav') ~ (active ? ' on' : ''),
+       'aria-label': label,
+       'data-action': 'live-updates:inventory-changed@window->live#$render',
+       'data-testid': variant == 'tab' ? 'tab-boosters' : 'nav-boosters',
+   }) }}
+   {{ active ? 'aria-current="page"' }}>
+    {% if variant == 'tab' %}{{ include('parts/ui/_tab_icon.html.twig', { name: 'boosters' }, with_context = false) }}{% endif %}
+    Boosters
+    {% if remaining > 0 %}
+        <span class="badge" data-testid="{{ variant == 'tab' ? 'claims-badge-tab' : 'claims-badge' }}">{{ remaining }}</span>
+    {% endif %}
+</a>

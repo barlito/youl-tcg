@@ -46,6 +46,14 @@ final class CardRarityEnumTest extends TestCase
         $this->assertSame('Légendaire', CardRarityEnum::LEGENDARY->label());
     }
 
+    public function testIconDoublesTheColourWithADistinctShape(): void
+    {
+        $this->assertSame('●', CardRarityEnum::COMMON->icon());
+        $this->assertSame('◆', CardRarityEnum::UNCOMMON->icon());
+        $this->assertSame('★', CardRarityEnum::RARE->icon());
+        $this->assertSame('★★', CardRarityEnum::LEGENDARY->icon());
+    }
+
     public function testRecyclePointsFollowTheAgreedScale(): void
     {
         $this->assertSame(1, CardRarityEnum::COMMON->recyclePoints());

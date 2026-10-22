@@ -68,7 +68,7 @@ final class OpeningHistoryControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/mes-ouvertures');
 
         self::assertResponseIsSuccessful();
-        $this->assertStringContainsString('0', $crawler->filter('[data-testid="openings-total"]')->text());
+        $this->assertStringContainsString('0', $crawler->filter('[data-testid="my-space-count-openings"]')->text());
         $this->assertStringContainsString('Aucune ouverture.', $crawler->filter('[data-testid="empty-state"]')->text());
         $this->assertCount(0, $crawler->filter('[data-testid="openings-list"]'));
         $this->assertCount(0, $crawler->filter('[data-testid="pagination"]'));
@@ -88,7 +88,7 @@ final class OpeningHistoryControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/mes-ouvertures');
 
         self::assertResponseIsSuccessful();
-        $this->assertStringContainsString('2', $crawler->filter('[data-testid="openings-total"]')->text());
+        $this->assertStringContainsString('2', $crawler->filter('[data-testid="my-space-count-openings"]')->text());
 
         $entries = $crawler->filter('[data-testid="opening-entry"]');
         $this->assertCount(2, $entries);
@@ -165,7 +165,7 @@ final class OpeningHistoryControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/mes-ouvertures');
 
         self::assertResponseIsSuccessful();
-        $this->assertStringContainsString('0', $crawler->filter('[data-testid="openings-total"]')->text());
+        $this->assertStringContainsString('0', $crawler->filter('[data-testid="my-space-count-openings"]')->text());
         $this->assertCount(0, $crawler->filter(\sprintf('img[alt="%s"]', $foreignName)));
     }
 

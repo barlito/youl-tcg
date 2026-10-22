@@ -33,4 +33,17 @@ final readonly class CardRarityExtension
 
         return CardRarityEnum::tryFrom($rarity)?->label() ?? $rarity;
     }
+
+    /**
+     * Rarity shape (● ◆ ★ ★★); an unknown value gets no icon.
+     */
+    #[AsTwigFunction(name: 'rarity_icon')]
+    public function rarityIcon(CardRarityEnum | string $rarity): string
+    {
+        if ($rarity instanceof CardRarityEnum) {
+            return $rarity->icon();
+        }
+
+        return CardRarityEnum::tryFrom($rarity)?->icon() ?? '';
+    }
 }

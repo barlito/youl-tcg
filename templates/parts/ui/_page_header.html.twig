@@ -1,0 +1,32 @@
+{#
+  En-tête de page Violet Arcade (`.ph`). À utiliser avec embed :
+
+    {% embed 'parts/ui/_page_header.html.twig' with { eyebrow: 'Mon espace', title: 'Mes ouvertures', lead: '…' } %}
+        {% block actions %}<a class="btn btn-p" href="…">Ouvrir un pack</a>{% endblock %}
+        {% block nav %}{{ include('parts/ui/_my_space_nav.html.twig', { current: 'openings' }) }}{% endblock %}
+    {% endembed %}
+
+  Paramètres : eyebrow (optionnel), title (texte du h1), lead (optionnel), testid (défaut « page-header »).
+  Blocs : title (h1 riche, ex. <span class="grad">), actions (à droite, passe dessous sur mobile),
+  aside (sous le lead), nav (sous-navigation collée au bord bas, ex. _my_space_nav).
+#}
+{% set navHtml %}{% block nav %}{% endblock %}{% endset %}
+{% set actionsHtml %}{% block actions %}{% endblock %}{% endset %}
+{% set navHtml = navHtml|trim %}
+{% set actionsHtml = actionsHtml|trim %}
+<div class="ph" data-testid="{{ testid|default('page-header') }}">
+    <div class="wrap flex flex-col gap-5 pt-8 md:pt-9 {{ navHtml ? '' : 'pb-8' }}">
+        <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div class="flex min-w-0 flex-col gap-2.5">
+                {% if eyebrow|default %}<p class="eyebrow">{{ eyebrow }}</p>{% endif %}
+                <h1 class="h1">{% block title %}{{ title }}{% endblock %}</h1>
+                {% if lead|default %}<p class="lead">{{ lead }}</p>{% endif %}
+                {% block aside %}{% endblock %}
+            </div>
+            {% if actionsHtml %}
+                <div class="flex shrink-0 flex-wrap items-center gap-2.5">{{ actionsHtml|raw }}</div>
+            {% endif %}
+        </div>
+        {{ navHtml|raw }}
+    </div>
+</div>

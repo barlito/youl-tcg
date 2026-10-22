@@ -1,18 +1,20 @@
 {# mt-auto : le body est en flex column, le footer reste collé en bas des pages courtes #}
-<footer class="mt-auto flex items-center justify-between border-t border-hairline px-6 py-8 font-mono text-[11px] tracking-[.1em] text-ink-dim lg:px-14">
-    <div class="flex items-center gap-3">
-        <img src="{{ asset('images/ytcg_logo.png') }}" alt="" class="h-8 w-8 object-contain">
-        <span>YOUL · YOULS TRADING CARD GAME · {{ 'now'|date('Y') }}</span>
-    </div>
-    <div class="flex items-center gap-5" data-controller="crt-toggle">
-        <label class="flex cursor-pointer select-none items-center gap-2 transition hover:text-ink">
-            <input type="checkbox" checked
-                   data-crt-toggle-target="checkbox"
-                   data-action="change->crt-toggle#toggle"
-                   style="accent-color: #a435f0;">
-            CRT
-        </label>
-        <span>youl-made · non-officiel</span>
-        <span data-testid="app-version" title="Version déployée">{{ app_version }}</span>
+<footer class="mt-auto border-t border-hairline">
+    <div class="wrap flex flex-col gap-4 py-6 font-mono text-[11px] tracking-[.1em] text-ink-muted sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-3">
+            <img src="{{ asset('images/ytcg_logo.png') }}" alt="" class="h-7 w-7 object-contain">
+            <span>YOUL · YOULS TRADING CARD GAME · {{ 'now'|date('Y') }}</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-2" data-controller="crt-toggle">
+            <label class="flex min-h-[44px] cursor-pointer select-none items-center gap-2 transition hover:text-ink-strong sm:min-h-0">
+                <input type="checkbox" checked
+                       data-crt-toggle-target="checkbox"
+                       data-action="change->crt-toggle#toggle"
+                       class="accent-primary">
+                CRT
+            </label>
+            <span>youl-made · non-officiel</span>
+            <span data-testid="app-version" title="Version déployée">{{ app_version }}</span>
+        </div>
     </div>
 </footer>

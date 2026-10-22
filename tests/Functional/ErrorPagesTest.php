@@ -27,7 +27,7 @@ final class ErrorPagesTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
         $this->assertStringContainsString('CARTE INTROUVABLE', $crawler->html());
         // La page étend le layout : header + footer présents
-        $this->assertStringContainsString('TRADING CARD GAME', $crawler->filter('header')->text());
+        $this->assertStringContainsString('YOUL', $crawler->filter('header')->text());
         $this->assertStringContainsString('youl-made · non-officiel', $crawler->filter('footer')->text());
         $this->assertCount(1, $crawler->filter('main a[href="/"]'));
     }
@@ -41,7 +41,7 @@ final class ErrorPagesTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(403);
         $this->assertStringContainsString('ACCÈS REFUSÉ', $crawler->html());
-        $this->assertStringContainsString('TRADING CARD GAME', $crawler->filter('header')->text());
+        $this->assertStringContainsString('YOUL', $crawler->filter('header')->text());
     }
 
     public function testGenericErrorTemplateFor500(): void

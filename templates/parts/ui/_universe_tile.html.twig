@@ -1,0 +1,20 @@
+{#
+  Tuile univers `.tile` (fond = image de l'extension, dégradé de lisibilité, coin coupé).
+  À utiliser avec include (contenu par défaut : le nom) ou embed (blocs top / content).
+  Paramètres : extension (Extension, requis), href (défaut : page de l'univers ; false = tuile
+  non cliquable), coverUrl (optionnel, remplace l'image de l'extension), class (taille,
+  ex. « h-[280px] »), soon (bool : fond rayé « bientôt »), testid (défaut « universe-tile »).
+  Blocs : top (chip en haut à gauche, ex. ● live), content (sous le nom : description, barre…).
+#}
+{% set href = href ?? path('universes_show', { slug: extension.slug }) %}
+{% set coverUrl = coverUrl|default(extension.imageName ? vich_uploader_asset(extension) : null) %}
+{% set tag = href ? 'a' : 'div' %}
+<{{ tag }}{% if href %} href="{{ href }}"{% endif %}
+    class="tile{{ soon|default(false) ? ' tile--soon' }} {{ class|default('') }}"
+    {% if coverUrl and not soon|default(false) %}style="--tile-img: url('{{ coverUrl }}')"{% endif %}
+    data-testid="{{ testid|default('universe-tile') }}">
+    {% set topHtml %}{% block top %}{% endblock %}{% endset %}
+    {% if topHtml|trim %}<div class="mb-auto flex flex-wrap gap-2">{{ topHtml }}</div>{% endif %}
+    <span class="d up text-[22px] leading-none text-ink-strong">{{ extension.name }}</span>
+    {% block content %}{% endblock %}
+</{{ tag }}>
