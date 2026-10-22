@@ -27,6 +27,13 @@ class DashboardController extends AbstractDashboardController
 {
     private const int STATS_CACHE_TTL = 300;
 
+    // same families as the site layout (base.html.twig)
+    private const string FONTS = <<<'HTML'
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+        HTML;
+
     public function __construct(
         #[Autowire(env: 'APP_VERSION')]
         private readonly string $appVersion,
@@ -75,11 +82,14 @@ class DashboardController extends AbstractDashboardController
         // the title accepts raw HTML; appVersion is the image release tag (see .env)
         return Dashboard::new()
             ->setTitle(\sprintf(
-                'YTCG Admin <span class="badge badge-secondary" data-testid="app-version">%s</span>',
+                '<img class="ytcg-admin-logo" src="/ytcg_logo.png" alt="">YTCG Admin <span class="badge badge-secondary" data-testid="app-version">%s</span>',
                 htmlspecialchars($this->appVersion),
             ))
             ->setFaviconPath('ytcg_logo.png')
             ->renderContentMaximized()
+            // Violet Arcade is dark only: the scheme is pinned by the layout override
+            // (templates/bundles/EasyAdminBundle/layout.html.twig), this hides EA's selector
+            ->disableDarkMode()
         ;
     }
 
@@ -90,6 +100,9 @@ class DashboardController extends AbstractDashboardController
     #[\Override]
     public function configureAssets(): Assets
     {
+        $themeCss = $this->assetMapper->getAsset('styles/admin/theme.css')
+            ?? throw new \LogicException('Asset "styles/admin/theme.css" not found in the asset map.');
+
         $adminCss = $this->assetMapper->getAsset('styles/admin/admin.css')
             ?? throw new \LogicException('Asset "styles/admin/admin.css" not found in the asset map.');
 
@@ -100,6 +113,8 @@ class DashboardController extends AbstractDashboardController
             ?? throw new \LogicException('Asset "scripts/admin/recipient-target.js" not found in the asset map.');
 
         return parent::configureAssets()
+            ->addHtmlContentToHead(self::FONTS)
+            ->addCssFile($themeCss->publicPath)
             ->addCssFile($adminCss->publicPath)
             ->addJsFile($copyJs->publicPath)
             ->addJsFile($targetJs->publicPath)
@@ -114,7 +129,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Contenu');
         yield MenuItem::linkTo(CardCrudController::class, 'Cartes', 'fas fa-wallet');
         yield MenuItem::linkToRoute('Ajout en masse', 'fa fa-images', 'admin_cards_batch');
-        yield MenuItem::linkTo(ExtensionCrudController::class, 'Extensions', 'fa fa-chart-bar');
+        yield MenuItem::linkTo(ExtensionCrudController::class, 'Univers', 'fa fa-layer-group');
         yield MenuItem::linkTo(ExtensionBannerCrudController::class, 'Bannières d\'univers', 'fa fa-image');
         yield MenuItem::linkTo(BoosterCrudController::class, 'Boosters', 'fa fa-box-open');
 
@@ -122,31 +137,28 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToRoute('Générer des codes', 'fa fa-ticket', 'admin_booster_codes_batch');
         yield MenuItem::linkTo(BoosterCodeCrudController::class, 'Codes', 'fa fa-key');
         yield MenuItem::linkTo(BoosterCodeRedemptionCrudController::class, 'Utilisations de codes', 'fa fa-check-double');
-
-        yield MenuItem::section('Communication');
         yield MenuItem::linkToRoute('Annonces', 'fa fa-bullhorn', 'admin_announcements');
         yield MenuItem::linkTo(AnnouncementCrudController::class, 'Historique des envois', 'fa fa-clock-rotate-left');
 
-        yield MenuItem::section('Économie (lecture seule)');
+        yield MenuItem::section('Économie · lecture seule');
         yield MenuItem::linkTo(DiscordUserCrudController::class, 'Joueurs', 'fa fa-users');
         yield MenuItem::linkTo(BoosterOpeningCrudController::class, 'Ouvertures', 'fa fa-box-open');
         yield MenuItem::linkTo(BoosterClaimCrudController::class, 'Récupérations', 'fa fa-gift');
+        yield MenuItem::linkTo(TradeOfferCrudController::class, 'Échanges', 'fa fa-right-left');
+        yield MenuItem::linkTo(MarketListingCrudController::class, 'Annonces du marché', 'fa fa-tags');
+        yield MenuItem::linkTo(MarketPurchaseCrudController::class, 'Ventes du marché', 'fa fa-store');
         yield MenuItem::linkTo(BoosterPurchaseCrudController::class, 'Achats de boosters', 'fa fa-coins');
         yield MenuItem::linkTo(UniverseCompletionRewardCrudController::class, 'Récompenses d\'univers', 'fa fa-trophy');
-        yield MenuItem::linkTo(TradeOfferCrudController::class, 'Échanges', 'fa fa-right-left');
         yield MenuItem::linkTo(FusionOperationCrudController::class, 'Fusions', 'fa fa-wand-magic-sparkles');
-        yield MenuItem::linkTo(MarketListingCrudController::class, 'Annonces', 'fa fa-tags');
-        yield MenuItem::linkTo(MarketPurchaseCrudController::class, 'Ventes du marché', 'fa fa-store');
 
         yield MenuItem::section('Réglages');
         yield MenuItem::linkTo(FeatureFlagCrudController::class, 'Fonctionnalités', 'fa fa-toggle-on');
         yield MenuItem::linkTo(CoinSettingsCrudController::class, 'Réglages coin', 'fa fa-coins');
         yield MenuItem::linkToRoute('API admin', 'fa fa-plug', 'admin_api');
-
-        yield MenuItem::section('Aide');
         yield MenuItem::linkToRoute('Guide admin', 'fa fa-book', 'admin_guide');
 
-        yield MenuItem::section('Application');
+        // unlabeled group: its empty heading is hidden by styles/admin/theme.css
+        yield MenuItem::section()->setCssClass('ytcg-menu-exit');
         // linkToRoute would keep the admin context and stay inside /admin:
         // leaving the back-office needs a plain URL
         yield MenuItem::linkToUrl('Retour au site', 'fa fa-arrow-left', $this->generateUrl('homepage'));
