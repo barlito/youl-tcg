@@ -61,11 +61,13 @@ final class HomepageDashboardTest extends WebTestCase
     {
         $crawler = $this->home();
 
-        $this->assertStringContainsString($this->me->getUsername(), $crawler->filter('[data-testid="home-today"] h2')->text());
+        $this->assertStringContainsString($this->me->getUsername(), $crawler->filter('[data-testid="home-hero"] h1')->text());
+        $this->assertStringContainsString('2 packs gratuits t\'attendent', $crawler->filter('[data-testid="home-headline"]')->text());
         $claims = $crawler->filter('[data-testid="today-claims"]')->text();
         $this->assertStringContainsString('2/2', $claims);
         $this->assertStringContainsString('à réclamer', $claims);
-        $this->assertStringContainsString('au classement', $crawler->filter('[data-testid="today-collection"]')->text());
+        $this->assertStringContainsString('Classement', $crawler->filter('[data-testid="today-rank"]')->text());
+        $this->assertStringContainsString('Collection', $crawler->filter('[data-testid="today-collection"]')->text());
         $this->assertCount(1, $crawler->filter('[data-testid="today-streak"]'));
     }
 

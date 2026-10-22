@@ -78,6 +78,7 @@ final readonly class HomeDashboardBuilder
      *     unopenedBoosters: int,
      *     streak: array{length: int, openedToday: bool, atRisk: bool, nextMilestone: int},
      *     rank: int,
+     *     ownedCards: int,
      *     completionPct: int,
      *     pendingTrades: int|null,
      *     fusions: array{cards: int, possible: int}|null,
@@ -104,6 +105,7 @@ final readonly class HomeDashboardBuilder
                 'nextMilestone' => $streak->nextMilestone(),
             ],
             'rank' => $entry->rank,
+            'ownedCards' => $entry->distinctCards,
             'completionPct' => $entry->completionPct,
             'pendingTrades' => $this->featureFlags->isEnabled(FeatureEnum::TRADES) ? $this->tradeOfferRepository->countPendingForReceiver($user) : null,
             'fusions' => $this->featureFlags->isEnabled(FeatureEnum::FUSION) ? $this->fusions($user) : null,
@@ -118,13 +120,12 @@ final readonly class HomeDashboardBuilder
      *
      * @param list<array{extension: Extension, cardCount: int, hasClaimableBooster: bool}> $extensions  published universes with their published card count
      * @param array<string, string>                                                        $coverImages extension id => fallback artwork
+     * @param array<string, int>                                                           $owned       extension id => distinct owned published cards
      *
      * @return list<array{extension: Extension, owned: int, total: int, percentage: int, coverImage: string|null, reward: array{drawn: int, total: int, amount: string}|null}>
      */
-    public function universesToFinish(DiscordUser $user, array $extensions, array $coverImages): array
+    public function universesToFinish(DiscordUser $user, array $extensions, array $coverImages, array $owned): array
     {
-        $owned = $this->userCardRepository->countOwnedGroupedByExtension($user);
-
         $started = [];
         foreach ($extensions as $item) {
             $extensionId = (string) $item['extension']->getId();
@@ -150,6 +151,50 @@ final readonly class HomeDashboardBuilder
             ...$universe,
             'reward' => $rewards[(string) $universe['extension']->getId()] ?? null,
         ], $started);
+    }
+
+    /**
+     * The hero sentence of the QG, built from the real « today » data: what is
+     * waiting first, then the universe closest to completion.
+     *
+     * @param array{claims: array{remaining: int}, unopenedBoosters: int, pendingTrades: int|null, streak: array{length: int, atRisk: bool}} $today
+     * @param list<array{extension: Extension, owned: int, total: int}>                                                                      $toFinish
+     */
+    public static function headline(array $today, array $toFinish): string
+    {
+        $waiting = [];
+        $claims = $today['claims']['remaining'];
+        if ($claims > 0) {
+            $waiting[] = 1 === $claims ? '1 pack gratuit t\'attend' : \sprintf('%d packs gratuits t\'attendent', $claims);
+        } elseif ($today['unopenedBoosters'] > 0) {
+            $unopened = $today['unopenedBoosters'];
+            $waiting[] = 1 === $unopened ? '1 pack attend d\'être ouvert' : \sprintf('%d packs attendent d\'être ouverts', $unopened);
+        }
+
+        $trades = $today['pendingTrades'] ?? 0;
+        if ($trades > 0) {
+            $waiting[] = 1 === $trades ? 'une offre d\'échange attend ta réponse' : \sprintf('%d offres d\'échange attendent ta réponse', $trades);
+        }
+
+        if ($today['streak']['atRisk']) {
+            $waiting[] = \sprintf('ta série de %d j s\'arrête si tu n\'ouvres rien aujourd\'hui', $today['streak']['length']);
+        }
+
+        $sentences = [];
+        if ([] !== $waiting) {
+            $last = array_pop($waiting);
+            $sentences[] = ucfirst([] === $waiting ? $last : implode(', ', $waiting) . ' et ' . $last) . '.';
+        }
+
+        $closest = $toFinish[0] ?? null;
+        if (null !== $closest) {
+            $missing = $closest['total'] - $closest['owned'];
+            $sentences[] = \sprintf('Il te manque %d carte%s pour finir %s.', $missing, $missing > 1 ? 's' : '', $closest['extension']->getName());
+        }
+
+        return [] === $sentences
+            ? 'Tout est fait pour aujourd\'hui : tes packs gratuits reviennent à minuit.'
+            : implode(' ', $sentences);
     }
 
     /**

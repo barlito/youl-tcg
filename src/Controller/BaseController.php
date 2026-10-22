@@ -11,6 +11,7 @@ use App\Repository\BoosterOpeningCardRepository;
 use App\Repository\BoosterOpeningRepository;
 use App\Repository\CardRepository;
 use App\Repository\ExtensionRepository;
+use App\Repository\UserCardRepository;
 use App\Service\Home\HomeDashboardBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -34,6 +35,7 @@ class BaseController extends AbstractController
         HomeDashboardBuilder $dashboard,
         CardRepository $cardRepository,
         ExtensionRepository $extensionRepository,
+        UserCardRepository $userCardRepository,
         BoosterOpeningRepository $boosterOpeningRepository,
         BoosterOpeningCardRepository $boosterOpeningCardRepository,
         CacheInterface $cache,
@@ -66,6 +68,9 @@ class BaseController extends AbstractController
         ], array_reverse(\array_slice($extensions, -self::FEATURED_UNIVERSES)));
 
         $upcoming = $extensionRepository->findUpcoming();
+        $owned = $userCardRepository->countOwnedGroupedByExtension($user);
+        $today = $dashboard->today($user);
+        $toFinish = $dashboard->universesToFinish($user, $extensions, $coverImages, $owned);
 
         return $this->render('pages/homepage.html.twig', [
             'cards' => $cards,
@@ -76,8 +81,10 @@ class BaseController extends AbstractController
             'cardsPulledCount' => $boosterOpeningCardRepository->countPulledCards(),
             'upcoming' => $upcoming,
             'upcomingCover' => $upcoming instanceof Extension ? $cardRepository->findTeaserCoverImageName($upcoming) : null,
-            'today' => $dashboard->today($user),
-            'toFinish' => $dashboard->universesToFinish($user, $extensions, $coverImages),
+            'ownedByExtension' => $owned,
+            'today' => $today,
+            'toFinish' => $toFinish,
+            'headline' => HomeDashboardBuilder::headline($today, $toFinish),
             'community' => $dashboard->community(),
             'latestListings' => $dashboard->latestListings($user),
         ]);
