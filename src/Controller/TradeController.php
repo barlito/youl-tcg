@@ -8,6 +8,7 @@ use App\Attribute\RequiresFeature;
 use App\Entity\DiscordUser;
 use App\Enum\FeatureEnum;
 use App\Repository\DiscordUserRepository;
+use App\Repository\TradeOfferRepository;
 use App\Service\Trade\TradeMatchScoreService;
 use App\Service\Trade\TradeOfferService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -38,9 +39,16 @@ class TradeController extends AbstractController
     public function chooseCounterpart(
         #[CurrentUser] DiscordUser $user,
         TradeMatchScoreService $matchScoreService,
+        TradeOfferRepository $tradeOfferRepository,
     ): Response {
+        $offersFrom = [];
+        foreach ($tradeOfferRepository->findPendingForReceiver($user) as $offer) {
+            $offersFrom[] = (string) $offer->getProposer()->getDiscordId();
+        }
+
         return $this->render('pages/trade_new.html.twig', [
             'scores' => $matchScoreService->scoresFor($user),
+            'offersFrom' => array_values(array_unique($offersFrom)),
         ]);
     }
 

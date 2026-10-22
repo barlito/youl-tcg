@@ -198,9 +198,10 @@ final class TradeComponentTest extends WebTestCase
         $this->giveCopy($barlito, $theirsThere);
 
         $component = $this->composer();
-        $strip = new Crawler((string) $component->render())->filter('[data-testid="completion-strip"]');
-        $this->assertGreaterThanOrEqual(2, $strip->filter('[data-testid="strip-tile"]')->count());
-        $this->assertStringContainsString('univers=' . $other->getSlug(), $strip->html());
+        $picker = new Crawler((string) $component->render())->filter('[data-testid="composer-universe"]');
+        $this->assertSame('universe', $picker->attr('data-model'));
+        $this->assertGreaterThanOrEqual(3, $picker->filter('option')->count());
+        $this->assertStringContainsString('2 ⇄ 1', $picker->filter(\sprintf('option[value="%s"]', $other->getSlug()))->text());
 
         $component->call('filterUniverse', ['slug' => $other->getSlug()]);
         $html = (string) $component->render();
@@ -224,7 +225,7 @@ final class TradeComponentTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $crawler = $this->client->getCrawler();
         $this->assertStringContainsString($here->getName(), $crawler->filter('[data-testid="offered-list"]')->html());
-        $this->assertStringContainsString('border-primary', (string) $crawler->filter('[data-testid="strip-tile"][data-carousel-active]')->attr('class'));
+        $this->assertNotNull($crawler->filter(\sprintf('[data-testid="composer-universe"] option[value="%s"]', $this->extension->getSlug()))->attr('selected'));
     }
 
     public function testTheStickyRecapSummarisesBothSides(): void
@@ -767,8 +768,136 @@ final class TradeComponentTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $first = $crawler->filter('[data-testid="player-list"] a')->first();
         $this->assertStringContainsString('2 cartes qui te manquent', $first->filter('[data-testid="match-they-have"]')->text());
-        $this->assertStringContainsString('doublons qui lui manque', $first->filter('[data-testid="match-i-have"]')->text());
+        $this->assertStringContainsString('de tes doublons lui manque', $first->filter('[data-testid="match-i-have"]')->text());
+        $this->assertSame(1, $first->filter('[data-testid="best-match"]')->count());
         $this->assertStringContainsString('/echanges/nouveau/' . self::JUJU, (string) $first->attr('href'));
+    }
+
+    // ------------------------------------------------- refonte Violet Arcade (phase 35)
+
+    public function testInboxTabsShowOneListAtATime(): void
+    {
+        $barlito = $this->user(self::BARLITO);
+        $juju = $this->authenticateClient($this->client, self::JUJU);
+        $this->createOffer($barlito, $juju, $this->giveCard($barlito, 'Offerte', quantity: 1), $this->giveCard($juju, 'Demandée', quantity: 1));
+
+        $component = $this->createLiveComponent(TradeInbox::class, client: $this->client);
+        $crawler = new Crawler((string) $component->render());
+
+        $this->assertSame('true', $crawler->filter('[data-testid="tab-received"]')->attr('aria-selected'));
+        $this->assertSame('1', trim($crawler->filter('[data-testid="tab-received-count"]')->text()));
+        $this->assertNull($crawler->filter('#trade-pane-received')->attr('hidden'));
+        $this->assertNotNull($crawler->filter('#trade-pane-sent')->attr('hidden'));
+        $this->assertNotNull($crawler->filter('#trade-pane-history')->attr('hidden'));
+
+        $component->call('showTab', ['tab' => 'sent']);
+        $crawler = new Crawler((string) $component->render());
+        $this->assertSame('true', $crawler->filter('[data-testid="tab-sent"]')->attr('aria-selected'));
+        $this->assertNull($crawler->filter('#trade-pane-sent')->attr('hidden'));
+        $this->assertNotNull($crawler->filter('#trade-pane-received')->attr('hidden'));
+
+        $component->call('showTab', ['tab' => 'nonsense']);
+        $this->assertSame('received', $component->component()->getCurrentTab());
+    }
+
+    public function testAcceptingSwitchesToTheHistoryTab(): void
+    {
+        $barlito = $this->user(self::BARLITO);
+        $juju = $this->authenticateClient($this->client, self::JUJU);
+        $offer = $this->createOffer($barlito, $juju, $this->giveCard($barlito, 'Offerte', quantity: 1), $this->giveCard($juju, 'Demandée', quantity: 1));
+
+        $component = $this->createLiveComponent(TradeInbox::class, client: $this->client);
+        $component->call('accept', ['offerId' => (string) $offer->getId()]);
+
+        $crawler = new Crawler((string) $component->render());
+        $this->assertSame('history', $component->component()->getCurrentTab());
+        $this->assertNull($crawler->filter('#trade-pane-history')->attr('hidden'));
+        $this->assertNotNull($crawler->filter('#history-' . $offer->getId())->attr('open'));
+    }
+
+    public function testAReceivedOfferSumsUpBothSidesByRarity(): void
+    {
+        $barlito = $this->user(self::BARLITO);
+        $juju = $this->authenticateClient($this->client, self::JUJU);
+        $offered = $this->giveCard($barlito, 'Légende cachée', quantity: 1, rarity: CardRarityEnum::LEGENDARY);
+        $requested = $this->giveCard($juju, 'Ma rare', quantity: 2, rarity: CardRarityEnum::RARE);
+        $this->createOffer($barlito, $juju, $offered, $requested);
+
+        $received = new Crawler((string) $this->createLiveComponent(TradeInbox::class, client: $this->client)->render())
+            ->filter('[data-testid="received-offer"]')
+        ;
+
+        $this->assertStringContainsString('t\'offre 1 légendaire contre 1 rare', $received->text());
+        $this->assertStringContainsString('nouvelle pour toi', $received->filter('[data-testid="masked-rarity"]')->text());
+        $this->assertStringContainsString('tu en as 2', $received->text());
+        $this->assertStringNotContainsString($offered->getName(), $received->html());
+    }
+
+    public function testClickingATileSelectsOneCopyThenDropsIt(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $mine = $this->giveCard($barlito, 'Normales', quantity: 3);
+        $holoOnly = $this->giveCard($barlito, 'Que des holos', quantity: 1, holoQuantity: 1);
+        $this->giveCard($juju, 'Inconnue', quantity: 1);
+
+        $component = $this->composer();
+        $html = (string) $component->render();
+        $token = $this->tokenOf($html, 'offered', $mine->getName());
+
+        $component->call('toggle', ['side' => 'offered', 'token' => $token]);
+        $this->assertSame(['normal' => 1, 'holo' => 0], $component->component()->selectionFor('offered', $token));
+        $tile = $this->tile((string) $component->render(), 'offered', $mine->getName());
+        $this->assertSame('✓ ×1', trim($tile->filter('[data-testid="tile-badge"]')->text()));
+        $this->assertSame('true', $tile->filter('[data-testid="tile-toggle"]')->attr('aria-pressed'));
+
+        $component->call('toggle', ['side' => 'offered', 'token' => $token]);
+        $this->assertSame(0, $component->component()->getOfferedCount());
+
+        $holoToken = $this->tokenOf($html, 'offered', $holoOnly->getName());
+        $component->call('toggle', ['side' => 'offered', 'token' => $holoToken]);
+        $this->assertSame(['normal' => 0, 'holo' => 1], $component->component()->selectionFor('offered', $holoToken));
+
+        // masked: still requestable blind, its aria-label never names it
+        $maskedTile = $this->tile($html, 'requested', null);
+        $this->assertStringContainsString('carte inconnue', (string) $maskedTile->filter('[data-testid="tile-toggle"]')->attr('aria-label'));
+        $component->call('toggle', ['side' => 'requested', 'token' => $this->tokenOf($html, 'requested', null)]);
+        $this->assertSame(1, $component->component()->getRequestedCount());
+
+        // unknown tokens change nothing
+        $component->call('toggle', ['side' => 'offered', 'token' => 'nope']);
+        $component->call('toggle', ['side' => 'sideways', 'token' => $token]);
+        $this->assertSame(1, $component->component()->getOfferedCount());
+
+        $component->call('clear');
+        $this->assertSame(0, $component->component()->getOfferedCount());
+        $this->assertSame(0, $component->component()->getRequestedCount());
+    }
+
+    public function testAnEmptyUniverseFromThePickerMeansEveryUniverse(): void
+    {
+        $this->authenticateClient($this->client, self::BARLITO);
+
+        $component = $this->composer();
+        $component->set('universe', '');
+
+        $this->assertNull($component->component()->universe);
+    }
+
+    public function testThePickerFlagsPlayersWhoSentMeAnOffer(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $this->createOffer($juju, $barlito, $this->giveCard($juju, 'De Juju', quantity: 1), $this->giveCard($barlito, 'De moi', quantity: 1));
+
+        $crawler = $this->client->request('GET', '/echanges/nouveau');
+
+        self::assertResponseIsSuccessful();
+        $jujuCard = $crawler->filter('[data-testid="player-match"]')
+            ->reduce(static fn (Crawler $match): bool => str_ends_with((string) $match->attr('href'), '/' . self::JUJU))
+        ;
+        $this->assertSame(1, $jujuCard->filter('[data-testid="offer-received"]')->count());
+        $this->assertSame(1, $crawler->filter('[data-testid="offer-received"]')->count());
     }
 
     // ----------------------------------------------------------- utilities

@@ -20,6 +20,7 @@
     artClass      classes du visuel (ex. voile d'un état de comparaison)
     state         attribut data-state de la cellule (optionnel)
     attrs         attributs supplémentaires de la cellule (map, ex. cible Stimulus)
+    rarityTestid  data-testid de la ligne de rareté (optionnel)
     testid        défaut « card-cell »
 #}
 {% set card = card|default(null) %}
@@ -66,7 +67,7 @@
         <span class="cm">{{ maskedLabel|default('Carte à trouver') }}</span>
     {% endif %}
     {% if (showRarity ?? true) and rarityValue %}
-        <span class="lbl r-{{ rarityValue|first }}">
+        <span class="lbl r-{{ rarityValue|first }}"{% if rarityTestid|default(null) %} data-testid="{{ rarityTestid }}"{% endif %}>
             {{ rarity_icon(rarityValue) }} {{ rarity_label(rarityValue) }}
             {%- if (card and card.isUnique) or (not card and unique|default(false)) %} <span class="r-s" data-testid="chip-unique">· 1/1</span>{% endif %}
             {%- if holoQuantity > 0 %} <span class="text-magenta">· ✦ {{ holoQuantity }}</span>{% endif %}

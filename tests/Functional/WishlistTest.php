@@ -364,7 +364,7 @@ final class WishlistTest extends WebTestCase
 
         $badged = array_map('trim', new Crawler($html)->filter('[data-testid="offered-column"] [data-testid="trade-tile"]')->reduce(
             static fn (Crawler $tile): bool => $tile->filter('[data-testid="hint-wanted"]')->count() > 0,
-        )->each(static fn (Crawler $tile): string => $tile->filter('p.truncate.font-display')->text()));
+        )->each(static fn (Crawler $tile): string => $tile->filter('p.cn')->text()));
         sort($badged);
         $expected = [$direct->getName(), $viaUniverse->getName(), $this->owned->getName()];
         sort($expected);

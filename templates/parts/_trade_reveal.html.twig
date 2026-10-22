@@ -1,14 +1,22 @@
 {#- Received cards of an accepted trade: `lines` = TradeLineView[], sorted rarest last, all in clear -#}
 {% set count = lines|length %}
+{% set climax = (lines|last).rarity.value %}
 <div id="trade-reveal-{{ offer.id }}" class="trade-reveal{{ count > 4 ? ' trade-reveal--many' : (count > 2 ? ' trade-reveal--some') }}"
+     style="--reveal-climax: var(--rarity-{{ climax }});"
      role="dialog" aria-modal="true" aria-labelledby="trade-reveal-title-{{ offer.id }}"
      data-controller="trade-reveal"
      data-trade-reveal-key-value="{{ offer.id }}"
      data-trade-reveal-entry-value="history-{{ offer.id }}"
      data-testid="trade-reveal">
     <div class="trade-reveal__backdrop" data-action="click->trade-reveal#close click->live#action" data-live-action-param="closeReveal" aria-hidden="true"></div>
+    <button type="button" class="ib trade-reveal__x" aria-label="Fermer"
+            data-action="trade-reveal#close live#action"
+            data-live-action-param="closeReveal"
+            data-testid="trade-reveal-dismiss">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+    </button>
     <div class="trade-reveal__panel">
-        <p class="eyebrow">Échange conclu · avec {{ counterpart }}</p>
+        <p class="eyebrow">Échange conclu avec {{ counterpart }}</p>
         <h2 id="trade-reveal-title-{{ offer.id }}" class="trade-reveal__title">Tu as reçu</h2>
 
         <div class="trade-reveal__cards">
@@ -31,19 +39,25 @@
                             </div>
                         </div>
                         {% if line.new %}{{ include('parts/_new_card_tag.html.twig', {}, with_context = false) }}{% endif %}
-                        <span class="trade-reveal__qty">×{{ line.totalQuantity }}{% if line.holoQuantity > 0 %} <span class="trade-reveal__holo">✦ holo{{ line.holoQuantity > 1 ? ' ×' ~ line.holoQuantity }}</span>{% endif %}</span>
+                        {% if line.totalQuantity > 1 %}<span class="trade-reveal__qty">×{{ line.totalQuantity }}</span>{% endif %}
                     </div>
-                    <p class="trade-reveal__name">{{ line.card.name }}</p>
-                    <p class="trade-reveal__rarity">{{ line.rarity.label }}</p>
+                    <p class="trade-reveal__name d up">{{ line.card.name }}</p>
+                    <p class="trade-reveal__rarity lbl r-{{ rarity|first }}">
+                        {{ line.rarity.icon }} {{ line.rarity.label }} · {{ line.card.extension.name }}
+                        {%- if line.holoQuantity > 0 %} · <span class="trade-reveal__holo">✦ holo{{ line.holoQuantity > 1 ? ' ×' ~ line.holoQuantity }}</span>{% endif %}
+                    </p>
                 </div>
             {% endfor %}
         </div>
 
-        <button type="button" class="btn-arcade trade-reveal__close"
-                data-trade-reveal-target="close"
-                data-action="trade-reveal#close live#action"
-                data-live-action-param="closeReveal"
-                data-testid="trade-reveal-close">Voir l'échange ▸</button>
+        <div class="trade-reveal__actions">
+            <a href="{{ path('collection') }}" class="btn btn-p" data-testid="trade-reveal-collection">Voir dans ma collection</a>
+            <button type="button" class="btn btn-g"
+                    data-trade-reveal-target="close"
+                    data-action="trade-reveal#close live#action"
+                    data-live-action-param="closeReveal"
+                    data-testid="trade-reveal-close">Retour aux échanges</button>
+        </div>
     </div>
     <div class="trade-reveal__flash" data-trade-reveal-target="flash" aria-hidden="true"></div>
 </div>

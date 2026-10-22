@@ -4,183 +4,180 @@
     {% set sent = this.sent %}
     {% set history = this.history %}
     {% set focused = this.focusedOffer %}
+    {% set currentTab = this.currentTab %}
+    {% set tabsHtml %}
+        <div class="subnav trade-tabs" role="tablist" aria-label="Échanges" data-testid="trade-tabs">
+            {{ _self.tab('received', 'Reçues', received|length, currentTab, true) }}
+            {{ _self.tab('sent', 'Envoyées', sent|length, currentTab, false) }}
+            {{ _self.tab('history', 'Historique', this.historyCount, currentTab, false) }}
+        </div>
+    {% endset %}
     <main>
-        {# --------------------------------------------------------- En-tête #}
-        <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
-            <div class="glow-ambient" aria-hidden="true"></div>
-            <div class="relative mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-end md:justify-between">
-                <div>
-                    <p class="eyebrow">04 / Échanges</p>
-                    <h1 class="mt-2 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
-                        Échanges
-                    </h1>
-                    <p class="mt-2 max-w-lg text-sm text-ink-muted">
-                        Propose tes doublons à un autre joueur contre ce qui te manque.
-                        Les cartes engagées dans une offre en attente restent réservées jusqu'à sa résolution.
-                    </p>
-                </div>
-                <a href="{{ path('trades_new') }}" class="btn-arcade shrink-0 self-start md:self-auto">Nouvelle offre ▸</a>
-            </div>
-        </section>
+        {% embed 'parts/ui/_page_header.html.twig' with {
+            eyebrow: 'Social',
+            title: 'Échanges',
+            lead: 'Propose tes doublons contre ce qui te manque. Les cartes engagées dans une offre restent réservées jusqu\'à la réponse.',
+        } %}
+            {% block actions %}
+                <a href="{{ path('trades_new') }}" class="btn btn-p max-md:w-full" data-testid="new-offer">Nouvelle offre</a>
+            {% endblock %}
+            {% block nav %}{{ tabsHtml }}{% endblock %}
+        {% endembed %}
 
-        {% if error or success %}
-            <div class="mx-auto mt-6 max-w-7xl px-6 lg:px-12">
-                {% if error %}
-                    <div class="border border-magenta/50 bg-magenta/10 px-4 py-3 font-mono text-xs text-magenta" data-testid="trade-error">⚠ {{ error }}</div>
-                {% else %}
-                    <div class="border border-live/50 bg-live/10 px-4 py-3 font-mono text-xs text-live" data-testid="trade-success">⇄ {{ success }}</div>
-                {% endif %}
-            </div>
-        {% endif %}
+        <div class="wrap flex flex-col gap-6 pb-24 pt-6 md:pt-8">
+            {% if error %}
+                <div class="panel flash-msg flash-msg--err" role="alert" data-testid="trade-error">⚠ {{ error }}</div>
+            {% elseif success %}
+                <div class="panel flash-msg flash-msg--ok" role="status" data-testid="trade-success">⇄ {{ success }}</div>
+            {% endif %}
 
-        {# --------------------------------------------------------- Reçues #}
-        <section class="px-6 py-10 lg:px-12">
-            <div class="mx-auto max-w-7xl">
-                {{ _self.heading('Offres reçues', received|length) }}
-
+            {# --------------------------------------------------------- Reçues #}
+            <section id="trade-pane-received" role="tabpanel" aria-labelledby="trade-tab-received" class="trade-pane flex flex-col gap-6"
+                     {{ currentTab != 'received' ? 'hidden' }}>
                 {% if received is empty %}
-                    <div class="mt-4 border border-dashed border-hairline px-8 py-12 text-center text-ink-dim" data-testid="no-received">
-                        <p class="text-sm">Aucune offre en attente. Tranquille.</p>
-                    </div>
+                    {{ _self.empty('Aucune offre en attente. Tranquille.', 'no-received') }}
                 {% else %}
-                    <div class="mt-4 grid gap-4" data-testid="received-offers">
+                    <div class="flex flex-col gap-6" data-testid="received-offers">
                         {% for offer in received %}
-                            {% set offeredLines = this.offeredView(offer) %}
-                            {% set requestedLines = this.requestedView(offer) %}
-                            <article class="border bg-surface {{ confirming == (offer.id ~ '') ? 'border-primary/80 shadow-[0_0_16px_#a435f044]' : 'border-hairline' }}" data-testid="received-offer">
-                                {{ _self.offer_header(offer.proposer.username, 'te propose un échange', offer) }}
-                                {{ _self.offer_body(offeredLines, 'Tu reçois', requestedLines, 'Tu donnes', 'r-' ~ offer.id) }}
-                                <div class="flex flex-wrap items-center gap-3 border-t border-hairline px-4 py-3 md:px-5">
-                                    {% if confirming == (offer.id ~ '') %}
-                                        <p class="w-full text-xs text-ink-muted md:w-auto md:flex-1" data-testid="accept-confirmation">
+                            {% set given = this.requestedView(offer) %}
+                            {% set got = this.offeredView(offer) %}
+                            {% set isConfirming = confirming == (offer.id ~ '') %}
+                            <article class="panel hot trade-offer{{ isConfirming ? ' trade-offer--confirming' }}" data-testid="received-offer">
+                                {{ _self.offer_header(offer.proposer, 'te propose un échange', offer) }}
+                                {{ _self.offer_body(given, 'Tu donnes', got, 'Tu reçois', 'r-' ~ offer.id) }}
+                                <div class="trade-offer__foot">
+                                    {% if isConfirming %}
+                                        <p class="muted flex-1 text-[13px]" data-testid="accept-confirmation">
                                             Les cartes changent de collection immédiatement, sans retour possible.
                                         </p>
-                                        <button type="button"
-                                                data-action="live#action"
-                                                data-live-action-param="accept"
-                                                data-live-offer-id-param="{{ offer.id }}"
-                                                data-loading="addAttribute(disabled) addClass(opacity-50)"
-                                                data-testid="confirm-accept"
-                                                class="border border-primary bg-primary px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary">
-                                            ✓ Confirmer l'échange
-                                        </button>
-                                        <button type="button"
-                                                data-action="live#action"
-                                                data-live-action-param="abortAccept"
-                                                data-testid="abort-accept"
-                                                class="border border-hairline px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-muted transition-colors hover:border-primary hover:text-primary">
-                                            Pas encore
-                                        </button>
+                                        <div class="trade-offer__actions">
+                                            <button type="button" class="btn btn-g btn-s"
+                                                    data-action="live#action"
+                                                    data-live-action-param="abortAccept"
+                                                    data-testid="abort-accept">Pas encore</button>
+                                            <button type="button" class="btn btn-p btn-s"
+                                                    data-action="live#action"
+                                                    data-live-action-param="accept"
+                                                    data-live-offer-id-param="{{ offer.id }}"
+                                                    data-loading="addAttribute(disabled)"
+                                                    data-testid="confirm-accept">✓ Confirmer l'échange</button>
+                                        </div>
                                     {% else %}
-                                        <button type="button"
-                                                data-action="live#action"
-                                                data-live-action-param="askAccept"
-                                                data-live-offer-id-param="{{ offer.id }}"
-                                                data-testid="accept-offer"
-                                                class="border border-primary bg-primary px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary">
-                                            Accepter…
-                                        </button>
-                                        <button type="button"
-                                                data-action="live#action"
-                                                data-live-action-param="refuse"
-                                                data-live-offer-id-param="{{ offer.id }}"
-                                                data-loading="addAttribute(disabled) addClass(opacity-50)"
-                                                data-testid="refuse-offer"
-                                                class="border border-hairline px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-muted transition-colors hover:border-magenta hover:text-magenta">
-                                            Refuser
-                                        </button>
+                                        <p class="muted flex-1 text-[13px]">
+                                            {{ _self.masking_hint(got, 'proposée') }}
+                                            {{ offer.proposer.username }} t'offre {{ _self.digest(got) }} contre {{ _self.digest(given) }}.
+                                        </p>
+                                        <div class="trade-offer__actions">
+                                            <button type="button" class="btn btn-x btn-s"
+                                                    data-action="live#action"
+                                                    data-live-action-param="refuse"
+                                                    data-live-offer-id-param="{{ offer.id }}"
+                                                    data-loading="addAttribute(disabled)"
+                                                    data-testid="refuse-offer">Refuser</button>
+                                            <button type="button" class="btn btn-p btn-s"
+                                                    data-action="live#action"
+                                                    data-live-action-param="askAccept"
+                                                    data-live-offer-id-param="{{ offer.id }}"
+                                                    data-testid="accept-offer">Accepter</button>
+                                        </div>
                                     {% endif %}
                                 </div>
                             </article>
                         {% endfor %}
                     </div>
                 {% endif %}
-            </div>
-        </section>
+            </section>
 
-        {# -------------------------------------------------------- Envoyées #}
-        <section class="border-t border-hairline px-6 py-10 lg:px-12">
-            <div class="mx-auto max-w-7xl">
-                {{ _self.heading('Offres envoyées', sent|length) }}
-
+            {# -------------------------------------------------------- Envoyées #}
+            <section id="trade-pane-sent" role="tabpanel" aria-labelledby="trade-tab-sent" class="trade-pane flex flex-col gap-6"
+                     {{ currentTab != 'sent' ? 'hidden' }}>
                 {% if sent is empty %}
-                    <div class="mt-4 border border-dashed border-hairline px-8 py-12 text-center text-ink-dim">
-                        <p class="text-sm">Tu n'as aucune offre en attente.</p>
-                        <a href="{{ path('trades_new') }}" class="btn-ghost mt-6 inline-block">Proposer un échange ▸</a>
-                    </div>
+                    {{ _self.empty('Tu n\'as aucune offre en attente.', 'no-sent', true) }}
                 {% else %}
-                    <div class="mt-4 grid gap-4" data-testid="sent-offers">
+                    <div class="flex flex-col gap-6" data-testid="sent-offers">
                         {% for offer in sent %}
-                            <article class="border border-hairline bg-surface">
-                                {{ _self.offer_header(offer.receiver.username, 'doit répondre à ton offre', offer) }}
-                                {{ _self.offer_body(this.offeredView(offer), 'Tu donnes', this.requestedView(offer), 'Tu reçois', 's-' ~ offer.id) }}
-                                <div class="border-t border-hairline px-4 py-3 md:px-5">
-                                    <button type="button"
-                                            data-action="live#action"
-                                            data-live-action-param="cancel"
-                                            data-live-offer-id-param="{{ offer.id }}"
-                                            data-loading="addAttribute(disabled) addClass(opacity-50)"
-                                            data-testid="cancel-offer"
-                                            class="border border-hairline px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-muted transition-colors hover:border-magenta hover:text-magenta">
-                                        Annuler l'offre
-                                    </button>
+                            {% set given = this.offeredView(offer) %}
+                            {% set got = this.requestedView(offer) %}
+                            <article class="panel trade-offer" data-testid="sent-offer">
+                                {{ _self.offer_header(offer.receiver, 'doit répondre à ton offre', offer) }}
+                                {{ _self.offer_body(given, 'Tu donnes', got, 'Tu reçois', 's-' ~ offer.id) }}
+                                <div class="trade-offer__foot">
+                                    <p class="muted flex-1 text-[13px]">
+                                        {{ _self.masking_hint(got, 'demandée') }}
+                                        Tes cartes proposées restent réservées tant que {{ offer.receiver.username }} n'a pas répondu.
+                                    </p>
+                                    <div class="trade-offer__actions">
+                                        <button type="button" class="btn btn-x btn-s"
+                                                data-action="live#action"
+                                                data-live-action-param="cancel"
+                                                data-live-offer-id-param="{{ offer.id }}"
+                                                data-loading="addAttribute(disabled)"
+                                                data-testid="cancel-offer">Annuler l'offre</button>
+                                    </div>
                                 </div>
                             </article>
                         {% endfor %}
                     </div>
                 {% endif %}
-            </div>
-        </section>
+            </section>
 
-        {# ------------------------------------------------------ Historique #}
-        {% if history is not empty %}
-            {% set pageCount = this.historyPageCount %}
-            {% set page = this.currentHistoryPage %}
-            <section class="border-t border-hairline px-6 py-10 lg:px-12">
-                <div class="mx-auto max-w-7xl">
-                    <div class="flex flex-wrap items-baseline justify-between gap-2">
-                        <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">Historique</h2>
-                        {% if pageCount > 1 %}
-                            <span class="chip-mono text-ink-dim" data-testid="history-page">Page {{ page }} / {{ pageCount }}</span>
-                        {% endif %}
-                    </div>
+            {# ------------------------------------------------------ Historique #}
+            <section id="trade-pane-history" role="tabpanel" aria-labelledby="trade-tab-history" class="trade-pane flex flex-col gap-3"
+                     {{ currentTab != 'history' ? 'hidden' }}>
+                {% if history is empty %}
+                    {{ _self.empty('Aucun échange terminé pour l\'instant.', 'no-history') }}
+                {% else %}
+                    {% set pageCount = this.historyPageCount %}
+                    {% set page = this.currentHistoryPage %}
+                    <h2 class="sr">Historique</h2>
+                    {% if pageCount > 1 %}
+                        <span class="lbl self-end" data-testid="history-page">Page {{ page }} / {{ pageCount }}</span>
+                    {% endif %}
                     {# keyed by page: a page change swaps the list instead of morphing opened entries into others #}
-                    <div id="trade-history-page-{{ page }}" class="mt-4 divide-y divide-hairline border border-hairline" data-testid="trade-history">
+                    <div id="trade-history-page-{{ page }}" class="flex flex-col gap-2.5" data-testid="trade-history">
                         {% for offer in history %}
                             {% set isMine = offer.proposer.discordId == app.user.discordId %}
                             {% set accepted = offer.status.value == 'accepted' %}
                             {% set isFocused = focused and focused.id ~ "" == offer.id ~ "" %}
-                            <details id="history-{{ offer.id }}" class="group{{ isFocused ? ' bg-primary/5 shadow-[inset_3px_0_0_#a435f0]' }}" data-testid="history-entry"
+                            {% set given = this.historyGivenView(offer) %}
+                            {% set got = this.historyReceivedView(offer) %}
+                            {% set givenCopies = given|reduce((sum, line) => sum + line.totalQuantity, 0) %}
+                            {% set gotCopies = got|reduce((sum, line) => sum + line.totalQuantity, 0) %}
+                            <details id="history-{{ offer.id }}" class="panel trade-hist{{ isFocused ? ' trade-hist--focused' }}" data-testid="history-entry"
                                      {%- if isFocused %} open data-focused data-controller="trade-focus"{% endif %}>
-                                <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-surface [&::-webkit-details-marker]:hidden">
-                                    <span class="flex min-w-0 items-center gap-2">
-                                        <span class="font-mono text-xs text-primary transition-transform group-open:rotate-90" aria-hidden="true">▸</span>
-                                        <span class="chip-mono truncate text-ink-muted">
-                                            {{ offer.resolvedAt ? offer.resolvedAt|date('d/m/Y H:i', 'Europe/Paris') : '' }}
-                                            · {{ isMine ? 'offre à ' ~ offer.receiver.username : 'offre de ' ~ offer.proposer.username }}
-                                        </span>
-                                    </span>
+                                <summary class="trade-hist__summary">
                                     {{ _self.status(offer.status) }}
+                                    <span class="min-w-0 flex-1 text-[15px]">
+                                        {{ isMine ? 'Offre à' : 'Offre de' }} <strong class="text-ink-strong">{{ isMine ? offer.receiver.username : offer.proposer.username }}</strong>
+                                        <span class="muted">· {{ accepted ? 'tu as reçu' : 'tu aurais reçu' }} {{ gotCopies }} carte{{ gotCopies > 1 ? 's' }} contre {{ givenCopies }}</span>
+                                    </span>
+                                    <span class="lbl">{{ offer.resolvedAt ? offer.resolvedAt|date('d/m/Y · H:i', 'Europe/Paris') : '' }}</span>
+                                    <span class="trade-hist__chev" aria-hidden="true">▸</span>
                                 </summary>
-                                <div class="border-t border-hairline bg-surface/40" data-testid="history-detail">
+                                <div class="trade-hist__detail" data-testid="history-detail">
                                     {{ _self.offer_body(
-                                        this.historyGivenView(offer), accepted ? 'Tu as donné' : 'Tu aurais donné',
-                                        this.historyReceivedView(offer), accepted ? 'Tu as reçu' : 'Tu aurais reçu',
+                                        given, accepted ? 'Tu as donné' : 'Tu aurais donné',
+                                        got, accepted ? 'Tu as reçu' : 'Tu aurais reçu',
                                         'h-' ~ offer.id
                                     ) }}
+                                    {% if given|merge(got)|filter(line => line.masked)|length > 0 %}
+                                        <p class="muted px-5 pb-4 text-[13px]" data-testid="masking-hint">
+                                            Face cachée = carte que tu n'as jamais eue : seule sa rareté est affichée.
+                                        </p>
+                                    {% endif %}
                                 </div>
                             </details>
                         {% endfor %}
                     </div>
                     {% if pageCount > 1 %}
-                        <nav class="mt-4 flex items-center justify-between gap-3" aria-label="Pagination de l'historique" data-testid="history-pagination">
-                            {{ _self.page_button(page - 1, '◂ Plus récents', page <= 1, 'history-prev') }}
-                            {{ _self.page_button(page + 1, 'Plus anciens ▸', page >= pageCount, 'history-next') }}
+                        <nav class="flex items-center justify-between gap-3" aria-label="Pagination de l'historique" data-testid="history-pagination">
+                            {{ _self.page_button(page - 1, '‹ Plus récents', page <= 1, 'history-prev') }}
+                            {{ _self.page_button(page + 1, 'Plus anciens ›', page >= pageCount, 'history-next') }}
                         </nav>
                     {% endif %}
-                </div>
+                {% endif %}
             </section>
-        {% endif %}
+        </div>
     </main>
 
     {% set revealLines = this.revealLines %}
@@ -193,63 +190,83 @@
     {% endif %}
 </div>
 
-{% macro page_button(target, label, disabled, testid) %}
-    <button type="button"
+{% macro tab(name, label, count, current, hot) %}
+    <button type="button" role="tab" id="trade-tab-{{ name }}"
+            class="tab{{ name == current ? ' on' }}"
+            aria-selected="{{ name == current ? 'true' : 'false' }}"
+            aria-controls="trade-pane-{{ name }}"
             data-action="live#action"
-            data-live-action-param="goToHistoryPage"
-            data-live-page-param="{{ target }}"
-            data-loading="addAttribute(disabled) addClass(opacity-50)"
-            data-testid="{{ testid }}"
-            {{ disabled ? 'disabled' }}
-            class="border border-hairline px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-ink-muted transition-colors enabled:hover:border-primary enabled:hover:text-primary disabled:opacity-30">
+            data-live-action-param="showTab"
+            data-live-tab-param="{{ name }}"
+            data-testid="tab-{{ name }}">
         {{ label }}
+        {% if hot and count > 0 %}<span class="badge" data-testid="tab-{{ name }}-count">{{ count }}</span>{% else %}<span class="lbl" data-testid="tab-{{ name }}-count">{{ count }}</span>{% endif %}
     </button>
 {% endmacro %}
 
-{% macro heading(title, count) %}
-    <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
-        {{ title }} <span class="text-primary">{{ '%02d'|format(count) }}</span>
-    </h2>
+{% macro empty(message, testid, cta = false) %}
+    <div class="panel flex flex-col items-center gap-4 px-6 py-14 text-center" data-testid="{{ testid }}">
+        <p class="muted text-sm">{{ message }}</p>
+        {% if cta %}<a href="{{ path('trades_new') }}" class="btn btn-g btn-s">Proposer un échange</a>{% endif %}
+    </div>
+{% endmacro %}
+
+{% macro page_button(target, label, disabled, testid) %}
+    <button type="button" class="btn btn-g btn-s"
+            data-action="live#action"
+            data-live-action-param="goToHistoryPage"
+            data-live-page-param="{{ target }}"
+            data-loading="addAttribute(disabled)"
+            data-testid="{{ testid }}"
+            {{ disabled ? 'disabled' }}>{{ label }}</button>
 {% endmacro %}
 
 {% macro status(status) %}
-    {% set color = {
-        pending: 'border-soon/50 text-soon',
-        accepted: 'border-live/50 text-live',
-        refused: 'border-magenta/50 text-magenta',
-        cancelled: 'border-hairline text-ink-dim',
-        invalidated: 'border-hairline text-ink-dim',
+    {% set tone = {
+        pending: 'chip-soon',
+        accepted: 'chip-live',
+        refused: 'chip-err',
+        cancelled: '',
+        invalidated: '',
     }[status.value] %}
-    <span class="chip-mono border px-2 py-1 font-bold {{ color }}" data-testid="offer-status">{{ status.label }}</span>
+    <span class="chip {{ tone }} shrink-0" data-testid="offer-status">{{ status.label }}</span>
 {% endmacro %}
 
-{% macro offer_header(username, caption, offer) %}
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-3 md:px-5">
-        <div class="flex min-w-0 items-center gap-3">
-            <span class="flex h-8 w-8 shrink-0 items-center justify-center bg-gradient-to-br from-primary to-magenta font-display text-sm font-bold text-black">
-                {{ username|first|upper }}
-            </span>
-            <p class="min-w-0 truncate text-sm text-ink-muted">
-                <span class="font-display font-bold uppercase text-ink-strong">{{ username }}</span> {{ caption }}
-            </p>
-        </div>
-        <div class="flex items-center gap-3">
-            <span class="chip-mono text-ink-dim">{{ offer.createdAt ? offer.createdAt|date('d/m H:i', 'Europe/Paris') }}</span>
-            {{ _self.status(offer.status) }}
-        </div>
+{% macro offer_header(player, caption, offer) %}
+    <header class="trade-offer__head">
+        <span class="av oct-s h-9 w-9 text-base" aria-hidden="true">{{ player.username|first|upper }}</span>
+        <span class="trade-offer__who text-[15px]">
+            <a href="{{ path('leaderboard_player', { discordId: player.discordId }) }}" class="font-bold text-ink-strong hover:text-primary">{{ player.username }}</a>
+            <span class="text-ink">{{ caption }}</span>
+        </span>
+        <span class="lbl trade-offer__when">{{ offer.createdAt ? offer.createdAt|date('d/m · H:i', 'Europe/Paris') }}</span>
+        {{ _self.status(offer.status) }}
+    </header>
+{% endmacro %}
+
+{% macro offer_body(givenLines, givenLabel, gotLines, gotLabel, idPrefix) %}
+    <div class="trade-offer__body">
+        {{ include('parts/_trade_lines.html.twig', { lines: givenLines, label: givenLabel, tone: 'give', idPrefix: 'trade-' ~ idPrefix ~ '-l' }, with_context = false) }}
+        <span class="trade-offer__swap d" aria-hidden="true">⇄</span>
+        {{ include('parts/_trade_lines.html.twig', { lines: gotLines, label: gotLabel, tone: 'get', idPrefix: 'trade-' ~ idPrefix ~ '-r' }, with_context = false) }}
     </div>
 {% endmacro %}
 
-{% macro offer_body(leftLines, leftLabel, rightLines, rightLabel, idPrefix) %}
-    <div class="grid gap-6 px-4 py-5 md:grid-cols-[1fr_auto_1fr] md:px-5">
-        {{ include('parts/_trade_lines.html.twig', { lines: leftLines, label: leftLabel, idPrefix: 'trade-' ~ idPrefix ~ '-l' }, with_context = false) }}
-        <span class="hidden self-center font-display text-3xl text-primary md:block" aria-hidden="true">⇄</span>
-        {{ include('parts/_trade_lines.html.twig', { lines: rightLines, label: rightLabel, idPrefix: 'trade-' ~ idPrefix ~ '-r' }, with_context = false) }}
-    </div>
-    {% if leftLines|merge(rightLines)|filter(line => line.masked)|length > 0 %}
-        <p class="-mt-2 px-4 pb-4 text-xs text-ink-dim md:px-5" data-testid="masking-hint">
-            Face cachée = carte que tu ne possèdes pas encore. Seule sa rareté est affichée :
-            c'est à elle que se juge une offre à l'aveugle.
-        </p>
-    {% endif %}
+{# « 1 légendaire, 2 communes » — rarest first #}
+{% macro digest(lines) %}
+    {%- set parts = [] -%}
+    {%- for rarity in ['legendary', 'rare', 'uncommon', 'common'] -%}
+        {%- set copies = lines|filter(line => line.rarity.value == rarity)|reduce((sum, line) => sum + line.totalQuantity, 0) -%}
+        {%- if copies > 0 -%}
+            {%- set parts = parts|merge([copies ~ ' ' ~ rarity_label(rarity)|lower ~ (copies > 1 ? 's')]) -%}
+        {%- endif -%}
+    {%- endfor -%}
+    {{- parts is empty ? 'rien' : parts|join(', ') -}}
+{% endmacro %}
+
+{% macro masking_hint(lines, verb) %}
+    {%- set masked = lines|filter(line => line.masked)|length -%}
+    {%- if masked > 0 -%}
+        <span data-testid="masking-hint">Tu ne possèdes pas {{ masked > 1 ? masked ~ ' des cartes ' ~ verb ~ 's' : 'la carte ' ~ verb }} : seule {{ masked > 1 ? 'leur' : 'sa' }} rareté est visible.</span>
+    {%- endif -%}
 {% endmacro %}
