@@ -12,7 +12,7 @@
     {% set recap = this.recap %}
     {% set raritySuffix = { rare: ' !', legendary: ' !!!' } %}
 
-    <div class="opening opening--page"
+    <div class="opening opening--page" style="--slots: {{ booster.cardCount }};"
          data-controller="booster-opening"
          {% if opening %}data-booster-opening-count-value="{{ revealCards|length }}"{% endif %}
          {#- l'id du tirage, pas son nombre de cartes : deux packs d'affilée ont

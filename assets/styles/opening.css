@@ -36,6 +36,64 @@
     -webkit-user-select: none;
 }
 .opening--page img { -webkit-user-drag: none; user-drag: none; }
+
+.opening {
+    --track-tile: 52px;
+    --rv-chrome: 112px; /* label + « Carte suivante » (+ counter from lg) around the revealed card */
+    --rv-side: 0px;     /* room kept on each side of the card (vertical tracker from lg) */
+}
+@media (min-width: 640px) {
+    .opening { --track-tile: clamp(76px, 8.5vh, 124px); }
+}
+@media (min-width: 1024px) {
+    .opening { --rv-chrome: 156px; }
+}
+
+/* ------------------------------------------------------------ reveal mode */
+/* The pack column becomes one screen: the stage (now a size container) takes all
+ * the height left by « Tes cartes », so the revealed card is sized on the
+ * viewport and its rarity label always sits inside the useful area. */
+.opening.is-revealing .opening__pack-col {
+    height: calc(100svh - var(--header-h, 72px) - var(--tabbar-h, 0px));
+    min-height: 460px;
+    box-sizing: border-box;
+}
+@media (min-width: 1024px) {
+    .opening.is-revealing .opening__pack-col { height: calc(100svh - var(--header-h, 72px)); min-height: 560px; }
+}
+.opening.is-revealing .opening__pack-stage {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: auto;
+    margin: 0;
+    container-type: size;
+}
+.opening.is-revealing .opening__showcase { inset: 0; }
+.opening--page.is-revealing .opening__cta[hidden] { display: none !important; }
+
+/* lg: « Tes cartes » becomes a vertical column on the left, the card gets the full height */
+@media (min-width: 1024px) {
+    .opening.is-revealing {
+        --track-tile: clamp(48px, calc((100svh - var(--header-h, 72px) - 150px) / var(--slots, 5) * .718 - 10px), 116px);
+        --rv-side: calc(var(--track-tile) + 24px);
+    }
+    .opening.is-revealing .opening__track {
+        position: absolute;
+        top: 50%;
+        left: 40px;
+        transform: translateY(-50%);
+    }
+    .opening.is-revealing .opening__track > .lbl { max-width: calc(var(--track-tile) + 16px); text-align: center; }
+    .opening.is-revealing .opening__track-grid {
+        display: grid;
+        grid-template-rows: repeat(var(--slots, 5), auto);
+        grid-auto-flow: column;
+        gap: 10px;
+    }
+}
 .opening--page [hidden] { display: none !important; }
 
 .opening__main { display: grid; grid-template-columns: minmax(0, 1fr); }
@@ -86,7 +144,7 @@
     position: relative;
     /* one dimension (the .92 aspect is never distorted): the height budget keeps
      * the pack, the CTA and the « Tes cartes » row above the fold */
-    width: min(100%, 720px, calc((100vh - 360px) * .92));
+    width: min(100%, 720px, calc((100vh - 260px - var(--track-tile) / .718) * .92));
     min-width: 260px;
     aspect-ratio: .92;
     /* the pack is top-aligned in a canvas with room for the tear: pull it up */
@@ -95,7 +153,7 @@
 }
 @media (max-width: 1023px) {
     .opening__pack-stage {
-        width: min(100%, 420px, calc((100svh - 400px) * .92));
+        width: min(100%, 420px, calc((100svh - 333px - var(--track-tile) / .718) * .92));
         margin-top: -12px;
         margin-bottom: -28px;
     }
@@ -164,15 +222,17 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 700px;
-    height: 700px;
+    /* closest-side: the aura is fully transparent at its own box edges, and the
+     * box stays inside the stage height, so the page edge never cuts it */
+    width: max(600px, 110cqh);
+    height: max(600px, 110cqh);
     transform: translate(-50%, -50%);
     border-radius: 50%;
     opacity: 0;
     pointer-events: none;
-    background: radial-gradient(circle, color-mix(in srgb, var(--reveal-color, #fff) 18%, transparent) 0%, transparent 60%);
+    background: radial-gradient(circle closest-side, color-mix(in srgb, var(--reveal-color, #fff) 20%, transparent) 0%, color-mix(in srgb, var(--reveal-color, #fff) 7%, transparent) 50%, transparent 100%);
 }
-.is-shiny .opening__aura { background: radial-gradient(circle, color-mix(in srgb, var(--reveal-color, #fff) 40%, transparent) 0%, transparent 60%); }
+.is-shiny .opening__aura { background: radial-gradient(circle closest-side, color-mix(in srgb, var(--reveal-color, #fff) 42%, transparent) 0%, color-mix(in srgb, var(--reveal-color, #fff) 14%, transparent) 50%, transparent 100%); }
 .opening__aura.is-on { animation: opening-auraPulse 1.6s ease-out forwards; }
 
 .opening__label {
@@ -198,13 +258,9 @@
 .opening__reveal-cards {
     position: relative;
     z-index: 2;
-    /* The height budget sizes the revealed card, not a fixed cap: viewport minus
-     * header + label + counter + pinned foot (~300px of chrome), converted to a
-     * width via the card aspect. Tall screens get a genuinely bigger card
-     * instead of dead space above/below; 520px ceiling for ultra-tall. */
-    /* height budget: viewport minus header, top line, « Tes cartes » row and the
+    /* sized on the stage (a size container while revealing): its height minus the
      * label / next / counter chrome, converted to a width via the card aspect */
-    width: clamp(220px, min(500px, calc((100vh - 450px) * 0.718)), 34vw);
+    width: max(180px, min(calc((100cqh - var(--rv-chrome)) * .718), calc(100cqi - var(--rv-side) * 2 - 16px), 900px));
     display: grid;
     place-items: center;
 }
@@ -220,13 +276,11 @@
 .opening__reveal-card.is-entering { animation: opening-cardEnter .45s cubic-bezier(.2,.8,.2,1) both; }
 .opening__reveal-card.is-pop { animation: opening-cardPop .6s ease-out; }
 
-/* phones: the card top runs under the header, the stamp goes to the bottom corner */
+/* phones: the reveal takes the top line's room, the counter repeats « Tes cartes »,
+ * the stamp goes to the bottom corner */
 @media (max-width: 1023px) {
-    /* phones: the reveal also takes the top line's room, the counter repeats « Tes cartes » */
-    .opening__showcase { top: -40px; }
-    .opening.is-revealing .opening__topline { visibility: hidden; }
+    .opening.is-revealing .opening__topline { display: none; }
     .opening__counter { display: none; }
-    .opening__reveal-cards { width: min(calc((100vw - 32px) / .92 * .718 - 5px), calc((100svh - 410px) * .718), 300px); }
     .opening__reveal-card .new-tag { top: auto; bottom: 7%; left: -4%; }
 }
 
@@ -364,10 +418,9 @@
     justify-content: center;
     gap: 8px;
 }
-.opening__track-tile { width: 48px; }
+.opening__track-tile { width: var(--track-tile); }
 @media (min-width: 640px) {
     .opening__track-grid { gap: 10px; }
-    .opening__track-tile { width: 72px; }
 }
 .opening__track-img {
     position: relative;
@@ -417,6 +470,9 @@
 .opening__track-tile.is-revealed .opening__track-holo { opacity: 1; visibility: visible; }
 
 .opening__aside-toggle { position: relative; z-index: 6; width: 100%; max-width: 420px; }
+@media (max-width: 1023px) {
+    .opening.is-revealing .opening__aside-toggle { display: none; }
+}
 @media (min-width: 1024px) {
     .opening__aside-toggle { display: none; }
 }
@@ -510,37 +566,55 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 28px;
     align-items: center;
-    max-width: 1360px;
+    max-width: calc(var(--wrap-max, 1360px) + 160px);
     margin: 0 auto;
     padding: 24px 16px 40px;
-    background: radial-gradient(ellipse 70% 40% at 50% 18%, color-mix(in srgb, var(--best-rar, #a435f0) 14%, transparent), transparent 70%);
+    box-sizing: border-box;
     animation: opening-recapIn .45s ease-out both;
 }
 @media (min-width: 1024px) {
     .opening__recap {
-        grid-template-columns: 420px minmax(0, 1fr);
-        gap: 56px;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: clamp(40px, 4vw, 96px);
         min-height: calc(100vh - var(--header-h, 72px));
-        padding: 40px 40px 56px;
-        background: radial-gradient(ellipse 40% 60% at 18% 50%, color-mix(in srgb, var(--best-rar, #a435f0) 14%, transparent), transparent 70%);
+        padding: 32px 40px 48px;
     }
 }
-.opening__recap-best { display: flex; flex-direction: column; align-items: center; gap: 16px; min-width: 0; }
+.opening__recap-best {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+}
+/* rarity halo behind the best card: `closest-side` fades it to nothing INSIDE its
+ * own box, so no container edge can ever cut it */
+.opening__recap-best::before {
+    content: "";
+    position: absolute;
+    inset: -12% -45%;
+    z-index: -1;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--best-rar, #a435f0) 34%, transparent), color-mix(in srgb, var(--best-rar, #a435f0) 12%, transparent) 55%, transparent);
+    pointer-events: none;
+}
 .opening__recap-title {
     margin: 0;
     font: 700 22px/1 'Space Grotesk', sans-serif;
     letter-spacing: .04em;
     text-transform: uppercase;
 }
-.opening__recap-card { width: min(240px, 70vw); }
+.opening__recap-card { width: min(300px, 74vw, calc((100svh - 330px) * .718)); min-width: 200px; }
 @media (min-width: 1024px) {
-    .opening__recap-title { font-size: 28px; }
-    .opening__recap-card { width: 340px; }
+    .opening__recap-title { font-size: clamp(28px, 2.6vh, 44px); }
+    /* the best card fills the screen height (title + name + paddings ~ 190px) */
+    .opening__recap-card { width: min(calc((100svh - var(--header-h, 72px) - 190px) * .718), 36vw, 820px); min-width: 300px; }
 }
 .opening__recap-body { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
 .opening__recap-h1 { font-size: 32px; line-height: 1.05; }
 @media (min-width: 768px) {
-    .opening__recap-h1 { font-size: 44px; }
+    .opening__recap-h1 { font-size: clamp(44px, 3vw, 64px); }
 }
 .opening__recap-grid {
     display: grid;
@@ -549,6 +623,9 @@
 }
 @media (min-width: 640px) {
     .opening__recap-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+}
+@media (min-width: 1024px) {
+    .opening__recap-grid { gap: 20px clamp(16px, 1.4vw, 32px); max-width: 1400px; }
 }
 .opening__recap-best-cell { outline: 2px solid var(--best-rar); outline-offset: 3px; border-radius: 4px; }
 @keyframes opening-recapIn { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: none; } }
