@@ -12,7 +12,7 @@
     { key: 'recycle', route: 'recycle', label: 'Recyclage', enabled: feature_enabled('recycling') },
     { key: 'fusion', route: 'fusion', label: 'Fusion', enabled: feature_enabled('fusion') },
 ] %}
-<nav aria-label="Mon espace" class="subnav" data-testid="my-space-nav">
+<nav aria-label="Mon espace" class="subnav" data-controller="subnav" data-testid="my-space-nav">
     {% for item in items|filter(item => item.enabled) %}
         {% set isCurrent = item.key == current|default('') %}
         <a href="{{ path(item.route) }}" class="tab"{{ isCurrent ? ' aria-current="page"' }}>
