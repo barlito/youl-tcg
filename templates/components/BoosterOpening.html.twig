@@ -75,7 +75,7 @@
                                      data-card-id="{{ reveal.card.id }}"
                                      data-rarity="{{ rarity }}"
                                      data-shiny="{{ rarity in ['rare', 'legendary'] ? '1' : '0' }}"
-                                     data-label="{{ reveal.card.rarity.label }}{{ raritySuffix[rarity]|default('') }}">
+                                     data-label="{{ reveal.card.rarity.icon }} {{ reveal.card.rarity.label }}{{ raritySuffix[rarity]|default('') }}">
                                     {# flip scene: back faces the player until they click to reveal the front #}
                                     <div class="opening__flip" data-booster-opening-target="flip">
                                         <div class="opening__flip-face opening__flip-front">
@@ -132,7 +132,7 @@
                 {# ---- reveal tracker: the pack's slots, backs until flipped ---- #}
                 <section class="opening__track" data-testid="opening-track" aria-label="Tes cartes">
                     <p class="lbl">
-                        <span class="hidden sm:inline">Tes cartes · </span><b class="text-ink-strong" data-booster-opening-target="revealedCount">0</b> / {{ booster.cardCount }} révélées
+                        <span class="opening__track-prefix hidden sm:inline">Tes cartes · </span><span class="whitespace-nowrap"><b class="text-ink-strong" data-booster-opening-target="revealedCount">0</b> / {{ booster.cardCount }}</span> <span class="opening__track-suffix">révélées</span>
                     </p>
                     <div class="opening__track-grid" aria-hidden="true">
                         {% if opening %}
@@ -301,7 +301,7 @@
                             id: 'recap-best',
                         }, with_context = false) }}
                     </div>
-                    <p class="cn text-center text-base" data-testid="recap-best">
+                    <p class="cn max-w-full whitespace-normal text-center text-base" data-testid="recap-best">
                         {{ best.card.name }} · <span class="r-{{ bestRarity|first }}">{{ rarity_label(bestRarity) }}</span>
                         {%- if best.holo %} · <span class="text-magenta">✦ Holo</span>{% endif %}
                         {%- if best.new %} · <span class="text-magenta">Nouvelle</span>{% endif %}
