@@ -2,30 +2,37 @@ App\Entity\DiscordUser:
   discord_user_barlito:
     discordId: 188967649332428800
     username: "Barlito"
+    createdAt: '<(new DateTime("-120 days"))>'
     roles: ["ROLE_ADMIN"]
 
   discord_user_juju:
     discordId: 195659530363731968
     username: "Juju"
+    createdAt: '<(new DateTime("-118 days"))>'
 
   discord_user_farph:
     discordId: 188967949963362304
     username: "Farph"
+    createdAt: '<(new DateTime("-115 days"))>'
 
   discord_user_benj:
     discordId: 232457563910832129
     username: "Benj"
+    createdAt: '<(new DateTime("-112 days"))>'
 
   discord_user_weeby:
     discordId: 186441663856508928
     username: "Warny"
+    createdAt: '<(new DateTime("-110 days"))>'
 
   discord_user_veli:
     discordId: 189029821328785409
     username: "Veli"
+    createdAt: '<(new DateTime("-105 days"))>'
 
   # collectionneur de démo : il a des cartes (voir UserCard.yaml) pour que le
   # classement et le masquage des profils soient testables sans rien ouvrir
   discord_user_collectionneur:
     discordId: 100000000000000001
     username: "Collectionneur"
+    createdAt: '<(new DateTime("-100 days"))>'
