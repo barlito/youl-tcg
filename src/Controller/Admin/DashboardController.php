@@ -112,12 +112,16 @@ class DashboardController extends AbstractDashboardController
         $targetJs = $this->assetMapper->getAsset('scripts/admin/recipient-target.js')
             ?? throw new \LogicException('Asset "scripts/admin/recipient-target.js" not found in the asset map.');
 
+        $datagridJs = $this->assetMapper->getAsset('scripts/admin/datagrid-scroll.js')
+            ?? throw new \LogicException('Asset "scripts/admin/datagrid-scroll.js" not found in the asset map.');
+
         return parent::configureAssets()
             ->addHtmlContentToHead(self::FONTS)
             ->addCssFile($themeCss->publicPath)
             ->addCssFile($adminCss->publicPath)
             ->addJsFile($copyJs->publicPath)
             ->addJsFile($targetJs->publicPath)
+            ->addJsFile($datagridJs->publicPath)
         ;
     }
 
