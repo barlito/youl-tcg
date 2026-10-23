@@ -205,7 +205,7 @@
 {% endblock %}
 
 {# entier affiché sans décimale, sinon 1 décimale (même règle que le panneau Taux du hub) #}
-{% macro pct(value) %}{{ value == value|round ? value|round : value }}%{% endmacro %}
+{% macro pct(value) %}{{ value == value|round ? value|round : value|number_format(1, ',') }}%{% endmacro %}
 
 {# Taux observé en barre pleine, taux annoncé en repère : la barre qui dépasse
    le trait = tu es au-dessus de ce que le pack promet. #}
