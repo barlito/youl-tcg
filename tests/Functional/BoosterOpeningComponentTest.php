@@ -182,7 +182,8 @@ final class BoosterOpeningComponentTest extends WebTestCase
 
         $total = $crawler->filter('.opening__card-tile')->count();
         $newCount = \count(array_unique($opening->newCardIds));
-        $percentage = (int) round($newCount / $total * 100);
+        // floored like /univers and the hub: a universe never shows 100 % before it is complete
+        $percentage = (int) floor($newCount / $total * 100);
         $this->assertCount($booster->getCardCount(), $summary->filter('[data-testid="recap-cards"] [data-testid="card-cell"]'));
         $this->assertCount($newCount, $summary->filter('[data-testid="recap-new"]'));
         $this->assertStringContainsString($booster->getCardCount() . ' cartes', $summary->filter('h1')->text());
@@ -205,7 +206,7 @@ final class BoosterOpeningComponentTest extends WebTestCase
         $component->call('open');
         $second = new Crawler((string) $component->render());
         $this->assertStringContainsString(
-            'Ta complétion ' . $booster->getExtension()->getName() . ' ' . ($percentage === (int) round(($newCount + \count(array_unique($component->component()->newCardIds))) / $total * 100) ? 'reste à' : 'passe de ' . $percentage . ' %'),
+            'Ta complétion ' . $booster->getExtension()->getName() . ' ' . ($percentage === (int) floor(($newCount + \count(array_unique($component->component()->newCardIds))) / $total * 100) ? 'reste à' : 'passe de ' . $percentage . ' %'),
             $second->filter('[data-testid="recap-lead"]')->text(),
         );
         $this->assertCount(0, $second->filter('[data-testid="open-another"]'), 'No pack left: no « Ouvrir le suivant ».');
@@ -285,6 +286,12 @@ final class BoosterOpeningComponentTest extends WebTestCase
         sort($sortedRanks);
 
         $this->assertSame($sortedRanks, $ranks, 'Reveal cards must be ordered from common to rarest (climax last).');
+
+        // the revealed rarity is never told by its colour alone
+        $crawler->filter('.opening__reveal-card')->each(function (Crawler $node): void {
+            $rarity = CardRarityEnum::from((string) $node->attr('data-rarity'));
+            $this->assertStringStartsWith($rarity->icon() . ' ' . $rarity->label(), (string) $node->attr('data-label'));
+        });
     }
 
     public function testRevealStampsNewCardsOnTheirFirstCopyOnly(): void

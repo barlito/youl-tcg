@@ -216,9 +216,8 @@
             data-action="live#action"
             data-live-action-param="goToHistoryPage"
             data-live-page-param="{{ target }}"
-            data-loading="addAttribute(disabled)"
-            data-testid="{{ testid }}"
-            {{ disabled ? 'disabled' }}>{{ label }}</button>
+            {% if disabled %}disabled{% else %}data-loading="addAttribute(disabled)"{% endif %}
+            data-testid="{{ testid }}">{{ label }}</button>
 {% endmacro %}
 
 {% macro status(status) %}

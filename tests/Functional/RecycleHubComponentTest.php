@@ -105,6 +105,29 @@ final class RecycleHubComponentTest extends WebTestCase
         $this->assertSame(['normal' => 2, 'holo' => 0], $component->component()->selection[$cardId]);
     }
 
+    public function testAServerDisabledButtonCarriesNoLoadingDirective(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $scenario = $this->createScenario($user, [['name' => 'Loading card', 'rarity' => CardRarityEnum::LEGENDARY, 'quantity' => 4]]);
+        $cardId = (string) $scenario['cards'][0]->getId();
+
+        // Live strips a data-loading="addAttribute(disabled)" attribute when idle,
+        // which would re-enable a button the server rendered disabled
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        $confirm = $component->render()->crawler()->filter('[data-testid="recycle-confirm"]');
+        $this->assertNotNull($confirm->attr('disabled'));
+        $this->assertNull($confirm->attr('data-loading'));
+
+        $component->call('addCopy', ['cardId' => $cardId, 'kind' => 'normal']);
+        $component->call('addCopy', ['cardId' => $cardId, 'kind' => 'normal']);
+        $crawler = $component->render()->crawler();
+        $this->assertNull($crawler->filter('[data-testid="recycle-confirm"]')->attr('disabled'));
+        $this->assertNotNull($crawler->filter('[data-testid="recycle-confirm"]')->attr('data-loading'));
+        $this->assertNotNull($crawler->filter('[data-testid="recycle-autofill"]')->attr('disabled'));
+        $this->assertNull($crawler->filter('[data-testid="recycle-autofill"]')->attr('data-loading'));
+    }
+
     public function testAddCopyRespectsTheHoloSubCountAndTheKeepOneRule(): void
     {
         $client = static::createClient();

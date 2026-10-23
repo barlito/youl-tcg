@@ -59,7 +59,7 @@
                                                 data-testid="edit-listing" {{ busy ? 'disabled' }}>Prix</button>
                                         <button type="button" class="btn btn-x btn-s"
                                                 data-action="live#action" data-live-action-param="withdraw" data-live-listing-id-param="{{ listing.id }}"
-                                                data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="withdraw-listing" {{ busy ? 'disabled' }}>Retirer</button>
+                                                {% if busy %}disabled{% else %}data-loading="addAttribute(disabled) addClass(opacity-50)"{% endif %} data-testid="withdraw-listing">Retirer</button>
                                     </span>
                                 {% endif %}
                             </div>

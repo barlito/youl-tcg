@@ -65,7 +65,7 @@ final class HomepageDashboardTest extends WebTestCase
         $this->assertStringContainsString('2 packs gratuits t\'attendent', $crawler->filter('[data-testid="home-headline"]')->text());
         $claims = $crawler->filter('[data-testid="today-claims"]')->text();
         $this->assertStringContainsString('2/2', $claims);
-        $this->assertStringContainsString('à réclamer', $claims);
+        $this->assertStringContainsString('à récupérer', $claims);
         $this->assertStringContainsString('Classement', $crawler->filter('[data-testid="today-rank"]')->text());
         $this->assertStringContainsString('Collection', $crawler->filter('[data-testid="today-collection"]')->text());
         $this->assertCount(1, $crawler->filter('[data-testid="today-streak"]'));

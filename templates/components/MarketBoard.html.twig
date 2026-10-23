@@ -174,9 +174,8 @@
             data-action="live#action"
             data-live-action-param="goToPage"
             data-live-page-param="{{ target }}"
-            data-loading="addAttribute(disabled) addClass(opacity-50)"
-            data-testid="{{ testid }}"
-            {{ disabled ? 'disabled' }}>{{ label }}</button>
+            {% if disabled %}disabled{% else %}data-loading="addAttribute(disabled) addClass(opacity-50)"{% endif %}
+            data-testid="{{ testid }}">{{ label }}</button>
 {% endmacro %}
 
 {% macro filters(board) %}

@@ -4,7 +4,7 @@
     --reveal-card-w: clamp(200px, 24vw, 300px);
     position: fixed;
     inset: 0;
-    z-index: 70;
+    z-index: 230;
     display: flex;
     align-items: center;
     justify-content: center;
