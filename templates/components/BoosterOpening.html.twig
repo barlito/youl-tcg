@@ -199,7 +199,7 @@
                             {% endif %}
                             {% if rates.unique > 0 %}
                                 <div class="opening__rate" title="Chance de tirer une carte unique 1/1 encore non réclamée">
-                                    <span class="text-soon">◆ Unique 1/1</span>
+                                    <span class="text-soon">{{ unique_icon() }} Unique 1/1</span>
                                     <span class="bar" aria-hidden="true"><i style="width: {{ max(rates.unique, 1) }}%; background: var(--soon, #ffd24a);"></i></span>
                                     <span class="num text-xs">{{ rates.unique|number_format(2, ',')|trim('0', 'right')|trim(',', 'right') }} %</span>
                                 </div>
@@ -292,7 +292,7 @@
                      aria-label="Récapitulatif de l'ouverture" style="--best-rar: var(--rarity-{{ bestRarity }});" hidden>
                 <div class="opening__recap-best">
                     <p class="opening__recap-title {{ best.card.isUnique ? 'r-s' : 'r-' ~ bestRarity|first }}">
-                        {{ best.card.isUnique ? '◆ Unique 1/1 !' : rarity_icon(bestRarity) ~ ' ' ~ rarity_label(bestRarity) ~ (bestRarity in ['rare', 'legendary'] ? ' !') }}
+                        {% if best.card.isUnique %}{{ unique_icon() }} Unique 1/1 !{% else %}{{ rarity_icon(bestRarity) ~ ' ' ~ rarity_label(bestRarity) ~ (bestRarity in ['rare', 'legendary'] ? ' !') }}{% endif %}
                     </p>
                     <div class="opening__recap-card">
                         {{ include('components/CardComponent.html.twig', {

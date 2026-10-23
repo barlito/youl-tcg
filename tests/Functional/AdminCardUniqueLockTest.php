@@ -52,6 +52,19 @@ final class AdminCardUniqueLockTest extends WebTestCase
         );
     }
 
+    public function testTheIndexAndDetailPagesMarkAUniqueWithTheCrown(): void
+    {
+        $card = $this->createUnique(claimed: false);
+
+        $crawler = $this->client->request('GET', '/admin/card/' . $card->getId());
+        self::assertResponseIsSuccessful();
+        $this->assertSame('♛ 1/1', trim($crawler->filter('[data-testid="admin-unique-flag"]')->text()));
+
+        $crawler = $this->client->request('GET', '/admin/card', ['query' => $card->getName()]);
+        self::assertResponseIsSuccessful();
+        $this->assertCount(1, $crawler->filter('[data-testid="admin-unique-flag"]'));
+    }
+
     public function testAClaimedUniqueKeepsItsFlagWhenTheFormOmitsIt(): void
     {
         $id = (string) $this->createUnique(claimed: true)->getId();

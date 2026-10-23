@@ -24,3 +24,14 @@
         height: 284px !important;
     }
 }
+
+/* 1/1 unique crown (unique_icon()), same mark as the front; a badge keeps its own colour */
+.unique-ic {
+    color: var(--va-soon);
+    font-size: 1.15em;
+    line-height: 1;
+}
+
+.badge .unique-ic {
+    color: inherit;
+}

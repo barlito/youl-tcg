@@ -288,6 +288,7 @@ class CardCrudController extends AbstractGuardedCrudController
         $uniqueField = BooleanField::new('unique')
             ->setLabel('Carte unique (1/1)')
             ->renderAsSwitch(false)
+            ->setTemplatePath('admin/field/unique_flag.html.twig')
         ;
         $lockReason = $editedCard?->uniqueFlagLockReason();
         if (null !== $lockReason) {

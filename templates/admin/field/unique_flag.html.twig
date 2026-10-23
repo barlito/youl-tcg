@@ -1,0 +1,6 @@
+{# Card « unique » flag on the index / detail pages: the 1/1 crown, or a dash. #}
+{% if field.value %}
+    <span class="badge bg-warning text-dark" data-testid="admin-unique-flag">{{ unique_icon() }} 1/1</span>
+{% else %}
+    <span class="text-muted">—</span>
+{% endif %}

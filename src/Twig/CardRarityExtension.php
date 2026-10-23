@@ -8,7 +8,7 @@ use App\Enum\Entity\CardRarityEnum;
 use Twig\Attribute\AsTwigFunction;
 
 /**
- * Exposes the CardRarityEnum scale and labels to templates.
+ * Exposes the CardRarityEnum scale, labels and icons (1/1 crown included) to templates.
  */
 final readonly class CardRarityExtension
 {
@@ -45,5 +45,14 @@ final readonly class CardRarityExtension
         }
 
         return CardRarityEnum::tryFrom($rarity)?->icon() ?? '';
+    }
+
+    /**
+     * The 1/1 crown, tinted by `.unique-ic`; decorative: the caller writes « 1/1 » next to it.
+     */
+    #[AsTwigFunction(name: 'unique_icon', isSafe: ['html'])]
+    public function uniqueIcon(): string
+    {
+        return '<span class="unique-ic" aria-hidden="true">' . CardRarityEnum::UNIQUE_ICON . '</span>';
     }
 }

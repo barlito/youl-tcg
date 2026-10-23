@@ -80,7 +80,7 @@
 </div>
 
 {% macro item(notification) %}
-    {% set tones = { '◆': 'text-soon', '★': 'text-live', '✓': 'text-live', '▲': 'text-soon', '+': 'tone-violet', '⇄': 'tone-violet', '✕': 'tone-danger', '$': 'text-live', '♡': 'text-magenta', '!': 'text-magenta', '#': 'tone-violet' } %}
+    {% set tones = { '♛': 'text-soon', '★': 'text-live', '✓': 'text-live', '▲': 'text-soon', '+': 'tone-violet', '⇄': 'tone-violet', '✕': 'tone-danger', '$': 'text-live', '♡': 'text-magenta', '!': 'text-magenta', '#': 'tone-violet' } %}
     <button type="button"
             class="bell-item{{ notification.unread ? ' bell-item--new' }}"
             data-action="live#action" data-live-action-param="openNotification"

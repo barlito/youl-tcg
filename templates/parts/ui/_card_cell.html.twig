@@ -1,5 +1,5 @@
 {#
-  Cellule carte `.cell` : visuel + nom + rareté (icône ● ◆ ★ ★★ + libellé) + quantités.
+  Cellule carte `.cell` : visuel + nom + rareté (icône ● ◆ ★ ★★ + libellé, ♛ 1/1) + quantités.
   Paramètres :
     card          Card possédée/visible, ou null = carte masquée (dos de carte, ni nom ni artwork)
     rarity        valeur scalaire de la rareté, seul indice d'une carte masquée (optionnel)
@@ -69,7 +69,7 @@
     {% if (showRarity ?? true) and rarityValue %}
         <span class="lbl r-{{ rarityValue|first }}"{% if rarityTestid|default(null) %} data-testid="{{ rarityTestid }}"{% endif %}>
             {{ rarity_icon(rarityValue) }} {{ rarity_label(rarityValue) }}
-            {%- if (card and card.isUnique) or (not card and unique|default(false)) %} <span class="r-s" data-testid="chip-unique">· 1/1</span>{% endif %}
+            {%- if (card and card.isUnique) or (not card and unique|default(false)) %} <span class="r-s" data-testid="chip-unique">· {{ unique_icon() }} 1/1</span>{% endif %}
             {%- if holoQuantity > 0 %} <span class="text-magenta">· ✦ {{ holoQuantity }}</span>{% endif %}
             {%- if suffix|default(null) %} <span class="text-ink-muted">· {{ suffix }}</span>{% endif %}
         </span>

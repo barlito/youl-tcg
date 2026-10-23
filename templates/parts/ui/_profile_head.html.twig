@@ -28,7 +28,7 @@
                 <div class="flex flex-wrap gap-x-5 gap-y-1 text-sm text-ink-muted" data-testid="profile-stats">
                     <span><strong class="text-ink-strong">{{ entry.totalCards }}</strong> carte{{ entry.totalCards > 1 ? 's' }}</span>
                     <span><span class="text-magenta" aria-hidden="true">✦</span> <strong class="text-ink-strong">{{ entry.holoCards }}</strong> holo{{ entry.holoCards > 1 ? 's' }}</span>
-                    <span><span class="r-s" aria-hidden="true">★</span> <strong class="text-ink-strong">{{ entry.uniqueCards }}</strong> unique{{ entry.uniqueCards > 1 ? 's' }} 1/1</span>
+                    <span>{{ unique_icon() }} <strong class="text-ink-strong">{{ entry.uniqueCards }}</strong> unique{{ entry.uniqueCards > 1 ? 's' }} 1/1</span>
                     {% if showPacks ?? true %}
                         <span><strong class="text-ink-strong">{{ entry.openedBoosters }}</strong> pack{{ entry.openedBoosters > 1 ? 's' }} ouvert{{ entry.openedBoosters > 1 ? 's' }}</span>
                     {% endif %}

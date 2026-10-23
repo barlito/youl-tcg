@@ -116,7 +116,7 @@ final class BoosterHubComponentTest extends WebTestCase
         // every fixture slot weight map normalises to percentages
         $this->assertStringContainsString('%', $rendered);
         // no fixture slot advertises a one-of-one chance
-        $this->assertStringNotContainsString('◆ Unique', $rendered);
+        $this->assertStringNotContainsString('Unique 1/1', $rendered);
     }
 
     public function testDropRatesPanelAdvertisesTheUniqueChance(): void
@@ -133,7 +133,7 @@ final class BoosterHubComponentTest extends WebTestCase
         $rendered = (string) $this->createLiveComponent(BoosterHub::class, client: $client)->render();
 
         // 25 per 10 000 read by the player as a percentage
-        $this->assertStringContainsString('◆ Unique 0.25%', $rendered);
+        $this->assertStringContainsString('<span class="unique-ic" aria-hidden="true">♛</span> Unique 1/1 · 0.25%', $rendered);
     }
 
     private function createEventBooster(): \App\Entity\Booster

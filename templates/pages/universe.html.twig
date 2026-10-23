@@ -86,7 +86,7 @@
                     {% endif %}
                     {% if uniquesTotal > 0 %}
                         <span class="lbl" data-testid="uniques-status">
-                            ◆ Unique{{ uniquesTotal > 1 ? 's' }} 1/1 :
+                            {{ unique_icon() }} Unique{{ uniquesTotal > 1 ? 's' }} 1/1 :
                             {% if uniquesClaimed == uniquesTotal %}
                                 <span class="text-magenta">{{ uniquesClaimed }}/{{ uniquesTotal }} droppée{{ uniquesTotal > 1 ? 's' }}</span>
                             {% else %}

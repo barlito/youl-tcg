@@ -424,12 +424,20 @@
     pointer-events: none;
 }
 
-/* Raretés : couleur (toujours doublée de l'icône ● ◆ ★ ★★) et halo */
+/* Raretés : couleur (toujours doublée de l'icône ● ◆ ★ ★★, ♛ pour une 1/1) et halo */
 .r-c { color: var(--rarity-common); }
 .r-u { color: var(--rarity-uncommon); }
 .r-r { color: var(--rarity-rare); }
 .r-l { color: var(--rarity-legendary); }
 .r-s { color: var(--soon); }
+
+/* 1/1 unique crown (unique_icon()), never shown without its « 1/1 » text */
+.unique-ic {
+    color: var(--soon);
+    font-size: 1.15em;
+    line-height: 1;
+    font-style: normal;
+}
 
 .g-c { box-shadow: 0 0 10px 1px #9aa3b299; }
 .g-u { box-shadow: 0 0 12px 2px #5be58499; }
