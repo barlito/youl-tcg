@@ -131,7 +131,7 @@ final class LeaderboardControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $rows = $crawler->filter('[data-testid="leaderboard-row"]');
         $rivalRow = $rows->eq($this->positionOf($rows, $rival->getUsername()));
-        $this->assertStringContainsString('★ 1', $rivalRow->text());
+        $this->assertStringContainsString('♛ 1', $rivalRow->text());
         // the count shows, the card itself stays a mystery
         $this->assertStringNotContainsString($unique->getName(), (string) $this->client->getResponse()->getContent());
     }

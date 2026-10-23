@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Service;
 
+use App\Enum\FeatureEnum;
 use App\Enum\Notification\NotificationTypeEnum;
+use App\Repository\FeatureFlagRepository;
+use App\Service\Feature\FeatureFlags;
 use App\Service\Notification\NotificationRenderer;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -99,13 +102,69 @@ final class NotificationRendererTest extends TestCase
         $this->assertSame('/market', $forged->link);
     }
 
-    private function renderer(): NotificationRenderer
+    public function testAUniquePullWearsTheUniqueCrown(): void
+    {
+        $content = $this->renderer()->describe(NotificationTypeEnum::UNIQUE_PULLED, ['playerName' => 'Benj', 'playerId' => '232457563910832129', 'universe' => 'Cosmos']);
+
+        $this->assertSame(['♛', 'Benj a tiré une carte unique dans Cosmos'], [$content->icon, $content->text]);
+    }
+
+    public function testTradeNotificationsHaveNoLinkWhileTradesAreClosed(): void
+    {
+        $renderer = $this->renderer([FeatureEnum::TRADES->value => false]);
+        $payload = ['playerName' => 'Benj', 'playerId' => '232457563910832129', 'offerId' => '019a0000-0000-7000-8000-000000000001'];
+
+        foreach ([NotificationTypeEnum::TRADE_RECEIVED, NotificationTypeEnum::TRADE_ACCEPTED, NotificationTypeEnum::TRADE_REFUSED] as $type) {
+            $content = $renderer->describe($type, $payload);
+            $this->assertNull($content->link, $type->value);
+            $this->assertStringContainsString('Benj', $content->text);
+        }
+    }
+
+    public function testAnAnnouncementToAClosedFeaturePageHasNoLink(): void
+    {
+        $renderer = $this->renderer([
+            FeatureEnum::TRADES->value => false,
+            FeatureEnum::RECYCLING->value => false,
+            FeatureEnum::FUSION->value => false,
+            FeatureEnum::WISHLIST->value => false,
+        ]);
+
+        foreach (['/echanges', '/echanges?offre=x', '/echanges/nouveau', '/recyclage', '/fusion', '/wishlist#top'] as $link) {
+            $this->assertNull($renderer->describe(NotificationTypeEnum::ANNOUNCEMENT, ['title' => 'x', 'link' => $link])->link, $link);
+        }
+
+        // only the flagged page itself, not a path sharing its prefix
+        $this->assertSame('/fusionnes', $renderer->describe(NotificationTypeEnum::ANNOUNCEMENT, ['title' => 'x', 'link' => '/fusionnes'])->link);
+        $this->assertSame('/marche', $renderer->describe(NotificationTypeEnum::ANNOUNCEMENT, ['title' => 'x', 'link' => '/marche'])->link);
+        $this->assertSame('/echanges', $this->renderer()->describe(NotificationTypeEnum::ANNOUNCEMENT, ['title' => 'x', 'link' => '/echanges'])->link);
+    }
+
+    public function testFeatureFreeLinksSurviveEveryFlagOff(): void
+    {
+        $renderer = $this->renderer(array_fill_keys(array_map(static fn (FeatureEnum $feature): string => $feature->value, FeatureEnum::cases()), false));
+
+        $this->assertSame('/market?univers=cosmos', $renderer->describe(NotificationTypeEnum::WISHLIST_LISTED, ['slug' => 'cosmos', 'price' => 1])->link);
+        $this->assertSame('/universes_show?slug=cosmos', $renderer->describe(NotificationTypeEnum::UNIVERSE_COMPLETED, ['slug' => 'cosmos'])->link);
+        $this->assertSame('/market_my_shop', $renderer->describe(NotificationTypeEnum::MARKET_SOLD, [])->link);
+    }
+
+    /**
+     * @param array<string, bool> $flags every feature ON unless listed
+     */
+    private function renderer(array $flags = []): NotificationRenderer
     {
         $urlGenerator = $this->createStub(UrlGeneratorInterface::class);
         $urlGenerator->method('generate')->willReturnCallback(
             static fn (string $route, array $parameters = []): string => '/' . $route . ([] !== $parameters ? '?' . http_build_query($parameters) : ''),
         );
 
-        return new NotificationRenderer($urlGenerator);
+        $repository = $this->createStub(FeatureFlagRepository::class);
+        $repository->method('findStates')->willReturn([
+            ...array_fill_keys(array_map(static fn (FeatureEnum $feature): string => $feature->value, FeatureEnum::cases()), true),
+            ...$flags,
+        ]);
+
+        return new NotificationRenderer($urlGenerator, new FeatureFlags($repository));
     }
 }

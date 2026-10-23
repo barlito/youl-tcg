@@ -14,7 +14,7 @@
             <span class="badge bg-info text-dark" title="Exemplaires holo">✨ {{ data.holo }}</span>
         {% endif %}
         {% if data.unique > 0 %}
-            <span class="badge bg-warning text-dark" title="Carte unique (1/1)">1/1</span>
+            <span class="badge bg-warning text-dark" title="Carte unique (1/1)">{{ unique_icon() }} 1/1</span>
         {% endif %}
     </span>
 {% else %}
@@ -46,7 +46,7 @@
                                 <span>{{ card.name }}</span>
                             </a>
                             {% if card.unique %}
-                                <span class="badge bg-warning text-dark" title="Carte unique : un seul exemplaire existe">1/1</span>
+                                <span class="badge bg-warning text-dark" title="Carte unique : un seul exemplaire existe">{{ unique_icon() }} 1/1</span>
                             {% endif %}
                         </td>
                         <td>{{ rarity_label(card.rarity) }}</td>

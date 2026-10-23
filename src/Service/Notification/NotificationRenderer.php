@@ -8,9 +8,12 @@ use App\Dto\NotificationContent;
 use App\Dto\NotificationView;
 use App\Entity\DiscordUser;
 use App\Entity\Notification;
+use App\Enum\Entity\CardRarityEnum;
+use App\Enum\FeatureEnum;
 use App\Enum\Notification\NotificationTypeEnum;
 use App\Service\Booster\BoosterCodeGenerator;
 use App\Service\Coin\CoinAmount;
+use App\Service\Feature\FeatureFlags;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Uid\Uuid;
 
@@ -18,11 +21,23 @@ use Symfony\Component\Uid\Uuid;
  * Turns a stored notification (type + payload) into text and an internal
  * link. Links are generated from route names, or (announcements) re-checked
  * as internal paths: a payload can never point a player outside the app.
+ * A link to a page whose feature flag is OFF (it would 404) becomes null.
  */
 final readonly class NotificationRenderer
 {
+    /**
+     * Pages answering 404 while their feature is OFF.
+     */
+    private const array FLAGGED_PATHS = [
+        '/echanges' => FeatureEnum::TRADES,
+        '/recyclage' => FeatureEnum::RECYCLING,
+        '/fusion' => FeatureEnum::FUSION,
+        '/wishlist' => FeatureEnum::WISHLIST,
+    ];
+
     public function __construct(
         private UrlGeneratorInterface $urlGenerator,
+        private FeatureFlags $featureFlags,
     ) {
     }
 
@@ -49,7 +64,7 @@ final readonly class NotificationRenderer
         return match ($type) {
             // the card itself is never named: only who and in which universe
             NotificationTypeEnum::UNIQUE_PULLED => new NotificationContent(
-                '◆',
+                CardRarityEnum::UNIQUE_ICON,
                 \sprintf('%s a tiré une carte unique dans %s', $this->string($payload, 'playerName', 'Un joueur'), $this->string($payload, 'universe', 'un univers')),
                 $this->playerLink($payload),
             ),
@@ -66,7 +81,7 @@ final readonly class NotificationRenderer
             NotificationTypeEnum::TRADE_RECEIVED => new NotificationContent(
                 '⇄',
                 \sprintf('%s te propose un échange', $this->string($payload, 'playerName', 'Un joueur')),
-                $this->urlGenerator->generate('trades'),
+                $this->featureFlags->isEnabled(FeatureEnum::TRADES) ? $this->urlGenerator->generate('trades') : null,
             ),
             NotificationTypeEnum::TRADE_ACCEPTED => new NotificationContent(
                 '✓',
@@ -177,7 +192,18 @@ final readonly class NotificationRenderer
     {
         $link = $this->string($payload, 'link', '');
 
-        return InternalLinkPolicy::isInternalPath($link) ? $link : null;
+        return InternalLinkPolicy::isInternalPath($link) && $this->isReachable($link) ? $link : null;
+    }
+
+    private function isReachable(string $path): bool
+    {
+        foreach (self::FLAGGED_PATHS as $prefix => $feature) {
+            if (1 === preg_match('#^' . preg_quote($prefix, '#') . '(?:[/?\#]|$)#', $path)) {
+                return $this->featureFlags->isEnabled($feature);
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -220,8 +246,12 @@ final readonly class NotificationRenderer
      *
      * @param array<string, scalar|null> $payload
      */
-    private function tradeLink(array $payload): string
+    private function tradeLink(array $payload): ?string
     {
+        if (!$this->featureFlags->isEnabled(FeatureEnum::TRADES)) {
+            return null;
+        }
+
         $offerId = $this->string($payload, 'offerId', '');
 
         return Uuid::isValid($offerId)

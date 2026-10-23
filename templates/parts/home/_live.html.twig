@@ -26,7 +26,7 @@
                     {% for pull in community.pulls %}
                         <li class="flex items-center gap-3 px-4 py-3" data-testid="live-pull">
                             {% if pull.unique %}
-                                <span class="chip chip-soon shrink-0">◆ 1/1</span>
+                                <span class="chip chip-soon shrink-0">{{ unique_icon() }} 1/1</span>
                             {% else %}
                                 <span class="chip shrink-0 r-{{ pull.rarity|first }}" style="border-color: color-mix(in srgb, var(--rarity-{{ pull.rarity }}) 45%, transparent);">
                                     {{ rarity_icon(pull.rarity) }} {{ rarity_label(pull.rarity) }}{{ pull.holo ? ' ✦' }}

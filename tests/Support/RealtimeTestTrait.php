@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Support;
 
+use App\Repository\FeatureFlagRepository;
 use App\Repository\NotificationBroadcastReadRepository;
 use App\Repository\NotificationRepository;
+use App\Service\Feature\FeatureFlags;
 use App\Service\Notification\NotificationRenderer;
 use App\Service\Notification\NotificationService;
 use App\Service\Realtime\RealtimeTopics;
@@ -37,7 +39,7 @@ trait RealtimeTestTrait
         return new NotificationService(
             $this->createStub(NotificationRepository::class),
             $this->createStub(NotificationBroadcastReadRepository::class),
-            new NotificationRenderer($urlGenerator),
+            new NotificationRenderer($urlGenerator, new FeatureFlags($this->createStub(FeatureFlagRepository::class))),
             $this->userEventPublisher($hub),
             $this->createStub(EntityManagerInterface::class),
             new MockClock('2026-09-24 12:00:00', 'UTC'),

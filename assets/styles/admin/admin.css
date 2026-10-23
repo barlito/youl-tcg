@@ -24,3 +24,28 @@
         height: 284px !important;
     }
 }
+
+/* 1/1 unique crown (unique_icon()), same mark as the front; a badge keeps its own colour */
+.unique-ic {
+    color: var(--va-soon);
+    font-size: 1.15em;
+    line-height: 1;
+}
+
+.badge .unique-ic {
+    color: inherit;
+}
+
+/* Wide lists (cards at 1024 px, market sales even at 1440 px): the grid columns
+   may shrink below their content and the datagrid scrolls inside its panel
+   instead of pushing the whole page sideways. The row action menus escape the
+   scroll box through a fixed Popper strategy (scripts/admin/datagrid-scroll.js). */
+.wrapper > .main-content,
+.content-wrapper > .content {
+    min-width: 0;
+}
+
+.content-body:has(> table.datagrid) {
+    position: relative; /* absolute descendants (.visually-hidden) stay inside the scroll box */
+    overflow-x: auto;
+}
