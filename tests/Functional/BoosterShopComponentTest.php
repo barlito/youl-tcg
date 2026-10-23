@@ -88,6 +88,7 @@ final class BoosterShopComponentTest extends WebTestCase
 
         $crawler = $hub->call('askPurchase', ['boosterId' => $this->boosterId])->render()->crawler();
         $this->assertCount(1, $crawler->filter('[data-testid="shop-confirm"]'));
+        $this->assertStringContainsString('addAttribute(disabled)', (string) $crawler->filter('[data-testid="shop-confirm"]')->attr('data-loading'), 'No double purchase click while the request runs.');
         $this->assertSame(0, $this->purchaseCount());
 
         $crawler = $hub->call('cancelPurchase')->render()->crawler();
