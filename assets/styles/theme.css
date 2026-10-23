@@ -61,35 +61,6 @@
     filter: blur(60px);
 }
 
-.hazard-stripes {
-    background-image: repeating-linear-gradient(45deg, #000 0 12px, transparent 12px 24px);
-}
-
-/* --- Formes -------------------------------------------------------------- */
-
-/* Boutons à coins biseautés (pas de border-radius dans ce design) */
-.notched {
-    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
-}
-
-.notched-lg {
-    clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
-}
-
-/* Coin bas-gauche coupé (grande tuile magazine) */
-.notched-corner {
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 16px 100%, 0 calc(100% - 16px));
-}
-
-/* Octogone (avatar) — deux coins opposés coupés */
-.notched-avatar {
-    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
-}
-
-.skew-brand {
-    transform: skewX(-6deg);
-}
-
 /* --- Hero de l'accueil ---------------------------------------------------- */
 
 .hero-float {
