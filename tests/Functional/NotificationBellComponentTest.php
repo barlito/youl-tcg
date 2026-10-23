@@ -6,7 +6,9 @@ namespace App\Tests\Functional;
 
 use App\Entity\DiscordUser;
 use App\Entity\Notification;
+use App\Enum\FeatureEnum;
 use App\Enum\Notification\NotificationTypeEnum;
+use App\Tests\FeatureFlagTrait;
 use App\Twig\Components\NotificationBell;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -15,6 +17,7 @@ use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 final class NotificationBellComponentTest extends WebTestCase
 {
+    use FeatureFlagTrait;
     use InteractsWithLiveComponents;
     use JwtAuthTrait;
 
@@ -119,6 +122,37 @@ final class NotificationBellComponentTest extends WebTestCase
         $this->assertCount(1, $unread);
         $this->assertStringContainsString('Palier de série 7 jours atteint', $unread->text());
         $this->assertStringNotContainsString((string) $plainText->getId(), $unread->outerHtml());
+    }
+
+    public function testATradeNotificationLeadsToTheInboxWhileTradesAreOpen(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::JUJU);
+        $notification = $this->store($user, NotificationTypeEnum::TRADE_RECEIVED, ['playerId' => self::BARLITO, 'playerName' => 'Barlito']);
+
+        $component = $this->createLiveComponent(NotificationBell::class, client: $client);
+        $component->call('openNotification', ['id' => (string) $notification->getId()]);
+
+        $this->assertResponseRedirects('/echanges');
+    }
+
+    public function testATradeNotificationOnlyMarksItselfReadWhileTradesAreClosed(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::JUJU);
+        $notification = $this->store($user, NotificationTypeEnum::TRADE_RECEIVED, ['playerId' => self::BARLITO, 'playerName' => 'Barlito']);
+        $this->setFeature(FeatureEnum::TRADES, false);
+
+        $component = $this->createLiveComponent(NotificationBell::class, client: $client);
+        $crawler = $component->call('toggle')->render()->crawler();
+
+        $item = $crawler->filter('[data-testid="notification-item"]');
+        $this->assertStringContainsString('Barlito te propose un échange', $item->text(), 'The entry stays readable.');
+        $this->assertCount(0, $item->filter('.bell-item__cta'), 'No « Voir » towards a 404.');
+        $this->assertNotNull($this->reload($notification)->getReadAt(), 'A linkless entry is marked read when the dropdown opens.');
+
+        $component->call('openNotification', ['id' => (string) $notification->getId()]);
+        $this->assertFalse($client->getResponse()->isRedirection());
     }
 
     public function testAPlayerCannotSeeNorOpenSomeoneElsesNotification(): void
