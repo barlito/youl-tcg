@@ -1,6 +1,4 @@
-/* Violet Arcade back-office theme, loaded on every admin page by DashboardController.
-   Unlayered on purpose: EasyAdmin ships its CSS in cascade layers, so these rules win
-   without !important. Dark only — the scheme is pinned by the layout override. */
+/* Violet Arcade back-office theme (dark only), unlayered so it beats EasyAdmin's layered CSS */
 
 .ea-dark-scheme {
     --va-bg: #0b0712;
@@ -396,12 +394,11 @@
     color: #f0d4ff;
 }
 
-.ea-dark-scheme .text-muted {
-    color: var(--va-muted) !important;
-}
-
-.ea-dark-scheme .border {
-    border-color: var(--va-hairline-strong) !important;
+/* Bootstrap's .text-muted is !important inside `vendor`: only an earlier layer beats it */
+@layer ea-overrides {
+    .ea-dark-scheme .text-muted {
+        color: var(--va-muted) !important;
+    }
 }
 
 .ea-dark-scheme .form-fieldset {
@@ -436,15 +433,4 @@
 
 .ea-dark-scheme {
     accent-color: var(--va-primary);
-}
-
-/* Bootstrap bg-* utilities used by the custom field templates carry !important */
-.ea-dark-scheme .badge.bg-info {
-    background: #c27bff26 !important;
-    color: #e6c6ff !important;
-}
-
-.ea-dark-scheme .badge.bg-warning {
-    background: #ffd24a22 !important;
-    color: var(--va-soon) !important;
 }
