@@ -7683,16 +7683,16 @@
         },
         {
             "name": "symfony/stimulus-bundle",
-            "version": "v3.5.1",
+            "version": "v3.6.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/stimulus-bundle.git",
-                "reference": "328b92cdf33a21267ee47904f8f5e330da356ce6"
+                "reference": "3a042de9aff0ce706990c8cccd70661222c06e9e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/stimulus-bundle/zipball/328b92cdf33a21267ee47904f8f5e330da356ce6",
-                "reference": "328b92cdf33a21267ee47904f8f5e330da356ce6",
+                "url": "https://api.github.com/repos/symfony/stimulus-bundle/zipball/3a042de9aff0ce706990c8cccd70661222c06e9e",
+                "reference": "3a042de9aff0ce706990c8cccd70661222c06e9e",
                 "shasum": ""
             },
             "require": {
@@ -7735,7 +7735,7 @@
                 "symfony-ux"
             ],
             "support": {
-                "source": "https://github.com/symfony/stimulus-bundle/tree/v3.5.1"
+                "source": "https://github.com/symfony/stimulus-bundle/tree/v3.6.0"
             },
             "funding": [
                 {
@@ -7755,7 +7755,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-09-19T11:40:16+00:00"
+            "time": "2026-10-13T08:04:44+00:00"
         },
         {
             "name": "symfony/stopwatch",
@@ -8464,16 +8464,16 @@
         },
         {
             "name": "symfony/ux-chartjs",
-            "version": "v3.5.1",
+            "version": "v3.6.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/ux-chartjs.git",
-                "reference": "fc5d8fef4aeaf94fbad491a2f0cd0137c37b2e0c"
+                "reference": "e57a7e129ed1ac055af2fcc55bb4491ab825b0fb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/ux-chartjs/zipball/fc5d8fef4aeaf94fbad491a2f0cd0137c37b2e0c",
-                "reference": "fc5d8fef4aeaf94fbad491a2f0cd0137c37b2e0c",
+                "url": "https://api.github.com/repos/symfony/ux-chartjs/zipball/e57a7e129ed1ac055af2fcc55bb4491ab825b0fb",
+                "reference": "e57a7e129ed1ac055af2fcc55bb4491ab825b0fb",
                 "shasum": ""
             },
             "require": {
@@ -8525,7 +8525,7 @@
                 "symfony-ux"
             ],
             "support": {
-                "source": "https://github.com/symfony/ux-chartjs/tree/v3.5.1"
+                "source": "https://github.com/symfony/ux-chartjs/tree/v3.6.0"
             },
             "funding": [
                 {
@@ -8545,20 +8545,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-09-19T11:40:16+00:00"
+            "time": "2026-10-13T08:04:44+00:00"
         },
         {
             "name": "symfony/ux-live-component",
-            "version": "v3.5.1",
+            "version": "v3.6.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/ux-live-component.git",
-                "reference": "4570565b1199df6201d3edf5db5149e6c1afee80"
+                "reference": "088a2b95d6e7c95fd91f5b198d72f5d972fd7b50"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/ux-live-component/zipball/4570565b1199df6201d3edf5db5149e6c1afee80",
-                "reference": "4570565b1199df6201d3edf5db5149e6c1afee80",
+                "url": "https://api.github.com/repos/symfony/ux-live-component/zipball/088a2b95d6e7c95fd91f5b198d72f5d972fd7b50",
+                "reference": "088a2b95d6e7c95fd91f5b198d72f5d972fd7b50",
                 "shasum": ""
             },
             "require": {
@@ -8627,7 +8627,7 @@
                 "twig"
             ],
             "support": {
-                "source": "https://github.com/symfony/ux-live-component/tree/v3.5.1"
+                "source": "https://github.com/symfony/ux-live-component/tree/v3.6.0"
             },
             "funding": [
                 {
@@ -8647,7 +8647,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-09-19T11:40:16+00:00"
+            "time": "2026-10-13T08:04:44+00:00"
         },
         {
             "name": "symfony/ux-twig-component",
