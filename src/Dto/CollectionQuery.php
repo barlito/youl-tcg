@@ -10,10 +10,7 @@ use App\Enum\Collection\CollectionSortEnum;
 use App\Enum\Entity\CardRarityEnum;
 use Symfony\Component\HttpFoundation\InputBag;
 
-/**
- * The collection filters read from the url. Unknown values fall back to the
- * default instead of failing: a stale or hand-edited link still renders.
- */
+// Collection url filters; unknown values fall back to the defaults so a stale link still renders
 final readonly class CollectionQuery
 {
     public const int MAX_SEARCH_LENGTH = 60;
@@ -61,9 +58,7 @@ final readonly class CollectionQuery
         return array_filter($params, static fn (?string $value): bool => null !== $value && '' !== $value);
     }
 
-    /**
-     * Filters hidden behind the mobile « Filtres · n » button (the search box stays visible).
-     */
+    // filters behind the mobile « Filtres · n » button (the search box stays visible)
     public function panelFilterCount(): int
     {
         return (int) (CollectionPossessionEnum::ALL !== $this->possession)

@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace App\Enum\Collection;
 
-/**
- * Finish filter of the collection (url `?finition=`): a card matches when the
- * player owns at least one copy in that finish, so it only ever keeps owned cards.
- */
+// Collection `?finition=` filter: owns at least one copy in that finish (owned cards only)
 enum CollectionFinishEnum: string
 {
     case HOLO = 'holo';

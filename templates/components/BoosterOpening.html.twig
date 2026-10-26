@@ -248,11 +248,7 @@
                                 {% set cardId = card.id ~ '' %}
                                 {% set isOwned = ownedCardIds[cardId] is defined %}
                                 {% set isPending = not isOwned and cardId in newCardIds %}
-                                {# A card the player does not own is a card back, rarity only:
-                                   no name, artwork or id in the DOM. A card FIRST won by the
-                                   ongoing opening (is-pending) looks the same and carries its
-                                   real cell hidden, swapped in by the reveal controller once
-                                   the player has flipped it — never before. #}
+                                {# unowned = card back, rarity only; is-pending (first won now) carries its hidden cell, unmasked after the flip #}
                                 <div class="opening__card-tile{{ isOwned ? '' : ' is-masked' }}{{ isPending ? ' is-pending' }}"
                                      data-set-contents-target="tile"
                                      data-name="{{ isOwned ? card.name|lower : '' }}"
@@ -360,7 +356,7 @@
 
                     <div class="flex flex-wrap items-center gap-3">
                         {% if ownedCount > 0 %}
-                            {# open, pas reset : le tirage suivant part du même clic #}
+                            {# open, not reset: the next draw starts from the same click #}
                             <button type="button" data-action="booster-opening#leaveRecap live#action" data-live-action-param="open"
                                     class="btn btn-p w-full sm:w-auto" data-testid="open-another">
                                 <span data-loading="hide">Ouvrir le suivant · {{ ownedCount }} restant{{ ownedCount > 1 ? 's' }}</span>

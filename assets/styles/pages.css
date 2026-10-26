@@ -1,7 +1,4 @@
-/*
- * Violet Arcade — mises en page propres aux pages (accueil, hub boosters, univers, collection, profils, classement, ouvertures).
- * Plain CSS chargé après ui.css et avant app.css (les utilitaires Tailwind gardent la main).
- */
+/* Violet Arcade page layouts, plain CSS loaded after ui.css and before app.css (Tailwind utilities win) */
 
 /* --- Accueil : héro « Salut <pseudo> » ------------------------------------ */
 

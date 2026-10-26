@@ -111,8 +111,7 @@ final readonly class OpeningLuckStatsProvider
     }
 
     /**
-     * What the packs advertised for the cards actually pulled: each booster's
-     * expected share weighted by the cards it gave (« annoncé : 4 % par carte »).
+     * Advertised share of the cards pulled: each booster's expected share weighted by the cards it gave.
      *
      * @param list<BoosterLuckStats> $boosters
      *

@@ -1,27 +1,11 @@
 {#
-  Cellule carte `.cell` : visuel + nom + rareté (icône ● ◆ ★ ★★ + libellé, ♛ 1/1) + quantités.
-  Paramètres :
-    card          Card possédée/visible, ou null = carte masquée (dos de carte, ni nom ni artwork)
-    rarity        valeur scalaire de la rareté, seul indice d'une carte masquée (optionnel)
-    quantity      copies (holos compris), affiché « ×N » sur le visuel (optionnel)
-    holoQuantity  holos parmi elles, affiché « ✦ N » (optionnel)
-    holo          rendre la carte en holo (défaut false)
-    interactive   tilt 3D (défaut false : grilles)
-    lazy          chargement différé de l'image (défaut true)
-    id            id DOM de la carte (défaut : id de la carte ; à fixer si elle apparaît deux fois)
-    maskedLabel   libellé d'une carte masquée (défaut « Carte à trouver »)
-    showRarity    afficher la ligne de rareté (défaut true)
-    suffix        texte ajouté à la ligne de rareté (ex. nom de l'univers, optionnel)
-    unique        marque « 1/1 » d'une carte MASQUÉE (une carte visible la porte d'elle-même)
-    wishUrl       URL du ♡ wishlist (carte VISIBLE uniquement, ignoré pour une carte masquée)
-    wished        état du ♡ (défaut false)
-    holoToggleClass  preset holo : ajoute le bouton « ✦ HOLO » (carte visible possédée en holo ET en normale)
-    badge         pastille sur le visuel { text, class, testid } (optionnel, ex. « Sa collection »)
-    artClass      classes du visuel (ex. voile d'un état de comparaison)
-    state         attribut data-state de la cellule (optionnel)
-    attrs         attributs supplémentaires de la cellule (map, ex. cible Stimulus)
-    rarityTestid  data-testid de la ligne de rareté (optionnel)
-    testid        défaut « card-cell »
+  Card cell `.cell`: artwork + name + rarity (icon + label, ♛ 1/1) + quantities.
+  Params: card (null = masked: card back, no name/artwork), rarity (scalar, only hint of a masked card),
+    quantity (« ×N », holos included), holoQuantity (« ✦ N »), holo (default false), interactive (3D tilt, default false),
+    lazy (default true), id (DOM id, set it when the card shows twice), maskedLabel (default « Carte à trouver »),
+    showRarity (default true), suffix (appended to the rarity line), unique (1/1 mark of a MASKED card),
+    wishUrl / wished (♡, visible cards only), holoToggleClass (adds « ✦ HOLO », owned in both finishes),
+    badge ({ text, class, testid }), artClass, state (data-state), attrs (map), rarityTestid, testid (default « card-cell »)
 #}
 {% set card = card|default(null) %}
 {% set quantity = quantity|default(null) %}

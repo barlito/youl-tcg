@@ -1,10 +1,7 @@
 {#
-  En-tête de profil (`.ph`) : avatar octogonal, pseudo, complétion et compteurs du joueur.
-  À utiliser avec embed. Paramètres : player (DiscordUser), entry (LeaderboardEntry),
-  owned / total / percentage (complétion), completionTestid (défaut « global-completion »),
-  showPacks (compteur de packs ouverts, défaut true).
-  Blocs : top (eyebrow ou lien retour), meta (à droite du pseudo), aside (colonne de droite :
-  actions, encart), nav (sous-navigation collée au bord bas).
+  Profile header `.ph` (embed): avatar, username, completion and counters.
+  Params: player (DiscordUser), entry (LeaderboardEntry), owned / total / percentage, completionTestid (default « global-completion »),
+    showPacks (default true). Blocks: top, meta (right of the username), aside (right column), nav (bottom edge)
 #}
 {% set navHtml %}{% block nav %}{% endblock %}{% endset %}
 {% set navHtml = navHtml|trim %}

@@ -60,8 +60,7 @@ final class WishlistPanel extends AbstractController
     }
 
     /**
-     * « En vente et qui te manquent »: the newest listings of other players for cards the
-     * player owns no copy of — listings are public, so nothing is revealed.
+     * Newest listings of others for cards the player owns no copy of (listings are public).
      *
      * @return list<MarketListing>
      */

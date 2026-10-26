@@ -44,10 +44,7 @@ final readonly class TradeMatchScoreService
         return $scores;
     }
 
-    /**
-     * The same score against ONE player (« Entre vous deux » of a profile): a
-     * constant number of queries, never the whole player base.
-     */
+    // same score against ONE player (profile « Entre vous deux »), constant query count
     public function scoreAgainst(DiscordUser $me, DiscordUser $other): TradeMatchScore
     {
         ['owned' => $myOwned, 'freeDoubles' => $myFreeDoubles] = $this->mySide($me);
@@ -77,8 +74,7 @@ final readonly class TradeMatchScoreService
     }
 
     /**
-     * My published cards, and those I hold at least twice with a copy free of
-     * any pending offer or listing.
+     * My published cards, and those held twice or more with a copy free of offers and listings.
      *
      * @return array{owned: array<string, true>, freeDoubles: array<string, true>}
      */

@@ -1,12 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 
-/**
- * « Contenu du set » — the aside of the opening page. Pure client-side view of
- * the extension's cards: name search (debounced; a masked card has an empty
- * data-name, so it never matches), « Manquantes » filter, « x / y trouvées »
- * counter and a scroll-to-top affordance. It owns no server state: the reveal
- * controller unmasks freshly won tiles and fires `opening:unmasked`.
- */
+// « Contenu du set » aside of the opening page, client-side only (masked tiles have an empty data-name)
 
 const DEBOUNCE_MS = 150;
 const SCROLL_TOP_AT = 240; // px scrolled before the "back to top" button shows

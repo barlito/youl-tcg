@@ -5,7 +5,7 @@
     {% set totalOwned = this.totalOwned %}
     {% set streak = this.streak %}
     <main>
-        {# ----------------------------------------------------- En-tête + stats du jour #}
+        {# ----------------------------------------------------- Header + today's stats #}
         {% embed 'parts/ui/_page_header.html.twig' with {
             eyebrow: 'Jouer',
             title: 'Tes packs',
@@ -258,8 +258,7 @@
                                     </div>
                                 {% endif %}
 
-                                {# actions : « Récupérer » et « Ouvrir » ont chacun leur place fixe — un clic
-                                   ne transforme jamais le bouton sous le pointeur en une autre action #}
+                                {# « Récupérer » and « Ouvrir » keep fixed slots: a click never turns the button under the pointer into another action #}
                                 {% if not drawable %}
                                     <span class="btn btn-g btn-w" aria-disabled="true" title="Cette extension n'a pas encore de carte publiée.">À venir</span>
                                 {% else %}
@@ -314,7 +313,7 @@
                                     </div>
                                 {% endif %}
 
-                                {# ligne basse : récupérer en plus du stock / reste à trouver, puis « Taux » #}
+                                {# bottom line: claimable on top of the stock / left to find, then « Taux » #}
                                 <div class="pack__foot">
                                     {% if universe and universe.owned >= universe.total %}
                                         <span class="text-xs text-live">✓ Univers complet</span>

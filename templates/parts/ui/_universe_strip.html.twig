@@ -1,13 +1,8 @@
 {#
-  Bande « Par univers » (collection, profil joueur) : tuile « Tout » puis un univers par tuile,
-  du plus complet au moins complet. Tuiles image à partir de md, segments `.seg` défilants en mobile.
-  Paramètres :
-    strip            tuiles de CompletionStripBuilder (extension, owned, total, percentage, coverImage)
-    currentExtension univers filtré (null = « Tout » actif)
-    route            route du lien de chaque tuile, routeParams (optionnel) ses paramètres fixes
-    query            paramètres d'url conservés d'une tuile à l'autre (optionnel, ex. filtres)
-    owned, total, percentage   complétion globale de la tuile « Tout »
-    title            titre de la section (défaut « Par univers »)
+  « Par univers » strip (collection, player profile): « Tout » tile then one tile per universe, most complete first;
+  image tiles from md, scrolling `.seg` segments on mobile.
+  Params: strip (CompletionStripBuilder tiles), currentExtension (null = « Tout » active), route + routeParams (optional),
+    query (url params kept across tiles), owned / total / percentage (« Tout » tile), title (default « Par univers »)
 #}
 {% set routeParams = routeParams|default({}) %}
 {% set query = query|default({}) %}

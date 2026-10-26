@@ -126,8 +126,7 @@ final class BoosterOpening extends AbstractController
     }
 
     /**
-     * « Taux de ce pack »: each rarity's share of the pack's cards (the per-slot
-     * percentages averaged over the slots), plus the average holo and 1/1 chances.
+     * Per-slot rarity percentages averaged over the slots, plus the average holo and 1/1 chances.
      *
      * @return array{rarities: array<string, float>, holo: float, unique: float}
      */
@@ -161,10 +160,7 @@ final class BoosterOpening extends AbstractController
         ];
     }
 
-    /**
-     * Published cards of the set the player already owned BEFORE the ongoing
-     * opening (the mask), i.e. the « x / y trouvées » counter before the reveal.
-     */
+    // « x / y trouvées » before the reveal: the set's cards owned BEFORE the ongoing opening
     public function getFoundCount(): int
     {
         $owned = $this->getOwnedCardIds();
@@ -176,9 +172,7 @@ final class BoosterOpening extends AbstractController
     }
 
     /**
-     * End-of-opening summary: best find (1/1, then rarest, then holo, then new,
-     * first in draw order), new card count and the universe completion before →
-     * after the draw — all derived from data already loaded, no extra query.
+     * Best find (1/1, rarest, holo, new, draw order), new cards and completion before → after; no extra query.
      *
      * @return array{
      *     best: array{card: Card, holo: bool, new: bool, index: int},

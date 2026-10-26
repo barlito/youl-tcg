@@ -1,11 +1,4 @@
-/*
- * Violet Arcade — composants de la refonte légère (port de la maquette shared.css).
- *
- * Plain CSS chargé AVANT app.css : les utilitaires Tailwind gardent la main
- * (`btn btn-p w-full`), et rien ici ne dépend de la purge. Couleurs = tokens
- * de theme.css. `.card` / `.back` de la maquette sont renommés (`.card-thumb`)
- * ou remplacés par parts/_masked_card.html.twig : `.card` est la carte 3D.
- */
+/* Violet Arcade components, plain CSS loaded BEFORE app.css so Tailwind utilities win; `.card` stays the 3D card */
 
 @media (min-width: 1024px) {
     :root { --header-h: 72px; }
@@ -15,7 +8,7 @@
     :root { --header-h: 64px; }
 }
 
-/* --- Typographie ---------------------------------------------------------- */
+/* --- Typography ----------------------------------------------------------- */
 
 .d { font-family: "Space Grotesk", sans-serif; font-weight: 700; }
 .up { text-transform: uppercase; }
@@ -86,15 +79,14 @@
     .lead { font-size: 15px; }
 }
 
-/* --- Mise en page --------------------------------------------------------- */
+/* --- Layout ------------------------------------------------------------- */
 
 :root {
     --wrap-max: 1360px;
     --wrap-pad: 40px;
 }
 
-/* large screens: the container widens by steps (card grids gain columns, see
- * pages.css), backgrounds stay full-bleed outside it */
+/* large screens: the container widens by steps, backgrounds stay full-bleed */
 @media (min-width: 1800px) { :root { --wrap-max: 1640px; } }
 @media (min-width: 2200px) { :root { --wrap-max: 1980px; --wrap-pad: 56px; } }
 @media (min-width: 2800px) { :root { --wrap-max: 2480px; --wrap-pad: 64px; } }
@@ -110,7 +102,7 @@
     box-sizing: border-box;
 }
 
-/* En-tête de page (parts/ui/_page_header.html.twig) */
+/* Page header (parts/ui/_page_header.html.twig) */
 .ph {
     background: radial-gradient(ellipse 50% 120% at 15% 0%, #a435f026, transparent 70%);
     border-bottom: 1px solid var(--hairline);
@@ -166,7 +158,7 @@
     flex: none;
 }
 
-/* --- Boutons -------------------------------------------------------------- */
+/* --- Buttons -------------------------------------------------------------- */
 
 .btn {
     display: inline-flex;
@@ -216,7 +208,7 @@
 .btn-s { min-height: 40px; padding: 0 16px; font-size: 12px; }
 .btn-w { width: 100%; }
 
-/* Lien-texte discret (« Tout marquer comme lu », « Réinitialiser ») */
+/* Discreet text link (« Tout marquer comme lu », « Réinitialiser ») */
 .tl {
     background: none;
     border: 0;
@@ -232,7 +224,7 @@
 
 .tl:hover { color: var(--text-strong); }
 
-/* Bouton icône carré 44 px (cloche, steppers) */
+/* Square 44 px icon button (bell, steppers) */
 .ib {
     display: inline-flex;
     align-items: center;
@@ -249,7 +241,7 @@
 
 .ib:hover { border-color: var(--primary); color: var(--text-strong); }
 
-/* --- Surfaces & formes ---------------------------------------------------- */
+/* --- Surfaces & shapes ------------------------------------------------- */
 
 .panel { background: var(--surface); border: 1px solid var(--hairline); }
 .hot { border-color: var(--primary); background: linear-gradient(180deg, var(--surface-hot), var(--surface)); }
@@ -259,7 +251,7 @@
 .oct { clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px), 0 16px); }
 .oct-s { clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px); }
 
-/* Avatar : initiale sur fond violet (taille et police posées par l'appelant) */
+/* Avatar: initial on violet (size and font set by the caller) */
 .av {
     display: inline-flex;
     align-items: center;
@@ -271,13 +263,13 @@
     font-weight: 700;
 }
 
-/* Barre de progression : <div class="bar"><i style="width: 42%"></i></div> */
+/* Progress bar: <div class="bar"><i style="width: 42%"></i></div> */
 .bar { height: 4px; background: var(--track); }
 .bar > i { display: block; height: 100%; background: var(--gradient-brand); }
 
-/* --- Contrôles ------------------------------------------------------------ */
+/* --- Controls ------------------------------------------------------------- */
 
-/* Segment de filtre (bouton ou lien), .on = actif */
+/* Filter segment (button or link), .on = active */
 .seg {
     display: inline-flex;
     align-items: center;
@@ -300,7 +292,7 @@
 .seg.on { background: var(--primary); border-color: var(--primary); color: var(--text-strong); }
 .seg:disabled { opacity: .4; cursor: not-allowed; }
 
-/* Menu déroulant de filtre (bouton) */
+/* Filter dropdown (button) */
 .dd {
     display: inline-flex;
     align-items: center;
@@ -336,7 +328,7 @@
 .field::placeholder { color: var(--text-faint); }
 .field:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
 
-/* Onglet de sous-navigation (« Mon espace »), .on ou aria-current = actif */
+/* Sub-navigation tab (« Mon espace »), .on or aria-current = active */
 .tab {
     display: flex;
     flex: none;
@@ -370,7 +362,7 @@
     .subnav .tab { height: 44px; }
 }
 
-/* --- Tableaux ------------------------------------------------------------- */
+/* --- Tables --------------------------------------------------------------- */
 
 .tbl { width: 100%; border-collapse: collapse; }
 
@@ -387,9 +379,9 @@
 .tbl td { padding: 14px 16px; border-bottom: 1px solid #a435f022; vertical-align: middle; }
 .tbl tr.me td { background: var(--surface-hot); }
 
-/* --- Cartes (vignettes) ---------------------------------------------------- */
+/* --- Card thumbnails ----------------------------------------------------- */
 
-/* Vignette image plate (listes) ; la carte interactive reste CardComponent */
+/* Flat image thumbnail (lists); the interactive card stays CardComponent */
 .card-thumb {
     display: block;
     width: 100%;
@@ -398,7 +390,7 @@
     border-radius: 4.55% / 3.5%;
 }
 
-/* Cellule carte (parts/ui/_card_cell.html.twig) */
+/* Card cell (parts/ui/_card_cell.html.twig) */
 .cell { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .cell__art { position: relative; }
 
@@ -424,14 +416,14 @@
     pointer-events: none;
 }
 
-/* Raretés : couleur (toujours doublée de l'icône ● ◆ ★ ★★, ♛ pour une 1/1) et halo */
+/* Rarities: colour (always paired with its icon ● ◆ ★ ★★, ♛ for a 1/1) and glow */
 .r-c { color: var(--rarity-common); }
 .r-u { color: var(--rarity-uncommon); }
 .r-r { color: var(--rarity-rare); }
 .r-l { color: var(--rarity-legendary); }
 .r-s { color: var(--soon); }
 
-/* 1/1 unique crown (unique_icon()), never shown without its « 1/1 » text */
+/* 1/1 unique crown (unique_icon()), always labelled: « 1/1 » text, or an .sr column heading */
 .unique-ic {
     color: var(--soon);
     font-size: 1.15em;
@@ -444,7 +436,7 @@
 .g-r { box-shadow: 0 0 12px 2px #54a8ffaa, 0 0 50px -20px var(--rarity-rare); }
 .g-l { box-shadow: 0 0 12px 2px var(--rarity-legendary), 0 0 50px -20px var(--rarity-legendary); }
 
-/* --- Tuile univers (parts/ui/_universe_tile.html.twig) --------------------- */
+/* --- Universe tile (parts/ui/_universe_tile.html.twig) --------------------- */
 
 .tile {
     display: flex;
@@ -545,7 +537,7 @@ a.tile:hover { border-color: var(--primary); color: var(--text); }
 .account-btn:hover,
 .account-btn[aria-expanded="true"] { border-color: var(--primary); }
 
-/* Menu déroulant (compte) */
+/* Dropdown menu (account) */
 .menu {
     position: absolute;
     top: calc(100% + 8px);
@@ -589,7 +581,7 @@ a.tile:hover { border-color: var(--primary); color: var(--text); }
     .wallet-chip { gap: 6px; padding: 0 10px; font-size: 12px; }
 }
 
-/* --- Barre d'onglets mobile (parts/_mobile_tabbar.html.twig) ---------------- */
+/* --- Mobile tab bar (parts/_mobile_tabbar.html.twig) ---------------- */
 
 .tabbar {
     position: fixed;
@@ -641,7 +633,7 @@ a.tile:hover { border-color: var(--primary); color: var(--text); }
 
 .mtab .badge { position: absolute; top: 6px; left: 54%; }
 
-/* Feuille « Plus » : au-dessus de la barre, fond assombri derrière */
+/* « Plus » sheet: above the tab bar, dimmed backdrop behind */
 .sheet-backdrop {
     position: fixed;
     inset: 0;

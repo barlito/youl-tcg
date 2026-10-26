@@ -8,11 +8,7 @@ use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
-/**
- * Header « Boosters » entry (desktop nav or mobile tab) and its badge of free
- * claims left today (remaining_booster_claims()). Re-renders on the realtime
- * `inventory-changed` event, which every claim publishes.
- */
+// « Boosters » entry (header or mobile tab) with its free-claims badge, re-rendered on `inventory-changed`
 #[AsLiveComponent]
 final class BoostersNavLink
 {

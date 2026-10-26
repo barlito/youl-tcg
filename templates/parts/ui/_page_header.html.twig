@@ -1,14 +1,10 @@
 {#
-  En-tête de page Violet Arcade (`.ph`). À utiliser avec embed :
-
+  Page header `.ph`, used with embed:
     {% embed 'parts/ui/_page_header.html.twig' with { eyebrow: 'Mon espace', title: 'Mes ouvertures', lead: '…' } %}
         {% block actions %}<a class="btn btn-p" href="…">Ouvrir un pack</a>{% endblock %}
-        {% block nav %}{{ include('parts/ui/_my_space_nav.html.twig', { current: 'openings' }) }}{% endblock %}
     {% endembed %}
-
-  Paramètres : eyebrow (optionnel), title (texte du h1), lead (optionnel), testid (défaut « page-header »).
-  Blocs : title (h1 riche, ex. <span class="grad">), actions (à droite, passe dessous sur mobile),
-  aside (sous le lead), nav (sous-navigation collée au bord bas, ex. _my_space_nav).
+  Params: eyebrow, title (h1 text), lead, testid (default « page-header »).
+  Blocks: title (rich h1), actions (right, below on mobile), aside (under the lead), nav (sub-navigation on the bottom edge)
 #}
 {% set navHtml %}{% block nav %}{% endblock %}{% endset %}
 {% set actionsHtml %}{% block actions %}{% endblock %}{% endset %}

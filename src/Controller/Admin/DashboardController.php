@@ -87,8 +87,7 @@ class DashboardController extends AbstractDashboardController
             ))
             ->setFaviconPath('ytcg_logo.png')
             ->renderContentMaximized()
-            // Violet Arcade is dark only: the scheme is pinned by the layout override
-            // (templates/bundles/EasyAdminBundle/layout.html.twig), this hides EA's selector
+            // dark only: the scheme is pinned by the layout override, this hides EA's selector
             ->disableDarkMode()
         ;
     }

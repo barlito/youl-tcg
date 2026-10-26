@@ -152,8 +152,7 @@ final readonly class HomeDashboardBuilder
     }
 
     /**
-     * The hero sentence of the QG, built from the real « today » data: what is
-     * waiting first, then the universe closest to completion.
+     * QG hero sentence: what is waiting first, then the universe closest to completion.
      *
      * @param array{claims: array{remaining: int}, unopenedBoosters: int, pendingTrades: int|null, streak: array{length: int, atRisk: bool}} $today
      * @param list<array{extension: Extension, owned: int, total: int}>                                                                      $toFinish

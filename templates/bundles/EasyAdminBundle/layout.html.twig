@@ -1,8 +1,6 @@
 {% extends '@!EasyAdmin/layout.html.twig' %}
 
-{# The Violet Arcade back-office theme (styles/admin/theme.css) is dark only:
-   the scheme is pinned before the first paint instead of EA's light/dark/auto
-   handler, whose selector is hidden by Dashboard::disableDarkMode(). #}
+{# dark-only theme: the scheme is pinned before the first paint instead of EA's handler #}
 {% block javascript_page_color_scheme %}
     <script>
         document.body.classList.remove('ea-light-scheme');

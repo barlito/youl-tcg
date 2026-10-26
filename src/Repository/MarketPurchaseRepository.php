@@ -58,8 +58,7 @@ class MarketPurchaseRepository extends ServiceEntityRepository
     }
 
     /**
-     * Price of the last concluded sale (card transferred, payout done or pending) per card and
-     * finish, in ONE query: a correlated MAX on the request date.
+     * Last concluded sale price per card and finish, in ONE query (correlated MAX on the request date).
      *
      * @param list<string> $cardIds
      *

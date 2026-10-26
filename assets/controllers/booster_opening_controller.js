@@ -1,29 +1,7 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
 
-/**
- * Booster opening reveal — drives the dedicated packs.com-style page.
- *
- * The cards are already drawn server-side (the BoosterOpening live component
- * holds the opening); this controller only choreographs the presentation. It
- * lives on the persistent `.opening` page root, alongside the 3D pack (which
- * sits in a `data-live-ignore` subtree and bubbles a `pack3d:opened` event when
- * peeled).
- *
- * Flow: once the pack has been opened server-side this controller arms the pack
- * (a `pack3d:arm` window event) so it can be peeled. Peeling fires
- * `pack3d:opened` → `startReveal()`, which presents the drawn cards one at a time
- * in the centre showcase, each face-DOWN with the remaining cards stacked behind
- * it (packs.com style). Clicking the card flips it (3D rotateY) to reveal the
- * face — per-card state machine 'back' → 'flipping' → 'face' — which flips the
- * matching tile in the reveal tracker (« Tes cartes », under the pack) from its
- * back to the real card. Once the last card is face-up, « Voir le récap » (or a
- * tap on the card) swaps the page for the server-rendered summary. The aside
- * (pack rates + set contents: search, missing filter) is a separate
- * `set-contents` controller; this one only unmasks the freshly won tiles.
- *
- * No anime.js: plain `setTimeout` timelines + CSS animations.
- */
+// Choreographs the reveal of a draw made server-side (BoosterOpening live component); no anime.js
 
 const RARITY_COLOR = {
     common: '#9aa3b2',
