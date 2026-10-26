@@ -36,7 +36,7 @@
                 </div>
             </div>
             {# les cartes du jour, en éventail derrière le logo #}
-            <div class="home-hero__stage" aria-hidden="false">
+            <div class="home-hero__stage">
                 <img src="{{ asset('images/ytcg_logo.png') }}" alt="" class="home-hero__logo">
                 {% for card in cards %}
                     <div class="home-hero__card home-hero__card--{{ loop.index }}">
@@ -70,7 +70,6 @@
                         {% set missing = universe.total - universe.owned %}
                         {% embed 'parts/ui/_universe_tile.html.twig' with {
                             extension: extension,
-                            coverUrl: extension.imageName ? vich_uploader_asset(extension) : (universe.coverImage ? asset('uploads/cards/' ~ universe.coverImage)),
                             class: 'near-row__tile',
                             nameClass: 'text-base md:text-[22px]',
                             testid: 'to-finish-universe',
@@ -105,13 +104,12 @@
             </div>
 
             {# les 3 derniers univers sortis ; la liste complète vit sur /univers #}
-            <div class="home-univ">
+            <div class="home-univ home-univ--n{{ min(universes|length, 3) }}">
                 {% for item in universes %}
                     {% set extension = item.extension %}
                     {% set owned = ownedByExtension[extension.id ~ '']|default(0) %}
                     {% embed 'parts/ui/_universe_tile.html.twig' with {
                         extension: extension,
-                        coverUrl: extension.imageName ? vich_uploader_asset(extension) : (item.coverImage ? asset('uploads/cards/' ~ item.coverImage)),
                         class: loop.first ? 'home-univ__main' : '',
                         nameClass: loop.first ? 'text-[30px]' : 'text-xl',
                         item: item,

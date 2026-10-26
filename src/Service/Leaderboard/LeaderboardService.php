@@ -53,7 +53,7 @@ final readonly class LeaderboardService
                 holoCards: $stats['holo'],
                 uniqueCards: $uniqueCounts[$discordId] ?? 0,
                 openedBoosters: $openingCounts[$discordId] ?? 0,
-                completionPct: $totalPublished > 0 ? (int) round($stats['distinct'] / $totalPublished * 100) : 0,
+                completionPct: $totalPublished > 0 ? (int) floor($stats['distinct'] / $totalPublished * 100) : 0,
                 catalogueSize: $totalPublished,
             );
         }

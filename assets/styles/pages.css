@@ -181,9 +181,17 @@
     .home-univ { grid-template-columns: 1.6fr 1fr 1fr; grid-template-rows: 220px 160px; gap: 16px; }
     .home-univ__main { grid-row: span 2; }
     .home-univ__soon { grid-column: span 2; }
+    /* fewer than 3 published universes: the soon tile takes the free cell instead of a full row */
+    .home-univ--n2 { grid-template-columns: 1.6fr 1fr; }
+    .home-univ--n2 .home-univ__soon,
+    .home-univ--n1 .home-univ__soon,
+    .home-univ--n0 .home-univ__soon { grid-column: auto; }
+    .home-univ--n1 { grid-template-columns: 1.6fr 1fr; grid-template-rows: 220px; }
+    .home-univ--n1 .home-univ__main { grid-row: auto; }
+    .home-univ--n0 { grid-template-columns: minmax(0, 1fr); grid-template-rows: 160px; }
 }
 
-/* Tuile « Bientôt » : artwork flouté en filigrane sous les rayures */
+/* « Bientôt » tile: blurred artwork watermark under the stripes */
 .soon-tile { position: relative; overflow: hidden; }
 .soon-tile > * { position: relative; z-index: 1; }
 
