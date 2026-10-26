@@ -464,6 +464,7 @@
 }
 
 a.tile:hover { border-color: var(--primary); color: var(--text); }
+.tile:focus-visible { outline: 2px solid var(--text-strong); outline-offset: -4px; }
 .tile--soon { background: repeating-linear-gradient(135deg, var(--surface) 0 14px, #1d1129 14px 28px); border-color: #ffd24a55; }
 
 /* --- Header ---------------------------------------------------------------- */

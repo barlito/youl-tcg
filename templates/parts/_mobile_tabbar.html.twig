@@ -1,6 +1,4 @@
-{# Barre d'onglets du bas (< lg) : Accueil, Boosters, Collection, Échanges
-   (Univers quand les échanges sont fermés), Plus → feuille avec le reste.
-   Hors du <header> : les sélecteurs `header a[...]` ne comptent que le header. #}
+{# Bottom tab bar (< lg), outside <header> on purpose: `header a[...]` selectors only count the header #}
 {% set currentRoute = app.request.get('_route')|default('') %}
 {% set tradesOpen = feature_enabled('trades') and app.user %}
 {% set inMySpace = currentRoute in ['collection', 'wishlist', 'opening_history', 'recycle', 'fusion'] %}
@@ -8,6 +6,27 @@
      data-action="keydown->disclosure#keydown">
     <div class="sheet-backdrop" hidden data-disclosure-target="backdrop" data-action="click->disclosure#dismiss"></div>
 
+    <nav class="tabbar" aria-label="Navigation principale (mobile)" data-testid="mobile-tabbar">
+        {{ _self.tab('homepage', 'Accueil', 'home', currentRoute == 'homepage') }}
+        {% if app.user %}
+            {{ component('BoostersNavLink', { active: currentRoute starts with 'booster', variant: 'tab' }) }}
+        {% else %}
+            {{ _self.tab('boosters', 'Boosters', 'boosters', false) }}
+        {% endif %}
+        {{ _self.tab('collection', 'Collection', 'collection', inMySpace) }}
+        {% if tradesOpen %}
+            {{ component('TradesNavLink', { active: currentRoute starts with 'trades', variant: 'tab' }) }}
+        {% else %}
+            {{ _self.tab('universes', 'Univers', 'universes', currentRoute starts with 'universes') }}
+        {% endif %}
+        <button type="button" class="mtab" aria-expanded="false" aria-controls="more-sheet"
+                data-disclosure-target="button" data-action="disclosure#toggle" data-testid="tab-more">
+            {{ include('parts/ui/_tab_icon.html.twig', { name: 'more' }, with_context = false) }}
+            Plus
+        </button>
+    </nav>
+
+    {# after the tab bar in the DOM: Tab from « Plus » moves into the sheet #}
     <div id="more-sheet" class="sheet" hidden data-disclosure-target="panel" data-testid="more-sheet">
         <nav aria-label="Plus de navigation" class="flex flex-col gap-4">
             <div class="sheet__grid">
@@ -43,26 +62,6 @@
             {% endif %}
         </nav>
     </div>
-
-    <nav class="tabbar" aria-label="Navigation principale (mobile)" data-testid="mobile-tabbar">
-        {{ _self.tab('homepage', 'Accueil', 'home', currentRoute == 'homepage') }}
-        {% if app.user %}
-            {{ component('BoostersNavLink', { active: currentRoute starts with 'booster', variant: 'tab' }) }}
-        {% else %}
-            {{ _self.tab('boosters', 'Boosters', 'boosters', false) }}
-        {% endif %}
-        {{ _self.tab('collection', 'Collection', 'collection', inMySpace) }}
-        {% if tradesOpen %}
-            {{ component('TradesNavLink', { active: currentRoute starts with 'trades', variant: 'tab' }) }}
-        {% else %}
-            {{ _self.tab('universes', 'Univers', 'universes', currentRoute starts with 'universes') }}
-        {% endif %}
-        <button type="button" class="mtab" aria-expanded="false" aria-controls="more-sheet"
-                data-disclosure-target="button" data-action="disclosure#toggle" data-testid="tab-more">
-            {{ include('parts/ui/_tab_icon.html.twig', { name: 'more' }, with_context = false) }}
-            Plus
-        </button>
-    </nav>
 </div>
 
 {% macro tab(route, label, icon, isActive) %}
