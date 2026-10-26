@@ -35,12 +35,10 @@
                     </div>
                 {% endfor %}
             {% else %}
-                {# pas de bannière uploadée : image extension → artwork de la carte la plus rare → gradient seul #}
+                {# pas de bannière uploadée : image extension → gradient seul (jamais l'artwork d'une carte) #}
                 <div class="relative h-full w-full shrink-0">
                     <div class="absolute inset-0 bg-gradient-to-br from-[#2a0f44] via-[#7a1f9c] to-magenta opacity-60" aria-hidden="true"></div>
-                    {% set fallbackUrl = extension.imageName
-                        ? vich_uploader_asset(extension)
-                        : (coverImage ? asset('uploads/cards/' ~ coverImage)) %}
+                    {% set fallbackUrl = extension.imageName ? vich_uploader_asset(extension) : null %}
                     {% if fallbackUrl %}
                         <img src="{{ fallbackUrl }}" alt="" onerror="this.remove()"
                              class="absolute inset-0 h-full w-full object-cover object-top">

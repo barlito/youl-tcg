@@ -28,9 +28,8 @@
         </a>
         {% for tile in tiles %}
             {% set isActive = currentExtension is not null and currentExtension.id == tile.extension.id %}
-            {% set coverUrl = tile.extension.imageName
-                ? vich_uploader_asset(tile.extension)
-                : (tile.coverImage ? asset('uploads/cards/' ~ tile.coverImage)) %}
+            {# no extension image: the gradient, never a card artwork (masking rule) #}
+            {% set coverUrl = tile.extension.imageName ? vich_uploader_asset(tile.extension) : null %}
             <a href="{{ path(route, routeParams|merge({ slug: tile.extension.slug })|merge(query)) }}"
                class="strip-tile{{ isActive ? ' on' }}"
                {% if coverUrl %}style="--tile-img: url('{{ coverUrl }}')"{% endif %}

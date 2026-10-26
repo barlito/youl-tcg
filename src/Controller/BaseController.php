@@ -59,18 +59,14 @@ class BaseController extends AbstractController
         }
 
         $extensions = $extensionRepository->findPublishedWithPublishedCardCount();
-        $coverImages = $cardRepository->findCoverImageNamesByExtension();
 
         // the list is createdAt ASC: the featured universes are the tail, newest first
-        $featured = array_map(static fn (array $item): array => [
-            ...$item,
-            'coverImage' => $coverImages[(string) $item['extension']->getId()] ?? null,
-        ], array_reverse(\array_slice($extensions, -self::FEATURED_UNIVERSES)));
+        $featured = array_reverse(\array_slice($extensions, -self::FEATURED_UNIVERSES));
 
         $upcoming = $extensionRepository->findUpcoming();
         $owned = $userCardRepository->countOwnedGroupedByExtension($user);
         $today = $dashboard->today($user);
-        $toFinish = $dashboard->universesToFinish($user, $extensions, $coverImages, $owned);
+        $toFinish = $dashboard->universesToFinish($user, $extensions, $owned);
 
         return $this->render('pages/homepage.html.twig', [
             'cards' => $cards,
