@@ -10,6 +10,7 @@ use App\Entity\DiscordUser;
 use App\Entity\UserBooster;
 use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
+use App\Enum\Entity\ExtensionStatusEnum;
 use App\Repository\BoosterRepository;
 use App\Service\Booster\BoosterClaimService;
 use App\Twig\Components\BoosterOpening;
@@ -372,6 +373,66 @@ final class BoosterOpeningComponentTest extends WebTestCase
             (string) $second->opening->getId(),
             $rendered->filter('.opening')->attr('data-booster-opening-opening-id-value'),
         );
+    }
+
+    public function testAFailedOpenAfterADrawClearsThePreviousDraw(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $booster = $this->firstPublishedBooster();
+        $this->claim($user, $booster);
+
+        $component = $this->createLiveComponent(
+            BoosterOpening::class,
+            data: ['boosterId' => (string) $booster->getId()],
+            client: $client,
+        );
+        $component->call('open');
+        $this->assertNotNull($component->component()->opening);
+
+        // last pack already opened (e.g. in another tab): « Ouvrir le suivant » is refused
+        $component->call('open');
+        $opening = $component->component();
+        $this->assertSame('Tu ne possèdes pas ce booster.', $opening->error);
+        $this->assertNull($opening->opening, 'the previous draw must not stay on the table');
+        $this->assertSame([], $opening->revealOrder);
+        $this->assertSame([], $opening->newCardIds);
+
+        $rendered = new Crawler((string) $component->render());
+        $root = $rendered->filter('.opening');
+        $this->assertSame('', $root->attr('data-booster-opening-opening-id-value'));
+        $this->assertNull($root->attr('data-booster-opening-count-value'));
+        $this->assertCount(0, $rendered->filter('.opening__hint'));
+        $this->assertStringContainsString('Tu ne possèdes plus de pack', $rendered->filter('.opening__cta')->text());
+    }
+
+    public function testCollectionLinkOfTheRecapNeedsAPublishedExtension(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $booster = $this->firstPublishedBooster();
+        $this->claim($user, $booster);
+
+        $component = $this->createLiveComponent(
+            BoosterOpening::class,
+            data: ['boosterId' => (string) $booster->getId()],
+            client: $client,
+        );
+        $component->call('open');
+
+        $slug = (string) $booster->getExtension()->getSlug();
+        $link = new Crawler((string) $component->render())->selectLink('Voir dans ma collection');
+        $this->assertSame('/collection/' . $slug, $link->attr('href'));
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->getConnection()->executeStatement(
+            'UPDATE extension SET status = :draft WHERE id = :id',
+            ['draft' => ExtensionStatusEnum::DRAFT->value, 'id' => (string) $booster->getExtension()->getId()],
+        );
+        $entityManager->clear();
+
+        $link = new Crawler((string) $component->refresh()->render())->selectLink('Voir dans ma collection');
+        $this->assertSame('/collection', $link->attr('href'), 'an unpublished universe has no collection page');
     }
 
     public function testResetClearsTheTable(): void

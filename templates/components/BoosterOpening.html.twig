@@ -120,7 +120,7 @@
                             <a href="{{ path('boosters') }}" class="btn btn-g opening__cta-btn">Retour aux packs</a>
                         {% endif %}
                     {% else %}
-                        <p class="opening__hint" data-booster-opening-target="hint">
+                        <p class="opening__hint">
                             Tire le ruban vers la droite&nbsp;<span class="arrow" aria-hidden="true">→</span>
                         </p>
                         <button type="button" class="btn btn-g btn-s" data-action="booster-opening#forceOpen">
@@ -367,7 +367,7 @@
                                 <span data-loading="show" class="hidden">···</span>
                             </button>
                         {% endif %}
-                        <a href="{{ path('collection', { slug: extension.slug }) }}" class="btn btn-g w-full sm:w-auto">Voir dans ma collection</a>
+                        <a href="{{ extension.status.name == 'PUBLISHED' ? path('collection', { slug: extension.slug }) : path('collection') }}" class="btn btn-g w-full sm:w-auto">Voir dans ma collection</a>
                         <a href="{{ path('boosters') }}" class="lbl ml-2 hover:text-ink-strong">Tous les packs</a>
                     </div>
                 </div>

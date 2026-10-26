@@ -330,6 +330,10 @@ final class BoosterOpening extends AbstractController
             $this->error = $exception->getUserMessage();
             $this->boosterCache = null;
             $this->ownedCardIdsCache = null;
+            // drop the previous draw so the client reseals the pack and shows the right CTA
+            $this->opening = null;
+            $this->revealOrder = [];
+            $this->newCardIds = [];
 
             return;
         }
