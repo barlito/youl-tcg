@@ -223,6 +223,10 @@ final class MarketComponentTest extends WebTestCase
         $this->assertSame([$rare->getName()], $names($board));
 
         $board->set('finish', '');
+        $this->assertNull($board->component()->rarity, 'The « toutes » option never lands in the url as ?rarete=.');
+        $this->assertNull($board->component()->finish);
+        $board->set('universe', '');
+        $this->assertNull($board->component()->universe);
         $board->call('filterUniverse', ['slug' => $otherExtension->getSlug()]);
         $this->assertSame([$elsewhere->getName()], $names($board));
 

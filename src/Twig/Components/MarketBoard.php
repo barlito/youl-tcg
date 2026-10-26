@@ -233,6 +233,10 @@ final class MarketBoard extends AbstractController
 
     public function resetPage(): void
     {
+        // a select's « toutes » option posts '': keep it out of the url (?univers=&rarete=)
+        $this->universe = '' === $this->universe ? null : $this->universe;
+        $this->rarity = '' === $this->rarity ? null : $this->rarity;
+        $this->finish = '' === $this->finish ? null : $this->finish;
         $this->page = 1;
         $this->confirming = null;
     }

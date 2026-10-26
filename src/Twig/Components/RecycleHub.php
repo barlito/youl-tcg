@@ -60,10 +60,10 @@ final class RecycleHub extends AbstractController
      * Universe filter (extension slug), mirrored in the url: an unknown slug
      * simply shows every universe.
      */
-    #[LiveProp(writable: true, url: new UrlMapping(as: 'univers'))]
+    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: new UrlMapping(as: 'univers'))]
     public ?string $universe = null;
 
-    #[LiveProp(writable: true, url: new UrlMapping(as: 'rarete'))]
+    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: new UrlMapping(as: 'rarete'))]
     public ?string $rarity = null;
 
     #[LiveProp(writable: true, url: new UrlMapping(as: 'holo'))]
@@ -165,6 +165,8 @@ final class RecycleHub extends AbstractController
             ));
 
             if ([] !== $universe['rows']) {
+                $universe['recyclable'] = array_sum(array_map($this->recyclableCopies(...), $universe['rows']));
+                $universe['maxPoints'] = array_sum(array_map($this->maxPoints(...), $universe['rows']));
                 $visible[] = $universe;
             }
         }
@@ -191,24 +193,6 @@ final class RecycleHub extends AbstractController
         }
 
         return null;
-    }
-
-    /**
-     * Tiles of the shared universe strip, recyclable copies instead of completion.
-     *
-     * @return list<array{extension: Extension, stat: string, caption: string, bar: null, coverImage: string|null}>
-     */
-    public function getStrip(): array
-    {
-        $coverImages = $this->cardRepository->findCoverImageNamesByExtension();
-
-        return array_map(static fn (array $universe): array => [
-            'extension' => $universe['extension'],
-            'stat' => (string) $universe['recyclable'],
-            'caption' => $universe['recyclable'] > 1 ? 'recyclables' : 'recyclable',
-            'bar' => null,
-            'coverImage' => $coverImages[(string) $universe['extension']->getId()] ?? null,
-        ], $this->getUniverses());
     }
 
     public function hasRows(): bool
@@ -477,6 +461,13 @@ final class RecycleHub extends AbstractController
         $this->universe = '' === $slug ? null : $slug;
     }
 
+    public function onFilterUpdated(): void
+    {
+        // the « tous / toutes » option posts '': keep it out of the url
+        $this->universe = '' === $this->universe ? null : $this->universe;
+        $this->rarity = '' === $this->rarity ? null : $this->rarity;
+    }
+
     #[LiveAction]
     public function toggleHoloOnly(): void
     {
@@ -491,11 +482,7 @@ final class RecycleHub extends AbstractController
         $this->holoOnly = false;
     }
 
-    /**
-     * « Compléter automatiquement »: tops the selection up to the booster cost with
-     * the least precious free duplicates, as a minimal selection (RecycleAutoFill).
-     * Filters are ignored: every recyclable copy is a candidate.
-     */
+    // every recyclable copy is a candidate whatever the filters, which are reset so the whole selection shows
     #[LiveAction]
     public function autoComplete(): void
     {
@@ -553,6 +540,7 @@ final class RecycleHub extends AbstractController
             $added += $copies[self::KIND_NORMAL] + $copies[self::KIND_HOLO];
         }
 
+        $this->resetFilters();
         $this->success = \sprintf('Sélection complétée : %d copie%s ajoutée%s, %d points.', $added, $added > 1 ? 's' : '', $added > 1 ? 's' : '', $this->getPoints());
     }
 

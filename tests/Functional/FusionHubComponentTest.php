@@ -9,11 +9,14 @@ use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\FusionOperation;
 use App\Entity\MarketListing;
+use App\Entity\TradeOffer;
+use App\Entity\TradeOfferLine;
 use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
 use App\Enum\FeatureEnum;
+use App\Enum\Trade\TradeOfferSideEnum;
 use App\Tests\FeatureFlagTrait;
 use App\Twig\Components\FusionHub;
 use Doctrine\ORM\EntityManagerInterface;
@@ -136,6 +139,29 @@ final class FusionHubComponentTest extends WebTestCase
         $this->assertCount(0, $crawler->filter('[data-testid="fusion-ask"]'));
         $this->assertCount(1, $crawler->filter('[data-testid="fusion-almost-grid"] [data-testid="fusion-card"]'), 'Listed copies push the card into « Presque ».');
         $this->assertSame('/marche/ma-boutique', $crawler->filter('[data-testid="fusion-almost-grid"] a.btn')->attr('href'));
+    }
+
+    public function testAListedHoloNeverAsksToWithdrawTheNormalsFromSale(): void
+    {
+        $client = self::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        // 10 normals + 1 holo: the holo is on sale, one normal is offered in a trade
+        $cards = $this->createCards($user, [['quantity' => 11, 'holo' => 1]]);
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist(new MarketListing($user, $cards[0], true, 10));
+        $other = new DiscordUser()->setDiscordId('fusion-hub-other-' . uniqid())->setUsername('Other');
+        $entityManager->persist($other);
+        $offer = new TradeOffer()->setProposer($user)->setReceiver($other);
+        $offer->addLine(new TradeOfferLine()->setSide(TradeOfferSideEnum::OFFERED)->setCard($cards[0])->setNormalQuantity(1)->setHoloQuantity(0));
+        $entityManager->persist($offer);
+        $entityManager->flush();
+
+        $crawler = new Crawler((string) $this->createLiveComponent(FusionHub::class, client: $client)->render());
+        $tile = $crawler->filter('[data-testid="fusion-almost-grid"] [data-testid="fusion-card"]');
+        $this->assertCount(1, $tile);
+        $this->assertStringContainsString('en échange', $tile->filter('[data-testid="engaged-badge"]')->text());
+        $this->assertStringContainsString('dans un échange en attente', $tile->filter('[data-testid="engaged-notice"]')->text());
+        $this->assertStringNotContainsString('Retirer de la vente', $tile->text(), 'A holo on sale never locks the normals.');
     }
 
     public function testACardListedAfterTheConfirmationIsRefusedByTheService(): void
