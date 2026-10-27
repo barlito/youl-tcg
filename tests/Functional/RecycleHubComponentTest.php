@@ -254,6 +254,7 @@ final class RecycleHubComponentTest extends WebTestCase
         $crawler = $component->render()->crawler();
         $this->assertCount(1, $crawler->filter('[data-testid="recycle-daily-done"]'));
         $this->assertNotNull($crawler->filter('[data-testid="recycle-confirm"]')->attr('disabled'));
+        $this->assertStringContainsString('Déjà recyclé aujourd\'hui', $crawler->filter('[data-testid="recycle-confirm"]')->text());
         $this->assertCount(0, $crawler->filter('[data-testid^="add-"]:not([disabled])'), 'Nothing can be added once the daily recycling is done.');
 
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);

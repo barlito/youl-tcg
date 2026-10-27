@@ -39,7 +39,7 @@ final class BoosterOpenPageTest extends WebTestCase
         $flash = $crawler->filter('[data-testid="flash-error"]');
         $this->assertCount(1, $flash);
         $this->assertSame('alert', $flash->attr('role'));
-        $this->assertStringContainsString("Ce pack n'est pas ouvrable pour le moment.", $flash->text());
+        $this->assertStringContainsString("Tu n'as aucun exemplaire de ce pack à ouvrir.", $flash->text());
 
         // shown once: the next page no longer carries it
         $client->request('GET', '/boosters');
