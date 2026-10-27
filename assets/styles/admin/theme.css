@@ -434,3 +434,59 @@
 .ea-dark-scheme {
     accent-color: var(--va-primary);
 }
+
+/* Collection items (booster slots): EA5 renders an svg marker, not the <i> its own rotation targets */
+.ea-dark-scheme .form-group.field-collection .accordion-button .form-collection-item-collapse-marker {
+    display: inline-block;
+    transition: transform var(--ea-duration-slow, .2s) var(--ea-ease-in-out, ease-in-out);
+}
+
+.ea-dark-scheme .form-group.field-collection .accordion-button:not(.collapsed) .form-collection-item-collapse-marker {
+    transform: rotate(90deg);
+}
+
+/* Range inputs (foil zoom): visible track and themed thumb on the dark surface */
+.ea-dark-scheme .form-range::-webkit-slider-runnable-track {
+    height: 6px;
+    background: var(--va-hairline-strong);
+    border: 0;
+}
+
+.ea-dark-scheme .form-range::-moz-range-track {
+    height: 6px;
+    background: var(--va-hairline-strong);
+    border: 0;
+}
+
+.ea-dark-scheme .form-range::-webkit-slider-thumb {
+    width: 16px;
+    height: 16px;
+    margin-top: -5px;
+    background: var(--va-primary);
+    border: 2px solid var(--va-text-strong);
+    border-radius: 0;
+}
+
+.ea-dark-scheme .form-range::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--va-primary);
+    border: 2px solid var(--va-text-strong);
+    border-radius: 0;
+}
+
+.ea-dark-scheme .form-range:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px #a435f055;
+}
+
+.ea-dark-scheme .form-range:focus::-moz-range-thumb {
+    box-shadow: 0 0 0 3px #a435f055;
+}
+
+.ea-dark-scheme .form-range:active::-webkit-slider-thumb {
+    background: var(--va-magenta);
+}
+
+.ea-dark-scheme .form-range:active::-moz-range-thumb {
+    background: var(--va-magenta);
+}
