@@ -1,0 +1,45 @@
+{#
+  Cellule carte `.cell` : visuel + nom + rareté (icône ● ◆ ★ ★★ + libellé) + quantités.
+  Paramètres :
+    card          Card possédée/visible, ou null = carte masquée (dos de carte, ni nom ni artwork)
+    rarity        valeur scalaire de la rareté, seul indice d'une carte masquée (optionnel)
+    quantity      copies (holos compris), affiché « ×N » sur le visuel (optionnel)
+    holoQuantity  holos parmi elles, affiché « ✦ N » (optionnel)
+    holo          rendre la carte en holo (défaut false)
+    interactive   tilt 3D (défaut false : grilles)
+    lazy          chargement différé de l'image (défaut true)
+    maskedLabel   libellé d'une carte masquée (défaut « Carte à trouver »)
+    showRarity    afficher la ligne de rareté (défaut true)
+    testid        défaut « card-cell »
+#}
+{% set card = card|default(null) %}
+{% set quantity = quantity|default(null) %}
+{% set holoQuantity = holoQuantity|default(0) %}
+{% set rarityValue = card ? card.rarity.value : rarity|default(null) %}
+<div class="cell" data-testid="{{ testid|default('card-cell') }}"{% if rarityValue %} data-rarity="{{ rarityValue }}"{% endif %}>
+    <div class="cell__art">
+        {% if card %}
+            {{ include('components/CardComponent.html.twig', {
+                card: card,
+                holo: holo|default(false),
+                interactive: interactive|default(false),
+                lazy: lazy ?? true,
+            }, with_context = false) }}
+        {% else %}
+            {{ include('parts/_masked_card.html.twig', rarityValue ? { rarity: rarityValue } : {}, with_context = false) }}
+        {% endif %}
+        {% if quantity %}<span class="qty">×{{ quantity }}</span>{% endif %}
+    </div>
+    {% if card %}
+        <span class="cn" title="{{ card.name }}">{{ card.name }}</span>
+    {% else %}
+        <span class="cm">{{ maskedLabel|default('Carte à trouver') }}</span>
+    {% endif %}
+    {% if (showRarity ?? true) and rarityValue %}
+        <span class="lbl r-{{ rarityValue|first }}">
+            {{ rarity_icon(rarityValue) }} {{ rarity_label(rarityValue) }}
+            {%- if card and card.isUnique %} <span class="r-s">· 1/1</span>{% endif %}
+            {%- if holoQuantity > 0 %} <span class="text-magenta">· ✦ {{ holoQuantity }}</span>{% endif %}
+        </span>
+    {% endif %}
+</div>

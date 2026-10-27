@@ -8,6 +8,7 @@ use App\Dto\NotificationView;
 use App\Entity\DiscordUser;
 use App\Entity\Notification;
 use App\Service\Booster\BoosterClaimService;
+use App\Service\Booster\RemainingClaimsDisplay;
 use App\Service\Notification\NotificationRenderer;
 use App\Service\Notification\NotificationService;
 use Psr\Clock\ClockInterface;
@@ -45,6 +46,7 @@ final class NotificationBell extends AbstractController
         private readonly NotificationRenderer $renderer,
         private readonly NotificationService $notificationService,
         private readonly BoosterClaimService $boosterClaimService,
+        private readonly RemainingClaimsDisplay $remainingClaims,
         private readonly ClockInterface $clock,
     ) {
     }
@@ -74,7 +76,7 @@ final class NotificationBell extends AbstractController
      */
     public function getRemainingClaims(): int
     {
-        return $this->boosterClaimService->getRemainingClaims($this->getDiscordUser());
+        return $this->remainingClaims->forPlayer($this->getDiscordUser());
     }
 
     public function getSecondsUntilReset(): int

@@ -1,0 +1,77 @@
+{# Barre d'onglets du bas (< lg) : Accueil, Boosters, Collection, Échanges
+   (Univers quand les échanges sont fermés), Plus → feuille avec le reste.
+   Hors du <header> : les sélecteurs `header a[...]` ne comptent que le header. #}
+{% set currentRoute = app.request.get('_route')|default('') %}
+{% set tradesOpen = feature_enabled('trades') and app.user %}
+{% set inMySpace = currentRoute in ['collection', 'wishlist', 'opening_history', 'recycle', 'fusion'] %}
+<div class="lg:hidden" data-controller="disclosure"
+     data-action="keydown->disclosure#keydown">
+    <div class="sheet-backdrop" hidden data-disclosure-target="backdrop" data-action="click->disclosure#dismiss"></div>
+
+    <div id="more-sheet" class="sheet" hidden data-disclosure-target="panel" data-testid="more-sheet">
+        <nav aria-label="Plus de navigation" class="flex flex-col gap-4">
+            <div class="sheet__grid">
+                {% if tradesOpen %}
+                    {{ _self.sheet_link('universes', 'Univers', currentRoute starts with 'universes') }}
+                {% endif %}
+                {{ _self.sheet_link('market', 'Marché', currentRoute starts with 'market') }}
+                {{ _self.sheet_link('leaderboard', 'Classement', currentRoute starts with 'leaderboard') }}
+            </div>
+            {% if app.user %}
+                <div class="flex flex-col gap-2">
+                    <p class="lbl">Mon espace</p>
+                    <div class="sheet__grid">
+                        {{ _self.sheet_link('collection', 'Collection', currentRoute == 'collection') }}
+                        {% if feature_enabled('wishlist') %}
+                            {{ _self.sheet_link('wishlist', 'Wishlist', currentRoute == 'wishlist') }}
+                        {% endif %}
+                        {{ _self.sheet_link('opening_history', 'Mes ouvertures', currentRoute == 'opening_history') }}
+                        {% if feature_enabled('recycling') %}
+                            {{ _self.sheet_link('recycle', 'Recyclage', currentRoute == 'recycle') }}
+                        {% endif %}
+                        {% if feature_enabled('fusion') %}
+                            {{ _self.sheet_link('fusion', 'Fusion', currentRoute == 'fusion') }}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="sheet__grid">
+                    {% if is_granted('ROLE_ADMIN') %}
+                        <a href="{{ path('admin') }}" class="sheet__link">Admin</a>
+                    {% endif %}
+                    <a href="{{ path('app_logout') }}" class="sheet__link sheet__link--danger">Quitter</a>
+                </div>
+            {% endif %}
+        </nav>
+    </div>
+
+    <nav class="tabbar" aria-label="Navigation principale (mobile)" data-testid="mobile-tabbar">
+        {{ _self.tab('homepage', 'Accueil', 'home', currentRoute == 'homepage') }}
+        {% if app.user %}
+            {{ component('BoostersNavLink', { active: currentRoute starts with 'booster', variant: 'tab' }) }}
+        {% else %}
+            {{ _self.tab('boosters', 'Boosters', 'boosters', false) }}
+        {% endif %}
+        {{ _self.tab('collection', 'Collection', 'collection', inMySpace) }}
+        {% if tradesOpen %}
+            {{ component('TradesNavLink', { active: currentRoute starts with 'trades', variant: 'tab' }) }}
+        {% else %}
+            {{ _self.tab('universes', 'Univers', 'universes', currentRoute starts with 'universes') }}
+        {% endif %}
+        <button type="button" class="mtab" aria-expanded="false" aria-controls="more-sheet"
+                data-disclosure-target="button" data-action="disclosure#toggle" data-testid="tab-more">
+            {{ include('parts/ui/_tab_icon.html.twig', { name: 'more' }, with_context = false) }}
+            Plus
+        </button>
+    </nav>
+</div>
+
+{% macro tab(route, label, icon, isActive) %}
+    <a href="{{ path(route) }}" class="mtab{{ isActive ? ' on' }}"{{ isActive ? ' aria-current="page"' }}>
+        {{- include('parts/ui/_tab_icon.html.twig', { name: icon }, with_context = false) -}}
+        {{ label }}
+    </a>
+{% endmacro %}
+
+{% macro sheet_link(route, label, isActive) %}
+    <a href="{{ path(route) }}" class="sheet__link"{{ isActive ? ' aria-current="page"' }}>{{ label }}</a>
+{% endmacro %}

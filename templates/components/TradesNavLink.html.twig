@@ -1,13 +1,16 @@
 {% set pending = pending_trade_offers() %}
+{% set label = 'Échanges' ~ (pending > 0 ? ', ' ~ pending ~ ' offre' ~ (pending > 1 ? 's') ~ ' en attente') %}
 <a href="{{ path('trades') }}"
    {{ attributes.defaults({
-       class: 'flex items-center gap-1.5 text-ink-muted hover:text-ink-strong' ~ (active ? ' active' : ''),
+       class: (variant == 'tab' ? 'mtab' : 'nav') ~ (active ? ' on' : ''),
+       'aria-label': label,
        'data-action': 'live-updates:trades-changed@window->live#$render trades:changed@window->live#$render',
-       'data-testid': 'nav-trades',
-   }) }}>
+       'data-testid': variant == 'tab' ? 'tab-trades' : 'nav-trades',
+   }) }}
+   {{ active ? 'aria-current="page"' }}>
+    {% if variant == 'tab' %}{{ include('parts/ui/_tab_icon.html.twig', { name: 'trades' }, with_context = false) }}{% endif %}
     Échanges
     {% if pending > 0 %}
-        <span class="flex h-4 min-w-4 items-center justify-center bg-primary px-1 font-mono text-[10px] font-bold text-black"
-              data-testid="pending-trades-badge">{{ pending }}</span>
+        <span class="badge" data-testid="{{ variant == 'tab' ? 'pending-trades-badge-tab' : 'pending-trades-badge' }}">{{ pending }}</span>
     {% endif %}
 </a>

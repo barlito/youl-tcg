@@ -1,70 +1,76 @@
-<header class="border-b border-hairline">
-    <div class="flex items-center justify-between px-6 py-5 lg:px-14">
-        <a href="{{ path('homepage') }}" class="flex items-center gap-3.5">
-            <img src="{{ asset('images/ytcg_logo.png') }}" alt="Logo YOUL"
-                 class="h-12 w-12 object-contain [filter:drop-shadow(0_0_14px_#a435f0aa)]">
-            <span class="flex flex-col gap-1 leading-none">
-                <span class="skew-brand font-display text-[26px] font-bold tracking-[-0.04em] text-ink-strong">YOUL</span>
-                <span class="font-mono text-[9px] tracking-[.28em] text-primary">TRADING CARD GAME</span>
-            </span>
-        </a>
+{# Header Violet Arcade : nav complète à partir de lg, sinon logo + YLC + cloche
+   + compte (la navigation passe dans la barre d'onglets du bas,
+   parts/_mobile_tabbar.html.twig). #}
+{% set currentRoute = app.request.get('_route')|default('') %}
+<header class="site-header">
+    <a href="{{ path('homepage') }}" class="mr-auto flex shrink-0 items-center gap-2.5 lg:mr-0" aria-label="YOUL, accueil">
+        <img src="{{ asset('images/ytcg_logo.png') }}" alt=""
+             class="h-9 w-9 object-contain [filter:drop-shadow(0_0_10px_#a435f0aa)]">
+        <span class="d text-[18px] tracking-[.04em] text-ink-strong lg:max-xl:hidden xl:text-[20px]">YOUL</span>
+    </a>
 
-        <nav class="hidden items-center gap-7 font-display text-sm font-semibold uppercase tracking-[.1em] md:flex">
-            {{ _self.nav_link('homepage', 'Accueil') }}
-            {{ _self.nav_link('collection', 'Collection', ['recycle', 'fusion']) }}
-            {{ _self.nav_link('universes', 'Univers') }}
-            {{ _self.nav_link('boosters', 'Boosters') }}
-            {{ _self.nav_link('leaderboard', 'Classement') }}
-            {% if feature_enabled('trades') and app.user %}
-                {{ component('TradesNavLink', { active: app.request.get('_route')|default('') starts with 'trades' }) }}
-            {% elseif feature_enabled('trades') %}
-                <a href="{{ path('trades') }}" class="text-ink-muted hover:text-ink-strong">Échanges</a>
-            {% else %}
-                {{ _self.nav_soon('Échanges') }}
-            {% endif %}
-            {{ _self.nav_link('market', 'Marché') }}
-            {{ _self.nav_soon('Duels') }}
-        </nav>
+    <nav aria-label="Navigation principale" class="hidden min-w-0 flex-1 flex-nowrap items-center lg:flex">
+        {{ _self.nav_link('homepage', 'Accueil', currentRoute == 'homepage') }}
+        {{ component('BoostersNavLink', { active: currentRoute starts with 'booster' }) }}
+        {{ _self.nav_link('collection', 'Collection', currentRoute in ['collection', 'wishlist', 'opening_history', 'recycle', 'fusion']) }}
+        {{ _self.nav_link('universes', 'Univers', currentRoute starts with 'universes') }}
+        <span class="nav-sep" aria-hidden="true"></span>
+        {% if feature_enabled('trades') and app.user %}
+            {{ component('TradesNavLink', { active: currentRoute starts with 'trades' }) }}
+        {% elseif feature_enabled('trades') %}
+            {{ _self.nav_link('trades', 'Échanges', currentRoute starts with 'trades') }}
+        {% else %}
+            {{ _self.nav_soon('Échanges') }}
+        {% endif %}
+        {{ _self.nav_link('market', 'Marché', currentRoute starts with 'market') }}
+        {{ _self.nav_link('leaderboard', 'Classement', currentRoute starts with 'leaderboard') }}
+        <span class="hidden min-[1360px]:contents">{{ _self.nav_soon('Duels') }}</span>
+    </nav>
 
-        <div class="flex items-center gap-3 sm:gap-4">
-            {% if is_granted('ROLE_ADMIN') %}
-                <a href="{{ path('admin') }}" class="chip-mono text-ink-dim hover:text-primary">Admin</a>
-            {% endif %}
-            {% if app.user %}
-                {{ component('NotificationBell') }}
-                {% set balance = wallet_balance() %}
-                <a href="{{ youl_coin_hub_url }}" class="chip-mono text-ink hover:text-primary"
-                   data-controller="wallet-balance"
-                   data-action="live-updates:wallet-changed@window->wallet-balance#update"
-                   data-testid="wallet-balance"
-                   {% if not balance %}title="Solde Youl Coin momentanément indisponible"{% endif %}>
-                    <span data-wallet-balance-target="amount">{{ balance ? balance.format : '—' }}</span> YLC
-                </a>
-                <span class="flex items-center gap-2.5 border border-hairline bg-surface p-1 sm:pr-3.5">
-                    <span class="flex h-7 w-7 items-center justify-center bg-gradient-to-br from-primary to-magenta font-display text-sm font-bold text-black">
-                        {{ app.user.username|first|upper }}
-                    </span>
-                    <span class="hidden font-mono text-xs text-ink sm:inline">{{ app.user.username }}</span>
-                </span>
-                <a href="{{ path('app_logout') }}" class="chip-mono text-ink-dim hover:text-magenta">Quitter</a>
-            {% endif %}
+    {% if app.user %}
+        <div class="flex shrink-0 items-center gap-2 lg:gap-2.5">
+            {% set balance = wallet_balance() %}
+            <a href="{{ youl_coin_hub_url }}" class="wallet-chip"
+               data-controller="wallet-balance"
+               data-action="live-updates:wallet-changed@window->wallet-balance#update"
+               data-testid="wallet-balance"
+               {% if not balance %}title="Solde Youl Coin momentanément indisponible"{% endif %}>
+                <span class="text-soon" aria-hidden="true">¤</span>
+                <span data-wallet-balance-target="amount">{{ balance ? balance.format : '—' }}</span>
+                <span class="text-ink-muted max-xl:sr-only">YLC</span>
+            </a>
+
+            {{ component('NotificationBell') }}
+
+            <div class="relative" data-controller="disclosure"
+                 data-action="keydown->disclosure#keydown focusout->disclosure#focusout">
+                <button type="button" class="account-btn max-lg:!h-11 max-lg:!w-11 max-lg:!border-0 max-lg:!bg-transparent max-lg:!p-0 lg:max-xl:!px-1"
+                        aria-expanded="false" aria-controls="account-menu" aria-haspopup="true"
+                        aria-label="Menu du compte"
+                        data-disclosure-target="button" data-action="disclosure#toggle"
+                        data-testid="account-menu-toggle">
+                    <span class="av oct-s h-[34px] w-[34px] text-[15px] max-lg:h-11 max-lg:w-11 max-lg:text-base">{{ app.user.username|first|upper }}</span>
+                    <span class="hidden max-w-[10rem] truncate xl:inline">{{ app.user.username }}</span>
+                    <svg class="hidden xl:block" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b9a8cf" stroke-width="2.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div id="account-menu" class="menu" hidden data-disclosure-target="panel" data-testid="account-menu">
+                    <p class="lbl truncate px-3 pb-1 pt-2">{{ app.user.username }}</p>
+                    <a href="{{ path('collection') }}" class="menu__item">Mon espace</a>
+                    {% if is_granted('ROLE_ADMIN') %}
+                        <a href="{{ path('admin') }}" class="menu__item">Admin</a>
+                    {% endif %}
+                    <span class="menu__sep" aria-hidden="true"></span>
+                    <a href="{{ path('app_logout') }}" class="menu__item menu__item--danger">Quitter</a>
+                </div>
+            </div>
         </div>
-    </div>
+    {% endif %}
 </header>
 
-{% macro nav_link(route, label, aliases = []) %}
-    {# starts with = les sous-pages allument aussi l'entrée (universes_show → Univers) ;
-       aliases = pages rattachées à l'entrée sans en partager le préfixe (recycle → Collection) #}
-    {% set current = app.request.get('_route')|default('') %}
-    {% set isActive = current starts with route or aliases|filter(alias => current starts with alias)|length > 0 %}
-    <a href="{{ path(route) }}"
-       class="text-ink-muted hover:text-ink-strong {{ isActive ? 'active' : '' }}"
-       {{ isActive ? 'aria-current="page"' }}>{{ label }}</a>
+{% macro nav_link(route, label, isActive) %}
+    <a href="{{ path(route) }}" class="nav{{ isActive ? ' on' }}"{{ isActive ? ' aria-current="page"' }}>{{ label }}</a>
 {% endmacro %}
 
 {% macro nav_soon(label) %}
-    <span class="flex items-center gap-1.5 text-ink-dim" aria-disabled="true">
-        {{ label }}
-        <span class="font-mono text-[9px] tracking-[.15em] text-soon">SOON</span>
-    </span>
+    <span class="nav nav--soon" aria-disabled="true">{{ label }} <span class="soon">bientôt</span></span>
 {% endmacro %}

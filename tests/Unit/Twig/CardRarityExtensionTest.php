@@ -24,4 +24,13 @@ final class CardRarityExtensionTest extends TestCase
         // unknown JSON keys fall back to the raw value instead of crashing the template
         $this->assertSame('mythic', $extension->rarityLabel('mythic'));
     }
+
+    public function testRarityIconAcceptsEnumsAndRawStrings(): void
+    {
+        $extension = new CardRarityExtension();
+
+        $this->assertSame('★★', $extension->rarityIcon(CardRarityEnum::LEGENDARY));
+        $this->assertSame('◆', $extension->rarityIcon('uncommon'));
+        $this->assertSame('', $extension->rarityIcon('mythic'));
+    }
 }

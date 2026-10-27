@@ -14,7 +14,7 @@
     'data-notification-bell-next-period-value': this.nextClaimPeriod,
 }) }}>
     <button type="button"
-            class="relative flex h-9 w-9 items-center justify-center border border-hairline bg-surface text-ink-muted hover:border-primary hover:text-ink-strong {{ open ? 'border-primary text-ink-strong' }}"
+            class="ib{{ open ? ' hot' }}"
             data-action="live#action" data-live-action-param="toggle"
             aria-haspopup="true" aria-expanded="{{ open ? 'true' : 'false' }}"
             aria-label="Notifications{{ unread > 0 ? ' (' ~ unread ~ ' non lue' ~ (unread > 1 ? 's') ~ ')' }}"
@@ -24,15 +24,15 @@
             <path d="M10 21h4"/>
         </svg>
         {% if unread > 0 %}
-            <span class="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center bg-magenta px-1 font-mono text-[10px] font-bold leading-none text-black shadow-[0_0_12px_#ff3db088]"
+            <span class="badge absolute -right-[7px] -top-[7px] shadow-[0_0_12px_#ff3db088]"
                   data-testid="notification-badge">{{ unread > 9 ? '9+' : unread }}</span>
         {% elseif remainingClaims > 0 %}
-            <span class="absolute -right-1 -top-1 h-2 w-2 bg-live shadow-[0_0_8px_#5be584]" aria-hidden="true"></span>
+            <span class="absolute -right-1 -top-1 h-2.5 w-2.5 bg-live shadow-[0_0_8px_#5be584]" aria-hidden="true"></span>
         {% endif %}
     </button>
 
     {% if open %}
-        <div class="fixed inset-x-4 top-[84px] z-50 border border-hairline bg-surface shadow-[0_20px_50px_#000c,0_0_30px_#a435f022] md:absolute md:inset-x-auto md:right-0 md:top-[calc(100%+10px)] md:w-[380px]"
+        <div class="fixed inset-x-4 top-[72px] z-50 border border-hairline bg-surface shadow-[0_20px_50px_#000c,0_0_30px_#a435f022] md:absolute md:inset-x-auto md:right-0 md:top-[calc(100%+10px)] md:w-[380px]"
              role="dialog" aria-label="Notifications" data-testid="notification-panel">
             <div class="flex items-center justify-between border-b border-hairline px-4 py-3">
                 <p class="eyebrow">Notifications</p>
