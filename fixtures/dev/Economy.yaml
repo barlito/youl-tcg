@@ -1,69 +1,269 @@
-# Économie Youl Coin de démo : un marché garni (annonces des autres joueurs à
-# acheter, une annonce de Barlito dans Ma boutique), un historique de ventes,
-# d'achats de boosters et de récompenses d'univers pour le tableau de bord.
-# Rien n'est daté d'aujourd'hui : l'achat de booster du jour reste disponible.
-# Les ids de transaction coin sont fictifs.
-App\Entity\MarketListing:
-    listing_veli_ahri_alt:
-        __construct: ['@discord_user_veli', '@card_ahri_alt_kda', false, 120]
-    listing_weeby_akali_alt:
-        __construct: ['@discord_user_weeby', '@card_akali_alt_kda', false, 90]
-    listing_farph_joueuse_de_mort:
-        __construct: ['@discord_user_farph', '@card_babou_linette_la_joueuse_de_mort', false, 25]
-    listing_juju_la_chrome:
-        __construct: ['@discord_user_juju', '@card_babou_linette_la_chrome', false, 30]
-    listing_juju_benj_evo_magic:
-        __construct: ['@discord_user_juju', '@card_benj_evo_magic', false, 45]
-    # holo
-    listing_benj_babou_alt_sot_holo:
-        __construct: ['@discord_user_benj', '@card_babou_linette_1_alt_sot', true, 250]
-    # dernier exemplaire de Farph
-    listing_farph_babou_psyche:
-        __construct: ['@discord_user_farph', '@card_babou_linette_psyche', false, 8]
-    listing_barlito_ahri_alt:
-        __construct: ['@discord_user_barlito', '@card_ahri_alt_kda', false, 150]
-    listing_barlito_akali_withdrawn:
-        __construct: ['@discord_user_barlito', '@card_akali_kda', false, 12]
-        __calls:
-            - close: ['<(App\Enum\Market\MarketListingStatusEnum::WITHDRAWN)>', '<(new DateTimeImmutable("-4 days"))>']
-    listing_collectionneur_akali_sold:
-        __construct: ['@discord_user_collectionneur', '@card_akali_kda', false, 40]
-        __calls:
-            - close: ['<(App\Enum\Market\MarketListingStatusEnum::SOLD)>', '<(new DateTimeImmutable("-2 days"))>']
-    listing_barlito_ahlototh_sold:
-        __construct: ['@discord_user_barlito', '@card_ahlototh_the_sightless', false, 60]
-        __calls:
-            - close: ['<(App\Enum\Market\MarketListingStatusEnum::SOLD)>', '<(new DateTimeImmutable("-5 days"))>']
-
-# commission 5 % en unités mineures : prix × 10^8 × 5 / 100
-App\Entity\MarketPurchase:
-    purchase_barlito_akali:
-        __construct: ['@listing_collectionneur_akali_sold', '@discord_user_barlito', '@discord_user_collectionneur', 40, '200000000', '<(new DateTimeImmutable("-2 days"))>']
-        __calls:
-            - markCardTransferred: ['<uuid()>']
-            - complete: ['<uuid()>', '<(new DateTimeImmutable("-2 days"))>']
-    purchase_juju_ahlototh:
-        __construct: ['@listing_barlito_ahlototh_sold', '@discord_user_juju', '@discord_user_barlito', 60, '300000000', '<(new DateTimeImmutable("-5 days"))>']
-        __calls:
-            - markCardTransferred: ['<uuid()>']
-            - complete: ['<uuid()>', '<(new DateTimeImmutable("-5 days"))>']
-
 App\Entity\BoosterPurchase:
-    booster_purchase_barlito_1:
-        __construct: ['@discord_user_barlito', '@booster_cyberpunk', 10, '<(new DateTimeImmutable("-3 days"))>']
+    booster_purchase_1:
+        __construct: ['@discord_user_collectionneur', '@booster_magic_boosted', 500, '<parisAt(12, "22:00")>']
         __calls:
-            - complete: ['<uuid()>', '<(new DateTimeImmutable("-3 days"))>']
-    booster_purchase_juju_1:
-        __construct: ['@discord_user_juju', '@booster_cyberpunk', 10, '<(new DateTimeImmutable("-1 day"))>']
+            - complete: ['<uuid()>', '<parisAt(12, "22:00")>']
+    booster_purchase_2:
+        __construct: ['@discord_user_farph', '@booster_cyberpunk_boosted', 500, '<parisAt(6, "17:00")>']
         __calls:
-            - complete: ['<uuid()>', '<(new DateTimeImmutable("-1 day"))>']
-    booster_purchase_farph_1:
-        __construct: ['@discord_user_farph', '@booster_cyberpunk', 10, '<(new DateTimeImmutable("-6 days"))>']
+            - fail: ['Solde insuffisant', '<parisAt(6, "17:00")>']
+    booster_purchase_3:
+        __construct: ['@discord_user_barlito', '@booster_cyberpunk_boosted', 500, '<parisAt(3, "12:00")>']
         __calls:
-            - complete: ['<uuid()>', '<(new DateTimeImmutable("-6 days"))>']
+            - complete: ['<uuid()>', '<parisAt(3, "12:00")>']
+    booster_purchase_4:
+        __construct: ['@discord_user_juju', '@booster_magic_boosted', 500, '<parisAt(1, "18:00")>']
+        __calls:
+            - complete: ['<uuid()>', '<parisAt(1, "18:00")>']
 
 App\Entity\UniverseCompletionReward:
-    universe_reward_collectionneur_kda:
-        __construct: ['@discord_user_collectionneur', '@extension_kda', 500, '<(new DateTimeImmutable("-4 days"))>']
+    universe_reward_barlito_cosmonaut:
+        __construct: ['@discord_user_barlito', '@extension_cosmonaut', 500, '<parisAt(36, "20:39")>']
         __calls:
-            - markPaid: ['<uuid()>', '<(new DateTimeImmutable("-4 days"))>']
+            - markPaid: ['<uuid()>', '<parisAt(36, "20:39")>']
+    universe_reward_collectionneur_kda:
+        __construct: ['@discord_user_collectionneur', '@extension_kda', 500, '<parisAt(33, "12:19")>']
+        __calls:
+            - markPaid: ['<uuid()>', '<parisAt(33, "12:19")>']
+    universe_reward_juju_magic:
+        __construct: ['@discord_user_juju', '@extension_magic', 500, '<parisAt(30, "10:19")>']
+        __calls:
+            - markPaid: ['<uuid()>', '<parisAt(30, "10:19")>']
+    universe_reward_collectionneur_divinity:
+        __construct: ['@discord_user_collectionneur', '@extension_divinity', 500, '<parisAt(23, "15:39")>']
+        __calls:
+            - markPaid: ['<uuid()>', '<parisAt(23, "15:39")>']
+    universe_reward_veli_divinity:
+        __construct: ['@discord_user_veli', '@extension_divinity', 500, '<parisAt(21, "15:49")>']
+        __calls:
+            - markPaid: ['<uuid()>', '<parisAt(21, "15:49")>']
+    universe_reward_collectionneur_magic:
+        __construct: ['@discord_user_collectionneur', '@extension_magic', 500, '<parisAt(12, "17:39")>']
+        __calls:
+            - markPaid: ['<uuid()>', '<parisAt(12, "17:39")>']
+    universe_reward_weeby_space_nomad:
+        __construct: ['@discord_user_weeby', '@extension_space_nomad', 500, '<parisAt(11, "12:19")>']
+        __calls:
+            - markPaid: ['<uuid()>', '<parisAt(11, "12:19")>']
+    universe_reward_benj_divinity:
+        __construct: ['@discord_user_benj', '@extension_divinity', 500, '<parisAt(11, "18:39")>']
+        __calls:
+            - markPaid: ['<uuid()>', '<parisAt(11, "18:39")>']
+    universe_reward_weeby_cosmonaut:
+        __construct: ['@discord_user_weeby', '@extension_cosmonaut', 500, '<parisAt(9, "10:49")>']
+        __calls:
+            - markPaid: ['<uuid()>', '<parisAt(9, "10:49")>']
+    universe_reward_juju_bleach:
+        __construct: ['@discord_user_juju', '@extension_bleach', 500, '<parisAt(7, "10:49")>']
+        __calls:
+            - markPaid: ['<uuid()>', '<parisAt(7, "10:49")>']
+
+App\Entity\StreakReward:
+    streak_barlito_75_7:
+        __construct: ['@discord_user_barlito', '<parisDay(75)>', 7, '<parisAt(69, "09:19")>']
+        __calls:
+            - choose: ['@booster_magic', '<parisAt(69, "09:19")>']
+    streak_barlito_67_7:
+        __construct: ['@discord_user_barlito', '<parisDay(67)>', 7, '<parisAt(61, "09:19")>']
+        __calls:
+            - choose: ['@booster_psychedelic', '<parisAt(61, "09:19")>']
+    streak_barlito_59_7:
+        __construct: ['@discord_user_barlito', '<parisDay(59)>', 7, '<parisAt(53, "09:19")>']
+        __calls:
+            - choose: ['@booster_cyberpunk', '<parisAt(53, "09:19")>']
+    streak_barlito_44_7:
+        __construct: ['@discord_user_barlito', '<parisDay(44)>', 7, '<parisAt(38, "08:19")>']
+        __calls:
+            - choose: ['@booster_l_album_des_youlz', '<parisAt(38, "08:19")>']
+    streak_barlito_44_14:
+        __construct: ['@discord_user_barlito', '<parisDay(44)>', 14, '<parisAt(31, "08:19")>']
+        __calls:
+            - choose: ['@booster_kda', '<parisAt(31, "08:19")>']
+    streak_barlito_15_7:
+        __construct: ['@discord_user_barlito', '<parisDay(15)>', 7, '<parisAt(9, "08:19")>']
+        __calls:
+            - choose: ['@booster_cyberpunk', '<parisAt(9, "08:19")>']
+    streak_barlito_15_14:
+        __construct: ['@discord_user_barlito', '<parisDay(15)>', 14, '<parisAt(2, "08:02")>']
+    streak_juju_75_7:
+        __construct: ['@discord_user_juju', '<parisDay(75)>', 7, '<parisAt(69, "09:49")>']
+        __calls:
+            - choose: ['@booster_psychedelic', '<parisAt(69, "09:49")>']
+    streak_juju_75_14:
+        __construct: ['@discord_user_juju', '<parisDay(75)>', 14, '<parisAt(62, "14:49")>']
+        __calls:
+            - choose: ['@booster_cyberpunk', '<parisAt(62, "14:49")>']
+    streak_juju_75_21:
+        __construct: ['@discord_user_juju', '<parisDay(75)>', 21, '<parisAt(55, "10:49")>']
+        __calls:
+            - choose: ['@booster_l_album_des_youlz', '<parisAt(55, "10:49")>']
+    streak_juju_75_28:
+        __construct: ['@discord_user_juju', '<parisDay(75)>', 28, '<parisAt(48, "11:49")>']
+        __calls:
+            - choose: ['@booster_kda', '<parisAt(48, "11:49")>']
+    streak_juju_75_35:
+        __construct: ['@discord_user_juju', '<parisDay(75)>', 35, '<parisAt(41, "11:29")>']
+        __calls:
+            - choose: ['@booster_magic', '<parisAt(41, "11:29")>']
+    streak_juju_75_42:
+        __construct: ['@discord_user_juju', '<parisDay(75)>', 42, '<parisAt(34, "11:19")>']
+        __calls:
+            - choose: ['@booster_psychedelic', '<parisAt(34, "11:19")>']
+    streak_juju_75_49:
+        __construct: ['@discord_user_juju', '<parisDay(75)>', 49, '<parisAt(27, "09:49")>']
+        __calls:
+            - choose: ['@booster_cyberpunk', '<parisAt(27, "09:49")>']
+    streak_juju_19_7:
+        __construct: ['@discord_user_juju', '<parisDay(19)>', 7, '<parisAt(13, "09:39")>']
+        __calls:
+            - choose: ['@booster_l_album_des_youlz', '<parisAt(13, "09:39")>']
+    streak_juju_19_14:
+        __construct: ['@discord_user_juju', '<parisDay(19)>', 14, '<parisAt(6, "10:49")>']
+        __calls:
+            - choose: ['@booster_kda', '<parisAt(6, "10:49")>']
+    streak_farph_26_7:
+        __construct: ['@discord_user_farph', '<parisDay(26)>', 7, '<parisAt(20, "11:39")>']
+        __calls:
+            - choose: ['@booster_magic', '<parisAt(20, "11:39")>']
+    streak_benj_64_7:
+        __construct: ['@discord_user_benj', '<parisDay(64)>', 7, '<parisAt(58, "12:39")>']
+        __calls:
+            - choose: ['@booster_psychedelic', '<parisAt(58, "12:39")>']
+    streak_collectionneur_58_7:
+        __construct: ['@discord_user_collectionneur', '<parisDay(58)>', 7, '<parisAt(52, "13:49")>']
+        __calls:
+            - choose: ['@booster_cyberpunk', '<parisAt(52, "13:49")>']
+    streak_collectionneur_41_7:
+        __construct: ['@discord_user_collectionneur', '<parisDay(41)>', 7, '<parisAt(35, "12:19")>']
+        __calls:
+            - choose: ['@booster_l_album_des_youlz', '<parisAt(35, "12:19")>']
+    streak_collectionneur_12_7:
+        __construct: ['@discord_user_collectionneur', '<parisDay(12)>', 7, '<parisAt(6, "10:29")>']
+        __calls:
+            - choose: ['@booster_kda', '<parisAt(6, "10:29")>']
+
+App\Entity\RecycleOperation:
+    recycle_1:
+        __construct: ['@discord_user_barlito', '@booster_cosmonaut', 10, 1, '<parisAt(6, "13:00")>']
+    recycle_2:
+        __construct: ['@discord_user_juju', '@booster_psychedelic', 10, 1, '<parisAt(3, "06:00")>']
+    recycle_3:
+        __construct: ['@discord_user_barlito', '@booster_space_nomad', 10, 1, '<parisAt(2, "21:00")>']
+
+App\Entity\RecycleOperationCard:
+    recycle_1_kda_kai_sa:
+        __construct: ['@recycle_1', '@card_kda_kai_sa', 2, 0]
+    recycle_1_40k_combattant_eldar:
+        __construct: ['@recycle_1', '@card_40k_combattant_eldar', 2, 0]
+    recycle_1_bleach_frieda_linette_r_la_rapide:
+        __construct: ['@recycle_1', '@card_bleach_frieda_linette_r_la_rapide', 1, 0]
+    recycle_1_divinity_julian_the_unremarkable:
+        __construct: ['@recycle_1', '@card_divinity_julian_the_unremarkable', 1, 0]
+    recycle_1_magic_veli_foreigner:
+        __construct: ['@recycle_1', '@card_magic_veli_foreigner', 1, 0]
+    recycle_1_replicant_bureau_de_l_inspecteur:
+        __construct: ['@recycle_1', '@card_replicant_bureau_de_l_inspecteur', 1, 0]
+    recycle_1_replicant_la_pegre_de_new_la:
+        __construct: ['@recycle_1', '@card_replicant_la_pegre_de_new_la', 1, 0]
+    recycle_1_replicant_warny_le_street_kid:
+        __construct: ['@recycle_1', '@card_replicant_warny_le_street_kid', 1, 0]
+    recycle_2_bleach_bebou_linette_shikai:
+        __construct: ['@recycle_2', '@card_bleach_bebou_linette_shikai', 3, 0]
+    recycle_2_magic_warny_novice:
+        __construct: ['@recycle_2', '@card_magic_warny_novice', 2, 0]
+    recycle_2_bleach_capitaine_babou_linette:
+        __construct: ['@recycle_2', '@card_bleach_capitaine_babou_linette', 1, 0]
+    recycle_2_magic_babou_linette:
+        __construct: ['@recycle_2', '@card_magic_babou_linette', 1, 0]
+    recycle_2_magic_hunter_julian:
+        __construct: ['@recycle_2', '@card_magic_hunter_julian', 1, 0]
+    recycle_2_magic_veli_foreigner:
+        __construct: ['@recycle_2', '@card_magic_veli_foreigner', 1, 0]
+    recycle_2_psychedelic_bibou_linette:
+        __construct: ['@recycle_2', '@card_psychedelic_bibou_linette', 1, 0]
+    recycle_3_40k_ork_de_la_waaagh:
+        __construct: ['@recycle_3', '@card_40k_ork_de_la_waaagh', 1, 0]
+    recycle_3_bleach_frieda_linette_r_la_rapide:
+        __construct: ['@recycle_3', '@card_bleach_frieda_linette_r_la_rapide', 1, 0]
+    recycle_3_bleach_warny_stern_ritter:
+        __construct: ['@recycle_3', '@card_bleach_warny_stern_ritter', 1, 0]
+    recycle_3_cyberpunk_benj_le_bleu:
+        __construct: ['@recycle_3', '@card_cyberpunk_benj_le_bleu', 1, 0]
+    recycle_3_divinity_book_of_xizta_the_demented:
+        __construct: ['@recycle_3', '@card_divinity_book_of_xizta_the_demented', 1, 0]
+    recycle_3_divinity_julian_the_unremarkable:
+        __construct: ['@recycle_3', '@card_divinity_julian_the_unremarkable', 1, 0]
+    recycle_3_kda_evelynn:
+        __construct: ['@recycle_3', '@card_kda_evelynn', 1, 0]
+    recycle_3_kda_jean_raoul:
+        __construct: ['@recycle_3', '@card_kda_jean_raoul', 1, 0]
+    recycle_3_kda_julian:
+        __construct: ['@recycle_3', '@card_kda_julian', 1, 0]
+    recycle_3_kda_kai_sa:
+        __construct: ['@recycle_3', '@card_kda_kai_sa', 1, 0]
+
+App\Entity\FusionOperation:
+    fusion_1:
+        __construct: ['@discord_user_barlito', '@card_40k_monde_ruche', 1, 10, 1, '<parisAt(4, "10:00")>']
+
+App\Entity\BoosterCode:
+    code_multi:
+        code: 'KYFCHDXGWJ5H'
+        booster: '@booster_magic_event'
+        quantity: 1
+        maxUses: null
+        batchLabel: 'magic-launch'
+        createdAt: '<parisAtMutable(22, "08:00")>'
+        __calls:
+            - incrementUses: []
+            - incrementUses: []
+            - incrementUses: []
+    code_assigned:
+        code: '7Q67K6M4BCDY'
+        booster: '@booster_psychedelic_event'
+        quantity: 2
+        maxUses: 1
+        assignedTo: '@discord_user_barlito'
+        createdAt: '<parisAtMutable(0, "08:00")>'
+    code_expired:
+        code: '2ZFS68NADAXY'
+        booster: '@booster_l_album_des_youlz_event'
+        quantity: 1
+        maxUses: 20
+        batchLabel: 'album-launch'
+        expiresAt: '<parisAt(3, "00:00")>'
+        createdAt: '<parisAtMutable(16, "08:00")>'
+        __calls:
+            - incrementUses: []
+    code_exhausted:
+        code: 'XT5HPFUFYPJP'
+        booster: '@booster_cyberpunk_event'
+        quantity: 1
+        maxUses: 2
+        batchLabel: 'cyberpunk-launch'
+        createdAt: '<parisAtMutable(9, "08:00")>'
+        __calls:
+            - incrementUses: []
+            - incrementUses: []
+    code_disabled:
+        code: 'UJFFUPS2UTQA'
+        booster: '@booster_space_nomad'
+        quantity: 1
+        maxUses: 50
+        batchLabel: 'giveaway-discord'
+        disabled: true
+        createdAt: '<parisAtMutable(14, "08:00")>'
+
+App\Entity\BoosterCodeRedemption:
+    redemption_code_multi_juju:
+        __construct: ['@code_multi', '@discord_user_juju', '<parisAt(20, "18:00")>', 1]
+    redemption_code_multi_farph:
+        __construct: ['@code_multi', '@discord_user_farph', '<parisAt(18, "12:00")>', 1]
+    redemption_code_multi_benj:
+        __construct: ['@code_multi', '@discord_user_benj', '<parisAt(15, "21:00")>', 1]
+    redemption_code_expired_veli:
+        __construct: ['@code_expired', '@discord_user_veli', '<parisAt(12, "19:00")>', 1]
+    redemption_code_exhausted_veli:
+        __construct: ['@code_exhausted', '@discord_user_veli', '<parisAt(7, "09:30")>', 1]
+    redemption_code_exhausted_barlito:
+        __construct: ['@code_exhausted', '@discord_user_barlito', '<parisAt(5, "09:00")>', 1]

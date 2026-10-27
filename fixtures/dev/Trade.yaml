@@ -1,0 +1,144 @@
+App\Entity\TradeOffer:
+    trade_juju_barlito_accepted:
+        proposer: '@discord_user_juju'
+        receiver: '@discord_user_barlito'
+        createdAt: '<parisAtMutable(12, "18:00")>'
+        __calls:
+            - resolve: ['<(App\Enum\Trade\TradeOfferStatusEnum::ACCEPTED)>', '<parisAt(11, "09:00")>']
+    trade_barlito_farph_accepted:
+        proposer: '@discord_user_barlito'
+        receiver: '@discord_user_farph'
+        createdAt: '<parisAtMutable(9, "21:00")>'
+        __calls:
+            - resolve: ['<(App\Enum\Trade\TradeOfferStatusEnum::ACCEPTED)>', '<parisAt(8, "12:00")>']
+    trade_juju_benj_accepted:
+        proposer: '@discord_user_juju'
+        receiver: '@discord_user_benj'
+        createdAt: '<parisAtMutable(7, "10:00")>'
+        __calls:
+            - resolve: ['<(App\Enum\Trade\TradeOfferStatusEnum::ACCEPTED)>', '<parisAt(7, "18:00")>']
+    trade_barlito_veli_refused:
+        proposer: '@discord_user_barlito'
+        receiver: '@discord_user_veli'
+        createdAt: '<parisAtMutable(6, "20:00")>'
+        __calls:
+            - resolve: ['<(App\Enum\Trade\TradeOfferStatusEnum::REFUSED)>', '<parisAt(5, "11:00")>']
+    trade_barlito_warny_cancelled:
+        proposer: '@discord_user_barlito'
+        receiver: '@discord_user_weeby'
+        createdAt: '<parisAtMutable(4, "11:00")>'
+        __calls:
+            - resolve: ['<(App\Enum\Trade\TradeOfferStatusEnum::CANCELLED)>', '<parisAt(4, "16:00")>']
+    trade_benj_barlito_pending:
+        proposer: '@discord_user_benj'
+        receiver: '@discord_user_barlito'
+        createdAt: '<parisAtMutable(0, "09:00")>'
+    trade_barlito_juju_pending:
+        proposer: '@discord_user_barlito'
+        receiver: '@discord_user_juju'
+        createdAt: '<parisAtMutable(0, "10:00")>'
+
+App\Entity\TradeOfferLine:
+    trade_juju_barlito_accepted_offered_bleach_hollow:
+        tradeOffer: '@trade_juju_barlito_accepted'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::OFFERED)>'
+        card: '@card_bleach_hollow'
+        normalQuantity: 1
+        holoQuantity: 0
+        newForTaker: true
+    trade_juju_barlito_accepted_offered_bleach_numero_4_julian:
+        tradeOffer: '@trade_juju_barlito_accepted'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::OFFERED)>'
+        card: '@card_bleach_numero_4_julian'
+        normalQuantity: 1
+        holoQuantity: 0
+        newForTaker: true
+    trade_juju_barlito_accepted_requested_divinity_benj_the_eternal:
+        tradeOffer: '@trade_juju_barlito_accepted'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::REQUESTED)>'
+        card: '@card_divinity_benj_the_eternal'
+        normalQuantity: 1
+        holoQuantity: 0
+        newForTaker: false
+    trade_barlito_farph_accepted_offered_cyberpunk_benj_le_bleu:
+        tradeOffer: '@trade_barlito_farph_accepted'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::OFFERED)>'
+        card: '@card_cyberpunk_benj_le_bleu'
+        normalQuantity: 2
+        holoQuantity: 0
+        newForTaker: false
+    trade_barlito_farph_accepted_requested_cyberpunk_benj_ledjo:
+        tradeOffer: '@trade_barlito_farph_accepted'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::REQUESTED)>'
+        card: '@card_cyberpunk_benj_ledjo'
+        normalQuantity: 1
+        holoQuantity: 0
+        newForTaker: true
+    trade_juju_benj_accepted_offered_psychedelic_farf:
+        tradeOffer: '@trade_juju_benj_accepted'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::OFFERED)>'
+        card: '@card_psychedelic_farf'
+        normalQuantity: 1
+        holoQuantity: 0
+        newForTaker: true
+    trade_juju_benj_accepted_requested_cyberpunk_julian_kuzu_delavega:
+        tradeOffer: '@trade_juju_benj_accepted'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::REQUESTED)>'
+        card: '@card_cyberpunk_julian_kuzu_delavega'
+        normalQuantity: 1
+        holoQuantity: 0
+        newForTaker: true
+    trade_barlito_veli_refused_offered_40k_ork_de_la_waaagh:
+        tradeOffer: '@trade_barlito_veli_refused'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::OFFERED)>'
+        card: '@card_40k_ork_de_la_waaagh'
+        normalQuantity: 1
+        holoQuantity: 0
+    trade_barlito_veli_refused_requested_divinity_ahlototh_the_sightless:
+        tradeOffer: '@trade_barlito_veli_refused'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::REQUESTED)>'
+        card: '@card_divinity_ahlototh_the_sightless'
+        normalQuantity: 1
+        holoQuantity: 0
+    trade_barlito_warny_cancelled_offered_bleach_frieda_linette_r_la_rapide:
+        tradeOffer: '@trade_barlito_warny_cancelled'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::OFFERED)>'
+        card: '@card_bleach_frieda_linette_r_la_rapide'
+        normalQuantity: 2
+        holoQuantity: 0
+    trade_barlito_warny_cancelled_requested_40k_julian_de_la_7e_legion:
+        tradeOffer: '@trade_barlito_warny_cancelled'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::REQUESTED)>'
+        card: '@card_40k_julian_de_la_7e_legion'
+        normalQuantity: 1
+        holoQuantity: 0
+    trade_benj_barlito_pending_offered_cyberpunk_benj_cyberpsycho:
+        tradeOffer: '@trade_benj_barlito_pending'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::OFFERED)>'
+        card: '@card_cyberpunk_benj_cyberpsycho'
+        normalQuantity: 0
+        holoQuantity: 1
+    trade_benj_barlito_pending_offered_40k_benj_champion_du_chaos:
+        tradeOffer: '@trade_benj_barlito_pending'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::OFFERED)>'
+        card: '@card_40k_benj_champion_du_chaos'
+        normalQuantity: 1
+        holoQuantity: 0
+    trade_benj_barlito_pending_requested_cyberpunk_julian_kuzu_delavega:
+        tradeOffer: '@trade_benj_barlito_pending'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::REQUESTED)>'
+        card: '@card_cyberpunk_julian_kuzu_delavega'
+        normalQuantity: 2
+        holoQuantity: 0
+    trade_barlito_juju_pending_offered_replicant_warny_le_street_kid:
+        tradeOffer: '@trade_barlito_juju_pending'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::OFFERED)>'
+        card: '@card_replicant_warny_le_street_kid'
+        normalQuantity: 2
+        holoQuantity: 0
+    trade_barlito_juju_pending_requested_bleach_julian_resurreccion:
+        tradeOffer: '@trade_barlito_juju_pending'
+        side: '<(App\Enum\Trade\TradeOfferSideEnum::REQUESTED)>'
+        card: '@card_bleach_julian_resurreccion'
+        normalQuantity: 1
+        holoQuantity: 0
