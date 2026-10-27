@@ -1,0 +1,314 @@
+App\Entity\Announcement:
+    announcement_market:
+        __construct: ['<(App\Enum\Notification\NotificationTypeEnum::ANNOUNCEMENT)>', 'Le marché tourne à plein régime', 'Pensez à mettre vos doublons en vente : la commission reste à 5 % ce mois-ci.', '/marche', '@discord_user_barlito', [], 7, '<parisAt(0, "07:00")>']
+    announcement_code_barlito:
+        __construct: ['<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CODE)>', '2 packs « Psychedelic »', 'Merci pour les retours sur le marché, voilà de quoi finir Psychedelic !', null, '@discord_user_barlito', ['@discord_user_barlito'], 1, '<parisAt(0, "08:00")>']
+
+App\Entity\Notification:
+    notification_1:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Magic', channel: 'streak' }, '<parisAt(69, "09:19")>']
+        __calls:
+            - markRead: ['<parisAt(69, "09:19")>']
+    notification_2:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 7 }, '<parisAt(69, "09:19")>']
+        __calls:
+            - markRead: ['<parisAt(69, "09:19")>']
+    notification_3:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Psychedelic', channel: 'streak' }, '<parisAt(69, "09:49")>']
+        __calls:
+            - markRead: ['<parisAt(69, "09:49")>']
+    notification_4:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 7 }, '<parisAt(69, "09:49")>']
+        __calls:
+            - markRead: ['<parisAt(69, "09:49")>']
+    notification_5:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Cyberpunk', channel: 'streak' }, '<parisAt(62, "14:49")>']
+        __calls:
+            - markRead: ['<parisAt(62, "14:49")>']
+    notification_6:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 14 }, '<parisAt(62, "14:49")>']
+        __calls:
+            - markRead: ['<parisAt(62, "14:49")>']
+    notification_7:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Psychedelic', channel: 'streak' }, '<parisAt(61, "09:19")>']
+        __calls:
+            - markRead: ['<parisAt(61, "09:19")>']
+    notification_8:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 7 }, '<parisAt(61, "09:19")>']
+        __calls:
+            - markRead: ['<parisAt(61, "09:19")>']
+    notification_9:
+        __construct: ['@discord_user_benj', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Psychedelic', channel: 'streak' }, '<parisAt(58, "12:39")>']
+        __calls:
+            - markRead: ['<parisAt(58, "12:39")>']
+    notification_10:
+        __construct: ['@discord_user_benj', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 7 }, '<parisAt(58, "12:39")>']
+        __calls:
+            - markRead: ['<parisAt(58, "12:39")>']
+    notification_11:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'L''album des Youlz', channel: 'streak' }, '<parisAt(55, "10:49")>']
+        __calls:
+            - markRead: ['<parisAt(55, "10:49")>']
+    notification_12:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 21 }, '<parisAt(55, "10:49")>']
+        __calls:
+            - markRead: ['<parisAt(55, "10:49")>']
+    notification_13:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Cyberpunk', channel: 'streak' }, '<parisAt(53, "09:19")>']
+        __calls:
+            - markRead: ['<parisAt(53, "09:19")>']
+    notification_14:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 7 }, '<parisAt(53, "09:19")>']
+        __calls:
+            - markRead: ['<parisAt(53, "09:19")>']
+    notification_15:
+        __construct: ['@discord_user_collectionneur', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Cyberpunk', channel: 'streak' }, '<parisAt(52, "13:49")>']
+        __calls:
+            - markRead: ['<parisAt(52, "13:49")>']
+    notification_16:
+        __construct: ['@discord_user_collectionneur', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 7 }, '<parisAt(52, "13:49")>']
+        __calls:
+            - markRead: ['<parisAt(52, "13:49")>']
+    notification_17:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'KDA', channel: 'streak' }, '<parisAt(48, "11:49")>']
+        __calls:
+            - markRead: ['<parisAt(48, "11:49")>']
+    notification_18:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 28 }, '<parisAt(48, "11:49")>']
+        __calls:
+            - markRead: ['<parisAt(48, "11:49")>']
+    notification_19:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Magic', channel: 'streak' }, '<parisAt(41, "11:29")>']
+        __calls:
+            - markRead: ['<parisAt(41, "11:29")>']
+    notification_20:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 35 }, '<parisAt(41, "11:29")>']
+        __calls:
+            - markRead: ['<parisAt(41, "11:29")>']
+    notification_21:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'L''album des Youlz', channel: 'streak' }, '<parisAt(38, "08:19")>']
+        __calls:
+            - markRead: ['<parisAt(38, "08:19")>']
+    notification_22:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 7 }, '<parisAt(38, "08:19")>']
+        __calls:
+            - markRead: ['<parisAt(38, "08:19")>']
+    notification_23:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::UNIVERSE_COMPLETED)>', { universe: 'Cosmonaut', slug: 'cosmonaut', amount: 500 }, '<parisAt(36, "20:39")>']
+        __calls:
+            - markRead: ['<parisAt(36, "20:39")>']
+    notification_24:
+        __construct: ['@discord_user_collectionneur', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'L''album des Youlz', channel: 'streak' }, '<parisAt(35, "12:19")>']
+        __calls:
+            - markRead: ['<parisAt(35, "12:19")>']
+    notification_25:
+        __construct: ['@discord_user_collectionneur', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 7 }, '<parisAt(35, "12:19")>']
+        __calls:
+            - markRead: ['<parisAt(35, "12:19")>']
+    notification_26:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Psychedelic', channel: 'streak' }, '<parisAt(34, "11:19")>']
+        __calls:
+            - markRead: ['<parisAt(34, "11:19")>']
+    notification_27:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 42 }, '<parisAt(34, "11:19")>']
+        __calls:
+            - markRead: ['<parisAt(34, "11:19")>']
+    notification_28:
+        __construct: ['@discord_user_collectionneur', '<(App\Enum\Notification\NotificationTypeEnum::UNIVERSE_COMPLETED)>', { universe: 'KDA', slug: 'kda', amount: 500 }, '<parisAt(33, "12:19")>']
+        __calls:
+            - markRead: ['<parisAt(33, "12:19")>']
+    notification_29:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'KDA', channel: 'streak' }, '<parisAt(31, "08:19")>']
+        __calls:
+            - markRead: ['<parisAt(31, "08:19")>']
+    notification_30:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 14 }, '<parisAt(31, "08:19")>']
+        __calls:
+            - markRead: ['<parisAt(31, "08:19")>']
+    notification_31:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::UNIVERSE_COMPLETED)>', { universe: 'Magic', slug: 'magic', amount: 500 }, '<parisAt(30, "10:19")>']
+        __calls:
+            - markRead: ['<parisAt(30, "10:19")>']
+    notification_32:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Cyberpunk', channel: 'streak' }, '<parisAt(27, "09:49")>']
+        __calls:
+            - markRead: ['<parisAt(27, "09:49")>']
+    notification_33:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 49 }, '<parisAt(27, "09:49")>']
+        __calls:
+            - markRead: ['<parisAt(27, "09:49")>']
+    notification_34:
+        __construct: ['@discord_user_collectionneur', '<(App\Enum\Notification\NotificationTypeEnum::UNIVERSE_COMPLETED)>', { universe: 'Divinity', slug: 'divinity', amount: 500 }, '<parisAt(23, "15:39")>']
+        __calls:
+            - markRead: ['<parisAt(23, "15:39")>']
+    notification_35:
+        __construct: ['@discord_user_veli', '<(App\Enum\Notification\NotificationTypeEnum::UNIVERSE_COMPLETED)>', { universe: 'Divinity', slug: 'divinity', amount: 500 }, '<parisAt(21, "15:49")>']
+        __calls:
+            - markRead: ['<parisAt(21, "15:49")>']
+    notification_36:
+        __construct: [null, '<(App\Enum\Notification\NotificationTypeEnum::UNIQUE_PULLED)>', { playerName: 'Barlito', playerId: '188967649332428800', universe: 'Magic' }, '<parisAt(20, "08:19")>']
+    notification_37:
+        __construct: ['@discord_user_farph', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Magic', channel: 'streak' }, '<parisAt(20, "11:39")>']
+        __calls:
+            - markRead: ['<parisAt(20, "11:39")>']
+    notification_38:
+        __construct: ['@discord_user_farph', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 7 }, '<parisAt(20, "11:39")>']
+        __calls:
+            - markRead: ['<parisAt(20, "11:39")>']
+    notification_39:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Magic', channel: 'code' }, '<parisAt(20, "18:00")>']
+        __calls:
+            - markRead: ['<parisAt(20, "18:00")>']
+    notification_40:
+        __construct: ['@discord_user_farph', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Magic', channel: 'code' }, '<parisAt(18, "12:00")>']
+        __calls:
+            - markRead: ['<parisAt(18, "12:00")>']
+    notification_41:
+        __construct: ['@discord_user_benj', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Magic', channel: 'code' }, '<parisAt(15, "21:00")>']
+        __calls:
+            - markRead: ['<parisAt(15, "21:00")>']
+    notification_42:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'L''album des Youlz', channel: 'streak' }, '<parisAt(13, "09:39")>']
+        __calls:
+            - markRead: ['<parisAt(13, "09:39")>']
+    notification_43:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 7 }, '<parisAt(13, "09:39")>']
+        __calls:
+            - markRead: ['<parisAt(13, "09:39")>']
+    notification_44:
+        __construct: ['@discord_user_collectionneur', '<(App\Enum\Notification\NotificationTypeEnum::UNIVERSE_COMPLETED)>', { universe: 'Magic', slug: 'magic', amount: 500 }, '<parisAt(12, "17:39")>']
+        __calls:
+            - markRead: ['<parisAt(12, "17:39")>']
+    notification_45:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::TRADE_RECEIVED)>', { playerName: 'Juju', playerId: '195659530363731968' }, '<parisAt(12, "18:00")>']
+        __calls:
+            - markRead: ['<parisAt(12, "18:00")>']
+    notification_46:
+        __construct: ['@discord_user_veli', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'L''album des Youlz', channel: 'code' }, '<parisAt(12, "19:00")>']
+        __calls:
+            - markRead: ['<parisAt(12, "19:00")>']
+    notification_47:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::TRADE_ACCEPTED)>', { playerName: 'Barlito', playerId: '188967649332428800', offerId: '@trade_juju_barlito_accepted' }, '<parisAt(11, "09:00")>']
+        __calls:
+            - markRead: ['<parisAt(11, "09:00")>']
+    notification_48:
+        __construct: ['@discord_user_weeby', '<(App\Enum\Notification\NotificationTypeEnum::UNIVERSE_COMPLETED)>', { universe: 'Space Nomad', slug: 'space-nomad', amount: 500 }, '<parisAt(11, "12:19")>']
+        __calls:
+            - markRead: ['<parisAt(11, "12:19")>']
+    notification_49:
+        __construct: ['@discord_user_benj', '<(App\Enum\Notification\NotificationTypeEnum::UNIVERSE_COMPLETED)>', { universe: 'Divinity', slug: 'divinity', amount: 500 }, '<parisAt(11, "18:39")>']
+        __calls:
+            - markRead: ['<parisAt(11, "18:39")>']
+    notification_50:
+        __construct: [null, '<(App\Enum\Notification\NotificationTypeEnum::UNIQUE_PULLED)>', { playerName: 'Juju', playerId: '195659530363731968', universe: 'Bleach' }, '<parisAt(10, "14:49")>']
+    notification_51:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Cyberpunk', channel: 'streak' }, '<parisAt(9, "08:19")>']
+        __calls:
+            - markRead: ['<parisAt(9, "08:19")>']
+    notification_52:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 7 }, '<parisAt(9, "08:19")>']
+        __calls:
+            - markRead: ['<parisAt(9, "08:19")>']
+    notification_53:
+        __construct: ['@discord_user_weeby', '<(App\Enum\Notification\NotificationTypeEnum::UNIVERSE_COMPLETED)>', { universe: 'Cosmonaut', slug: 'cosmonaut', amount: 500 }, '<parisAt(9, "10:49")>']
+        __calls:
+            - markRead: ['<parisAt(9, "10:49")>']
+    notification_54:
+        __construct: ['@discord_user_farph', '<(App\Enum\Notification\NotificationTypeEnum::TRADE_RECEIVED)>', { playerName: 'Barlito', playerId: '188967649332428800' }, '<parisAt(9, "21:00")>']
+        __calls:
+            - markRead: ['<parisAt(9, "21:00")>']
+    notification_55:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::TRADE_ACCEPTED)>', { playerName: 'Farph', playerId: '188967949963362304', offerId: '@trade_barlito_farph_accepted' }, '<parisAt(8, "12:00")>']
+    notification_56:
+        __construct: ['@discord_user_veli', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Cyberpunk', channel: 'code' }, '<parisAt(7, "09:30")>']
+        __calls:
+            - markRead: ['<parisAt(7, "09:30")>']
+    notification_57:
+        __construct: ['@discord_user_benj', '<(App\Enum\Notification\NotificationTypeEnum::TRADE_RECEIVED)>', { playerName: 'Juju', playerId: '195659530363731968' }, '<parisAt(7, "10:00")>']
+        __calls:
+            - markRead: ['<parisAt(7, "10:00")>']
+    notification_58:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::UNIVERSE_COMPLETED)>', { universe: 'Bleach', slug: 'bleach', amount: 500 }, '<parisAt(7, "10:49")>']
+        __calls:
+            - markRead: ['<parisAt(7, "10:49")>']
+    notification_59:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::TRADE_ACCEPTED)>', { playerName: 'Benj', playerId: '232457563910832129', offerId: '@trade_juju_benj_accepted' }, '<parisAt(7, "18:00")>']
+        __calls:
+            - markRead: ['<parisAt(7, "18:00")>']
+    notification_60:
+        __construct: ['@discord_user_collectionneur', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'KDA', channel: 'streak' }, '<parisAt(6, "10:29")>']
+        __calls:
+            - markRead: ['<parisAt(6, "10:29")>']
+    notification_61:
+        __construct: ['@discord_user_collectionneur', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 7 }, '<parisAt(6, "10:29")>']
+        __calls:
+            - markRead: ['<parisAt(6, "10:29")>']
+    notification_62:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'KDA', channel: 'streak' }, '<parisAt(6, "10:49")>']
+        __calls:
+            - markRead: ['<parisAt(6, "10:49")>']
+    notification_63:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 14 }, '<parisAt(6, "10:49")>']
+        __calls:
+            - markRead: ['<parisAt(6, "10:49")>']
+    notification_64:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Cosmonaut', channel: 'recycle' }, '<parisAt(6, "13:00")>']
+        __calls:
+            - markRead: ['<parisAt(6, "13:00")>']
+    notification_65:
+        __construct: ['@discord_user_veli', '<(App\Enum\Notification\NotificationTypeEnum::TRADE_RECEIVED)>', { playerName: 'Barlito', playerId: '188967649332428800' }, '<parisAt(6, "20:00")>']
+        __calls:
+            - markRead: ['<parisAt(6, "20:00")>']
+    notification_66:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Cyberpunk', channel: 'code' }, '<parisAt(5, "09:00")>']
+        __calls:
+            - markRead: ['<parisAt(5, "09:00")>']
+    notification_67:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::TRADE_REFUSED)>', { playerName: 'Veli', playerId: '189029821328785409', offerId: '@trade_barlito_veli_refused' }, '<parisAt(5, "11:00")>']
+        __calls:
+            - markRead: ['<parisAt(5, "11:00")>']
+    notification_68:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::MARKET_SOLD)>', { listingId: '@listing_barlito_sold', buyerName: 'Juju', cardName: 'Julian "Kuzu" Delavega', price: 35 }, '<parisAt(5, "15:00")>']
+        __calls:
+            - markRead: ['<parisAt(5, "15:00")>']
+    notification_69:
+        __construct: ['@discord_user_weeby', '<(App\Enum\Notification\NotificationTypeEnum::TRADE_RECEIVED)>', { playerName: 'Barlito', playerId: '188967649332428800' }, '<parisAt(4, "11:00")>']
+        __calls:
+            - markRead: ['<parisAt(4, "11:00")>']
+    notification_70:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Psychedelic', channel: 'recycle' }, '<parisAt(3, "06:00")>']
+        __calls:
+            - markRead: ['<parisAt(3, "06:00")>']
+    notification_71:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::WISHLIST_LISTED)>', { listingId: '@listing_juju_l2', universe: 'Psychedelic', slug: 'psychedelic', price: 40 }, '<parisAt(3, "12:00")>']
+        __calls:
+            - markRead: ['<parisAt(3, "12:00")>']
+    notification_72:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::STREAK_REWARD_AVAILABLE)>', { milestone: 14 }, '<parisAt(2, "08:02")>']
+    notification_73:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::WISHLIST_LISTED)>', { listingId: '@listing_benj_l1', universe: 'Bleach', slug: 'bleach', price: 300 }, '<parisAt(2, "09:00")>']
+    notification_74:
+        __construct: ['@discord_user_collectionneur', '<(App\Enum\Notification\NotificationTypeEnum::MARKET_SOLD)>', { listingId: '@listing_collectionneur_sold', buyerName: 'Barlito', cardName: 'Ahlototh The Sightless', price: 45 }, '<parisAt(2, "10:30")>']
+        __calls:
+            - markRead: ['<parisAt(2, "10:30")>']
+    notification_75:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CREDITED)>', { quantity: 1, boosterName: 'Space Nomad', channel: 'recycle' }, '<parisAt(2, "21:00")>']
+        __calls:
+            - markRead: ['<parisAt(2, "21:00")>']
+    notification_76:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::WISHLIST_LISTED)>', { listingId: '@listing_veli_l4', cardName: 'Benj The Eternal', universe: 'Divinity', slug: 'divinity', price: 60 }, '<parisAt(1, "10:00")>']
+    notification_77:
+        __construct: [null, '<(App\Enum\Notification\NotificationTypeEnum::ANNOUNCEMENT)>', { title: 'Le marché tourne à plein régime', message: 'Pensez à mettre vos doublons en vente : la commission reste à 5 % ce mois-ci.', link: '/marche' }, '<parisAt(0, "07:00")>']
+    notification_78:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::BOOSTER_CODE)>', { code: '7Q67K6M4BCDY', quantity: 2, boosterName: 'Psychedelic', message: 'Merci pour les retours sur le marché, voilà de quoi finir Psychedelic !' }, '<parisAt(0, "08:00")>']
+    notification_79:
+        __construct: ['@discord_user_barlito', '<(App\Enum\Notification\NotificationTypeEnum::TRADE_RECEIVED)>', { playerName: 'Benj', playerId: '232457563910832129' }, '<parisAt(0, "09:00")>']
+    notification_80:
+        __construct: ['@discord_user_juju', '<(App\Enum\Notification\NotificationTypeEnum::TRADE_RECEIVED)>', { playerName: 'Barlito', playerId: '188967649332428800' }, '<parisAt(0, "10:00")>']
+
+# broadcasts « 1/1 tirée » déjà ouverts par Barlito ; l'annonce du jour reste non lue
+App\Entity\NotificationBroadcastRead:
+    broadcast_read_36:
+        __construct: ['@notification_36', '@discord_user_barlito', '<parisAt(0, "06:00")>']
+    broadcast_read_50:
+        __construct: ['@notification_50', '@discord_user_barlito', '<parisAt(0, "06:00")>']
