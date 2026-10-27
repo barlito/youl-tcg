@@ -53,6 +53,17 @@ final class AdminFeatureFlagCrudTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testTheEditPageNamesTheFeature(): void
+    {
+        $client = self::createClient();
+        $this->authenticateClient($client);
+
+        $crawler = $client->request('GET', '/admin/feature-flag/trades/edit');
+
+        self::assertResponseIsSuccessful();
+        $this->assertSame(\sprintf('Modifier « %s »', FeatureEnum::TRADES->label()), trim($crawler->filter('h1.title')->text()));
+    }
+
     public function testCreationAndDeletionAreDisabled(): void
     {
         $client = self::createClient();

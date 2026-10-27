@@ -34,6 +34,7 @@ class FeatureFlagCrudController extends AbstractCrudController
             ->setEntityLabelInPlural('Fonctionnalités')
             ->setDefaultSort(['name' => 'ASC'])
             ->setTimezone('Europe/Paris')
+            ->setPageTitle(Crud::PAGE_EDIT, static fn (FeatureFlag $flag): string => \sprintf('Modifier « %s »', $flag->getLabel()))
             ->setHelp(Crud::PAGE_INDEX, 'Coupe ou rouvre une fonctionnalité pour tous les joueurs, immédiatement. Coupée, ses pages répondent 404 et ses liens disparaissent ; les données (offres, historique) sont conservées telles quelles. Voir le guide admin.')
         ;
     }
