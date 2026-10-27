@@ -132,10 +132,11 @@
     opacity: 0;
     transition: opacity .3s ease .55s;
 }
-.trade-reveal__holo { color: var(--magenta, #ff3db0); }
-/* the stamp follows the card size, whatever the number of cards */
+.trade-reveal__holo { color: var(--magenta, #ff3db0); white-space: nowrap; }
+/* the stamp follows the card size; bottom corner, the top one holds the card name */
 .trade-reveal .new-tag {
-    top: -7%;
+    top: auto;
+    bottom: 7%;
     left: -9%;
     font-size: max(8px, calc(var(--reveal-card-w) * .052));
 }
@@ -157,7 +158,7 @@
 .trade-reveal--many .trade-reveal__name { font-size: 14px; }
 .trade-reveal__rarity { display: block; }
 /* a single card: the rarity line may spill past the card instead of wrapping */
-.trade-reveal:not(.trade-reveal--some):not(.trade-reveal--many) .trade-reveal__rarity { margin: 0 -80px; }
+.trade-reveal--one .trade-reveal__rarity { margin: 0 -80px; }
 .trade-reveal__card.is-revealed .trade-reveal__qty,
 .trade-reveal__card.is-revealed .trade-reveal__name,
 .trade-reveal__card.is-revealed .trade-reveal__rarity { opacity: 1; }

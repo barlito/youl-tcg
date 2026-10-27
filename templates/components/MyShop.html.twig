@@ -15,10 +15,12 @@
         {% endembed %}
 
         <div class="wrap flex flex-col gap-10 pb-24 pt-6 md:pt-8">
-            {% if error %}
-                <div class="panel flash-msg flash-msg--err" role="alert" data-testid="shop-error">⚠ {{ error }}</div>
+            {# an error about the price being typed stays next to its field #}
+            {% set inlineError = error and (editingId or (selling and this.canPublish)) %}
+            {% if error and not inlineError %}
+                <div class="panel flash-msg flash-msg--err" role="alert" data-controller="reveal-message" data-reveal-message-key-value="{{ error }}" data-testid="shop-error">⚠ {{ error }}</div>
             {% elseif success %}
-                <div class="panel flash-msg flash-msg--ok" role="status" data-testid="shop-success">✦ {{ success }}</div>
+                <div class="panel flash-msg flash-msg--ok" role="status" data-controller="reveal-message" data-reveal-message-key-value="{{ success }}" data-testid="shop-success">✦ {{ success }}</div>
             {% endif %}
 
             {# ------------------------------------------------ En vente #}
@@ -39,7 +41,10 @@
                                 {% if editingId == (listing.id ~ '') %}
                                     <label class="lbl" for="edit-price-{{ listing.id }}">Nouveau prix (YLC)</label>
                                     <input id="edit-price-{{ listing.id }}" class="field w-full" type="text" inputmode="numeric"
-                                           data-model="editPrice" value="{{ editPrice }}" data-testid="edit-price">
+                                           data-model="editPrice" value="{{ editPrice }}" data-testid="edit-price"{{ inlineError ? ' aria-invalid="true" aria-describedby="edit-price-error"' }}>
+                                    {% if inlineError %}
+                                        <span id="edit-price-error" class="field-error" role="alert" data-testid="shop-error">⚠ {{ error }}</span>
+                                    {% endif %}
                                     <span class="mt-auto flex gap-2">
                                         <button type="button" class="btn btn-p btn-s flex-1"
                                                 data-action="live#action" data-live-action-param="savePrice" data-live-listing-id-param="{{ listing.id }}"
@@ -180,6 +185,9 @@
                                                             data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="publish-listing">Mettre en vente</button>
                                                     <button type="button" class="btn btn-g btn-s" data-action="live#action" data-live-action-param="cancelSelling">Annuler</button>
                                                 </div>
+                                                {% if inlineError %}
+                                                    <p class="field-error mt-2" role="alert" data-testid="shop-error">⚠ {{ error }}</p>
+                                                {% endif %}
                                             </td>
                                         </tr>
                                     {% endif %}

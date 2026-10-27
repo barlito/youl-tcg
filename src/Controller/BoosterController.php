@@ -39,7 +39,9 @@ class BoosterController extends AbstractController
         $userBooster = $userBoosterRepository->findOneBy(['discordUser' => $user, 'booster' => $booster]);
 
         if (!$boosterAvailability->isOpenable($booster, $userBooster?->getQuantity() ?? 0)) {
-            $this->addFlash('error', "Ce pack n'est pas ouvrable pour le moment.");
+            $this->addFlash('error', ($userBooster?->getQuantity() ?? 0) > 0
+                ? "Ce pack n'est pas ouvrable pour le moment."
+                : "Tu n'as aucun exemplaire de ce pack à ouvrir.");
 
             return $this->redirectToRoute('boosters');
         }

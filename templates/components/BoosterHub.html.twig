@@ -294,10 +294,10 @@
 
                                 {% if onSale %}
                                     {% set block = this.purchaseBlock(booster) %}
-                                    <div class="flex items-center justify-between gap-2" data-testid="shop-item">
-                                        <span class="lbl" title="Prix en Youl Coin"><span class="text-soon">¤</span> <span data-testid="shop-price">{{ coin_amount(booster.purchasePrice) }} YLC</span></span>
+                                    <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1" data-testid="shop-item">
+                                        <span class="lbl whitespace-nowrap" title="Prix en Youl Coin"><span class="text-soon">¤</span> <span data-testid="shop-price">{{ coin_amount(booster.purchasePrice) }} YLC</span></span>
                                         {% if block %}
-                                            <button type="button" disabled data-testid="shop-buy" class="tl cursor-not-allowed no-underline opacity-70">{{ block }}</button>
+                                            <button type="button" disabled data-testid="shop-buy" class="tl cursor-not-allowed whitespace-nowrap no-underline opacity-70">{{ block }}</button>
                                         {% elseif confirmingPurchaseBoosterId == booster.id %}
                                             <span class="flex shrink-0 gap-1.5">
                                                 <button type="button" data-action="live#action" data-live-action-param="confirmPurchase" data-live-booster-id-param="{{ booster.id }}"

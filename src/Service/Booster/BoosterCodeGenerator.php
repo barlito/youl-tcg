@@ -68,6 +68,12 @@ final readonly class BoosterCodeGenerator
         return array_keys($codes);
     }
 
+    /** Whether a normalized value has the shape of a generated code (length and alphabet). */
+    public static function looksLikeCode(string $normalized): bool
+    {
+        return self::LENGTH === \strlen($normalized) && self::LENGTH === strspn($normalized, self::ALPHABET);
+    }
+
     /**
      * Player input to canonical form: case and separators are noise.
      */

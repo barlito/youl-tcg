@@ -82,6 +82,43 @@ final class TradeComponentTest extends WebTestCase
         $this->assertSame(TradeOfferStatusEnum::PENDING, $offers[0]->getStatus());
     }
 
+    public function testASentOfferLandsOnTheSentTabWithAMessage(): void
+    {
+        $barlito = $this->authenticateClient($this->client, self::BARLITO);
+        $juju = $this->user(self::JUJU);
+        $mine = $this->giveCard($barlito, 'Envoyée', quantity: 1);
+        $this->giveCard($juju, 'Voulue', quantity: 1);
+
+        $component = $this->composer();
+        $html = (string) $component->render();
+        $component->call('adjust', ['side' => 'offered', 'token' => $this->tokenOf($html, 'offered', $mine->getName()), 'finish' => 'normal', 'delta' => 1]);
+        $component->call('adjust', ['side' => 'requested', 'token' => $this->tokenOf($html, 'requested', null), 'finish' => 'normal', 'delta' => 1]);
+        $component->call('submit');
+
+        $location = (string) $this->client->getResponse()->headers->get('Location');
+        $this->assertStringEndsWith('/echanges?onglet=envoyees', $location);
+
+        $crawler = $this->client->request('GET', $location);
+        $this->assertSame('true', $crawler->filter('[data-testid="tab-sent"]')->attr('aria-selected'));
+        $this->assertNull($crawler->filter('#trade-pane-sent')->attr('hidden'));
+        $this->assertStringContainsString('Offre envoyée à ' . $juju->getUsername(), $crawler->filter('[data-testid="trade-success"]')->text());
+
+        $crawler = $this->client->request('GET', $location);
+        $this->assertCount(0, $crawler->filter('[data-testid="trade-success"]'), 'The message is shown once, not on every reload.');
+        $this->assertSame('true', $crawler->filter('[data-testid="tab-sent"]')->attr('aria-selected'), 'The tab survives a reload.');
+    }
+
+    public function testTheHistoryTabIsReachableFromTheUrl(): void
+    {
+        $this->authenticateClient($this->client, self::JUJU);
+
+        $crawler = $this->client->request('GET', '/echanges?onglet=historique');
+
+        $this->assertSame('true', $crawler->filter('[data-testid="tab-history"]')->attr('aria-selected'));
+        $crawler = $this->client->request('GET', '/echanges?onglet=nimporte');
+        $this->assertSame('true', $crawler->filter('[data-testid="tab-received"]')->attr('aria-selected'));
+    }
+
     public function testStepperNeverExceedsTheAvailableCopies(): void
     {
         $barlito = $this->authenticateClient($this->client, self::BARLITO);

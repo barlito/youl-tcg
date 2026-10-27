@@ -26,9 +26,9 @@
 
         <div class="wrap flex flex-col gap-6 pb-24 pt-6 md:pt-8">
             {% if error %}
-                <div class="panel flash-msg flash-msg--err" role="alert" data-testid="trade-error">⚠ {{ error }}</div>
+                <div class="panel flash-msg flash-msg--err" role="alert" data-controller="reveal-message" data-reveal-message-key-value="{{ error }}" data-testid="trade-error">⚠ {{ error }}</div>
             {% elseif success %}
-                <div class="panel flash-msg flash-msg--ok" role="status" data-testid="trade-success">⇄ {{ success }}</div>
+                <div class="panel flash-msg flash-msg--ok" role="status" data-controller="reveal-message" data-reveal-message-key-value="{{ success }}" data-testid="trade-success">⇄ {{ success }}</div>
             {% endif %}
 
             {# --------------------------------------------------------- Reçues #}
@@ -147,7 +147,7 @@
                                      {%- if isFocused %} open data-focused data-controller="trade-focus"{% endif %}>
                                 <summary class="trade-hist__summary">
                                     {{ _self.status(offer.status) }}
-                                    <span class="min-w-0 flex-1 text-[15px]">
+                                    <span class="trade-hist__text">
                                         {{ isMine ? 'Offre à' : 'Offre de' }} <strong class="text-ink-strong">{{ isMine ? offer.receiver.username : offer.proposer.username }}</strong>
                                         <span class="muted">· {{ accepted ? 'tu as reçu' : 'tu aurais reçu' }} {{ gotCopies }} carte{{ gotCopies > 1 ? 's' }} contre {{ givenCopies }}</span>
                                     </span>

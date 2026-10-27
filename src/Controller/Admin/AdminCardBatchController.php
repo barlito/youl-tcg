@@ -108,8 +108,8 @@ class AdminCardBatchController extends AbstractController
             ])
             ->add('rarity', ChoiceType::class, [
                 'label' => 'Rareté (appliquée à tout le lot)',
-                'choices' => CardRarityEnum::cases(),
-                'choice_label' => static fn (CardRarityEnum $rarity): string => ucfirst($rarity->value),
+                'choices' => CardRarityEnum::ascending(),
+                'choice_label' => static fn (CardRarityEnum $rarity): string => $rarity->label(),
                 'choice_value' => static fn (?CardRarityEnum $rarity): string => $rarity->value ?? '',
                 'data' => CardRarityEnum::COMMON,
             ])

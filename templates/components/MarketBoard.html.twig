@@ -36,9 +36,9 @@
             {% endif %}
 
             {% if error %}
-                <div class="panel flash-msg flash-msg--err{{ shop ? ' mt-4' }}" role="alert" data-testid="market-error">⚠ {{ error }}</div>
+                <div class="panel flash-msg flash-msg--err{{ shop ? ' mt-4' }}" role="alert" data-controller="reveal-message" data-reveal-message-key-value="{{ error }}" data-testid="market-error">⚠ {{ error }}</div>
             {% elseif success %}
-                <div class="panel flash-msg flash-msg--ok{{ shop ? ' mt-4' }}" role="status" data-testid="market-success">✦ {{ success }}</div>
+                <div class="panel flash-msg flash-msg--ok{{ shop ? ' mt-4' }}" role="status" data-controller="reveal-message" data-reveal-message-key-value="{{ success }}" data-testid="market-success">✦ {{ success }}</div>
             {% endif %}
 
             {% if not shop %}
@@ -158,9 +158,9 @@
         {% if isConfirming %}
             <div class="market-listing__confirm">
                 <p class="muted text-xs" data-testid="buy-confirmation">{{ coin_amount(listing.price) }} YLC seront débités de ton solde, sans retour possible.</p>
-                <div class="flex gap-2">
+                <div class="market-listing__confirm-actions">
                     <button type="button" class="btn btn-g btn-s" data-action="live#action" data-live-action-param="abortBuy" data-testid="listing-abort">Annuler</button>
-                    <button type="button" class="btn btn-p btn-s flex-1"
+                    <button type="button" class="btn btn-p btn-s"
                             data-action="live#action" data-live-action-param="buy" data-live-listing-id-param="{{ listing.id }}"
                             data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="listing-confirm">Confirmer</button>
                 </div>
@@ -210,9 +210,9 @@
                 aria-pressed="{{ board.missingFilterActive ? 'true' : 'false' }}"
                 data-testid="filter-missing">Me manquent</button>
         {% if board.wishlistEnabled %}
-            <button type="button" class="seg{{ board.wishlistOnly ? ' on' }}"
+            <button type="button" class="seg{{ board.wishlistFilterActive ? ' on' }}"
                     data-action="live#action" data-live-action-param="toggleWishlistFilter"
-                    aria-pressed="{{ board.wishlistOnly ? 'true' : 'false' }}"
+                    aria-pressed="{{ board.wishlistFilterActive ? 'true' : 'false' }}"
                     data-testid="filter-wishlist">♡ Ma wishlist</button>
         {% endif %}
         <button type="button" class="seg{{ board.mineFilterActive ? ' on' }}"

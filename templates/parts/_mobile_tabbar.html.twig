@@ -3,7 +3,7 @@
 {% set tradesOpen = feature_enabled('trades') and app.user %}
 {% set inMySpace = currentRoute in ['collection', 'wishlist', 'opening_history', 'recycle', 'fusion'] %}
 <div class="lg:hidden" data-controller="disclosure"
-     data-action="keydown->disclosure#keydown">
+     data-action="keydown@window->disclosure#keydown focusout->disclosure#focusout">
     <div class="sheet-backdrop" hidden data-disclosure-target="backdrop" data-action="click->disclosure#dismiss"></div>
 
     <nav class="tabbar" aria-label="Navigation principale (mobile)" data-testid="mobile-tabbar">

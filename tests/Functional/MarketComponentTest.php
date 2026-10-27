@@ -157,11 +157,37 @@ final class MarketComponentTest extends WebTestCase
 
         $board->call('toggleWishlistFilter')->call('toggleMineFilter');
         $this->assertTrue($board->component()->mineOnly);
-        $this->assertFalse($board->component()->wishlistOnly);
+        $this->assertNull($board->component()->wishlistOnly);
 
         $board->call('toggleWishlistFilter');
-        $this->assertFalse($board->component()->mineOnly);
+        $this->assertNull($board->component()->mineOnly);
         $this->assertTrue($board->component()->wishlistOnly);
+    }
+
+    public function testClearedTogglesLeaveNoDefaultInTheUrl(): void
+    {
+        $board = $this->board();
+
+        $board->call('toggleWishlistFilter')->call('toggleWishlistFilter');
+        $board->call('toggleMissingFilter')->call('toggleMissingFilter');
+        $board->call('toggleMineFilter')->call('toggleMineFilter');
+
+        // null, not false: http_build_query drops it from the url (?wishlist=0 otherwise)
+        $this->assertNull($board->component()->wishlistOnly);
+        $this->assertNull($board->component()->missingOnly);
+        $this->assertNull($board->component()->mineOnly);
+
+        $board->call('toggleMissingFilter')->call('resetFilters');
+        $this->assertNull($board->component()->missingOnly);
+    }
+
+    public function testBothFiltersInTheUrlOnlyPressTheOneThatApplies(): void
+    {
+        $crawler = $this->client->request('GET', '/marche?wishlist=1&mine=1');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSame('true', $crawler->filter('[data-testid="filter-mine"]')->attr('aria-pressed'));
+        $this->assertSame('false', $crawler->filter('[data-testid="filter-wishlist"]')->attr('aria-pressed'));
     }
 
     public function testMyOwnListingNeverMatchesMyWishlist(): void
@@ -287,6 +313,49 @@ final class MarketComponentTest extends WebTestCase
 
         $this->assertCount(1, $crawler->filter('[data-testid="market-error"]'));
         $this->assertSame(0, $this->purchaseCount());
+    }
+
+    public function testTheEmptySelectsResentByEveryActionDoNotCancelTheConfirmation(): void
+    {
+        $card = $this->card('Bought unfiltered');
+        $listing = $this->listing($this->seller, $card, false, 25);
+        $this->give($this->seller, $card, 1);
+        $board = $this->board();
+
+        $this->callWithUntouchedSelects($board, 'askBuy', ['listingId' => (string) $listing->getId()]);
+        $crawler = $this->callWithUntouchedSelects($board, 'buy', ['listingId' => (string) $listing->getId()])->render()->crawler();
+
+        $this->assertCount(0, $crawler->filter('[data-testid="market-error"]'));
+        $this->assertStringContainsString('Carte achetée', $crawler->filter('[data-testid="market-success"]')->text());
+        $this->assertSame([1, 0], $this->owned($this->buyer, $card));
+    }
+
+    public function testAHeartOnPageTwoStaysOnPageTwo(): void
+    {
+        $listings = [];
+        for ($i = 0; $i < MarketBoard::PER_PAGE + 1; ++$i) {
+            $listings[] = $this->listing($this->seller, $this->card('Heart paged ' . $i), false, 10 + $i);
+        }
+        $board = $this->board();
+        $board->call('goToPage', ['page' => 2]);
+
+        $this->callWithUntouchedSelects($board, 'toggleWish', ['listingId' => (string) $listings[0]->getId()]);
+
+        $this->assertSame(2, $board->component()->page);
+    }
+
+    public function testARealFilterChangeStillResetsThePageAndTheConfirmation(): void
+    {
+        for ($i = 0; $i < MarketBoard::PER_PAGE + 1; ++$i) {
+            $this->listing($this->seller, $this->card('Reset paged ' . $i, CardRarityEnum::RARE), false, 10 + $i);
+        }
+        $board = $this->board();
+        $board->call('goToPage', ['page' => 2]);
+
+        $board->set('rarity', 'rare');
+
+        $this->assertSame(1, $board->component()->page);
+        $this->assertSame('rare', $board->component()->rarity);
     }
 
     public function testAMalformedListingIdIsAPlainError(): void
@@ -476,6 +545,27 @@ final class MarketComponentTest extends WebTestCase
 
         $this->assertCount(1, $crawler->filter('[data-testid="shop-error"]'));
         $this->assertSame(0, $this->entityManager->getRepository(MarketListing::class)->count(['seller' => $this->buyer]));
+    }
+
+    public function testARefusedNewPriceKeepsTheFieldOpenWithItsError(): void
+    {
+        $card = $this->card('Repriced badly');
+        $this->give($this->buyer, $card, 1);
+        $listing = $this->listingViaService($this->buyer, $card, false, 10);
+        $shop = $this->myShop();
+        $shop->call('startEdit', ['listingId' => (string) $listing->getId()]);
+        $shop->set('editPrice', '0');
+
+        $crawler = $shop->call('savePrice', ['listingId' => (string) $listing->getId()])->render()->crawler();
+
+        $this->assertCount(1, $crawler->filter('[data-testid="edit-price"]'), 'The field stays open to fix the price.');
+        $this->assertCount(1, $crawler->filter('[data-testid="my-listing"] [data-testid="shop-error"]'), 'The error sits next to the field.');
+        $this->assertSame(10, $this->entityManager->getRepository(MarketListing::class)->find($listing->getId())?->getPrice());
+
+        $shop->set('editPrice', '15');
+        $crawler = $shop->call('savePrice', ['listingId' => (string) $listing->getId()])->render()->crawler();
+        $this->assertCount(0, $crawler->filter('[data-testid="edit-price"]'));
+        $this->assertCount(1, $crawler->filter('[data-testid="shop-success"]'));
     }
 
     public function testTheFourthListingIsRefusedAndTheShopSaysWhy(): void
@@ -669,6 +759,21 @@ final class MarketComponentTest extends WebTestCase
         $rows = $shop->render()->crawler()->filter('[data-testid="sellable"]');
         $this->assertCount(1, $rows, 'A single copy is not a duplicate.');
         $this->assertStringContainsString($sold->getName(), $rows->text());
+    }
+
+    /**
+     * What the browser sends: the three selects bound to a null prop post '' along with every action.
+     *
+     * @param array<string, string> $arguments
+     */
+    private function callWithUntouchedSelects(TestLiveComponent $board, string $action, array $arguments): TestLiveComponent
+    {
+        new \ReflectionMethod($board, 'request')->invoke($board, [
+            'updated' => ['universe' => '', 'rarity' => '', 'finish' => ''],
+            'args' => $arguments,
+        ], $action);
+
+        return $board;
     }
 
     private function board(): TestLiveComponent

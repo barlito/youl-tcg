@@ -6,7 +6,7 @@
 
     <div class="wrap flex flex-col gap-4 pb-10 pt-5">
         {% if error %}
-            <div class="panel flash-msg flash-msg--err" role="alert" data-testid="composer-error">⚠ {{ error }}</div>
+            <div class="panel flash-msg flash-msg--err" role="alert" data-controller="reveal-message" data-reveal-message-key-value="{{ error }}" data-testid="composer-error">⚠ {{ error }}</div>
         {% endif %}
 
         {# -------------------------------------------- Univers + recherche #}
@@ -279,8 +279,8 @@
 {% macro recap(label, summary, side) %}
     {% set fresh = side == 'requested' ? summary.items|filter(item => not item.entry.card)|length : 0 %}
     <div class="composer-recap" data-testid="recap-{{ side }}">
-        <span class="flex flex-col">
-            <span class="lbl">{{ label }}</span>
+        <span class="flex flex-none flex-col">
+            <span class="lbl whitespace-nowrap">{{ label }}</span>
             <span class="d composer-recap__count{{ summary.copies == 0 ? ' text-ink-dim' }}" data-testid="recap-{{ side }}-count">{{ summary.copies }}</span>
         </span>
         {% if summary.items is not empty %}
@@ -292,7 +292,7 @@
                         <span class="composer-recap__back" style="--back-color: var(--rarity-{{ item.entry.rarity.value }});"></span>
                     {% endif %}
                 {% endfor %}
-                {% if summary.items|length > 4 %}<span class="lbl self-center">+{{ summary.items|length - 4 }}</span>{% endif %}
+                {% if summary.items|length > 4 %}<span class="lbl composer-recap__more">+{{ summary.items|length - 4 }}</span>{% endif %}
             </span>
             <span class="muted composer-recap__digest" data-testid="recap-{{ side }}-digest">
                 {%- for bucket in summary.byRarity -%}

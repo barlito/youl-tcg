@@ -25,6 +25,29 @@
     }
 }
 
+#card-live-preview-open {
+    position: fixed;
+    bottom: 48px;
+    right: 24px;
+    z-index: 900;
+}
+
+#card-live-preview-open[hidden] {
+    display: none;
+}
+
+@media (max-width: 575.98px) {
+    #card-live-preview {
+        right: 16px !important;
+        bottom: 16px !important;
+    }
+
+    #card-live-preview-open {
+        right: 16px;
+        bottom: 16px;
+    }
+}
+
 /* 1/1 unique crown (unique_icon()), same mark as the front; a badge keeps its own colour */
 .unique-ic {
     color: var(--va-soon);
@@ -45,4 +68,44 @@
 .content-body:has(> table.datagrid) {
     position: relative; /* absolute descendants (.visually-hidden) stay inside the scroll box */
     overflow-x: auto;
+}
+
+/* row menu reachable whatever the horizontal scroll (below 768px EA stacks rows as cards) */
+@media (min-width: 768px) {
+    .content-body:has(> table.datagrid) table.datagrid td.actions,
+    .content-body:has(> table.datagrid) table.datagrid:has(td.actions) thead th:last-child {
+        position: sticky;
+        right: 0;
+        z-index: 1;
+    }
+
+    /* each sticky cell stacks on its own: the one holding the open menu must paint over the next rows */
+    .content-body:has(> table.datagrid) table.datagrid td.actions:has(.dropdown-menu.show) {
+        z-index: 3;
+    }
+
+    .ea-dark-scheme .content-body:has(> table.datagrid) table.datagrid td.actions {
+        background: var(--va-surface);
+        box-shadow: inset 0 1px 0 var(--table-cell-border-color), inset 1px 0 0 var(--va-hairline);
+    }
+
+    .ea-dark-scheme .content-body:has(> table.datagrid) table.datagrid:has(td.actions) thead th:last-child {
+        background: var(--va-surface-2);
+        box-shadow: inset 1px 0 0 var(--va-hairline);
+    }
+
+    .ea-dark-scheme .content-body:has(> table.datagrid) table.datagrid tbody tr:hover td.actions {
+        background: var(--va-row-hover);
+    }
+
+    .ea-dark-scheme .content-body:has(> table.datagrid) table.datagrid tbody tr.selected-row td.actions,
+    .ea-dark-scheme .content-body:has(> table.datagrid) table.datagrid tbody tr:has(.form-batch-checkbox:checked) td.actions {
+        background: var(--va-surface-hot);
+    }
+}
+
+/* booster drop rates wrap inside a bounded column instead of widening the list */
+.booster-drop-rates.small {
+    min-width: 16rem;
+    max-width: 24rem;
 }

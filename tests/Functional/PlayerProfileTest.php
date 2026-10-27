@@ -152,6 +152,9 @@ final class PlayerProfileTest extends WebTestCase
         $orphan = $block->filter('[data-testid="profile-tile"][data-state="missing-both"]');
         $this->assertCount(0, $orphan->filter('[data-testid="chip-owned"]'));
         $this->assertCount(0, $orphan->filter('[data-testid="chip-wanted"]'));
+        // a third player may hold it: the label only speaks for the two of them
+        $this->assertStringContainsString('Aucun de vous deux', $orphan->text());
+        $this->assertStringNotContainsString('Personne', $orphan->text());
     }
 
     public function testUniverseCountersCompareBothCollections(): void

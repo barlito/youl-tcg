@@ -34,6 +34,16 @@ final class BoosterOpenPageTest extends WebTestCase
         $client->request('GET', '/boosters/' . $booster->getId() . '/open');
 
         $this->assertResponseRedirects('/boosters');
+
+        $crawler = $client->followRedirect();
+        $flash = $crawler->filter('[data-testid="flash-error"]');
+        $this->assertCount(1, $flash);
+        $this->assertSame('alert', $flash->attr('role'));
+        $this->assertStringContainsString("Tu n'as aucun exemplaire de ce pack à ouvrir.", $flash->text());
+
+        // shown once: the next page no longer carries it
+        $client->request('GET', '/boosters');
+        $this->assertSelectorNotExists('[data-testid="flashes"]');
     }
 
     public function testMalformedBoosterIdIsAPlainNotFound(): void

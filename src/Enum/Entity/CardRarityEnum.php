@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Enum\Entity;
 
-enum CardRarityEnum: string
+use Symfony\Contracts\Translation\TranslatableInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
+
+enum CardRarityEnum: string implements TranslatableInterface
 {
     case COMMON = 'common';
     case UNCOMMON = 'uncommon';
@@ -48,6 +51,14 @@ enum CardRarityEnum: string
             self::RARE => 'Rare',
             self::LEGENDARY => 'Légendaire',
         };
+    }
+
+    /**
+     * French label in Symfony forms (EnumType) and EasyAdmin choice fields/filters.
+     */
+    public function trans(TranslatorInterface $translator, ?string $locale = null): string
+    {
+        return $this->label();
     }
 
     /**
