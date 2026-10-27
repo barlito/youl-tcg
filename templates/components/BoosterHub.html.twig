@@ -326,10 +326,13 @@
 
                                     {# drop rates: native details/summary, no JS — the panel overlays the pack #}
                                     {% if booster.cardCount > 0 %}
-                                        <details class="booster-rates">
+                                        <details class="booster-rates" data-controller="details-dismiss">
                                             <summary class="tl" data-testid="drop-rates-toggle">Taux</summary>
                                             <div class="booster-rates__panel" data-testid="drop-rates-panel">
-                                                <p class="lbl mb-2 text-ink-strong">Taux par carte</p>
+                                                <div class="mb-2 flex items-center justify-between gap-2">
+                                                    <p class="lbl text-ink-strong">Taux par carte</p>
+                                                    <button type="button" class="tl" aria-label="Fermer les taux" data-testid="drop-rates-close">✕</button>
+                                                </div>
                                                 {% for slot in booster.dropRates %}
                                                     <div class="mb-1.5 flex flex-wrap items-baseline gap-x-2 font-mono text-[11px]">
                                                         <span class="text-ink-muted">Carte {{ loop.index }} ·</span>
