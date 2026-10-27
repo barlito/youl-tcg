@@ -64,6 +64,83 @@ function syncPackModel(): void
     io()->success('Placeholder pack model synced to public/models/.');
 }
 
+/**
+ * Dev only: copy the images referenced by the dev fixtures (fixtures/dev-assets.json:
+ * Vich mapping => published file name => path inside the YoulzAssets repo) into
+ * public/uploads/. The repo is only read; its path comes from YOULZ_ASSETS_DIR
+ * (env, .env.dev.local or .env.dev). Idempotent: an up-to-date copy is skipped.
+ *
+ *   castor dev:sync-assets [--force]
+ */
+#[AsTask('dev:sync-assets')]
+function devSyncAssets(bool $force = false): void
+{
+    $assetsDir = youlzAssetsDir();
+    if (null === $assetsDir || !is_dir($assetsDir . '/YTCG')) {
+        io()->error('YoulzAssets introuvable (' . ($assetsDir ?? 'YOULZ_ASSETS_DIR non défini') . ') : clone github.com/barlito/youlz-assets et renseigne YOULZ_ASSETS_DIR dans .env.dev.local.');
+
+        return;
+    }
+
+    /** @var array<string, array<string, string>> $map */
+    $map = json_decode((string) file_get_contents(__DIR__ . '/fixtures/dev-assets.json'), true, flags: \JSON_THROW_ON_ERROR);
+    $copied = $skipped = 0;
+    $missing = [];
+    foreach ($map as $mapping => $files) {
+        $targetDir = __DIR__ . '/public/uploads/' . $mapping;
+        if (!is_dir($targetDir) && !mkdir($targetDir, 0o775, true) && !is_dir($targetDir)) {
+            io()->error('Could not create ' . $targetDir);
+
+            return;
+        }
+
+        foreach ($files as $target => $source) {
+            $from = $assetsDir . '/' . $source;
+            $to = $targetDir . '/' . $target;
+            if (!is_file($from)) {
+                $missing[] = $source;
+                continue;
+            }
+
+            if (!$force && is_file($to) && filesize($to) === filesize($from) && filemtime($to) >= filemtime($from)) {
+                ++$skipped;
+                continue;
+            }
+
+            copy($from, $to);
+            ++$copied;
+        }
+    }
+
+    foreach ($missing as $source) {
+        io()->warning('absent de YoulzAssets : ' . $source);
+    }
+
+    io()->success(sprintf('%d image(s) copiée(s), %d déjà à jour, depuis %s.', $copied, $skipped, $assetsDir));
+}
+
+function youlzAssetsDir(): ?string
+{
+    $value = getenv('YOULZ_ASSETS_DIR') ?: null;
+    foreach (['.env.dev.local', '.env.dev'] as $file) {
+        if (null !== $value || !is_file(__DIR__ . '/' . $file)) {
+            continue;
+        }
+
+        if (preg_match('/^YOULZ_ASSETS_DIR=(.*)$/m', (string) file_get_contents(__DIR__ . '/' . $file), $match)) {
+            $value = trim($match[1], " \t'\"");
+        }
+    }
+
+    if (null === $value || '' === $value) {
+        return null;
+    }
+
+    $home = getenv('HOME') ?: '';
+
+    return rtrim(str_replace(['${HOME}', '$HOME'], $home, preg_replace('#^~(?=/|$)#', $home, $value) ?? $value), '/');
+}
+
 import('make/castor_entrypoint.php');
 
 /**

@@ -1,9 +1,65 @@
 App\Entity\ExtensionBanner:
-    extension_banner_1:
-        extension: '@extension_cyberpunk'
-        imageName: 'test_banner_1.png'
+    banner_40k_1:
+        extension: '@extension_40k'
+        imageName: '40k-banner-1.jpg'
         position: 0
-    extension_banner_2:
-        extension: '@extension_cyberpunk'
-        imageName: 'test_banner_2.png'
+    banner_40k_2:
+        extension: '@extension_40k'
+        imageName: '40k-banner-2.jpg'
         position: 1
+    banner_bleach_1:
+        extension: '@extension_bleach'
+        imageName: 'bleach-banner-1.jpg'
+        position: 0
+    banner_bleach_2:
+        extension: '@extension_bleach'
+        imageName: 'bleach-banner-2.jpg'
+        position: 1
+    banner_cosmonaut_1:
+        extension: '@extension_cosmonaut'
+        imageName: 'cosmonaut-banner-1.jpg'
+        position: 0
+    banner_divinity_1:
+        extension: '@extension_divinity'
+        imageName: 'divinity-banner-1.jpg'
+        position: 0
+    banner_divinity_2:
+        extension: '@extension_divinity'
+        imageName: 'divinity-banner-2.jpg'
+        position: 1
+    banner_kda_1:
+        extension: '@extension_kda'
+        imageName: 'kda-banner-1.jpg'
+        position: 0
+    banner_kda_2:
+        extension: '@extension_kda'
+        imageName: 'kda-banner-2.jpg'
+        position: 1
+    banner_les_fables_d_eldia_1:
+        extension: '@extension_les_fables_d_eldia'
+        imageName: 'les-fables-d-eldia-banner-1.jpg'
+        position: 0
+    banner_les_fables_d_eldia_2:
+        extension: '@extension_les_fables_d_eldia'
+        imageName: 'les-fables-d-eldia-banner-2.jpg'
+        position: 1
+    banner_replicant_1:
+        extension: '@extension_replicant'
+        imageName: 'replicant-banner-1.jpg'
+        position: 0
+    banner_replicant_2:
+        extension: '@extension_replicant'
+        imageName: 'replicant-banner-2.jpg'
+        position: 1
+    banner_space_nomad_1:
+        extension: '@extension_space_nomad'
+        imageName: 'space-nomad-banner-1.jpg'
+        position: 0
+    banner_space_nomad_2:
+        extension: '@extension_space_nomad'
+        imageName: 'space-nomad-banner-2.jpg'
+        position: 1
+    banner_sea_of_thieves_1:
+        extension: '@extension_sea_of_thieves'
+        imageName: 'sea-of-thieves-banner-1.jpg'
+        position: 0
