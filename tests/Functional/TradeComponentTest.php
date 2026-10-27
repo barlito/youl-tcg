@@ -238,6 +238,7 @@ final class TradeComponentTest extends WebTestCase
         $component = $this->composer();
         $html = (string) $component->render();
         $this->assertNotNull(new Crawler($html)->filter('[data-testid="submit-offer"]')->attr('disabled'), 'Rien à envoyer tant qu\'un côté est vide.');
+        $this->assertNull(new Crawler($html)->filter('[data-testid="submit-offer"]')->attr('data-loading'), 'Live would strip the server-side disabled.');
 
         $myToken = $this->tokenOf($html, 'offered', $mine->getName());
         $component->call('adjust', ['side' => 'offered', 'token' => $myToken, 'finish' => 'normal', 'delta' => 1]);

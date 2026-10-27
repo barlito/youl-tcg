@@ -87,6 +87,9 @@
         transform: translateY(-50%);
     }
     .opening.is-revealing .opening__track > .lbl { max-width: calc(var(--track-tile) + 16px); text-align: center; }
+    /* narrow vertical column: « 1 / 5 » over « révélées », no orphaned prefix */
+    .opening.is-revealing .opening__track-prefix { display: none; }
+    .opening.is-revealing .opening__track-suffix { display: block; }
     .opening.is-revealing .opening__track-grid {
         display: grid;
         grid-template-rows: repeat(var(--slots, 5), auto);
@@ -99,6 +102,8 @@
 .opening__main { display: grid; grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 1024px) {
     .opening__main { grid-template-columns: minmax(0, 1fr) 440px; min-height: calc(100vh - var(--header-h, 72px)); }
+    /* same width as the header (.site-header__inner) on wide screens */
+    .opening--page .opening__main { width: 100%; max-width: var(--wrap-max); margin: 0 auto; }
 }
 .opening.is-recap .opening__main { display: none; }
 
@@ -566,7 +571,7 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 28px;
     align-items: center;
-    max-width: calc(var(--wrap-max, 1360px) + 160px);
+    max-width: var(--wrap-max, 1360px); /* aligned on the header */
     margin: 0 auto;
     padding: 24px 16px 40px;
     box-sizing: border-box;
@@ -577,7 +582,7 @@
         grid-template-columns: auto minmax(0, 1fr);
         gap: clamp(40px, 4vw, 96px);
         min-height: calc(100vh - var(--header-h, 72px));
-        padding: 32px 40px 48px;
+        padding: 32px var(--wrap-pad, 40px) 48px;
     }
 }
 .opening__recap-best {
@@ -634,7 +639,7 @@
 .opening__flash {
     position: fixed;
     inset: 0;
-    z-index: 60;
+    z-index: 215;
     opacity: 0;
     pointer-events: none;
     /* white-hot core fading into the current card's rarity colour, so a rare

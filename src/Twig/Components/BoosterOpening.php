@@ -366,7 +366,7 @@ final class BoosterOpening extends AbstractController
         return [
             'owned' => $owned,
             'total' => $total,
-            'percentage' => $total > 0 ? (int) round($owned / $total * 100) : 0,
+            'percentage' => $total > 0 ? (int) floor($owned / $total * 100) : 0,
         ];
     }
 

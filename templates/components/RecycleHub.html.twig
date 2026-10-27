@@ -112,9 +112,8 @@
                     </p>
                     <button type="button" class="btn btn-g btn-s recycle-panel__auto"
                             data-action="live#action" data-live-action-param="autoComplete"
-                            data-loading="addAttribute(disabled)"
-                            data-testid="recycle-autofill"
-                            {{ (points >= cost or this.hasRecycledToday) ? 'disabled' }}>Compléter automatiquement</button>
+                            {% if (points >= cost or this.hasRecycledToday) %}disabled{% else %}data-loading="addAttribute(disabled)"{% endif %}
+                            data-testid="recycle-autofill">Compléter automatiquement</button>
                     <div class="recycle-panel__pack">
                         {% if this.boosters is empty %}
                             <p class="muted text-[13px]">Aucun pack disponible pour le moment.</p>
@@ -133,9 +132,8 @@
                     {# plain label + opacity while loading: swapping two spans leaves the hidden one hidden after the re-render #}
                     <button type="button" class="btn btn-p btn-w recycle-panel__confirm"
                             data-action="live#action" data-live-action-param="recycle"
-                            data-loading="addAttribute(disabled) addClass(opacity-50)"
-                            data-testid="recycle-confirm"
-                            {{ (this.boosterCount < 1 or this.hasRecycledToday) ? 'disabled' }}>
+                            {% if (this.boosterCount < 1 or this.hasRecycledToday) %}disabled{% else %}data-loading="addAttribute(disabled) addClass(opacity-50)"{% endif %}
+                            data-testid="recycle-confirm">
                         {%- if this.boosterCount > 0 -%}
                             ♻ Recycler contre 1 pack
                         {%- else -%}

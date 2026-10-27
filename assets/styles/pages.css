@@ -391,6 +391,8 @@
 }
 
 .strip-tile {
+    /* containing block of the .sr « complet »: an absolute child would escape the scroller */
+    position: relative;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -674,7 +676,7 @@ select.dd-select option { background: var(--surface); color: var(--text); text-t
 .composer-tabs {
     position: sticky;
     top: 0;
-    z-index: 20;
+    z-index: 201;
     display: grid;
     grid-template-columns: 1fr 1fr;
     border: 1px solid var(--hairline-mid);
@@ -801,7 +803,7 @@ select.dd-select option { background: var(--surface); color: var(--text); text-t
 .composer-bar {
     position: sticky;
     bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
-    z-index: 30;
+    z-index: 202;
     background: #120b1d;
     border-top: 1px solid var(--primary);
     box-shadow: 0 -20px 40px var(--bg);

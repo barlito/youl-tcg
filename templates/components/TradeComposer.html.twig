@@ -94,9 +94,9 @@
                 <button type="button" class="btn btn-p composer-bar__submit"
                         data-action="live#action"
                         data-live-action-param="submit"
-                        data-loading="addAttribute(disabled)"
-                        data-testid="submit-offer"
-                        {{ this.isComplete ? '' : 'disabled' }}>
+                        {# Live strips a data-loading attribute when idle: never on a server-disabled button #}
+                        {% if this.isComplete %}data-loading="addAttribute(disabled)"{% else %}disabled{% endif %}
+                        data-testid="submit-offer">
                     Envoyer<span class="max-sm:hidden"> l'offre</span>
                 </button>
             </div>

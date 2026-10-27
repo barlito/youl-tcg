@@ -86,7 +86,7 @@
                                             data-action="live#action"
                                             data-live-action-param="chooseStreakReward"
                                             data-live-reward-id-param="{{ reward.id }}"
-                                            data-loading="addClass(opacity-50)"
+                                            data-loading="addAttribute(disabled) addClass(opacity-50)"
                                             data-testid="streak-reward-choice"
                                             class="btn btn-p btn-s max-md:w-full">
                                         Récupérer
@@ -133,7 +133,7 @@
                            leaves the hidden one hidden after the re-render #}
                         <button type="submit"
                                 data-testid="code-submit"
-                                data-loading="addClass(opacity-50)"
+                                data-loading="addAttribute(disabled) addClass(opacity-50)"
                                 class="btn btn-g shrink-0">
                             Valider
                         </button>
@@ -302,7 +302,7 @@
                                         {% elseif confirmingPurchaseBoosterId == booster.id %}
                                             <span class="flex shrink-0 gap-1.5">
                                                 <button type="button" data-action="live#action" data-live-action-param="confirmPurchase" data-live-booster-id-param="{{ booster.id }}"
-                                                        data-loading="addClass(opacity-50)" data-testid="shop-confirm"
+                                                        data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="shop-confirm"
                                                         class="btn btn-p btn-s">Confirmer</button>
                                                 <button type="button" data-action="live#action" data-live-action-param="cancelPurchase" data-testid="shop-cancel"
                                                         aria-label="Annuler l'achat" class="ib">✕</button>
@@ -320,7 +320,7 @@
                                         <span class="text-xs text-live">✓ Univers complet</span>
                                     {% elseif universe %}
                                         {% set missing = universe.total - universe.owned %}
-                                        <span class="text-xs {{ missing == 1 ? 'text-magenta' : 'text-ink-muted' }}">{{ missing == 1 ? 'Plus qu\'1 carte à trouver' : missing ~ ' cartes à trouver' }}</span>
+                                        <span class="text-xs {{ missing == 1 ? 'text-magenta' : 'text-ink-muted' }}">{{ missing == 1 ? 'Plus qu\'une carte à trouver' : missing ~ ' cartes à trouver' }}</span>
                                     {% else %}
                                         <span></span>
                                     {% endif %}

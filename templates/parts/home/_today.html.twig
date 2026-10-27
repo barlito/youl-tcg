@@ -26,7 +26,7 @@
             <span class="act__value"><span class="d text-[32px] text-ink-strong">{{ claims.remaining }}</span><span class="d text-lg text-ink-muted">/{{ claims.limit }}</span></span>
             <span class="act__text">
                 {% if claims.remaining > 0 %}
-                    gratuit{{ claims.remaining > 1 ? 's' }} à réclamer
+                    gratuit{{ claims.remaining > 1 ? 's' }} à récupérer
                 {% else %}
                     recharge dans <span data-controller="countdown" data-countdown-seconds-value="{{ claims.secondsUntilReset }}">--:--:--</span>
                 {% endif %}

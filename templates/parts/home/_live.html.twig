@@ -67,7 +67,7 @@
     {% if latestListings is not empty %}
         <div class="flex items-end justify-between gap-4 pt-6">
             <span class="lbl">Fraîchement au marché</span>
-            <a href="{{ path('market') }}" class="btn btn-g btn-s">Tout le marché</a>
+            <a href="{{ path('market') }}" class="btn btn-g btn-s shrink-0 whitespace-nowrap">Tout le marché</a>
         </div>
         <div class="grid grid-cols-2 gap-4 md:grid-cols-4" data-testid="live-listings">
             {% for listing in latestListings %}
