@@ -66,8 +66,9 @@ final class RecycleHub extends AbstractController
     #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: new UrlMapping(as: 'rarete'))]
     public ?string $rarity = null;
 
+    /** null rather than false when off: a false prop would leave ?holo=0 in the url. */
     #[LiveProp(writable: true, url: new UrlMapping(as: 'holo'))]
-    public bool $holoOnly = false;
+    public ?bool $holoOnly = null;
 
     #[LiveProp]
     public ?string $error = null;
@@ -84,6 +85,11 @@ final class RecycleHub extends AbstractController
     private ?array $rows = null;
 
     private ?bool $recycledToday = null;
+
+    /**
+     * @var list<array{extension: Extension, rows: list<UserCard>, recyclable: int, maxPoints: int}>|null
+     */
+    private ?array $universeOptions = null;
 
     /**
      * @var list<Booster>|null
@@ -150,28 +156,63 @@ final class RecycleHub extends AbstractController
     public function getVisibleUniverses(): array
     {
         $active = $this->getActiveExtension();
-        $rarity = $this->getActiveRarity();
         $visible = [];
 
-        foreach ($this->getUniverses() as $universe) {
+        foreach ($this->getUniverseOptions() as $universe) {
             if ($active instanceof Extension && $universe['extension'] !== $active) {
                 continue;
             }
 
-            $universe['rows'] = array_values(array_filter(
-                $universe['rows'],
-                fn (UserCard $row): bool => (!$rarity instanceof CardRarityEnum || $row->getCard()->getRarity() === $rarity)
-                    && (!$this->holoOnly || $row->getHoloQuantity() > 0),
-            ));
-
             if ([] !== $universe['rows']) {
-                $universe['recyclable'] = array_sum(array_map($this->recyclableCopies(...), $universe['rows']));
-                $universe['maxPoints'] = array_sum(array_map($this->maxPoints(...), $universe['rows']));
                 $visible[] = $universe;
             }
         }
 
         return $visible;
+    }
+
+    /**
+     * Every universe with its counts under the rarity / holo filters (the universe select's options).
+     *
+     * @return list<array{extension: Extension, rows: list<UserCard>, recyclable: int, maxPoints: int}>
+     */
+    public function getUniverseOptions(): array
+    {
+        if (null !== $this->universeOptions) {
+            return $this->universeOptions;
+        }
+
+        $rarity = $this->getActiveRarity();
+        $options = [];
+
+        foreach ($this->getUniverses() as $universe) {
+            $universe['rows'] = array_values(array_filter(
+                $universe['rows'],
+                fn (UserCard $row): bool => (!$rarity instanceof CardRarityEnum || $row->getCard()->getRarity() === $rarity)
+                    && (true !== $this->holoOnly || $row->getHoloQuantity() > 0),
+            ));
+            $universe['recyclable'] = array_sum(array_map($this->recyclableCopies(...), $universe['rows']));
+            $universe['maxPoints'] = array_sum(array_map($this->maxPoints(...), $universe['rows']));
+            $options[] = $universe;
+        }
+
+        return $this->universeOptions = $options;
+    }
+
+    /** « tous » option of the universe select: every universe, under the other filters. */
+    public function getFilteredRecyclableTotal(): int
+    {
+        return array_sum(array_column($this->getUniverseOptions(), 'recyclable'));
+    }
+
+    public function getVisibleRecyclableTotal(): int
+    {
+        return array_sum(array_column($this->getVisibleUniverses(), 'recyclable'));
+    }
+
+    public function getVisibleMaxPoints(): int
+    {
+        return array_sum(array_column($this->getVisibleUniverses(), 'maxPoints'));
     }
 
     public function getActiveRarity(): ?CardRarityEnum
@@ -181,7 +222,7 @@ final class RecycleHub extends AbstractController
 
     public function hasActiveFilters(): bool
     {
-        return $this->getActiveExtension() instanceof Extension || $this->getActiveRarity() instanceof CardRarityEnum || $this->holoOnly;
+        return $this->getActiveExtension() instanceof Extension || $this->getActiveRarity() instanceof CardRarityEnum || true === $this->holoOnly;
     }
 
     public function getActiveExtension(): ?Extension
@@ -250,11 +291,6 @@ final class RecycleHub extends AbstractController
         $normal = min($this->normalCap($row), $this->recyclableCopies($row) - $holo);
 
         return $normal * $rarity->recyclePoints() + $holo * $rarity->holoRecyclePoints();
-    }
-
-    public function getRecyclableTotal(): int
-    {
-        return array_sum(array_map($this->recyclableCopies(...), array_values($this->getRowMap())));
     }
 
     public function getMaxPointsTotal(): int
@@ -360,7 +396,7 @@ final class RecycleHub extends AbstractController
     public function canAddCopy(UserCard $row, string $kind): bool
     {
         $points = $this->getPoints();
-        if ($points >= RecycleService::BOOSTER_COST) {
+        if ($points >= RecycleService::BOOSTER_COST || $this->hasRecycledToday()) {
             return false;
         }
 
@@ -466,12 +502,14 @@ final class RecycleHub extends AbstractController
         // the « tous / toutes » option posts '': keep it out of the url
         $this->universe = '' === $this->universe ? null : $this->universe;
         $this->rarity = '' === $this->rarity ? null : $this->rarity;
+        $this->universeOptions = null;
     }
 
     #[LiveAction]
     public function toggleHoloOnly(): void
     {
-        $this->holoOnly = !$this->holoOnly;
+        $this->holoOnly = true === $this->holoOnly ? null : true;
+        $this->universeOptions = null;
     }
 
     #[LiveAction]
@@ -479,7 +517,8 @@ final class RecycleHub extends AbstractController
     {
         $this->universe = null;
         $this->rarity = null;
-        $this->holoOnly = false;
+        $this->holoOnly = null;
+        $this->universeOptions = null;
     }
 
     // every recyclable copy is a candidate whatever the filters, which are reset so the whole selection shows
@@ -549,6 +588,12 @@ final class RecycleHub extends AbstractController
     {
         $this->resetMessages();
 
+        if ($this->hasRecycledToday()) {
+            $this->error = 'Tu as déjà recyclé aujourd\'hui, reviens après minuit.';
+
+            return;
+        }
+
         if ([] === $this->selection) {
             $this->error = 'Sélectionne d\'abord des copies à recycler.';
 
@@ -589,6 +634,7 @@ final class RecycleHub extends AbstractController
 
         $this->selection = [];
         $this->rows = null; // the memoized inventory is stale after the debit
+        $this->universeOptions = null;
         $this->recycledToday = true;
         $this->engaged = null;
         $this->listed = null;

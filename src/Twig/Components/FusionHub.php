@@ -7,7 +7,6 @@ namespace App\Twig\Components;
 use App\Attribute\RequiresFeature;
 use App\Entity\Card;
 use App\Entity\DiscordUser;
-use App\Entity\Extension;
 use App\Entity\UserCard;
 use App\Enum\FeatureEnum;
 use App\Exception\Fusion\FusionException;
@@ -77,33 +76,6 @@ final class FusionHub extends AbstractController
     public function getCost(): int
     {
         return FusionService::FUSION_COST;
-    }
-
-    /**
-     * @return list<array{extension: Extension, rows: list<UserCard>, fusable: int}>
-     */
-    public function getUniverses(): array
-    {
-        $universes = [];
-        foreach ($this->getRowMap() as $row) {
-            $extension = $row->getCard()->getExtension();
-            if (!$extension instanceof Extension) {
-                continue;
-            }
-
-            $key = (string) $extension->getId();
-            $universes[$key] ??= ['extension' => $extension, 'rows' => [], 'fusable' => 0];
-            $universes[$key]['rows'][] = $row;
-            $universes[$key]['fusable'] += $this->maxFusions($row);
-        }
-
-        $universes = array_values($universes);
-        usort(
-            $universes,
-            static fn (array $a, array $b): int => $b['fusable'] <=> $a['fusable'] ?: $a['extension']->getName() <=> $b['extension']->getName(),
-        );
-
-        return $universes;
     }
 
     /**

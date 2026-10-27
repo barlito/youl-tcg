@@ -122,6 +122,11 @@ final class RecycleHubComponentTest extends WebTestCase
         $component->call('addCopy', ['cardId' => $cardId, 'kind' => 'normal']);
         $component->call('addCopy', ['cardId' => $cardId, 'kind' => 'normal']);
         $crawler = $component->render()->crawler();
+        $this->assertNotNull($crawler->filter('[data-testid="recycle-confirm"]')->attr('disabled'), 'No pack chosen yet.');
+        $this->assertStringContainsString('Choisis d\'abord ton pack', $crawler->filter('[data-testid="recycle-confirm"]')->text());
+
+        $component->set('boosterId', (string) $scenario['booster']->getId());
+        $crawler = $component->render()->crawler();
         $this->assertNull($crawler->filter('[data-testid="recycle-confirm"]')->attr('disabled'));
         $this->assertNotNull($crawler->filter('[data-testid="recycle-confirm"]')->attr('data-loading'));
         $this->assertNotNull($crawler->filter('[data-testid="recycle-autofill"]')->attr('disabled'));
@@ -249,6 +254,7 @@ final class RecycleHubComponentTest extends WebTestCase
         $crawler = $component->render()->crawler();
         $this->assertCount(1, $crawler->filter('[data-testid="recycle-daily-done"]'));
         $this->assertNotNull($crawler->filter('[data-testid="recycle-confirm"]')->attr('disabled'));
+        $this->assertCount(0, $crawler->filter('[data-testid^="add-"]:not([disabled])'), 'Nothing can be added once the daily recycling is done.');
 
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $this->assertCount(1, $entityManager->getRepository(RecycleOperation::class)->findBy(['discordUser' => $user]));
@@ -647,8 +653,43 @@ final class RecycleHubComponentTest extends WebTestCase
         $this->assertArrayHasKey((string) $common->getId(), $hub->selection, 'Auto-complete picks outside the filter.');
         $this->assertNull($hub->rarity);
         $this->assertNull($hub->universe);
-        $this->assertFalse($hub->holoOnly);
+        $this->assertNull($hub->holoOnly);
         $this->assertStringContainsString($common->getName(), $component->render()->crawler()->filter('[data-testid="recycle-grid"]')->text(), 'Every selected copy is visible, so it can be removed.');
+    }
+
+    public function testTheTotalsFollowTheRarityAndHoloFilters(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $this->createScenario($user, [
+            ['name' => 'Totals rare', 'rarity' => CardRarityEnum::RARE, 'quantity' => 3],
+            ['name' => 'Totals common', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 5],
+        ]);
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        $this->assertSame('6', trim($component->render()->crawler()->filter('[data-testid="recyclable-count"]')->text()));
+
+        $component->set('rarity', 'rare');
+        $crawler = $component->render()->crawler();
+        $this->assertSame('2', trim($crawler->filter('[data-testid="recyclable-count"]')->text()));
+        $this->assertStringContainsString('jusqu\'à 6 pts', $crawler->filter('[data-testid="recyclable-total"]')->text());
+        $this->assertStringContainsString('tous · 2', $crawler->filter('[data-testid="filter-universe"] option')->eq(0)->text());
+        $this->assertStringEndsWith('· 2', trim($crawler->filter('[data-testid="filter-universe"] option')->eq(1)->text()));
+    }
+
+    public function testClearingTheHoloFilterLeavesNoDefaultInTheUrl(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $this->createScenario($user, [['name' => 'Url holo', 'rarity' => CardRarityEnum::RARE, 'quantity' => 3]]);
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        $component->call('toggleHoloOnly');
+        $this->assertTrue($component->component()->holoOnly);
+        $component->call('toggleHoloOnly');
+        $this->assertNull($component->component()->holoOnly, 'null, not false: http_build_query drops it from the url.');
+        $component->call('toggleHoloOnly')->call('resetFilters');
+        $this->assertNull($component->component()->holoOnly);
     }
 
     public function testAutoCompleteExplainsWhyItCannotFill(): void
