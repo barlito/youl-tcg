@@ -133,9 +133,10 @@
     transition: opacity .3s ease .55s;
 }
 .trade-reveal__holo { color: var(--magenta, #ff3db0); white-space: nowrap; }
-/* the stamp follows the card size, whatever the number of cards */
+/* the stamp follows the card size; bottom corner, the top one holds the card name */
 .trade-reveal .new-tag {
-    top: -7%;
+    top: auto;
+    bottom: 7%;
     left: -9%;
     font-size: max(8px, calc(var(--reveal-card-w) * .052));
 }
