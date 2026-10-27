@@ -1,68 +1,81 @@
-# Généré depuis public/uploads/cards (voir docs/dev-fixtures.md).
+# Univers de la prod (synchro du 2026-10-23) + « Sea of Thieves », univers à venir
+# (DRAFT + upcoming) pris parmi les univers refusés de YoulzAssets.
+# Images : `castor dev:sync-assets` (voir docs/dev-fixtures.md).
 App\Entity\Extension:
-    extension_cyberpunk:
-        name: 'Cyberpunk 2077'
-        description: 'Night City, ses corpos, ses cyberpsychos et ses implants hors de prix. Un univers de néons et de mauvaises décisions.'
+    extension_40k:
+        name: '40K'
+        description: 'Au 41e millénaire, il n''y a que la guerre. Les légions s''affrontent, et les Youlz y ont chacun leur armure.'
         status: 2
-        visualConfigJson: '{"glow": "#a435f0"}'
-    extension_kda:
-        name: 'K/DA'
-        description: 'Le girls band virtuel le plus bruyant de la faille. Scène, chorégraphies et skins alternatifs.'
-        status: 2
-        visualConfigJson: '{"glow": "#ff3db0"}'
-    extension_w40k:
-        name: 'Warhammer 40K'
-        description: 'Dans un futur très lointain, il n''y a que la guerre. Légions, xenos et tempêtes warp.'
-        status: 2
-        visualConfigJson: '{"glow": "#c0392b"}'
+        imageName: '40k-cover.jpg'
+        logoName: '40k-logo.png'
     extension_bleach:
         name: 'Bleach'
-        description: 'Shinigamis, divisions du Gotei et Hollows : la Soul Society au grand complet.'
+        description: 'Shinigamis, Hollows et Espadas : les Youlz dégainent leur zanpakutō, et certains ont enfin atteint le bankai.'
         status: 2
-        visualConfigJson: '{"glow": "#38bdf8"}'
+        imageName: 'bleach-cover.jpg'
+        logoName: 'bleach-logo.png'
+    extension_cosmonaut:
+        name: 'Cosmonaut'
+        description: 'La course aux étoiles version rétro : fusées, propagande et héros de la nation.'
+        status: 2
+        imageName: 'cosmonaut-cover.jpg'
+        logoName: 'cosmonaut-logo.png'
+    extension_cyberpunk:
+        name: 'Cyberpunk'
+        description: 'Night City, ses néons, ses corpos et ses implants hors de prix : les Youlz y ont tous un surnom de rue.'
+        status: 2
+        imageName: 'cyberpunk-cover.png'
+    extension_divinity:
+        name: 'Divinity'
+        description: 'Des dieux anciens, des cultes oubliés et ceux qui ont osé les défier.'
+        status: 2
+        imageName: 'divinity-cover.jpg'
+        logoName: 'divinity-logo.png'
+    extension_kda:
+        name: 'KDA'
+        description: 'La scène, les néons et la foule : le groupe le plus célèbre du monde, et toute l''équipe autour.'
+        status: 2
+        imageName: 'kda-cover.jpg'
+        logoName: 'kda-logo.png'
+    extension_l_album_des_youlz:
+        name: 'L''album des Youlz'
+        description: 'Les morceaux de l''album des Youlz, pochettes et souvenirs compris.'
+        status: 2
+        imageName: 'l-album-des-youlz-cover.jpg'
+    extension_les_fables_d_eldia:
+        name: 'Les Fables d''Eldia'
+        description: 'Un royaume de contes, de dragons et d''épées légendaires, où chaque Youlz a sa fable.'
+        status: 2
+        imageName: 'les-fables-d-eldia-cover.jpg'
+        logoName: 'les-fables-d-eldia-logo.png'
     extension_magic:
         name: 'Magic'
-        description: 'Épées divines, dragons célestes et enchantements : la haute fantasy du multivers.'
+        description: 'Rois déchus, enchanteurs et cartographes : les Youlz s''invitent dans la haute fantasy des planeswalkers.'
         status: 2
-        visualConfigJson: '{"glow": "#f59e0b"}'
-    extension_cosmos:
-        name: 'Cosmos'
-        description: 'Colonies martiennes, spatio-gares et contrebandiers : la frontière la plus froide.'
+        visualConfigJson: '{"frameLineStart": "#737373", "frameLineEnd": "#ffd970"}'
+        imageName: 'magic-cover.png'
+    extension_psychedelic:
+        name: 'Psychedelic'
+        description: 'Couleurs saturées, formes qui fondent et regards perdus : le trip le plus étrange des Youlz.'
         status: 2
-        visualConfigJson: '{"glow": "#22d3ee"}'
-    extension_dystopie:
-        name: 'Dystopie'
-        description: 'L''Ordre Nouveau, ses officiers et ses héros de la nation. Obéir, produire, sourire.'
+        visualConfigJson: '{"frameLineEnd": "#262626"}'
+        imageName: 'psychedelic-cover.png'
+    extension_replicant:
+        name: 'Replicant'
+        description: 'New Los Angeles, 2038. Sous la pluie et les néons, impossible de savoir qui est encore humain.'
         status: 2
-        visualConfigJson: '{"glow": "#94a3b8"}'
-    extension_eldritch:
-        name: 'Cultes Anciens'
-        description: 'Ahlototh, Zocnoth et les grimoires qu''il vaudrait mieux ne pas ouvrir.'
+        imageName: 'replicant-cover.jpg'
+        logoName: 'replicant-logo.png'
+    extension_space_nomad:
+        name: 'Space Nomad'
+        description: 'Corsaires, contrebandiers et marchands au bout de la galaxie, là où l''Union ne regarde plus.'
         status: 2
-        visualConfigJson: '{"glow": "#84cc16"}'
-    extension_sot:
-        name: 'Storm of Time'
-        description: 'Les orages temporels et leurs voyageurs, entre deux époques qui n''existent plus.'
-        status: 2
-        visualConfigJson: '{"glow": "#8b5cf6"}'
-    extension_lotr:
-        name: 'Terre du Milieu'
-        description: 'Une compagnie, un anneau et beaucoup trop de marche à pied.'
+        imageName: 'space-nomad-cover.jpg'
+        logoName: 'space-nomad-logo.png'
+    extension_sea_of_thieves:
+        name: 'Sea of Thieves'
+        description: 'Des pirates, des trésors, des tempêtes et beaucoup trop de rhum.'
         status: 1
         upcoming: true
-        visualConfigJson: '{"glow": "#65a30d"}'
-    extension_velirp:
-        name: 'VeliRP'
-        description: 'Les personnages du RP maison, évolutions et variantes comprises.'
-        status: 2
-        visualConfigJson: '{"glow": "#f97316"}'
-    extension_psyche:
-        name: 'Psyché'
-        description: 'Rêves, sommeils et charmes : ce que l''esprit fabrique quand on le laisse seul.'
-        status: 2
-        visualConfigJson: '{"glow": "#e879f9"}'
-    extension_origines:
-        name: 'Origines'
-        description: 'Les portraits fondateurs : la bande au complet, avant les univers.'
-        status: 2
-        visualConfigJson: '{"glow": "#a435f0"}'
+        imageName: 'sea-of-thieves-cover.jpg'
+        logoName: 'sea-of-thieves-logo.png'
