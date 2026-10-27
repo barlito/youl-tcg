@@ -13,7 +13,9 @@ use App\Enum\Booster\BoosterCodeRefusalEnum;
 use App\Exception\Booster\BoosterCodeRefusedException;
 use App\Exception\Booster\BoosterException;
 use App\Repository\BoosterRepository;
+use App\Repository\ExtensionRepository;
 use App\Repository\UserBoosterRepository;
+use App\Repository\UserCardRepository;
 use App\Service\Booster\BoosterAvailabilityService;
 use App\Service\Booster\BoosterClaimService;
 use App\Service\Booster\BoosterCodeGenerator;
@@ -32,14 +34,25 @@ use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
+use Symfony\UX\LiveComponent\Metadata\UrlMapping;
 
 #[AsLiveComponent]
 final class BoosterHub extends AbstractController
 {
     use DefaultActionTrait;
 
+    public const string FILTER_ALL = 'tous';
+
+    public const string FILTER_STOCK = 'stock';
+
+    public const string FILTER_INCOMPLETE = 'incomplets';
+
     #[LiveProp]
     public ?string $error = null;
+
+    /** Packs grid filter (tous|stock|incomplets), mirrored in the url as ?filtre=. */
+    #[LiveProp(writable: true, url: new UrlMapping(as: 'filtre'))]
+    public string $filter = self::FILTER_ALL;
 
     #[LiveProp(writable: true)]
     public string $code = '';
@@ -90,9 +103,17 @@ final class BoosterHub extends AbstractController
      */
     private ?array $inventory = null;
 
+    /** @var list<Booster>|null */
+    private ?array $boosters = null;
+
+    /** @var array<string, array{owned: int, total: int, percentage: int}>|null */
+    private ?array $completion = null;
+
     public function __construct(
         private readonly BoosterRepository $boosterRepository,
         private readonly UserBoosterRepository $userBoosterRepository,
+        private readonly ExtensionRepository $extensionRepository,
+        private readonly UserCardRepository $userCardRepository,
         private readonly BoosterAvailabilityService $boosterAvailability,
         private readonly BoosterClaimService $boosterClaimService,
         private readonly BoosterCodeRedeemService $boosterCodeRedeemService,
@@ -128,15 +149,78 @@ final class BoosterHub extends AbstractController
      */
     public function getBoosters(): array
     {
+        if (null !== $this->boosters) {
+            return $this->boosters;
+        }
+
         $published = $this->boosterRepository->findPublished();
         $visible = $this->boosterAvailability->filterVisible($published, $this->getInventory());
         $onSale = $this->getShopBoosterIds();
 
         // a pack on sale is shown even when neither claimable nor owned: it is bought from its tile
-        return array_values(array_filter(
+        return $this->boosters = array_values(array_filter(
             $published,
             static fn (Booster $booster): bool => \in_array($booster, $visible, true) || isset($onSale[(string) $booster->getId()]),
         ));
+    }
+
+    public function getActiveFilter(): string
+    {
+        return \in_array($this->filter, [self::FILTER_STOCK, self::FILTER_INCOMPLETE], true) ? $this->filter : self::FILTER_ALL;
+    }
+
+    #[LiveAction]
+    public function filterPacks(#[LiveArg] string $filter): void
+    {
+        $this->filter = \in_array($filter, [self::FILTER_STOCK, self::FILTER_INCOMPLETE], true) ? $filter : self::FILTER_ALL;
+    }
+
+    /**
+     * The grid once the « Tous / En stock / Univers incomplets » filter is applied.
+     *
+     * @return list<Booster>
+     */
+    public function getFilteredBoosters(): array
+    {
+        return $this->filterBoosters($this->getActiveFilter());
+    }
+
+    /**
+     * @return array<string, int> filter => packs it keeps
+     */
+    public function getFilterCounts(): array
+    {
+        return [
+            self::FILTER_ALL => \count($this->getBoosters()),
+            self::FILTER_STOCK => \count($this->filterBoosters(self::FILTER_STOCK)),
+            self::FILTER_INCOMPLETE => \count($this->filterBoosters(self::FILTER_INCOMPLETE)),
+        ];
+    }
+
+    /**
+     * The player's completion of each published universe (same rule as /univers: published
+     * cards of a published extension), from two grouped queries.
+     *
+     * @return array<string, array{owned: int, total: int, percentage: int}> extension id => completion
+     */
+    public function getCompletionByExtension(): array
+    {
+        if (null !== $this->completion) {
+            return $this->completion;
+        }
+
+        $owned = $this->userCardRepository->countOwnedGroupedByExtension($this->getDiscordUser());
+        $completion = [];
+        foreach ($this->extensionRepository->findPublishedWithPublishedCardCount() as $item) {
+            $id = (string) $item['extension']->getId();
+            $total = $item['cardCount'];
+            if ($total > 0) {
+                $count = min($owned[$id] ?? 0, $total);
+                $completion[$id] = ['owned' => $count, 'total' => $total, 'percentage' => (int) floor($count / $total * 100)];
+            }
+        }
+
+        return $this->completion = $completion;
     }
 
     public function getRemainingClaims(): int
@@ -222,6 +306,7 @@ final class BoosterHub extends AbstractController
         try {
             $this->boosterClaimService->claim($this->getDiscordUser(), $booster);
             $this->inventory = null; // the memoized inventory is stale after a claim
+            $this->boosters = null;
         } catch (BoosterException $exception) {
             $this->error = $exception->getUserMessage();
         }
@@ -276,6 +361,7 @@ final class BoosterHub extends AbstractController
         }
 
         $this->inventory = null; // the memoized inventory is stale after a redemption
+        $this->boosters = null;
         $this->code = '';
         $this->codeSuccess = \sprintf(
             '%d pack%s « %s » ajouté%s à ton stock !',
@@ -347,6 +433,7 @@ final class BoosterHub extends AbstractController
         }
 
         $this->inventory = null; // the memoized inventory is stale after the credit
+        $this->boosters = null;
         $this->streakRewardBoosterId = '';
         $this->streakSuccess = \sprintf(
             'Palier %d jours : un pack « %s » ajouté à ton stock !',
@@ -476,12 +563,32 @@ final class BoosterHub extends AbstractController
 
         // inventory and balance memoized before the purchase are stale
         $this->inventory = null;
+        $this->boosters = null;
         $this->balanceLoaded = false;
         $this->pendingPurchaseLoaded = false;
 
         if (!$purchase->isPending()) {
             $this->purchaseSuccess = \sprintf('Un pack « %s » a été ajouté à ton stock !', $booster->getDisplayName());
         }
+    }
+
+    /**
+     * @return list<Booster>
+     */
+    private function filterBoosters(string $filter): array
+    {
+        $inventory = $this->getInventory();
+        $completion = $this->getCompletionByExtension();
+
+        return array_values(array_filter($this->getBoosters(), static function (Booster $booster) use ($filter, $inventory, $completion): bool {
+            $universe = $completion[(string) $booster->getExtension()->getId()] ?? null;
+
+            return match ($filter) {
+                self::FILTER_STOCK => ($inventory[(string) $booster->getId()] ?? 0) > 0,
+                self::FILTER_INCOMPLETE => null !== $universe && $universe['owned'] < $universe['total'],
+                default => true,
+            };
+        }));
     }
 
     /**

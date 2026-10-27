@@ -10,6 +10,8 @@
     lazy          chargement différé de l'image (défaut true)
     maskedLabel   libellé d'une carte masquée (défaut « Carte à trouver »)
     showRarity    afficher la ligne de rareté (défaut true)
+    wishUrl       URL du ♡ wishlist (carte VISIBLE uniquement, ignoré pour une carte masquée)
+    wished        état du ♡ (défaut false)
     testid        défaut « card-cell »
 #}
 {% set card = card|default(null) %}
@@ -29,6 +31,9 @@
             {{ include('parts/_masked_card.html.twig', rarityValue ? { rarity: rarityValue } : {}, with_context = false) }}
         {% endif %}
         {% if quantity %}<span class="qty">×{{ quantity }}</span>{% endif %}
+        {% if card and wishUrl|default(null) %}
+            {{ include('parts/_wish_button.html.twig', { url: wishUrl, active: wished|default(false) }, with_context = false) }}
+        {% endif %}
     </div>
     {% if card %}
         <span class="cn" title="{{ card.name }}">{{ card.name }}</span>

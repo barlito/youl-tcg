@@ -41,8 +41,8 @@ final class BoosterHubComponentTest extends WebTestCase
 
         // The owned count is surfaced on the pack card and totalled in the hero.
         $rendered = (string) $component->render();
-        $this->assertStringContainsString('◈ 1 pack à ouvrir', $rendered);
-        $this->assertStringContainsString('1 pack à ouvrir', $this->stockTile($rendered));
+        $this->assertStringContainsString('1 en stock', $rendered);
+        $this->assertStringContainsString('En stock 1', $this->stockTile($rendered));
     }
 
     public function testEmptyInventoryShowsAnExplicitZeroStockState(): void
@@ -53,8 +53,8 @@ final class BoosterHubComponentTest extends WebTestCase
         $component = $this->createLiveComponent(BoosterHub::class, client: $client);
         $rendered = (string) $component->render();
 
-        $this->assertStringContainsString('◈ Aucun pack', $rendered);
-        $this->assertStringContainsString('0 pack à ouvrir', $this->stockTile($rendered));
+        $this->assertStringContainsString('0 en stock', $rendered);
+        $this->assertStringContainsString('En stock 0', $this->stockTile($rendered));
     }
 
     public function testClaimBoosterWithMalformedIdReportsNotFoundInsteadOfCrashing(): void
@@ -225,6 +225,51 @@ final class BoosterHubComponentTest extends WebTestCase
         $this->assertNull(static::getContainer()->get(EntityManagerInterface::class)
             ->getRepository(UserBooster::class)
             ->findOneBy(['discordUser' => $user, 'booster' => $bleach]));
+    }
+
+    public function testThePackFilterKeepsTheStockedPacksOrTheIncompleteUniverses(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $booster = $this->firstPublishedBooster();
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        $all = $component->render()->crawler()->filter('[data-testid="booster-card"]')->count();
+        $this->assertStringContainsString('En stock · 0', $component->render()->crawler()->filter('[data-testid="pack-filter-stock"]')->text());
+
+        $component->call('claimBooster', ['boosterId' => (string) $booster->getId()]);
+        $component->call('filterPacks', ['filter' => 'stock']);
+
+        $this->assertSame('stock', $component->component()->filter);
+        $crawler = $component->render()->crawler();
+        $this->assertSame('true', $crawler->filter('[data-testid="pack-filter-stock"]')->attr('aria-pressed'));
+        $this->assertCount(1, $crawler->filter('[data-testid="boosters-grid"] [data-testid="booster-card"]'));
+        $this->assertStringContainsString('/boosters/' . $booster->getId() . '/open', $crawler->filter('[data-testid="boosters-grid"]')->html());
+        $this->assertStringContainsString('Tous · ' . $all, $crawler->filter('[data-testid="pack-filter-tous"]')->text());
+
+        // an incomplete universe = published cards the player does not own yet: the fixtures leave some
+        $component->call('filterPacks', ['filter' => 'incomplets']);
+        $incomplete = $component->render()->crawler()->filter('[data-testid="booster-card"]');
+        $this->assertGreaterThan(0, $incomplete->count());
+        $this->assertStringNotContainsString('Univers complet', $incomplete->text());
+
+        // an unknown value falls back to every pack
+        $component->call('filterPacks', ['filter' => 'nope']);
+        $this->assertSame('tous', $component->component()->filter);
+        $this->assertCount($all, $component->render()->crawler()->filter('[data-testid="booster-card"]'));
+    }
+
+    public function testTheFilterIsReadFromTheUrl(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+
+        $crawler = $client->request('GET', '/boosters?filtre=stock');
+
+        self::assertResponseIsSuccessful();
+        $this->assertSame('true', $crawler->filter('[data-testid="pack-filter-stock"]')->attr('aria-pressed'));
+        $this->assertCount(0, $crawler->filter('[data-testid="booster-card"]'));
+        $this->assertCount(1, $crawler->filter('[data-testid="pack-filter-empty"]'));
     }
 
     /**

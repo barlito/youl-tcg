@@ -4,166 +4,134 @@
     YOUL TCG — Le multivers des Youls
 {% endblock %}
 
-{% block body %}
-    <main>
-        {# ------------------------------------------------------------ Hero #}
-        <section class="hero-fill relative flex flex-col justify-center px-6 pb-12 pt-16 lg:px-14 lg:pb-0 lg:pt-20">
-            {# le halo est flouté et déborderait : il est le seul à être rogné #}
-            <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-                <div class="glow-ambient"></div>
-            </div>
-            <div class="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.1fr_1fr] 2xl:max-w-[88rem]">
-                <div>
-                    <span class="inline-block bg-primary px-2.5 py-1 font-mono text-[11px] font-bold tracking-[.15em] text-black">★ PRESS START</span>
-                    {# Taille fluide : « Collectionne. » doit tenir entier sur sa ligne
-                       (le conteneur s'élargit en 2xl pour laisser le titre grossir) #}
-                    <h1 class="mt-6 font-display text-[clamp(2.75rem,4.8vw,6rem)] font-bold uppercase leading-[.9] tracking-[-0.05em] text-ink-strong">
-                        Ouvre.<br>
-                        <span class="text-primary">Collectionne.</span><br>
-                        <span class="bg-gradient-to-r from-primary to-magenta bg-clip-text text-transparent">Gros Youl.</span>
-                    </h1>
-                    <p class="mt-7 max-w-md text-[17px] leading-normal text-ink-muted">
-                        Le TCG youl-made où tous tes univers préférés s'affrontent.
-                        Ouvre tes packs quotidiens, chasse les légendaires et complète ta collection de gros youl.
-                    </p>
-                    <div class="mt-8 flex flex-wrap gap-3">
-                        <a href="{{ path('boosters') }}" class="btn-arcade">Ouvrir un pack ▸</a>
-                        <a href="#univers" class="btn-ghost">Voir les univers</a>
-                    </div>
-                </div>
-                <div class="hero-stage hidden lg:block" aria-hidden="false">
-                    <div class="hero-stage__inner">
-                    {# logo derrière les cartes, qui le recouvrent en partie #}
-                    <img src="{{ asset('images/ytcg_logo.png') }}" alt="Logo YOUL"
-                         class="absolute left-1/2 top-0 z-0 h-80 w-auto -translate-x-1/2 [filter:drop-shadow(0_0_40px_#a435f0aa)]">
-                    {% set heroSpots = [
-                        {left: '-2.5rem', top: '17rem', rotation: '-8deg', delay: '0s', z: 1},
-                        {left: '6.5rem', top: '14rem', rotation: '6deg', delay: '.4s', z: 2},
-                        {left: '15.5rem', top: '19rem', rotation: '-2deg', delay: '.8s', z: 1},
-                    ] %}
-                    {% for card in cards %}
-                        {% set spot = heroSpots[loop.index0 % heroSpots|length] %}
-                        <div class="absolute w-56"
-                             style="left: {{ spot.left }}; top: {{ spot.top }}; z-index: {{ spot.z }};">
-                            <div class="hero-float" style="--float-delay: {{ spot.delay }};">
-                                <div style="transform: rotate({{ spot.rotation }});">
-                                    {{ include('components/CardComponent.html.twig') }}
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </section>
+{% set days = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'] %}
+{% set months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'] %}
 
-        {# ---------------------------------------------------------- Ticker #}
-        {# Paliers de rareté (ticker + section Raretés) : directement CardRarityEnum, labels FR inclus #}
-        {% set rarities = card_rarities() %}
-        {% set tickerItems = [
-            "✦ %s packs ouverts"|format(packsOpenedCount|number_format(0, ',', ' ')),
-            "✦ %s cartes tirées"|format(cardsPulledCount|number_format(0, ',', ' ')),
-            '✦ %d univers'|format(universesTotal),
-            '✦ %d cartes à collectionner'|format(cardsTotal),
-            '✦ 2 packs / jour',
-            '✦ %d paliers de rareté'|format(rarities|length),
-            '✦ 100 % youl-made',
-        ] %}
-        {# La boucle marquee = 2 copies de la piste, translateX(-50%). Chaque
-           copie répète les items 3× pour rester plus large que le viewport :
-           sans ça, du vide apparaît pendant le défilement. #}
-                <section class="overflow-hidden border-y-2 border-black bg-primary py-6 text-black" data-testid="ticker">
-            <div class="flex w-max" style="animation: marquee 60s linear infinite;">
-                {% for copy in range(0, 1) %}
-                    <div class="flex shrink-0 items-center" {{ copy == 1 ? 'aria-hidden="true"' }}>
-                        {% for repeat in range(0, 2) %}
-                            {% for item in tickerItems %}
-                                <span class="whitespace-nowrap px-6 font-display text-2xl font-bold uppercase tracking-[-0.02em]">{{ item }}</span>
-                            {% endfor %}
-                        {% endfor %}
+{% block body %}
+    {% set claims = today.claims %}
+    {% set unopened = today.unopenedBoosters %}
+    <main class="wrap pb-24">
+        {# ------------------------------------------------------------ Hero #}
+        <section class="home-hero" data-testid="home-hero">
+            <div class="flex min-w-0 flex-col gap-4 md:gap-5">
+                <p class="eyebrow">Ton QG · {{ days['now'|date('w', 'Europe/Paris')] }} {{ 'now'|date('j', 'Europe/Paris') }} {{ months['now'|date('n', 'Europe/Paris') - 1] }}</p>
+                <h1 class="home-hero__title d up">Salut <span class="grad">{{ app.user.username }}</span>.</h1>
+                <p class="home-hero__lead" data-testid="home-headline">{{ headline }}</p>
+                <div class="flex flex-wrap gap-3 pt-2">
+                    {% if claims.remaining > 0 %}
+                        <a class="btn btn-p max-md:w-full" href="{{ path('boosters') }}" data-testid="hero-claim">
+                            Récupérer {{ claims.remaining > 1 ? 'mes ' ~ claims.remaining ~ ' packs' : 'mon pack' }}
+                        </a>
+                    {% endif %}
+                    {% if unopened > 0 %}
+                        <a class="btn {{ claims.remaining > 0 ? 'btn-g max-md:hidden' : 'btn-p max-md:w-full' }}" href="{{ path('boosters', { filtre: 'stock' }) }}" data-testid="hero-open">
+                            Ouvrir un pack · {{ unopened }}
+                        </a>
+                    {% endif %}
+                    {% if claims.remaining == 0 and unopened == 0 %}
+                        <a class="btn btn-g max-md:w-full" href="{{ path('universes') }}">Explorer les univers</a>
+                    {% endif %}
+                </div>
+            </div>
+            {# les cartes du jour, en éventail derrière le logo #}
+            <div class="home-hero__stage" aria-hidden="false">
+                <img src="{{ asset('images/ytcg_logo.png') }}" alt="" class="home-hero__logo">
+                {% for card in cards %}
+                    <div class="home-hero__card home-hero__card--{{ loop.index }}">
+                        <div class="hero-float" style="--float-delay: {{ (loop.index0 * 0.4)|number_format(1) }}s;">
+                            {{ include('components/CardComponent.html.twig') }}
+                        </div>
                     </div>
                 {% endfor %}
             </div>
         </section>
 
-        {# ------------------------------------------------- QG + à finir #}
+        {# ---------------------------------------------- À faire + bande QG #}
         {{ include('parts/home/_today.html.twig') }}
 
-        {# --------------------------------------------------------- Concept #}
-                <section class="bg-bg px-6 py-24 lg:px-14">
-            <div class="mx-auto max-w-7xl">
-                <p class="eyebrow">01 / Concept</p>
-                <h2 class="mt-4 max-w-4xl font-display text-6xl font-bold uppercase leading-[.9] tracking-[-0.04em] text-ink-strong md:text-7xl">
-                    Tous tes univers.<br>
-                    <span class="text-primary">Un seul deck.</span>
-                </h2>
-                <p class="mt-7 max-w-xl text-[17px] leading-relaxed text-ink-muted">
-                    Chaque univers est une extension avec ses propres cartes, ses raretés et ses
-                    légendaires. Connecte-toi avec Discord, réclame tes packs gratuits du jour et
-                    fais grimper ta complétion.
-                </p>
-            </div>
-        </section>
+        {# ------------------------------------------------ Presque complets #}
+        {% if toFinish is not empty %}
+            <section aria-labelledby="near" class="flex flex-col gap-4 pt-12 md:pt-16" data-testid="home-to-finish">
+                <div class="flex items-end justify-between gap-4">
+                    <div class="flex flex-col gap-1.5">
+                        <p class="eyebrow">Presque complets</p>
+                        <h2 id="near" class="h2">Encore un effort</h2>
+                    </div>
+                    <a class="btn btn-g btn-s max-md:hidden" href="{{ path('collection') }}">Toute ma collection</a>
+                    <a class="lbl text-magenta md:hidden" href="{{ path('collection') }}">Tout voir</a>
+                </div>
+                <div class="near-row">
+                    {% for universe in toFinish %}
+                        {% set extension = universe.extension %}
+                        {% set missing = universe.total - universe.owned %}
+                        {% embed 'parts/ui/_universe_tile.html.twig' with {
+                            extension: extension,
+                            coverUrl: extension.imageName ? vich_uploader_asset(extension) : (universe.coverImage ? asset('uploads/cards/' ~ universe.coverImage)),
+                            class: 'near-row__tile',
+                            nameClass: 'text-base md:text-[22px]',
+                            testid: 'to-finish-universe',
+                            universe: universe,
+                            missing: missing,
+                        } only %}
+                            {% block name_aside %}<span class="d shrink-0 text-base leading-none text-ink-strong md:text-[22px]">{{ universe.percentage }} %</span>{% endblock %}
+                            {% block content %}
+                                <div class="bar"><i style="width: {{ universe.percentage }}%"></i></div>
+                                <span class="text-sm text-ink">
+                                    <span class="max-md:hidden">{{ universe.owned }} / {{ universe.total }} · </span><strong class="font-semibold text-magenta">il en manque {{ missing }}</strong>
+                                </span>
+                                {% if universe.reward %}
+                                    {# seules les cartes tirées par le joueur comptent pour la récompense #}
+                                    <span class="lbl text-ink max-md:hidden" data-testid="to-finish-reward">★ {{ universe.reward.drawn }}/{{ universe.reward.total }} tirées par toi · +{{ universe.reward.amount }} YLC</span>
+                                {% endif %}
+                            {% endblock %}
+                        {% endembed %}
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
 
         {# --------------------------------------------------------- Univers #}
-        <section id="univers" class="px-6 pb-24 lg:px-14">
-            <div class="mx-auto max-w-7xl">
-                <div class="flex items-end justify-between gap-6">
-                    <h2 class="font-display text-5xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-6xl">
-                        Les <span class="text-primary">univers</span>.
-                    </h2>
-                    <div class="flex flex-col items-end gap-3">
-                        <span class="font-mono text-xs text-ink-dim">{{ '%02d'|format(universesTotal) }} LIVE{{ upcoming ? ' / 01 SOON' }}</span>
-                        <a href="{{ path('universes') }}" class="btn-ghost !px-4 !py-2 text-xs">Tous les univers ▸</a>
-                    </div>
+        <section id="univers" aria-labelledby="univ" class="flex flex-col gap-4 pt-12 md:pt-16">
+            <div class="flex items-end justify-between gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <p class="eyebrow">Univers · {{ universesTotal }} live{{ upcoming ? ', 1 bientôt' }}</p>
+                    <h2 id="univ" class="h2">Les univers</h2>
                 </div>
+                <a class="btn btn-g btn-s" href="{{ path('universes') }}">Tous les univers</a>
+            </div>
 
-                {# les 3 derniers univers sortis ; la liste complète vit sur /univers #}
-                <div class="mt-10 grid gap-4 md:grid-cols-[2fr_1fr_1fr] md:grid-rows-[320px_280px]">
-                    {% for item in universes %}
-                        {% set extension = item.extension %}
-                        <article class="group relative min-h-[240px] overflow-hidden bg-surface transition-colors {{ loop.first ? 'notched-corner md:row-span-2' : '' }}">
-                            {# toute la tuile mène à la page de l'univers #}
-                            <a href="{{ path('universes_show', { slug: extension.slug }) }}"
-                               class="absolute inset-0 z-10"
-                               aria-label="Univers {{ extension.name }}"></a>
-                            {# même cascade de fond que les pages univers : image extension →
-                               artwork de la carte la plus rare → gradient seul (aussi le repli 404) #}
-                            <div class="absolute inset-0 bg-gradient-to-br from-[#2a0f44] via-[#7a1f9c] to-magenta opacity-60" aria-hidden="true"></div>
-                            {% set coverUrl = extension.imageName
-                                ? vich_uploader_asset(extension)
-                                : (item.coverImage ? asset('uploads/cards/' ~ item.coverImage)) %}
-                            {% if coverUrl %}
-                                <img src="{{ coverUrl }}" alt="{{ extension.name }}" loading="lazy" onerror="this.remove()"
-                                     class="absolute inset-0 h-full w-full object-cover object-top">
-                            {% endif %}
-                            <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/90" aria-hidden="true"></div>
-
+            {# les 3 derniers univers sortis ; la liste complète vit sur /univers #}
+            <div class="home-univ">
+                {% for item in universes %}
+                    {% set extension = item.extension %}
+                    {% set owned = ownedByExtension[extension.id ~ '']|default(0) %}
+                    {% embed 'parts/ui/_universe_tile.html.twig' with {
+                        extension: extension,
+                        coverUrl: extension.imageName ? vich_uploader_asset(extension) : (item.coverImage ? asset('uploads/cards/' ~ item.coverImage)),
+                        class: loop.first ? 'home-univ__main' : '',
+                        nameClass: loop.first ? 'text-[30px]' : 'text-xl',
+                        item: item,
+                        owned: owned,
+                        first: loop.first,
+                    } only %}
+                        {% block top %}
                             {# live = at least one claimable booster right now #}
-                            {% if item.hasClaimableBooster %}
-                                <div class="absolute left-4 right-4 top-4">
-                                    <span class="chip-mono bg-black/80 px-2 py-0.5 font-bold text-live" data-testid="live-badge">● LIVE</span>
-                                </div>
+                            {% if item.hasClaimableBooster %}<span class="chip chip-live bg-bg/80" data-testid="live-badge">● live</span>{% endif %}
+                        {% endblock %}
+                        {% block content %}
+                            {% if first and extension.description %}
+                                <span class="line-clamp-2 text-sm text-ink">{{ extension.description }}</span>
                             {% endif %}
+                            <span class="lbl text-ink">
+                                {{ item.cardCount }} carte{{ item.cardCount > 1 ? 's' }} ·
+                                {% if item.cardCount > 0 and owned >= item.cardCount %}<span class="text-live">✓ complet</span>{% else %}tu en as {{ owned }}{% endif %}
+                            </span>
+                        {% endblock %}
+                    {% endembed %}
+                {% endfor %}
 
-                            <div class="absolute bottom-4 left-4 right-4">
-                                <h3 class="font-display font-bold uppercase leading-[.95] tracking-[-0.03em] text-white {{ loop.first ? 'text-4xl' : 'text-[22px]' }}">
-                                    {{ extension.name }}
-                                </h3>
-                                <p class="mt-1.5 text-white/80 {{ loop.first ? 'text-sm' : 'text-[11px]' }}">
-                                    {{ extension.description|slice(0, 90) }}{{ extension.description|length > 90 ? '…' }}
-                                </p>
-                                <div class="chip-mono mt-3 flex justify-between border-t border-white/20 pt-2.5 text-white/90">
-                                    <span>{{ item.cardCount }} cartes</span>
-                                    <span>{{ extension.createdAt|date('m/Y') }}</span>
-                                </div>
-                            </div>
-                        </article>
-                    {% endfor %}
-
-                    {# Tuile teaser : absorbe la 4e case du layout magazine #}
-                    {{ include('parts/_soon_tile.html.twig', { upcoming, class: 'min-h-[240px] md:col-span-2' }) }}
-                </div>
+                {# Tuile teaser : absorbe la 4e case du layout magazine, sans bouton #}
+                {{ include('parts/_soon_tile.html.twig', { upcoming, upcomingCover, class: 'home-univ__soon' }, with_context = false) }}
             </div>
         </section>
 
@@ -171,54 +139,44 @@
         {{ include('parts/home/_live.html.twig') }}
 
         {# --------------------------------------------------------- Raretés #}
-        <section id="raretes" class="border-t-2 border-hairline px-6 py-20 lg:px-14">
-            <div class="mx-auto max-w-7xl">
-                <p class="eyebrow">03 / Raretés</p>
-                <h2 class="mb-10 mt-4 font-display text-5xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-6xl">
-                    {{ rarities|length }} paliers.
-                </h2>
-
-                {# Pas de « drop rate » global affiché : les vrais taux sont définis slot par slot, booster par booster #}
-                <div class="grid md:grid-cols-4">
-                    {% for rarity in rarities %}
-                        {% set color = 'var(--rarity-' ~ rarity.value ~ ')' %}
-                        <div class="px-5 py-8 {{ not loop.last ? 'md:border-r md:border-white/10' }}"
-                             style="border-top: 3px solid {{ color }}; background: linear-gradient(180deg, color-mix(in srgb, {{ color }} 9%, transparent), transparent);">
-                            <p class="chip-mono font-bold !tracking-[.2em]" style="color: {{ color }};">TIER {{ '%02d'|format(loop.index) }}</p>
-                            <p class="mt-4 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong">
-                                {{ rarity.value|first|upper }}<span class="text-2xl" style="color: {{ color }};"> · {{ rarity.label }}</span>
-                            </p>
-                        </div>
-                    {% endfor %}
-                </div>
+        {% set rarities = card_rarities() %}
+        <section id="raretes" aria-labelledby="rar" class="flex flex-col gap-4 pt-12 md:pt-16">
+            <div class="flex flex-col gap-1.5">
+                <p class="eyebrow">Raretés</p>
+                <h2 id="rar" class="h2">{{ rarities|length }} paliers.</h2>
+            </div>
+            {# Pas de « drop rate » global : les vrais taux sont définis slot par slot, booster par booster (« Taux » du hub) #}
+            <div class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+                {% for rarity in rarities %}
+                    <div class="panel flex flex-col gap-1 p-4" style="border-top: 3px solid var(--rarity-{{ rarity.value }});">
+                        <span class="lbl r-{{ rarity.value|first }}">Palier {{ '%02d'|format(loop.index) }}</span>
+                        <span class="d up text-xl text-ink-strong"><span class="r-{{ rarity.value|first }}">{{ rarity_icon(rarity.value) }}</span> {{ rarity.label }}</span>
+                    </div>
+                {% endfor %}
             </div>
         </section>
 
         {# --------------------------------------------------------- Roadmap #}
-        <section id="roadmap" class="px-6 py-20 lg:px-14">
-            <div class="mx-auto max-w-7xl">
-                <p class="eyebrow">04 / Roadmap</p>
-                <h2 class="mb-12 mt-4 font-display text-5xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-6xl">
-                    La suite.
-                </h2>
-
-                {% set roadmap = [
-                    {quarter: 'Q3 26', state: 'LIVE', title: 'Ouverture de packs', color: 'var(--live)'},
-                    {quarter: 'Q4 26', state: 'LIVE', title: 'Échanges & marché', color: 'var(--live)'},
-                    {quarter: 'Q4 26', state: 'NEW', title: 'Fusion & wishlist', color: 'var(--primary)'},
-                    {quarter: 'Q1 27', state: 'PLANNED', title: 'Mode Duel', color: 'var(--soon)'},
-                    {quarter: '2027', state: 'VISION', title: 'Saisons ranked', color: 'var(--text-dim)'},
-                ] %}
-                <div class="grid md:grid-cols-5">
-                    {% for step in roadmap %}
-                        <div class="p-6 {{ not loop.last ? 'md:border-r md:border-hairline' }}"
-                             style="border-top: 4px solid {{ step.color }};">
-                            <p class="chip-mono font-bold !tracking-[.2em]" style="color: {{ step.color }};">{{ step.quarter }} · {{ step.state }}</p>
-                            <p class="mt-3 font-display text-2xl font-bold uppercase tracking-[-0.02em] text-ink-strong">{{ step.title }}</p>
-                        </div>
-                    {% endfor %}
-                </div>
+        <section id="roadmap" aria-labelledby="road" class="flex flex-col gap-4 pt-12 md:pt-16">
+            <div class="flex flex-col gap-1.5">
+                <p class="eyebrow">Roadmap</p>
+                <h2 id="road" class="h2">La suite.</h2>
             </div>
+            {% set roadmap = [
+                {quarter: 'Q3 26', state: 'Live', title: 'Ouverture de packs', chip: 'chip-live'},
+                {quarter: 'Q4 26', state: 'Live', title: 'Échanges & marché', chip: 'chip-live'},
+                {quarter: 'Q4 26', state: 'Nouveau', title: 'Fusion & wishlist', chip: 'chip-holo'},
+                {quarter: 'Q1 27', state: 'Prévu', title: 'Mode Duel', chip: 'chip-soon'},
+                {quarter: '2027', state: 'Vision', title: 'Saisons ranked', chip: ''},
+            ] %}
+            <ol class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-4">
+                {% for step in roadmap %}
+                    <li class="panel flex flex-col gap-2 p-4">
+                        <span class="flex items-center justify-between gap-2"><span class="lbl">{{ step.quarter }}</span><span class="chip {{ step.chip }}">{{ step.state }}</span></span>
+                        <span class="d up text-lg leading-tight text-ink-strong">{{ step.title }}</span>
+                    </li>
+                {% endfor %}
+            </ol>
         </section>
     </main>
 {% endblock %}

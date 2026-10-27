@@ -1,0 +1,14 @@
+{# Progression d'un univers dans une tuile : barre + « possédées / total » + reste à trouver.
+   Paramètres : universe ({owned, total, percentage}), compact (bool : liste compacte, sans le total). #}
+{% set missing = universe.total - universe.owned %}
+<span class="bar" aria-hidden="true"><i style="width: {{ universe.percentage }}%"></i></span>
+<span class="flex items-baseline justify-between gap-2">
+    {% if not compact|default(false) %}
+        <span class="lbl text-ink">{{ universe.owned }} / {{ universe.total }} · {{ universe.percentage }} %</span>
+    {% endif %}
+    {% if universe.total == 0 %}
+        <span class="text-[13px] text-ink-muted">aucune carte publiée</span>
+    {% else %}
+        <span class="text-[13px] {{ not compact|default(false) or missing == 1 ? 'text-magenta' : 'text-ink-muted' }}">il en manque {{ missing }}</span>
+    {% endif %}
+</span>

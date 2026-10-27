@@ -55,8 +55,8 @@ final class UniverseControllerTest extends WebTestCase
         $grid = $crawler->filter('[data-testid="universes-grid"]');
         $this->assertStringContainsString($this->extension->getName(), $grid->text());
         // 1 owned of 3 published cards (the draft one must not count) = 33%
-        $this->assertStringContainsString('1/3 cartes', $grid->text());
-        $this->assertStringContainsString('33%', $grid->text());
+        $this->assertStringContainsString('1 / 3', $grid->text());
+        $this->assertStringContainsString('33 %', $grid->text());
         // the tile links to the universe page
         $this->assertGreaterThan(
             0,
@@ -73,8 +73,8 @@ final class UniverseControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $tile = $crawler->filter(\sprintf('[data-testid="universes-grid"] a[href="/univers/%s"]', $this->extension->getSlug()));
         // 2 published cards left, both owned: 2/2, not 3/2 = 150%
-        $this->assertStringContainsString('2/2 cartes', $tile->text());
-        $this->assertStringContainsString('100%', $tile->text());
+        $this->assertStringContainsString('2 / 2', $tile->text());
+        $this->assertStringContainsString('100 %', $tile->text());
     }
 
     public function testShowIgnoresAnOwnedCardPutBackToDraft(): void
@@ -85,8 +85,8 @@ final class UniverseControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $stats = $crawler->filter('[data-testid="universe-stats"]')->text();
-        $this->assertStringContainsString('2/2', $stats);
-        $this->assertStringContainsString('100%', $stats);
+        $this->assertStringContainsString('2 / 2', $stats);
+        $this->assertStringContainsString('100 %', $stats);
         $this->assertStringNotContainsString($this->cards[1]->getName(), $crawler->filter('[data-testid="set-grid"]')->text());
     }
 
@@ -172,8 +172,8 @@ final class UniverseControllerTest extends WebTestCase
         $this->assertStringContainsString($this->extension->getDescription(), $crawler->filter('main')->text());
 
         $stats = $crawler->filter('[data-testid="universe-stats"]')->text();
-        $this->assertStringContainsString('1/3', $stats);
-        $this->assertStringContainsString('33%', $stats);
+        $this->assertStringContainsString('1 / 3', $stats);
+        $this->assertStringContainsString('33 %', $stats);
     }
 
     public function testSetGridShowsOwnedCardsAndMasksTheRest(): void
@@ -244,7 +244,7 @@ final class UniverseControllerTest extends WebTestCase
 
         $reward = $crawler->filter('[data-testid="universe-reward"]');
         $this->assertSame(1, $reward->count());
-        $this->assertStringContainsString('1/3', $reward->text());
+        $this->assertStringContainsString('1 / 3', $reward->text());
         $this->assertStringContainsString('cartes tirées par toi', $reward->text());
         $this->assertStringContainsString('échange ou achetées ne comptent pas', $reward->text());
     }
@@ -257,6 +257,69 @@ final class UniverseControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $this->assertSame(0, $crawler->filter('[data-testid="universe-reward"]')->count());
+    }
+
+    public function testSetFiltersSplitOwnedAndMissingCardsWithoutLeakingTheMissingOnes(): void
+    {
+        $slug = $this->extension->getSlug();
+
+        $owned = $this->client->request('GET', '/univers/' . $slug . '?filtre=possedees')->filter('[data-testid="set-grid"]');
+        $this->assertCount(1, $owned->filter('[data-testid="card-cell"]'));
+        $this->assertCount(0, $owned->filter('[data-testid="masked-card"]'));
+
+        $crawler = $this->client->request('GET', '/univers/' . $slug . '?filtre=manquantes');
+        $missing = $crawler->filter('[data-testid="set-grid"]');
+        $this->assertCount(2, $missing->filter('[data-testid="masked-card"]'));
+        // a missing card keeps its rarity only: never its name nor its id
+        $this->assertCount(2, $missing->filter('[data-testid="masked-card"][data-rarity="common"]'));
+        $this->assertStringNotContainsString($this->cards[1]->getName(), $missing->html());
+        $this->assertStringNotContainsString((string) $this->cards[1]->getId(), $crawler->html());
+        $this->assertStringContainsString('Manquantes · 2', $crawler->filter('[data-testid="set-filter-manquantes"]')->text());
+        $this->assertStringContainsString('on', (string) $crawler->filter('[data-testid="set-filter-manquantes"]')->attr('class'));
+    }
+
+    public function testIndexSearchKeepsOnlyTheMatchingUniverses(): void
+    {
+        $crawler = $this->client->request('GET', '/univers?q=' . urlencode(mb_strtoupper($this->extension->getName())));
+
+        $grid = $crawler->filter('[data-testid="universes-grid"]');
+        $this->assertCount(1, $grid->filter(\sprintf('a[href="/univers/%s"]', $this->extension->getSlug())));
+        $this->assertStringNotContainsString('Cyberpunk', $grid->text());
+
+        $empty = $this->client->request('GET', '/univers?q=zzz-nothing');
+        $this->assertCount(1, $empty->filter('[data-testid="universe-search-empty"]'));
+    }
+
+    public function testIndexSortsAlphabeticallyOnDemand(): void
+    {
+        $crawler = $this->client->request('GET', '/univers?tri=az');
+
+        $names = $crawler->filter('[data-testid="universes-todo"] [data-testid="universe-tile"] .up, [data-testid="universes-todo"] [data-testid="universe-tile"] .d.up')->each(static fn ($node): string => $node->text());
+        $sorted = $names;
+        usort($sorted, 'strcasecmp');
+        $this->assertSame($sorted, $names);
+        $this->assertStringContainsString('on', (string) $crawler->filter('[data-testid="universe-sort-az"]')->attr('class'));
+    }
+
+    public function testCompletedUniversesHaveTheirOwnSection(): void
+    {
+        $this->ownAllPublishedCardsThenDraftOne();
+
+        $crawler = $this->client->request('GET', '/univers');
+
+        $this->assertCount(1, $crawler->filter(\sprintf('[data-testid="universes-done"] a[href="/univers/%s"]', $this->extension->getSlug())));
+        $this->assertCount(0, $crawler->filter(\sprintf('[data-testid="universes-todo"] a[href="/univers/%s"]', $this->extension->getSlug())));
+    }
+
+    public function testTheRewardPromiseFollowsTheFeatureFlag(): void
+    {
+        $this->assertStringContainsString('cartes tirées toi-même', $this->client->request('GET', '/univers')->filter('[data-testid="universes-header"]')->text());
+
+        $this->setFeature(FeatureEnum::UNIVERSE_REWARDS, false);
+
+        $crawler = $this->client->request('GET', '/univers');
+        $this->assertStringNotContainsString('Youl Coin', $crawler->filter('[data-testid="universes-header"]')->text());
+        $this->assertStringNotContainsString('YLC', $crawler->filter('main')->text());
     }
 
     public function testUnknownSlugIsNotFound(): void
