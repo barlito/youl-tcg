@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional;
 
 use App\Entity\Booster;
+use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\UserBooster;
 use App\Entity\UserCard;
@@ -42,9 +43,12 @@ final class BoosterOpeningComponentTest extends WebTestCase
         $this->assertNull($opening->error);
         $this->assertNotNull($opening->opening);
 
-        $rendered = (string) $component->render();
+        $rendered = new Crawler((string) $component->render());
         // Empty-inventory user → every drawn card is new.
-        $this->assertStringContainsString('NOUVEAU', $rendered);
+        $this->assertGreaterThan(0, $rendered->filter('[data-testid="recap-new"]')->count());
+        $this->assertCount(0, $rendered->filter('.opening__recap-grid [data-state="duplicate"]')->reduce(
+            static fn (Crawler $cell): bool => !str_contains($cell->text(), 'doublon') && !str_contains($cell->text(), 'DOUBLON'),
+        ));
 
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
 
@@ -69,20 +73,142 @@ final class BoosterOpeningComponentTest extends WebTestCase
             client: $client,
         );
 
-        $crawler = new Crawler((string) $component->render());
+        $rendered = (string) $component->render();
+        $crawler = new Crawler($rendered);
         $tiles = $crawler->filter('.opening__card-tile');
         $this->assertGreaterThan(0, $tiles->count());
 
-        // Empty inventory, nothing opened yet: every tile is masked and carries
-        // no name, rarity, artwork url or unmask payload in the DOM.
+        // Empty inventory, nothing opened yet: every tile is a card back with its
+        // rarity only — no name, artwork, id or unmask payload in the DOM.
         $tiles->each(function (Crawler $tile): void {
             $this->assertStringContainsString('is-masked', (string) $tile->attr('class'));
             $this->assertSame('', (string) $tile->attr('data-name'));
-            $this->assertSame('', (string) $tile->attr('data-rarity'));
             $this->assertNull($tile->attr('data-card-id'));
-            $this->assertSame('Non révélée', trim($tile->filter('.opening__card-name')->text()));
-            $this->assertCount(0, $tile->filter('img'));
+            $this->assertNull($tile->attr('data-pending-name'));
+            $this->assertSame('Carte à trouver', trim($tile->filter('.cm')->text()));
+            $this->assertCount(1, $tile->filter('[data-testid="masked-card"][data-rarity]'));
+            $this->assertCount(0, $tile->filter('img, .card'));
         });
+        $this->assertSame('0 / ' . $tiles->count() . ' trouvées', trim($crawler->filter('[data-testid="set-found"]')->text()));
+
+        foreach ($component->component()->getExtensionCatalog() as $card) {
+            $this->assertStringNotContainsString((string) $card->getId(), $rendered);
+            $this->assertStringNotContainsString(htmlspecialchars($card->getName()), $rendered, 'An unowned card name leaked into the page.');
+        }
+    }
+
+    public function testOwnedCardsAreInClearAndSearchableMissingOnesAreNot(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $booster = $this->firstPublishedBooster();
+
+        $component = $this->createLiveComponent(
+            BoosterOpening::class,
+            data: ['boosterId' => (string) $booster->getId()],
+            client: $client,
+        );
+        $catalog = $component->component()->getExtensionCatalog();
+        $owned = $catalog[0];
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist(new UserCard()
+            ->setDiscordUser($entityManager->find(DiscordUser::class, $user->getDiscordId()))
+            ->setCard($entityManager->find(Card::class, $owned->getId()))
+            ->setQuantity(1));
+        $entityManager->flush();
+
+        $rendered = (string) $component->refresh()->render();
+        $crawler = new Crawler($rendered);
+
+        $clear = $crawler->filter('.opening__card-tile:not(.is-masked)');
+        $this->assertCount(1, $clear);
+        // the search matches data-name: only the owned card carries one
+        $this->assertSame(mb_strtolower($owned->getName()), $clear->attr('data-name'));
+        $this->assertCount(\count($catalog) - 1, $crawler->filter('.opening__card-tile.is-masked[data-name=""]'));
+        $this->assertSame('1 / ' . \count($catalog) . ' trouvées', trim($crawler->filter('[data-testid="set-found"]')->text()));
+
+        foreach (\array_slice($catalog, 1) as $card) {
+            $this->assertStringNotContainsString((string) $card->getId(), $rendered);
+        }
+    }
+
+    public function testPackRatesAverageTheSlots(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $booster = $this->firstPublishedBooster();
+
+        $component = $this->createLiveComponent(
+            BoosterOpening::class,
+            data: ['boosterId' => (string) $booster->getId()],
+            client: $client,
+        );
+        $rates = $component->component()->getPackRates();
+
+        $slots = $booster->getDropRates();
+        foreach ($rates['rarities'] as $rarity => $rate) {
+            $expected = round(array_sum(array_map(static fn (array $slot): float => $slot['rates'][$rarity] ?? 0.0, $slots)) / \count($slots), 1);
+            $this->assertSame($expected, $rate);
+        }
+        $this->assertEqualsWithDelta(100.0, array_sum($rates['rarities']), 0.5);
+        $this->assertSame(round(array_sum(array_column($slots, 'holoChance')) / \count($slots), 1), $rates['holo']);
+        $this->assertCount(1, new Crawler((string) $component->render())->filter('[data-testid="pack-rates"]'));
+    }
+
+    public function testRecapSummarisesTheDrawWithoutShowingItBeforeTheReveal(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $booster = $this->firstPublishedBooster();
+        $this->claim($user, $booster);
+        $this->claim($user, $booster);
+
+        $component = $this->createLiveComponent(
+            BoosterOpening::class,
+            data: ['boosterId' => (string) $booster->getId()],
+            client: $client,
+        );
+
+        // nothing drawn yet: no summary at all
+        $this->assertCount(0, new Crawler((string) $component->render())->filter('[data-testid="opening-recap"]'));
+
+        $component->call('open');
+        $opening = $component->component();
+        $crawler = new Crawler((string) $component->render());
+        $summary = $crawler->filter('[data-testid="opening-recap"]');
+        $this->assertCount(1, $summary);
+        // rendered with the draw, but hidden: the reveal controller shows it once every card was flipped
+        $this->assertNotNull($summary->attr('hidden'));
+
+        $total = $crawler->filter('.opening__card-tile')->count();
+        $newCount = \count(array_unique($opening->newCardIds));
+        $percentage = (int) round($newCount / $total * 100);
+        $this->assertCount($booster->getCardCount(), $summary->filter('[data-testid="recap-cards"] [data-testid="card-cell"]'));
+        $this->assertCount($newCount, $summary->filter('[data-testid="recap-new"]'));
+        $this->assertStringContainsString($booster->getCardCount() . ' cartes', $summary->filter('h1')->text());
+        $this->assertStringContainsString('passe de 0 % à ' . $percentage . ' %', $summary->filter('[data-testid="recap-lead"]')->text());
+        $this->assertStringContainsString($newCount . ' / ' . $total, $summary->filter('[data-testid="recap-completion"]')->text());
+        $this->assertStringContainsString('Ouvrir le suivant · 1 restant', $summary->filter('[data-testid="open-another"]')->text());
+
+        // best find = a card of the rarest drawn rarity, highlighted once
+        $reveal = $opening->getRevealCards();
+        $rarest = max(array_map(static fn (array $slot): int => $slot['card']->getRarity()->rank(), $reveal));
+        $bestNames = array_map(
+            static fn (array $slot): string => $slot['card']->getName(),
+            array_filter($reveal, static fn (array $slot): bool => $slot['card']->getRarity()->rank() === $rarest),
+        );
+        $bestText = $summary->filter('[data-testid="recap-best"]')->text();
+        $this->assertNotEmpty(array_filter($bestNames, static fn (string $name): bool => str_starts_with($bestText, $name)));
+        $this->assertCount(1, $summary->filter('.opening__recap-best-cell'));
+
+        // the second draw starts from the first one's cards
+        $component->call('open');
+        $second = new Crawler((string) $component->render());
+        $this->assertStringContainsString(
+            'Ta complétion ' . $booster->getExtension()->getName() . ' ' . ($percentage === (int) round(($newCount + \count(array_unique($component->component()->newCardIds))) / $total * 100) ? 'reste à' : 'passe de ' . $percentage . ' %'),
+            $second->filter('[data-testid="recap-lead"]')->text(),
+        );
+        $this->assertCount(0, $second->filter('[data-testid="open-another"]'), 'No pack left: no « Ouvrir le suivant ».');
     }
 
     public function testFreshlyDrawnCardsStayMaskedAsPendingUntilTheFlip(): void
@@ -111,17 +237,17 @@ final class BoosterOpeningComponentTest extends WebTestCase
         $this->assertCount(\count($newCardIds), $pending);
 
         $pending->each(function (Crawler $tile) use ($newCardIds): void {
-            // masked presentation…
+            // masked presentation, like any card not owned before the draw…
             $this->assertSame('', (string) $tile->attr('data-name'));
-            $this->assertSame('Non révélée', trim($tile->filter('.opening__card-name')->text()));
+            $this->assertSame('Carte à trouver', trim($tile->filter('[data-opening-masked] .cm')->text()));
             // …but the unmask payload is on board for the flip
             $this->assertContains((string) $tile->attr('data-card-id'), $newCardIds);
             $this->assertNotSame('', (string) $tile->attr('data-pending-name'));
-            $this->assertNotSame('', (string) $tile->attr('data-pending-rarity'));
-            // the whole rendered card is hidden: the component carries several
-            // <img> (front face + card back), the wrapper is the reveal hook
-            $this->assertNotNull($tile->filter('.opening__card-render')->attr('hidden'), 'Pending artwork must stay hidden until the flip.');
+            // the real cell is hidden until the reveal controller swaps it in
+            $this->assertNotNull($tile->filter('[data-opening-reveal]')->attr('hidden'), 'Pending artwork must stay hidden until the flip.');
         });
+        // the counter still says what the player owned before the draw
+        $this->assertSame('0 / ' . $crawler->filter('.opening__card-tile')->count() . ' trouvées', trim($crawler->filter('[data-testid="set-found"]')->text()));
     }
 
     public function testRevealRendersCardsOrderedRarestLast(): void

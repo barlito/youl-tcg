@@ -1,89 +1,66 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * "Set Contents" — the lower, independently-scrolling zone of the opening aside.
- * Pure client-side reference catalogue of the whole extension: live search
- * (debounced), client-side sort, and a scroll-to-top affordance. It owns no
- * server state — the cards are rendered once and this controller only reorders /
- * hides the existing tiles.
+ * « Contenu du set » — the aside of the opening page. Pure client-side view of
+ * the extension's cards: name search (debounced; a masked card has an empty
+ * data-name, so it never matches), « Manquantes » filter, « x / y trouvées »
+ * counter and a scroll-to-top affordance. It owns no server state: the reveal
+ * controller unmasks freshly won tiles and fires `opening:unmasked`.
  */
 
 const DEBOUNCE_MS = 150;
 const SCROLL_TOP_AT = 240; // px scrolled before the "back to top" button shows
 
 export default class extends Controller {
-    static targets = ['search', 'clear', 'sort', 'grid', 'tile', 'count', 'empty', 'scroll', 'top'];
+    static targets = ['search', 'missing', 'grid', 'tile', 'found', 'empty', 'scroll', 'top'];
 
     connect() {
-        this.total = this.tileTargets.length;
-        // DOM order at load == the "Numéro" / default order, captured for resets
-        this.defaultOrder = this.tileTargets.slice();
+        this.missingOnly = false;
     }
 
     disconnect() {
         clearTimeout(this.debounce);
     }
 
-    // ----------------------------------------------------------- search
     filter() {
-        // toggle the clear (✕) button immediately, debounce the actual filtering
-        if (this.hasClearTarget) {
-            this.clearTarget.hidden = this.searchTarget.value.trim() === '';
-        }
         clearTimeout(this.debounce);
-        this.debounce = setTimeout(() => this._applyFilter(), DEBOUNCE_MS);
+        this.debounce = setTimeout(() => this._apply(), DEBOUNCE_MS);
     }
 
-    clear() {
-        this.searchTarget.value = '';
-        if (this.hasClearTarget) {
-            this.clearTarget.hidden = true;
+    toggleMissing() {
+        this.missingOnly = !this.missingOnly;
+        this.missingTarget.classList.toggle('on', this.missingOnly);
+        this.missingTarget.setAttribute('aria-pressed', String(this.missingOnly));
+        this._apply();
+    }
+
+    refresh() {
+        if (this.hasFoundTarget) {
+            this.foundTarget.textContent = `${this.tileTargets.filter((tile) => !tile.classList.contains('is-masked')).length}`;
         }
-        this._applyFilter();
-        this.searchTarget.focus();
+        this._apply();
     }
 
-    _applyFilter() {
-        const query = this.searchTarget.value.trim().toLowerCase();
+    _apply() {
+        const query = this.hasSearchTarget ? this.searchTarget.value.trim().toLowerCase() : '';
         let visible = 0;
         this.tileTargets.forEach((tile) => {
-            const match = query === '' || tile.dataset.name.includes(query);
+            const masked = tile.classList.contains('is-masked');
+            const match = (query === '' || (tile.dataset.name || '').includes(query))
+                && (!this.missingOnly || masked);
             tile.hidden = !match;
             if (match) {
                 visible++;
             }
         });
-        if (this.hasCountTarget) {
-            this.countTarget.textContent = `${visible}`;
-        }
         if (this.hasEmptyTarget) {
             this.emptyTarget.hidden = visible !== 0;
+            this.emptyTarget.textContent = this.missingOnly && query === ''
+                ? 'Rien ne manque : set complet !'
+                : 'Aucune de tes cartes ne correspond.';
         }
     }
 
-    // ----------------------------------------------------------- sort
-    sort() {
-        const mode = this.hasSortTarget ? this.sortTarget.value : 'default';
-        let ordered;
-
-        switch (mode) {
-            case 'name-asc':
-                ordered = this.tileTargets.slice().sort((a, b) => a.dataset.name.localeCompare(b.dataset.name));
-                break;
-            case 'name-desc':
-                ordered = this.tileTargets.slice().sort((a, b) => b.dataset.name.localeCompare(a.dataset.name));
-                break;
-            default:
-                // "Rareté" — the server already renders the catalog rarest-first, so
-                // the original DOM order captured at connect IS the rarity order
-                ordered = this.defaultOrder;
-        }
-
-        // re-append in the new order (appendChild moves nodes, no clones)
-        ordered.forEach((tile) => this.gridTarget.appendChild(tile));
-    }
-
-    // ----------------------------------------------------- scroll to top
     onScroll() {
         if (this.hasTopTarget && this.hasScrollTarget) {
             this.topTarget.hidden = this.scrollTarget.scrollTop < SCROLL_TOP_AT;

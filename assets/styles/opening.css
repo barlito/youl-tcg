@@ -1,12 +1,13 @@
 /*
- * Booster opening — dedicated packs.com-style page: the 3D pack on the left,
- * the extension's card set on the right. The set list fills in real time as the
- * player peels the pack and the centre showcase reveals each card (rarest last).
+ * Booster opening — dedicated packs.com-style page: the 3D pack and its
+ * « Tes cartes » slots on the left, the pack rates and the extension's card set
+ * in the aside (folded behind a button under lg). The set list fills in real
+ * time as the showcase reveals each card; the summary replaces the page at the end.
  *
  * Driven by assets/controllers/booster_opening_controller.js (no anime.js):
  * the controller toggles `is-current`/`is-revealed`/`is-popping`
  * state classes, sets `--reveal-color` per revealed card, and unhides the
- * showcase / footer. The 3D pack lives in assets/controllers/pack_opening_3d.
+ * showcase / summary. The 3D pack lives in assets/controllers/pack_opening_3d.
  *
  * CRITICAL: entrance animations with a start delay use `both` fill-mode so the
  * element never flashes its base style during the delay.
@@ -21,18 +22,13 @@
 @keyframes opening-labelSlam { 0% { transform: scale(2.4); opacity: 0; filter: blur(8px); } 60% { transform: scale(.92); opacity: 1; filter: blur(0); } 100% { transform: scale(1); opacity: 1; } }
 @keyframes opening-slotPop { 0% { transform: scale(.82); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
 @keyframes opening-nudgeX { 0%,100% { transform: translateX(0); } 50% { transform: translateX(5px); } }
-/* keeps the absolute foot's -50% X centring while sliding in */
-@keyframes opening-footIn { 0% { transform: translate(-50%, 14px); opacity: 0; } 100% { transform: translate(-50%, 0); opacity: 1; } }
 
 /* ===================================================================== layout */
 .opening--page {
     position: relative;
-    display: flex;
     width: 100%;
-    min-height: calc(100vh - 64px);
-    /* ends on the exact body colour (#0b0712) so the page never goes darker than
-     * the site background at its edges — no visible seam against the body */
-    background: radial-gradient(120% 80% at 30% 18%, #1a1030 0%, #0b0712 62%, #0b0712 100%);
+    min-height: calc(100vh - var(--header-h, 72px));
+    background: #0b0712;
     overflow: hidden;
     /* it's an interactive game screen, not text — clicking/dragging to reveal
      * cards must never start a text/image selection */
@@ -42,44 +38,42 @@
 .opening--page img { -webkit-user-drag: none; user-drag: none; }
 .opening--page [hidden] { display: none !important; }
 
-@media (max-width: 900px) {
-    .opening--page { flex-direction: column; }
+.opening__main { display: grid; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1024px) {
+    .opening__main { grid-template-columns: minmax(0, 1fr) 440px; min-height: calc(100vh - var(--header-h, 72px)); }
 }
+.opening.is-recap .opening__main { display: none; }
 
 /* ------------------------------------------------------ left: the pack column */
 .opening__pack-col {
     position: relative;
-    flex: 1 1 58%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
-    /* trimmed top padding — the big void above the pack lived here */
-    padding: 12px 24px 20px;
+    gap: 16px;
+    padding: 14px 16px 24px;
     min-width: 0;
-    /* never grow past the viewport, or the CTA gets pushed below the fold */
-    min-height: 0;
+    background: radial-gradient(ellipse 80% 50% at 50% 40%, #a435f033, transparent 70%);
+}
+@media (min-width: 1024px) {
+    .opening__pack-col {
+        gap: 20px;
+        padding: 28px 40px 40px;
+        background: radial-gradient(ellipse 55% 60% at 50% 45%, #a435f033, transparent 70%);
+    }
 }
 
-.opening__back {
-    position: absolute;
-    top: 20px;
-    left: 24px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    letter-spacing: .12em;
-    color: #8a7aae;
-    text-decoration: none;
-    transition: color .2s;
+.opening__topline {
+    align-self: stretch;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
 }
-.opening__back:hover { color: var(--primary, #c9a0ff); }
+.opening__back { flex: 0 0 auto; text-decoration: none; transition: color .2s; }
+.opening__back:hover { color: var(--text-strong); }
 
 .opening__err {
-    position: absolute;
-    top: 18px;
-    left: 50%;
-    transform: translateX(-50%);
     padding: 8px 14px;
     border: 1px solid #ff3db066;
     background: #ff3db01a;
@@ -90,23 +84,20 @@
 
 .opening__pack-stage {
     position: relative;
-    /* Size from the smallest of width AND height budgets (single dimension, so the
-     * aspect ratio is never distorted). The `78vh * 0.92` term caps the height to
-     * the viewport so the pack + CTA stay on screen; the height budget is what
-     * usually wins on a desktop, giving a packs.com-sized canvas (~900-1100px on a
-     * tall screen) instead of the cramped ~640px the old 58vh/700px cap produced. */
-    width: min(54vw, 1180px, calc(78vh * 0.92));
+    /* one dimension (the .92 aspect is never distorted): the height budget keeps
+     * the pack, the CTA and the « Tes cartes » row above the fold */
+    width: min(100%, 720px, calc((100vh - 360px) * .92));
+    min-width: 260px;
     aspect-ratio: .92;
-    /* upward bias; the pack is top-aligned inside the canvas (JS) but the column
-     * centers its content (justify-content), so only HALF of this margin actually
-     * moves the pack up — hence the seemingly large values (≈-99px at 900px of
-     * viewport ≈ a ~38px visual lift). The clipped canvas top is empty/transparent. */
-    margin-top: clamp(-140px, -11vh, -30px);
+    /* the pack is top-aligned in a canvas with room for the tear: pull it up */
+    margin-top: clamp(-90px, -7vh, -20px);
+    margin-bottom: -40px;
 }
-@media (max-width: 900px) {
+@media (max-width: 1023px) {
     .opening__pack-stage {
-        width: min(92vw, 640px, calc(56vh * 0.92));
-        margin-top: -6px;
+        width: min(100%, 420px, calc((100svh - 400px) * .92));
+        margin-top: -12px;
+        margin-bottom: -28px;
     }
 }
 
@@ -155,22 +146,18 @@
 /* ------------------------------------------------- centre showcase (reveal) */
 .opening__showcase {
     position: absolute;
-    inset: -8% -6%;
+    /* the stage plus the CTA zone it overlaps: the reveal sits above « Tes cartes » */
+    inset: 0 -6% -58px;
     /* the showcase is centered on the stage, which the pack-phase margin above
      * pulls up; push the reveal back down by the same visual offset (half the
      * extra margin — flex centering absorbs the other half) so its composition
      * stays put: the rarity label must clear the 64px header, not slide under it */
-    transform: translateY(clamp(11px, 4.25vh, 46px));
     z-index: 5;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-}
-/* the small mobile stage margin needs no reveal compensation */
-@media (max-width: 900px) {
-    .opening__showcase { transform: none; }
 }
 
 .opening__aura {
@@ -190,7 +177,7 @@
 
 .opening__label {
     z-index: 3;
-    margin-bottom: 28px;
+    margin-bottom: 12px;
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
     font-size: clamp(24px, 3.4vw, 38px);
@@ -215,7 +202,9 @@
      * header + label + counter + pinned foot (~300px of chrome), converted to a
      * width via the card aspect. Tall screens get a genuinely bigger card
      * instead of dead space above/below; 520px ceiling for ultra-tall. */
-    width: clamp(260px, min(520px, calc((100vh - 300px) * 0.718)), 34vw);
+    /* height budget: viewport minus header, top line, « Tes cartes » row and the
+     * label / next / counter chrome, converted to a width via the card aspect */
+    width: clamp(220px, min(500px, calc((100vh - 450px) * 0.718)), 34vw);
     display: grid;
     place-items: center;
 }
@@ -232,7 +221,12 @@
 .opening__reveal-card.is-pop { animation: opening-cardPop .6s ease-out; }
 
 /* phones: the card top runs under the header, the stamp goes to the bottom corner */
-@media (max-width: 900px) {
+@media (max-width: 1023px) {
+    /* phones: the reveal also takes the top line's room, the counter repeats « Tes cartes » */
+    .opening__showcase { top: -40px; }
+    .opening.is-revealing .opening__topline { visibility: hidden; }
+    .opening__counter { display: none; }
+    .opening__reveal-cards { width: min(calc((100vw - 32px) / .92 * .718 - 5px), calc((100svh - 410px) * .718), 300px); }
     .opening__reveal-card .new-tag { top: auto; bottom: 7%; left: -4%; }
 }
 
@@ -290,9 +284,10 @@
 .opening__stack-layer:nth-child(2) { transform: translate(15px, 19px) scale(.97); opacity: .6; }
 .opening__stack-layer:nth-child(3) { transform: translate(23px, 29px) scale(.955); opacity: .4; }
 
+.opening__next-slot { z-index: 2; display: grid; margin-top: 20px; }
+.opening__next-slot > .opening__next { grid-area: 1 / 1; }
 .opening__next {
     z-index: 2;
-    margin-top: 48px;
     padding: 12px 26px;
     border: 1px solid #a435f066;
     background: #0b0712aa;
@@ -325,355 +320,238 @@
 
 /* --------------------------------------------------- CTA / instruction line */
 .opening__cta {
-    /* small pull toward the pack (the stage still has a little empty room below) */
-    margin-top: -16px;
+    position: relative;
+    z-index: 6;
     display: flex;
-    flex-direction: column;
+    flex-flow: row wrap;
+    justify-content: center;
     align-items: center;
-    gap: 12px;
+    gap: 10px 16px;
+    width: 100%;
+    /* same height before, during and after the tear: « Tes cartes » never jumps */
+    min-height: 78px;
     text-align: center;
+}
+.opening__cta > .muted { flex-basis: 100%; }
+/* hidden during the reveal, but its slot stays reserved */
+.opening--page .opening__cta[hidden] { display: flex !important; visibility: hidden; }
+.opening__cta-btn { flex-basis: 100%; }
+@media (min-width: 640px) {
+    .opening__cta-btn { flex-basis: auto; min-width: 280px; }
 }
 .opening__hint {
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
     letter-spacing: .14em;
+    text-transform: uppercase;
     color: #b9a8cf;
 }
 .opening__hint .arrow { display: inline-block; animation: opening-nudgeX 1.3s ease-in-out infinite; }
-.opening__skip {
-    padding: 10px 22px;
-    border: 1px solid #a435f066;
-    background: transparent;
-    color: #cdbff0;
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 700;
-    font-size: 12px;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    text-decoration: none;
-    cursor: pointer;
-}
-.opening__skip:hover { border-color: var(--primary); color: var(--primary); }
 
-/* ============================ right: reveal tracker + set contents (aside) */
-.opening__panel {
-    flex: 0 0 42%;
+/* ---------------------------------- « Tes cartes »: the pack's slots, under it */
+.opening__track {
+    position: relative;
+    /* above the canvas, under the showcase */
+    z-index: 4;
     display: flex;
     flex-direction: column;
-    border-left: 1px solid #ffffff14;
-    background: #140a26;
-    /* fixed so zone 2 can own its own scroll without growing the page */
-    height: calc(100vh - 64px);
-    min-height: 0;
+    align-items: center;
+    gap: 8px;
 }
-@media (max-width: 900px) {
-    .opening__panel { flex: 0 0 auto; border-left: none; border-top: 1px solid #ffffff14; height: auto; max-height: 72vh; }
-}
-
-/* ----------------------------------------- zone 1: reveal tracker (pinned) */
-.opening__track {
-    flex: 0 0 auto;
-    padding: 16px 18px;
-    border-bottom: 1px solid #ffffff14;
-    background: #160c29;
-}
-.opening__track-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 12px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: #6a5a8a;
-}
-.opening__track-count b { color: #fff; font-variant-numeric: tabular-nums; }
-.opening__track-count span { color: #b9a8cf; }
-.opening__track-best { text-align: right; }
-.opening__track-best span { display: block; margin-top: 3px; font-weight: 700; color: #fff; }
-
 .opening__track-grid {
-    display: grid;
-    grid-template-columns: repeat(var(--track-count, 3), minmax(0, 1fr));
-    gap: 10px;
-    /* 1fr per slot blew a 1-card pack up to the whole panel width. Cap a tile
-       to the size it would have in a 3-card pack — the reference layout — so
-       small packs stay in scale while 3+ cards keep the full width (the
-       max-width then resolves above 100% and never bites). */
-    max-width: calc((100% - 20px) / 3 * var(--track-count, 3) + (var(--track-count, 3) - 1) * 10px);
-    margin-inline: auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
 }
-.opening__track-tile { min-width: 0; }
+.opening__track-tile { width: 48px; }
+@media (min-width: 640px) {
+    .opening__track-grid { gap: 10px; }
+    .opening__track-tile { width: 72px; }
+}
 .opening__track-img {
     position: relative;
     aspect-ratio: var(--card-aspect, .718);
-    border-radius: 8px;
+    border-radius: 4px;
     overflow: hidden;
-    border: 1.5px solid #ffffff14;
-    background: #0c0618;
 }
 .opening__track-tile.is-revealed .opening__track-img {
-    border-color: var(--slot-rar, #ffffff33);
-    box-shadow: 0 0 14px -2px var(--slot-rar, transparent), 0 8px 18px #0008;
+    box-shadow: 0 0 14px -2px var(--slot-rar, transparent), 0 6px 14px #0008;
 }
 .opening__track-tile.is-popping .opening__track-img { animation: opening-slotPop .5s ease-out; }
 .opening__track-tile.is-resetting,
 .opening__track-tile.is-resetting * { transition: none !important; }
-/* la carte rendue (CardComponent figé) remplace la vignette : c'est elle qui
-   porte le cadre, le nom et le filigrane */
+/* la carte rendue (CardComponent figé) remplace l'emplacement vide */
+/* visibility, not just opacity: an unflipped card must not even be readable */
 .opening__track-img .card {
     width: 100%;
     height: 100%;
     opacity: 0;
-    transition: opacity .4s ease;
+    visibility: hidden;
+    transition: opacity .4s ease, visibility 0s linear .4s;
 }
-.opening__track-tile.is-revealed .opening__track-img .card { opacity: 1; }
+.opening__track-tile.is-revealed .opening__track-img .card { opacity: 1; visibility: visible; transition: opacity .4s ease, visibility 0s; }
 .opening__track-back {
     position: absolute;
     inset: 0;
     z-index: 1;
-    background: #140a26 center/cover no-repeat;
-    opacity: 1;
+    border: 1px dashed var(--hairline-strong, #a435f066);
+    border-radius: 4px;
+    background: #160e22;
     transition: opacity .4s ease;
     pointer-events: none;
 }
 .opening__track-tile.is-revealed .opening__track-back { opacity: 0; }
-
-.opening__track-holo,
-.opening__track-new {
+.opening__track-holo {
     position: absolute;
+    top: 2px;
+    right: 3px;
     z-index: 2;
+    visibility: hidden;
     opacity: 0;
     transition: opacity .3s ease .2s;
-    padding: 1px 5px;
-    border-radius: 3px;
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 700;
-    letter-spacing: .08em;
-    font-size: 8px;
-    color: #0b0712;
+    color: #ff3db0;
+    font-size: 11px;
+    text-shadow: 0 0 6px #000;
 }
-.opening__track-tile.is-revealed .opening__track-holo,
-.opening__track-tile.is-revealed .opening__track-new { opacity: 1; }
-.opening__track-holo { top: 5px; right: 5px; background: linear-gradient(90deg, #ff3db0, #c9a0ff); }
-.opening__track-new { top: 5px; left: 5px; background: linear-gradient(90deg, var(--primary, #c9a0ff), #ff3db0); }
+.opening__track-tile.is-revealed .opening__track-holo { opacity: 1; visibility: visible; }
 
-.opening__track-name {
-    margin-top: 6px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9.5px;
-    letter-spacing: .03em;
-    color: #b9a8cf;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.opening__aside-toggle { position: relative; z-index: 6; width: 100%; max-width: 420px; }
+@media (min-width: 1024px) {
+    .opening__aside-toggle { display: none; }
 }
 
-/* ------------------------------------ zone 2: set contents (own scroll) */
+/* ===================================== aside: pack rates + set contents */
+.opening__panel {
+    display: none;
+    flex-direction: column;
+    gap: 20px;
+    padding: 4px 16px 32px;
+    min-width: 0;
+}
+.opening.is-aside-open .opening__panel { display: flex; }
+@media (min-width: 1024px) {
+    .opening__panel,
+    .opening.is-aside-open .opening__panel {
+        position: sticky;
+        top: 0;
+        display: flex;
+        height: calc(100vh - var(--header-h, 72px));
+        padding: 28px 28px 0;
+        border-left: 1px solid #a435f033;
+        background: #0e0918;
+    }
+}
+
+.opening__rates { display: flex; flex-direction: column; gap: 10px; }
+.opening__rate {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr) 52px;
+    gap: 10px;
+    align-items: center;
+    font-size: 13px;
+}
+.opening__rates-detail summary { cursor: pointer; padding-top: 4px; }
+
+/* ------------------------------------ set contents (own scroll on desktop) */
 .opening__set {
     position: relative;
-    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    min-height: 0;
-}
-.opening__set-head {
-    flex: 0 0 auto;
-    padding: 14px 18px 12px;
-    border-bottom: 1px solid #ffffff12;
-    background: #140a26;
-}
-.opening__set-titleline {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
     gap: 10px;
-    margin-bottom: 10px;
-}
-.opening__set-title {
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 700;
-    font-size: 15px;
-    letter-spacing: -.01em;
-    text-transform: uppercase;
-    color: #fff;
-}
-.opening__set-meta {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    letter-spacing: .06em;
-    color: #6a5a8a;
-    text-align: right;
-}
-.opening__set-meta span { color: #b9a8cf; font-weight: 700; }
-
-.opening__set-controls { display: flex; gap: 8px; }
-.opening__search { position: relative; flex: 1 1 auto; }
-.opening__search-icon {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #6a5a8a;
-    font-size: 14px;
-    pointer-events: none;
-}
-.opening__search-input {
-    width: 100%;
-    padding: 8px 30px 8px 28px;
-    background: #0c0618;
-    border: 1px solid #ffffff1f;
-    border-radius: 8px;
-    color: #fff;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-}
-.opening__search-input::placeholder { color: #6a5a8a; }
-.opening__search-input:focus { outline: none; border-color: var(--primary, #c9a0ff); }
-.opening__search-input::-webkit-search-cancel-button { display: none; }
-.opening__search-clear {
-    position: absolute;
-    right: 6px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
-    display: grid;
-    place-items: center;
-    background: transparent;
-    border: none;
-    color: #8a7aae;
-    cursor: pointer;
-    font-size: 11px;
-}
-.opening__search-clear:hover { color: #fff; }
-.opening__sort {
-    flex: 0 0 auto;
-    padding: 8px 10px;
-    background: #0c0618;
-    border: 1px solid #ffffff1f;
-    border-radius: 8px;
-    color: #cdbff0;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    cursor: pointer;
-}
-.opening__sort:focus { outline: none; border-color: var(--primary, #c9a0ff); }
-
-.opening__set-scroll {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    padding: 16px 18px 24px;
     min-height: 0;
+}
+@media (min-width: 1024px) {
+    .opening__set { flex: 1 1 auto; }
+}
+.opening__set-head { display: flex; flex-direction: column; gap: 10px; }
+.opening__set-scroll { min-height: 0; }
+@media (min-width: 1024px) {
+    .opening__set-scroll { flex: 1 1 auto; overflow-y: auto; margin-right: -12px; padding: 4px 12px 32px 0; }
 }
 .opening__set-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 16px 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px 10px;
     align-content: start;
 }
-@media (max-width: 560px) { .opening__set-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); } }
+@media (min-width: 640px) {
+    .opening__set-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.opening__card-tile { min-width: 0; }
+.opening__card-tile .cn,
+.opening__card-tile .cm { font-size: 12px; }
+.opening__card-tile .lbl { font-size: 10px; letter-spacing: .06em; }
+/* freshly-won tile swapped in by the reveal controller: same pop as the tracker */
+.opening__card-tile.is-popping .cell__art { animation: opening-slotPop .5s ease-out; }
 
-.opening__card-tile { position: relative; min-width: 0; }
-.opening__card-art {
-    position: relative;
-    aspect-ratio: var(--card-aspect, .718);
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1.5px solid var(--tile-rar, #ffffff1f);
-    background: #0c0618;
-    /* rarity halo */
-    box-shadow: 0 0 16px -4px var(--tile-rar, transparent), 0 8px 18px #0007;
-}
-.opening__card-render,
-.opening__card-render .card { width: 100%; height: 100%; }
-/* masked (unowned) tile: card back, no halo, muted label */
-.opening__card-back {
-    position: absolute;
-    inset: 0;
-    background: #140a26 center/cover no-repeat;
-}
-.opening__card-tile.is-masked .opening__card-name { color: #6a5a8a; }
-/* freshly-won tile promoted by the reveal controller: same pop as the tracker */
-.opening__card-tile.is-popping .opening__card-art { animation: opening-slotPop .5s ease-out; }
-.opening__card-name {
-    margin-top: 6px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    color: #e7d8ff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.opening__card-tier {
-    margin-top: 1px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    color: var(--tile-rar, #6a5a8a);
-}
-
-.opening__set-empty {
-    padding: 24px 8px;
-    text-align: center;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    letter-spacing: .06em;
-    color: #6a5a8a;
-}
+.opening__set-empty { padding: 24px 8px; text-align: center; font-size: 13px; }
 
 .opening__set-top {
     position: absolute;
-    right: 16px;
+    right: 0;
     bottom: 16px;
     z-index: 4;
-    padding: 8px 12px;
-    border-radius: 999px;
+    min-height: 40px;
+    padding: 0 14px;
     border: 1px solid #a435f066;
     background: #1a0f30ee;
     color: #cdbff0;
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 700;
-    font-size: 11px;
+    font: 700 11px/1 'Space Grotesk', sans-serif;
     letter-spacing: .06em;
     cursor: pointer;
     box-shadow: 0 6px 18px #0008;
 }
 .opening__set-top:hover { border-color: var(--primary); color: #fff; }
 
-/* End-of-opening actions. OUT of the showcase's centered flex flow on purpose:
- * pinned to the showcase bottom (where the tear CTA lived — hidden by then),
- * so its appearance neither re-centers the revealed card (-41px jump) nor
- * pushes below the fold. The showcase is pointer-events:none once done —
- * re-enable clicks here. */
-.opening__foot {
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 3;
-    width: max-content;
-    max-width: 96%;
-    display: flex;
-    flex-wrap: wrap;
+/* ==================================================== end-of-opening summary */
+.opening__recap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
-    text-align: center;
-    pointer-events: auto;
-    animation: opening-footIn .4s ease-out both;
+    max-width: 1360px;
+    margin: 0 auto;
+    padding: 24px 16px 40px;
+    background: radial-gradient(ellipse 70% 40% at 50% 18%, color-mix(in srgb, var(--best-rar, #a435f0) 14%, transparent), transparent 70%);
+    animation: opening-recapIn .45s ease-out both;
 }
-/* stacked layout: the showcase overflows 8% below the stage, right into the
- * tracker that now sits underneath — lift the pinned foot clear of it
- * (AFTER the base rule: same specificity, source order decides) */
-@media (max-width: 900px) {
-    .opening__foot { bottom: 44px; }
+@media (min-width: 1024px) {
+    .opening__recap {
+        grid-template-columns: 420px minmax(0, 1fr);
+        gap: 56px;
+        min-height: calc(100vh - var(--header-h, 72px));
+        padding: 40px 40px 56px;
+        background: radial-gradient(ellipse 40% 60% at 18% 50%, color-mix(in srgb, var(--best-rar, #a435f0) 14%, transparent), transparent 70%);
+    }
 }
+.opening__recap-best { display: flex; flex-direction: column; align-items: center; gap: 16px; min-width: 0; }
+.opening__recap-title {
+    margin: 0;
+    font: 700 22px/1 'Space Grotesk', sans-serif;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.opening__recap-card { width: min(240px, 70vw); }
+@media (min-width: 1024px) {
+    .opening__recap-title { font-size: 28px; }
+    .opening__recap-card { width: 340px; }
+}
+.opening__recap-body { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+.opening__recap-h1 { font-size: 32px; line-height: 1.05; }
+@media (min-width: 768px) {
+    .opening__recap-h1 { font-size: 44px; }
+}
+.opening__recap-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px 12px;
+}
+@media (min-width: 640px) {
+    .opening__recap-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+}
+.opening__recap-best-cell { outline: 2px solid var(--best-rar); outline-offset: 3px; border-radius: 4px; }
+@keyframes opening-recapIn { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: none; } }
 
 /* ============================================================= flash overlay */
 .opening__flash {
@@ -694,6 +572,8 @@
 
 @media (prefers-reduced-motion: reduce) {
     .opening__track-tile,
+    .opening__card-tile .cell__art,
+    .opening__recap,
     .opening__reveal-card { animation: none !important; }
     .opening__flip { transition: none !important; }
 }
