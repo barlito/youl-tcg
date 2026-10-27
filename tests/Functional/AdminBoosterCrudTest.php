@@ -184,7 +184,7 @@ final class AdminBoosterCrudTest extends WebTestCase
         $this->assertStringContainsString('poids 60', $rates);
         $this->assertStringContainsString('holo 25 %', $rates);
         // 25 per 10 000 read back as the percentage the player will see
-        $this->assertStringContainsString('unique 0,25 %', $rates);
+        $this->assertStringContainsString('♛ unique 1/1 0,25 %', $rates);
     }
 
     public function testASlotWithoutUniqueChanceShowsNoUniqueMarker(): void

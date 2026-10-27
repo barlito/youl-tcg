@@ -12,6 +12,11 @@ enum CardRarityEnum: string
     case LEGENDARY = 'legendary';
 
     /**
+     * Mark of a 1/1 unique (a flag, not a tier): distinct from every rarity shape, always next to the « 1/1 » text.
+     */
+    public const string UNIQUE_ICON = '♛';
+
+    /**
      * @return list<self> rarities ordered from least to most rare
      */
     public static function ascending(): array

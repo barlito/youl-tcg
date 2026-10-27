@@ -33,4 +33,13 @@ final class CardRarityExtensionTest extends TestCase
         $this->assertSame('◆', $extension->rarityIcon('uncommon'));
         $this->assertSame('', $extension->rarityIcon('mythic'));
     }
+
+    public function testTheUniqueIconIsADecorativeCrownDistinctFromEveryRarityShape(): void
+    {
+        $this->assertSame('<span class="unique-ic" aria-hidden="true">♛</span>', new CardRarityExtension()->uniqueIcon());
+
+        foreach (CardRarityEnum::cases() as $rarity) {
+            $this->assertStringNotContainsString(CardRarityEnum::UNIQUE_ICON, $rarity->icon());
+        }
+    }
 }
