@@ -14,7 +14,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * Card status and rarity read in French everywhere in the back-office, never the raw enum names.
+ * Card pages of the back-office: French status / rarity labels (never the raw enum names), images readable on the detail page.
  */
 final class AdminCardLabelsTest extends WebTestCase
 {
@@ -87,5 +87,17 @@ final class AdminCardLabelsTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $labels = $crawler->filter('select[id$="_rarity"] option')->each(static fn ($option): string => trim($option->text()));
         $this->assertSame(['Commune', 'Peu commune', 'Rare', 'Légendaire'], $labels);
+    }
+
+    public function testTheDetailPageListsTheStoredImages(): void
+    {
+        $crawler = $this->client->request('GET', '/admin/card/' . $this->card->getId());
+
+        self::assertResponseIsSuccessful();
+        $images = $crawler->filter('.form-fieldset')->reduce(static fn ($fieldset): bool => str_contains($fieldset->text(), 'Images'));
+        $this->assertCount(1, $images);
+        foreach (['Artwork', 'Foil (fichier)', 'Masque holo'] as $label) {
+            $this->assertStringContainsString($label, $images->text());
+        }
     }
 }

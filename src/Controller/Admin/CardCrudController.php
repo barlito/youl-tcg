@@ -197,6 +197,8 @@ class CardCrudController extends AbstractGuardedCrudController
                 <iframe id="card-live-preview-frame" title="Preview"
                         style="width: 276px; height: 400px; border: 0; background: #0b0712;"></iframe>
             </div>
+            <button type="button" id="card-live-preview-open" class="btn btn-secondary" hidden
+                    aria-controls="card-live-preview">Aperçu live</button>
             <script>
             (() => {
                 // EA5 pretty URL: /admin/card/{entityId}/edit
@@ -207,8 +209,12 @@ class CardCrudController extends AbstractGuardedCrudController
 
                 const panel = document.getElementById('card-live-preview');
                 const frame = document.getElementById('card-live-preview-frame');
-                panel.hidden = false;
-                document.getElementById('card-live-preview-close').addEventListener('click', () => { panel.hidden = true; });
+                const opener = document.getElementById('card-live-preview-open');
+                const show = (visible) => { panel.hidden = !visible; opener.hidden = visible; };
+                // on a phone the panel would cover the form: start closed, one tap opens it
+                show(!window.matchMedia('(max-width: 575.98px)').matches);
+                document.getElementById('card-live-preview-close').addEventListener('click', () => { show(false); opener.focus(); });
+                opener.addEventListener('click', () => show(true));
 
                 // uploads are never posted here and the description is never
                 // drawn on the card: both would only bloat the URL
@@ -254,17 +260,9 @@ class CardCrudController extends AbstractGuardedCrudController
         $imageCss = $this->assetMapper->getAsset('styles/admin/image.css')
             ?? throw new \LogicException('Asset "styles/admin/image.css" not found in the asset map.');
 
-        yield ImageField::new('imageName')
-            ->setLabel('Artwork')
-            ->hideOnForm()
+        yield $this->uploadedImage('imageName', 'imageFile', 'Artwork')
+            ->onlyOnIndex()
             ->addCssFiles($imageCss->publicPath)
-            ->formatValue(function ($value, $entity): ?string {
-                if (!$entity instanceof Card) {
-                    throw new UnexpectedTypeException($entity, Card::class);
-                }
-
-                return $this->uploaderHelper->asset($entity, 'imageFile');
-            })
         ;
         yield Field::new('id')->onlyOnDetail();
         yield FormField::addFieldset('Carte');
@@ -284,6 +282,8 @@ class CardCrudController extends AbstractGuardedCrudController
         yield ChoiceField::new('rarity')
             ->setLabel('Rareté')
             ->setChoices(CardRarityEnum::ascending())
+            // native: the autocomplete widget would sort the tiers alphabetically
+            ->renderAsNativeWidget()
         ;
         yield AssociationField::new('extension')->setLabel('Univers');
         $uniqueField = BooleanField::new('unique')
@@ -311,6 +311,10 @@ class CardCrudController extends AbstractGuardedCrudController
         ;
 
         yield FormField::addFieldset('Images');
+        // the Vich upload fields are form-only: the detail page shows the stored files instead
+        yield $this->uploadedImage('imageName', 'imageFile', 'Artwork')->onlyOnDetail();
+        yield $this->uploadedImage('imageFoilName', 'imageFoilFile', 'Foil (fichier)')->onlyOnDetail();
+        yield $this->uploadedImage('imageMaskName', 'imageMaskFile', 'Masque holo')->onlyOnDetail();
         yield VichImageField::new('imageFile')
             ->setLabel('Artwork')
             ->onlyOnForms()
@@ -330,6 +334,20 @@ class CardCrudController extends AbstractGuardedCrudController
         ;
         yield from VisualConfigFields::fields(isOverride: true);
         yield Field::new('visualConfigOverrideJson')->setLabel('Surcharges visuelles (JSON)')->onlyOnDetail();
+    }
+
+    private function uploadedImage(string $property, string $fileField, string $label): ImageField
+    {
+        return ImageField::new($property)
+            ->setLabel($label)
+            ->formatValue(function ($value, $entity) use ($fileField): ?string {
+                if (!$entity instanceof Card) {
+                    throw new UnexpectedTypeException($entity, Card::class);
+                }
+
+                return $this->uploaderHelper->asset($entity, $fileField);
+            })
+        ;
     }
 
     private function editedCard(): ?Card

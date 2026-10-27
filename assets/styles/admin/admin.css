@@ -25,6 +25,29 @@
     }
 }
 
+#card-live-preview-open {
+    position: fixed;
+    bottom: 48px;
+    right: 24px;
+    z-index: 900;
+}
+
+#card-live-preview-open[hidden] {
+    display: none;
+}
+
+@media (max-width: 575.98px) {
+    #card-live-preview {
+        right: 16px !important;
+        bottom: 16px !important;
+    }
+
+    #card-live-preview-open {
+        right: 16px;
+        bottom: 16px;
+    }
+}
+
 /* 1/1 unique crown (unique_icon()), same mark as the front; a badge keeps its own colour */
 .unique-ic {
     color: var(--va-soon);
