@@ -79,6 +79,11 @@
         z-index: 1;
     }
 
+    /* each sticky cell stacks on its own: the one holding the open menu must paint over the next rows */
+    .content-body:has(> table.datagrid) table.datagrid td.actions:has(.dropdown-menu.show) {
+        z-index: 3;
+    }
+
     .ea-dark-scheme .content-body:has(> table.datagrid) table.datagrid td.actions {
         background: var(--va-surface);
         box-shadow: inset 0 1px 0 var(--table-cell-border-color), inset 1px 0 0 var(--va-hairline);

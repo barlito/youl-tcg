@@ -21,6 +21,7 @@ function applyTheme(config) {
     }
 
     const options = config.options;
+    options.locale = 'fr-FR';
     options.color = TEXT;
     options.plugins ??= {};
     options.plugins.legend ??= {};
