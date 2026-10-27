@@ -42,28 +42,28 @@ final class MarketBoard extends AbstractController
     #[LiveProp]
     public ?string $sellerId = null;
 
-    #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'univers'))]
+    #[LiveProp(writable: true, onUpdated: 'onUniverseUpdated', url: new UrlMapping(as: 'univers'))]
     public ?string $universe = null;
 
-    #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'rarete'))]
+    #[LiveProp(writable: true, onUpdated: 'onRarityUpdated', url: new UrlMapping(as: 'rarete'))]
     public ?string $rarity = null;
 
-    #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'finition'))]
+    #[LiveProp(writable: true, onUpdated: 'onFinishUpdated', url: new UrlMapping(as: 'finition'))]
     public ?string $finish = null;
 
-    #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'wishlist'))]
+    #[LiveProp(writable: true, url: new UrlMapping(as: 'wishlist'))]
     public bool $wishlistOnly = false;
 
-    #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'mine'))]
+    #[LiveProp(writable: true, url: new UrlMapping(as: 'mine'))]
     public bool $mineOnly = false;
 
-    #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'manquantes'))]
+    #[LiveProp(writable: true, url: new UrlMapping(as: 'manquantes'))]
     public bool $missingOnly = false;
 
-    #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'q'))]
+    #[LiveProp(writable: true, onUpdated: 'onQueryUpdated', url: new UrlMapping(as: 'q'))]
     public string $query = '';
 
-    #[LiveProp(writable: true, onUpdated: 'resetPage', url: new UrlMapping(as: 'tri'))]
+    #[LiveProp(writable: true, onUpdated: 'onSortUpdated', url: new UrlMapping(as: 'tri'))]
     public string $sort = 'date_desc';
 
     #[LiveProp(writable: true, url: new UrlMapping(as: 'page'))]
@@ -231,14 +231,52 @@ final class MarketBoard extends AbstractController
         };
     }
 
+    public function onUniverseUpdated(?string $previous): void
+    {
+        $this->universe = self::nullIfEmpty($this->universe);
+        $this->resetPageIfChanged(self::nullIfEmpty($previous), $this->universe);
+    }
+
+    public function onRarityUpdated(?string $previous): void
+    {
+        $this->rarity = self::nullIfEmpty($this->rarity);
+        $this->resetPageIfChanged(self::nullIfEmpty($previous), $this->rarity);
+    }
+
+    public function onFinishUpdated(?string $previous): void
+    {
+        $this->finish = self::nullIfEmpty($this->finish);
+        $this->resetPageIfChanged(self::nullIfEmpty($previous), $this->finish);
+    }
+
+    public function onQueryUpdated(string $previous): void
+    {
+        $this->resetPageIfChanged($previous, $this->query);
+    }
+
+    public function onSortUpdated(string $previous): void
+    {
+        $this->resetPageIfChanged($previous, $this->sort);
+    }
+
     public function resetPage(): void
     {
-        // a select's « toutes » option posts '': keep it out of the url (?univers=&rarete=)
-        $this->universe = '' === $this->universe ? null : $this->universe;
-        $this->rarity = '' === $this->rarity ? null : $this->rarity;
-        $this->finish = '' === $this->finish ? null : $this->finish;
         $this->page = 1;
         $this->confirming = null;
+    }
+
+    // every action re-sends the selects' '' (prop null): only a real change may reset the page and the confirmation
+    private function resetPageIfChanged(?string $previous, ?string $current): void
+    {
+        if ($previous !== $current) {
+            $this->resetPage();
+        }
+    }
+
+    // a select's « toutes » option posts '': keep it out of the url (?univers=&rarete=)
+    private static function nullIfEmpty(?string $value): ?string
+    {
+        return '' === $value ? null : $value;
     }
 
     #[LiveAction]
