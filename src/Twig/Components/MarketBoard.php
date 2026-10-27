@@ -51,14 +51,15 @@ final class MarketBoard extends AbstractController
     #[LiveProp(writable: true, onUpdated: 'onFinishUpdated', url: new UrlMapping(as: 'finition'))]
     public ?string $finish = null;
 
+    /** The three toggles are null rather than false when off: a false prop would leave ?wishlist=0 in the url. */
     #[LiveProp(writable: true, url: new UrlMapping(as: 'wishlist'))]
-    public bool $wishlistOnly = false;
+    public ?bool $wishlistOnly = null;
 
     #[LiveProp(writable: true, url: new UrlMapping(as: 'mine'))]
-    public bool $mineOnly = false;
+    public ?bool $mineOnly = null;
 
     #[LiveProp(writable: true, url: new UrlMapping(as: 'manquantes'))]
-    public bool $missingOnly = false;
+    public ?bool $missingOnly = null;
 
     #[LiveProp(writable: true, onUpdated: 'onQueryUpdated', url: new UrlMapping(as: 'q'))]
     public string $query = '';
@@ -179,13 +180,13 @@ final class MarketBoard extends AbstractController
 
     public function isMissingFilterActive(): bool
     {
-        return $this->missingOnly && null === $this->sellerId && !$this->isMineFilterActive();
+        return true === $this->missingOnly && null === $this->sellerId && !$this->isMineFilterActive();
     }
 
     public function hasActiveFilters(): bool
     {
         return null !== $this->getSearch() || $this->getActiveExtension() instanceof Extension || $this->getActiveRarity() instanceof CardRarityEnum
-            || null !== $this->getActiveHolo() || $this->wishlistOnly || $this->isMineFilterActive() || $this->missingOnly;
+            || null !== $this->getActiveHolo() || true === $this->wishlistOnly || $this->isMineFilterActive() || true === $this->missingOnly;
     }
 
     public function isWishlistFilterActive(): bool
@@ -195,7 +196,7 @@ final class MarketBoard extends AbstractController
 
     public function isMineFilterActive(): bool
     {
-        return $this->mineOnly && null === $this->sellerId;
+        return true === $this->mineOnly && null === $this->sellerId;
     }
 
     public function isOwn(MarketListing $listing): bool
@@ -294,25 +295,25 @@ final class MarketBoard extends AbstractController
     #[LiveAction]
     public function toggleWishlistFilter(): void
     {
-        $this->wishlistOnly = !$this->wishlistOnly;
-        $this->mineOnly = $this->mineOnly && !$this->wishlistOnly;
+        $this->wishlistOnly = true === $this->wishlistOnly ? null : true;
+        $this->mineOnly = true === $this->wishlistOnly ? null : $this->mineOnly;
         $this->resetPage();
     }
 
     #[LiveAction]
     public function toggleMineFilter(): void
     {
-        $this->mineOnly = !$this->mineOnly;
-        $this->wishlistOnly = $this->wishlistOnly && !$this->mineOnly;
-        $this->missingOnly = $this->missingOnly && !$this->mineOnly;
+        $this->mineOnly = true === $this->mineOnly ? null : true;
+        $this->wishlistOnly = true === $this->mineOnly ? null : $this->wishlistOnly;
+        $this->missingOnly = true === $this->mineOnly ? null : $this->missingOnly;
         $this->resetPage();
     }
 
     #[LiveAction]
     public function toggleMissingFilter(): void
     {
-        $this->missingOnly = !$this->missingOnly;
-        $this->mineOnly = $this->mineOnly && !$this->missingOnly;
+        $this->missingOnly = true === $this->missingOnly ? null : true;
+        $this->mineOnly = true === $this->missingOnly ? null : $this->mineOnly;
         $this->resetPage();
     }
 
@@ -329,9 +330,9 @@ final class MarketBoard extends AbstractController
         $this->universe = null;
         $this->rarity = null;
         $this->finish = null;
-        $this->wishlistOnly = false;
-        $this->mineOnly = false;
-        $this->missingOnly = false;
+        $this->wishlistOnly = null;
+        $this->mineOnly = null;
+        $this->missingOnly = null;
         $this->query = '';
         $this->page = 1;
     }
@@ -462,7 +463,7 @@ final class MarketBoard extends AbstractController
 
     private function getWishOf(): ?DiscordUser
     {
-        return $this->wishlistOnly && null === $this->sellerId && !$this->isMineFilterActive() && $this->wishlist->isEnabled() ? $this->getDiscordUser() : null;
+        return true === $this->wishlistOnly && null === $this->sellerId && !$this->isMineFilterActive() && $this->wishlist->isEnabled() ? $this->getDiscordUser() : null;
     }
 
     // a player shop shows one seller; the board shows everyone, or only me under « Mes annonces »

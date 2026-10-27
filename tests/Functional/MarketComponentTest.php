@@ -157,11 +157,28 @@ final class MarketComponentTest extends WebTestCase
 
         $board->call('toggleWishlistFilter')->call('toggleMineFilter');
         $this->assertTrue($board->component()->mineOnly);
-        $this->assertFalse($board->component()->wishlistOnly);
+        $this->assertNull($board->component()->wishlistOnly);
 
         $board->call('toggleWishlistFilter');
-        $this->assertFalse($board->component()->mineOnly);
+        $this->assertNull($board->component()->mineOnly);
         $this->assertTrue($board->component()->wishlistOnly);
+    }
+
+    public function testClearedTogglesLeaveNoDefaultInTheUrl(): void
+    {
+        $board = $this->board();
+
+        $board->call('toggleWishlistFilter')->call('toggleWishlistFilter');
+        $board->call('toggleMissingFilter')->call('toggleMissingFilter');
+        $board->call('toggleMineFilter')->call('toggleMineFilter');
+
+        // null, not false: http_build_query drops it from the url (?wishlist=0 otherwise)
+        $this->assertNull($board->component()->wishlistOnly);
+        $this->assertNull($board->component()->missingOnly);
+        $this->assertNull($board->component()->mineOnly);
+
+        $board->call('toggleMissingFilter')->call('resetFilters');
+        $this->assertNull($board->component()->missingOnly);
     }
 
     public function testBothFiltersInTheUrlOnlyPressTheOneThatApplies(): void
