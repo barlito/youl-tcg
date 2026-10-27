@@ -67,7 +67,7 @@
                             { state: 'profile-only', label: 'Seulement ' ~ shortName, count: visible.profileOnly, hint: 'Ces cartes, ' ~ profile.username ~ ' les a et toi non : seule leur rareté est visible.' },
                             { state: 'visitor-only', label: 'Seulement toi', count: visible.visitorOnly, hint: 'Ces cartes, tu les as et ' ~ profile.username ~ ' non.' },
                             { state: 'common', label: 'En commun', count: visible.common, hint: 'Ces cartes, vous les avez tous les deux.' },
-                            { state: 'missing-both', label: 'Personne', count: visible.missingBoth, hint: 'Ces cartes, aucun de vous deux ne les a encore.' },
+                            { state: 'missing-both', label: 'Aucun de vous deux', count: visible.missingBoth, hint: 'Ces cartes, aucun de vous deux ne les a encore.' },
                         ] %}
                             {# un filtre à 0 n'a rien à montrer : il reste lisible mais inactif #}
                             <button type="button"
@@ -154,7 +154,7 @@
                                         card: null,
                                         rarity: item.card.rarity.value,
                                         unique: item.card.isUnique,
-                                        maskedLabel: state == 'profile-only' ? 'Carte à trouver' : 'Personne ne l\'a',
+                                        maskedLabel: state == 'profile-only' ? 'Carte à trouver' : 'Aucun de vous deux',
                                         artClass: state == 'missing-both' ? 'opacity-50' : 'ring-1 ring-primary/60',
                                         badge: state == 'profile-only' ? { text: '◈ Sa collection', class: 'chip-fill', testid: 'chip-owned' } : null,
                                         testid: 'profile-tile',

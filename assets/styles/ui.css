@@ -634,9 +634,10 @@ a.tile:hover { border-color: var(--primary); color: var(--text); }
 .mtab .badge { position: absolute; top: 6px; left: 54%; }
 
 /* « Plus » sheet: above the tab bar, dimmed backdrop behind */
+/* stops at the tab bar: a tab stays tappable (and « Plus » closes) while the sheet is open */
 .sheet-backdrop {
     position: fixed;
-    inset: 0;
+    inset: 0 0 calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
     z-index: 211;
     background: #0b0712b3;
 }
@@ -681,7 +682,8 @@ a.tile:hover { border-color: var(--primary); color: var(--text); }
 @media (max-width: 1023.98px) {
     /* the fixed tab bar must never hide the end of the page nor the toasts */
     body.has-tabbar { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px)); }
-    body.has-tabbar .toast-stack { bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom, 0px)); }
+    /* above the page and the tab bar's row, below the « Plus » sheet and its backdrop */
+    body.has-tabbar .toast-stack { bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom, 0px)); z-index: 209; }
 }
 
 @media (min-width: 1024px) {

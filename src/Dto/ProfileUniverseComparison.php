@@ -38,6 +38,6 @@ final readonly class ProfileUniverseComparison
 
     public function completionPct(): int
     {
-        return $this->total > 0 ? (int) round($this->owned() / $this->total * 100) : 0;
+        return $this->total > 0 ? intdiv($this->owned() * 100, $this->total) : 0;
     }
 }

@@ -182,19 +182,19 @@
                 </div>
 
                 {% if lastPage > 1 %}
-                    <nav class="mt-4 flex items-center justify-center gap-3" aria-label="Pagination" data-testid="pagination">
+                    <nav class="mt-4 flex items-center justify-center gap-2 sm:gap-3" aria-label="Pagination" data-testid="pagination">
                         {% if page > 1 %}
-                            <a href="{{ path('opening_history', page > 2 ? { page: page - 1 } : {}) }}" class="btn btn-g btn-s" data-testid="page-prev">‹ Plus récentes</a>
+                            <a href="{{ path('opening_history', page > 2 ? { page: page - 1 } : {}) }}" class="btn btn-g btn-s whitespace-nowrap" data-testid="page-prev">‹<span class="max-sm:hidden"> Plus récentes</span><span class="sm:hidden"> Récentes</span></a>
                         {% else %}
-                            <span class="btn btn-g btn-s" aria-disabled="true">‹ Plus récentes</span>
+                            <span class="btn btn-g btn-s whitespace-nowrap" aria-disabled="true">‹<span class="max-sm:hidden"> Plus récentes</span><span class="sm:hidden"> Récentes</span></span>
                         {% endif %}
 
-                        <span class="lbl">page {{ page }} / {{ lastPage }}</span>
+                        <span class="lbl whitespace-nowrap"><span class="max-sm:hidden">page </span>{{ page }} / {{ lastPage }}</span>
 
                         {% if page < lastPage %}
-                            <a href="{{ path('opening_history', { page: page + 1 }) }}" class="btn btn-g btn-s" data-testid="page-next">Plus anciennes ›</a>
+                            <a href="{{ path('opening_history', { page: page + 1 }) }}" class="btn btn-g btn-s whitespace-nowrap" data-testid="page-next"><span class="max-sm:hidden">Plus anciennes </span><span class="sm:hidden">Anciennes </span>›</a>
                         {% else %}
-                            <span class="btn btn-g btn-s" aria-disabled="true">Plus anciennes ›</span>
+                            <span class="btn btn-g btn-s whitespace-nowrap" aria-disabled="true"><span class="max-sm:hidden">Plus anciennes </span><span class="sm:hidden">Anciennes </span>›</span>
                         {% endif %}
                     </nav>
                 {% endif %}
