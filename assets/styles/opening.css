@@ -74,9 +74,35 @@
 .opening.is-revealing .opening__showcase { inset: 0; }
 .opening--page.is-revealing .opening__cta[hidden] { display: none !important; }
 
-/* lg: « Tes cartes » is a vertical column on the left in every phase, so the pack and the
+/* lg (1024-1279): too narrow for a permanent side column (it squeezed the pack to ~175px):
+ * « Tes cartes » stays under the pack and only moves to the left while revealing */
+@media (min-width: 1024px) and (max-width: 1279.98px) {
+    .opening.is-revealing {
+        --track-tile: clamp(48px, calc((100svh - var(--header-h, 72px) - 150px) / var(--slots, 5) * .718 - 10px), 116px);
+        --rv-side: calc(var(--track-tile) + 24px);
+    }
+    .opening.is-revealing .opening__track {
+        position: absolute;
+        top: 50%;
+        left: 40px;
+        transform: translateY(-50%);
+    }
+    .opening.is-revealing .opening__track > .lbl { max-width: calc(var(--track-tile) + 16px); text-align: center; }
+    .opening.is-revealing .opening__track-prefix { display: none; }
+    .opening.is-revealing .opening__track-suffix { display: block; }
+    .opening.is-revealing .opening__track-grid {
+        display: grid;
+        grid-template-rows: repeat(var(--slots, 5), auto);
+        grid-auto-flow: column;
+        gap: 10px;
+    }
+    /* revealed card as tall as the sealed pack's visible part (3/4 of the default stage, frozen pre-reveal track size) */
+    .opening--page { --pack-card-w: calc(min(720px / .92, 100vh - 260px - clamp(76px, 8.5vh, 124px) / .718) * .75 * .718); }
+}
+
+/* xl: « Tes cartes » is a vertical column on the left in every phase, so the pack and the
  * revealed card share one height (--pack-h, the pack's visible part is ~3/4 of its stage) */
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
     .opening--page {
         --track-tile: clamp(48px, calc((100svh - var(--header-h, 72px) - 150px) / var(--slots, 5) * .718 - 10px), 116px);
         --rv-side: calc(var(--track-tile) + 24px);
@@ -158,11 +184,13 @@
     margin-top: clamp(-90px, -7vh, -20px);
     margin-bottom: -40px;
 }
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
     .opening--page { --pack-card-w: calc(var(--pack-h) * .75 * .718); }
     .opening--page .opening__pack-stage { width: min(calc(100% - var(--rv-side) * 2), calc(var(--pack-h) * .92)); }
 }
 @media (max-width: 1023px) {
+    /* the pack is width-bound on phones: the revealed card is capped near its visible height (x1.2, still readable) */
+    .opening--page { --pack-card-w: calc(min(100vw - 32px, 420px, (100svh - 333px - var(--track-tile) / .718) * .92) / .92 * .75 * .718 * 1.2); }
     .opening__pack-stage {
         width: min(100%, 420px, calc((100svh - 333px - var(--track-tile) / .718) * .92));
         margin-top: -12px;
@@ -200,6 +228,23 @@
     visibility: hidden;
     cursor: default;
 }
+
+/* 2D pack: the hub tile's front, in the spot the 3D pack's visible part takes */
+.opening__pack2d { display: none; }
+.opening__3d.is-unavailable ~ .opening__pack2d {
+    position: absolute;
+    top: 9%;
+    left: 50%;
+    display: block;
+    height: 75%;
+    aspect-ratio: 840 / 1300;
+    transform: translateX(-50%);
+    border-radius: 3%;
+    box-shadow: 0 24px 60px #000a, 0 0 60px #a435f033;
+}
+.opening.is-revealing .opening__pack2d { visibility: hidden; }
+/* no ribbon to pull without the 3D pack: the open button stays */
+.opening:has(.opening__3d.is-unavailable) .opening__ribbon-hint { display: none; }
 
 /* soft halo BEHIND the pack so it pops — fades fully to transparent well inside
  * the stage box, so (unlike a darkening vignette) it never paints a rectangle */
@@ -287,12 +332,13 @@
 .opening__reveal-card.is-entering { animation: opening-cardEnter .45s cubic-bezier(.2,.8,.2,1) both; }
 .opening__reveal-card.is-pop { animation: opening-cardPop .6s ease-out; }
 
-/* phones: the reveal takes the top line's room, the counter repeats « Tes cartes »,
- * the stamp goes to the bottom corner */
+/* the stamp sits on the artwork's bottom corner: at the top it covers the card name in the frame */
+.opening__reveal-card .new-tag { top: auto; bottom: 7%; left: -4%; }
+
+/* phones: the reveal takes the top line's room, the counter repeats « Tes cartes » */
 @media (max-width: 1023px) {
     .opening.is-revealing .opening__topline { display: none; }
     .opening__counter { display: none; }
-    .opening__reveal-card .new-tag { top: auto; bottom: 7%; left: -4%; }
 }
 
 /* ---- 3D flip scene: back faces the player, click flips it to the front ---- */

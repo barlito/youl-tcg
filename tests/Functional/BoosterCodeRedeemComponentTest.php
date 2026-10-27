@@ -80,7 +80,8 @@ final class BoosterCodeRedeemComponentTest extends WebTestCase
         $crawler = $client->request('GET', '/boosters?code=' . urlencode('ab"><script>alert(1)</script>'));
 
         self::assertResponseIsSuccessful();
-        $this->assertSame('ABSC-RIPT-ALER-T1SC-RIPT', $crawler->filter('[data-testid="code-input"]')->attr('value'));
+        $this->assertSame('', $crawler->filter('[data-testid="code-input"]')->attr('value'), 'Not the shape of a code: nothing is pre-filled.');
+        $this->assertCount(0, $crawler->filter('[data-testid="code-prefilled"]'));
         $this->assertStringNotContainsString('<script>alert(1)', (string) $client->getResponse()->getContent());
     }
 
@@ -110,6 +111,22 @@ final class BoosterCodeRedeemComponentTest extends WebTestCase
         $this->assertNull($component->component()->codeError);
         $this->assertNotNull($component->component()->codeSuccess);
         $this->assertFalse($component->component()->codePrefilled);
+        $this->assertNull($component->component()->codeLink, 'Redeemed: ?code= leaves the url.');
+    }
+
+    public function testTheRedeemedCodeLeavesTheUrl(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        [, $code] = $this->createCode();
+
+        $component = $this->createLiveComponent(BoosterHub::class, ['code' => $code->getCode()], $client);
+        $client->setServerParameter('HTTP_X_LIVE_URL', '/boosters?code=' . $code->getCode() . '&filtre=tous');
+        $component->call('redeemCode');
+
+        $liveUrl = (string) $client->getResponse()->headers->get('X-Live-Url');
+        $this->assertStringNotContainsString('code=', $liveUrl);
+        $this->assertStringContainsString('filtre=tous', $liveUrl);
     }
 
     public function testRedeemingACodeCreditsTheInventory(): void

@@ -49,6 +49,16 @@
                          data-action="pointerdown->pack-opening-3d#dragStart pointermove->pack-opening-3d#dragMove pointerup->pack-opening-3d#dragEnd pointercancel->pack-opening-3d#dragEnd pack3d:arm@window->pack-opening-3d#arm pack3d:commit@window->pack-opening-3d#openAtOnce pack3d:reset@window->pack-opening-3d#reseal">
                         <canvas data-pack-opening-3d-target="canvas"></canvas>
                     </div>
+                    {# 2D pack (same front as the hub tiles), shown only when the 3D pack is unavailable or under reduced motion #}
+                    <canvas class="opening__pack2d"
+                            data-controller="pack-front"
+                            data-pack-front-bg-url-value="{{ booster.imageName ? vich_uploader_asset(booster) : (extension.imageName ? vich_uploader_asset(extension) : '') }}"
+                            data-pack-front-fallback-url-value="{{ asset('images/ytcg_background.png') }}"
+                            data-pack-front-logo-url-value="{{ asset('images/ytcg_logo.png') }}"
+                            data-pack-front-name-value="{{ booster.displayName }}"
+                            data-pack-front-count-value="{{ booster.cardCount }}"
+                            data-pack-front-plain-value="{{ booster.imageName ? 'true' : 'false' }}"
+                            role="img" aria-label="Pack {{ booster.displayName }}" data-testid="pack-2d"></canvas>
 
                     {# showcase overlay: the big card reveal, one at a time #}
                     <div class="opening__showcase" data-booster-opening-target="showcase"
@@ -114,13 +124,13 @@
                                 <span data-loading="hide">Ouvrir ce pack</span>
                                 <span data-loading="show" class="hidden">···</span>
                             </button>
-                            <span class="muted text-[13px]">puis tire le ruban vers la droite pour déchirer</span>
+                            <span class="muted opening__ribbon-hint text-[13px]">puis tire le ruban vers la droite pour déchirer</span>
                         {% else %}
                             <p class="muted text-sm">Tu ne possèdes plus de pack de cette extension.</p>
                             <a href="{{ path('boosters') }}" class="btn btn-g opening__cta-btn">Retour aux packs</a>
                         {% endif %}
                     {% else %}
-                        <p class="opening__hint">
+                        <p class="opening__hint opening__ribbon-hint">
                             Tire le ruban vers la droite&nbsp;<span class="arrow" aria-hidden="true">→</span>
                         </p>
                         <button type="button" class="btn btn-g btn-s" data-action="booster-opening#forceOpen">

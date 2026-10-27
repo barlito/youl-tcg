@@ -57,6 +57,10 @@ final class BoosterHub extends AbstractController
     #[LiveProp(writable: true)]
     public string $code = '';
 
+    /** Echo of the link's ?code=, nulled once redeemed so a reload does not pre-fill it again. */
+    #[LiveProp(url: new UrlMapping(as: 'code'))]
+    public ?string $codeLink = null;
+
     /** The code came from a notification link (?code=): highlight the field. */
     #[LiveProp]
     public bool $codePrefilled = false;
@@ -135,9 +139,11 @@ final class BoosterHub extends AbstractController
     {
         $normalized = BoosterCodeGenerator::normalize((string) $code);
 
-        if ('' !== $normalized) {
+        // anything that cannot be a code (?code=<script>…) is ignored, and dropped from the url
+        if (BoosterCodeGenerator::looksLikeCode($normalized)) {
             $this->code = implode('-', str_split($normalized, 4));
             $this->codePrefilled = true;
+            $this->codeLink = $code;
         }
     }
 
@@ -362,6 +368,7 @@ final class BoosterHub extends AbstractController
         $this->inventory = null; // the memoized inventory is stale after a redemption
         $this->boosters = null;
         $this->code = '';
+        $this->codeLink = null;
         $this->codeSuccess = \sprintf(
             '%d pack%s « %s » ajouté%s à ton stock !',
             $redemption->getQuantity(),

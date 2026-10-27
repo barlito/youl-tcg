@@ -85,7 +85,9 @@ export default class extends Controller {
         this.dragDistance = DRAG_DISTANCE;
 
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            return; // the reveal controller shows everything at once on its own
+            // the reveal controller shows everything at once on its own: only swap in the 2D pack
+            this.element.classList.add('is-unavailable');
+            return;
         }
 
         if (this._webglAvailable()) {
