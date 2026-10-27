@@ -1,256 +1,127 @@
 <div {{ attributes }}>
+    {% set points = this.points %}
+    {% set cost = this.cost %}
     <main>
-        {# ------------------------------------------------ Hero / recyclables #}
-        <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
-            <div class="glow-ambient" aria-hidden="true"></div>
-            <div class="relative mx-auto flex max-w-7xl flex-col gap-8 md:flex-row md:items-end md:justify-between">
-                <div>
-                    <p class="eyebrow">Recyclage</p>
-                    <h1 class="mt-2 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
-                        Recycle tes doublons
-                    </h1>
-                    <p class="mt-2 max-w-lg text-sm text-ink-muted">
-                        Échange tes copies en trop contre 1 pack par jour : {{ this.cost }} points = 1 pack du modèle que tu choisis.
-                        Choisis juste ce qu'il faut : les points au-dessus de {{ this.cost }} sont perdus,
-                        et tu gardes toujours au moins un exemplaire de chaque carte.
-                    </p>
-                    <div class="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-[11px]" data-testid="recycle-scale">
+        {% embed 'parts/ui/_page_header.html.twig' with {
+            eyebrow: 'Mon espace',
+            title: 'Recycle tes doublons',
+            lead: cost ~ ' points de doublons = 1 pack de ton choix, une fois par jour. Tu gardes toujours au moins un exemplaire de chaque carte.',
+        } %}
+            {% block nav %}{{ include('parts/ui/_my_space_nav.html.twig', { current: 'recycle' }) }}{% endblock %}
+        {% endembed %}
+
+        <div class="wrap recycle-layout pb-24 pt-6 md:pt-8">
+            <div class="flex min-w-0 flex-col gap-[18px]">
+                {% if this.hasRecycledToday %}
+                    <div class="panel flash-msg text-soon" role="status" data-testid="recycle-daily-done">
+                        ♻ Tu as déjà recyclé aujourd'hui : une seule opération par jour. Prochain recyclage possible dans
+                        <span data-controller="countdown" data-countdown-seconds-value="{{ this.secondsUntilReset }}">--:--:--</span>
+                        (minuit, heure de Paris).
+                    </div>
+                {% endif %}
+
+                {% if error %}
+                    <div class="panel flash-msg flash-msg--err" role="alert" data-testid="recycle-error">⚠ {{ error }}</div>
+                {% elseif success %}
+                    <div class="panel flash-msg flash-msg--ok" role="status" data-testid="recycle-success">♻ {{ success }}</div>
+                {% endif %}
+
+                {% if not this.hasRows %}
+                    <div class="panel flex flex-col items-center gap-2.5 border-dashed px-6 py-16 text-center" data-testid="recycle-empty">
+                        <span class="d up text-lg text-ink-strong">Aucun doublon</span>
+                        <span class="muted max-w-[46ch]">Rien à recycler pour l'instant : seules les copies en double se recyclent, ta collection reste intacte.</span>
+                        <a href="{{ path('boosters') }}" class="btn btn-p btn-s mt-2">Ouvrir un pack</a>
+                    </div>
+                {% else %}
+                    {% set activeExtension = this.activeExtension %}
+                    <div class="flex flex-wrap items-center gap-2" data-testid="recycle-filters">
+                        <label class="sr" for="recycle-universe">Univers</label>
+                        <select id="recycle-universe" data-model="universe" class="dd dd-select{{ activeExtension ? ' on' }} recycle-filters__universe" data-testid="filter-universe">
+                            <option value="">Univers : tous · {{ this.recyclableTotal }}</option>
+                            {% for group in this.universes %}
+                                <option value="{{ group.extension.slug }}" {{ activeExtension and activeExtension.slug == group.extension.slug ? 'selected' }}>{{ group.extension.name }} · {{ group.recyclable }}</option>
+                            {% endfor %}
+                        </select>
+                        <label class="sr" for="recycle-rarity">Rareté</label>
+                        <select id="recycle-rarity" data-model="rarity" class="dd dd-select{{ this.activeRarity ? ' on' }}" data-testid="filter-rarity">
+                            <option value="">Rareté : toutes</option>
+                            {% for rarity in this.scale|reverse %}
+                                <option value="{{ rarity.value }}" {{ this.activeRarity == rarity ? 'selected' }}>{{ rarity.icon }} {{ rarity.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" class="seg{{ holoOnly ? ' on' }}" aria-pressed="{{ holoOnly ? 'true' : 'false' }}"
+                                data-action="live#action" data-live-action-param="toggleHoloOnly" data-testid="filter-holo">✦ Holos seulement</button>
+                        {% if this.hasActiveFilters %}
+                            <button type="button" class="tl ml-1" data-action="live#action" data-live-action-param="resetFilters" data-testid="reset-filters">Tout effacer</button>
+                        {% endif %}
+                    </div>
+
+                    <div class="panel flex flex-wrap gap-x-[18px] gap-y-1.5 px-3.5 py-2.5 text-[13px]" data-testid="recycle-scale">
+                        <span class="lbl">Barème</span>
                         {% for rarity in this.scale %}
-                            <span style="color: var(--rarity-{{ rarity.value }});">{{ rarity.label }} {{ rarity.recyclePoints }} pt{{ rarity.recyclePoints > 1 ? 's' }}</span>
+                            <span class="r-{{ rarity.value|first }}">{{ rarity.icon }} {{ rarity.label }} {{ rarity.recyclePoints }} pt{{ rarity.recyclePoints > 1 ? 's' }}</span>
                         {% endfor %}
                         <span class="text-magenta">✦ Holo +1 pt</span>
                     </div>
-                </div>
 
-                <div class="border border-primary/50 bg-surface px-5 py-4 shadow-[0_0_24px_#a435f033]" data-testid="recyclable-total">
-                    <p class="chip-mono text-ink-muted">Dans ta collection</p>
-                    <p class="mt-1 font-display text-4xl font-bold leading-none tracking-[-0.04em] text-primary [text-shadow:0_0_14px_#a435f077]">
-                        {{ this.recyclableTotal }}
-                    </p>
-                    <p class="mt-1 font-display text-xs font-bold uppercase tracking-[.1em] text-ink-strong">
+                    <p class="muted text-[13px]" data-testid="recyclable-total">
+                        <span class="mono text-ink-strong" data-testid="recyclable-count">{{ this.recyclableTotal }}</span>
                         exemplaire{{ this.recyclableTotal > 1 ? 's' }} recyclable{{ this.recyclableTotal > 1 ? 's' }}
+                        {%- if this.maxPointsTotal > 0 %} · jusqu'à {{ this.maxPointsTotal }} pts{% endif %}
                     </p>
-                    {% if this.maxPointsTotal > 0 %}
-                        <p class="chip-mono mt-2 text-ink-dim">
-                            Jusqu'à {{ this.maxPointsTotal }} pts
-                        </p>
-                    {% endif %}
-                </div>
-            </div>
-        </section>
-
-        {% if this.hasRecycledToday %}
-            <div class="mx-auto mt-6 max-w-7xl px-6 lg:px-12">
-                <div class="border border-soon/50 bg-soon/10 px-4 py-3 font-mono text-xs text-soon" data-testid="recycle-daily-done">
-                    ♻ Tu as déjà recyclé aujourd'hui : une seule opération par jour. Prochain recyclage possible dans
-                    <span data-controller="countdown"
-                          data-countdown-seconds-value="{{ this.secondsUntilReset }}">--:--:--</span>
-                    (minuit, heure de Paris).
-                </div>
-            </div>
-        {% endif %}
-
-        {% if error %}
-            <div class="mx-auto mt-6 max-w-7xl px-6 lg:px-12">
-                <div class="border border-magenta/50 bg-magenta/10 px-4 py-3 font-mono text-xs text-magenta" data-testid="recycle-error">
-                    ⚠ {{ error }}
-                </div>
-            </div>
-        {% elseif success %}
-            <div class="mx-auto mt-6 max-w-7xl px-6 lg:px-12">
-                <div class="border border-live/50 bg-live/10 px-4 py-3 font-mono text-xs text-live" data-testid="recycle-success">
-                    ♻ {{ success }}
-                </div>
-            </div>
-        {% endif %}
-
-        {% if not this.hasRows %}
-            <section class="px-6 pb-24 pt-10 lg:px-12">
-                <div class="mx-auto max-w-7xl border border-dashed border-hairline px-8 py-20 text-center text-ink-dim" data-testid="recycle-empty">
-                    <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Aucun doublon.</p>
-                    <p class="mt-3 text-sm">Rien à recycler pour l'instant — seules les copies en double se recyclent, ta collection reste intacte.</p>
-                    <a href="{{ path('boosters') }}" class="btn-arcade mt-8">Ouvrir un pack ▸</a>
-                </div>
-            </section>
-        {% else %}
-            {% set activeExtension = this.activeExtension %}
-            {{ include('parts/_completion_strip.html.twig', {
-                strip: this.strip,
-                currentExtension: activeExtension,
-                route: 'recycle',
-                slugParam: 'univers',
-                liveAction: 'filterUniverse',
-                presorted: true,
-                eyebrow: 'Doublons par univers',
-                allStat: this.recyclableTotal ~ '',
-                allCaption: 'recyclable' ~ (this.recyclableTotal > 1 ? 's'),
-                allBar: null,
-            }) }}
-
-            {# ------------------------------------------------------ Doublons #}
-            <section class="px-6 pb-12 pt-8 lg:px-12">
-                <div class="mx-auto max-w-7xl">
-                    <h2 class="mb-6 font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
-                        1 · Choisis les copies à recycler
-                    </h2>
 
                     {% for group in this.visibleUniverses %}
-                        <div class="mb-12" data-testid="recycle-universe">
-                            <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                                <h3 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
-                                    {{ group.extension.name }}
-                                </h3>
-                                <span class="chip-mono text-primary" data-testid="universe-recyclable">
-                                    ♻ {{ group.recyclable }} recyclable{{ group.recyclable > 1 ? 's' }}
-                                </span>
-                                <span class="chip-mono text-ink-dim">
-                                    {{ group.rows|length }} carte{{ group.rows|length > 1 ? 's' }} · jusqu'à {{ group.maxPoints }} pts
-                                </span>
-                            </div>
-
-                            <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="recycle-grid">
+                        <section class="flex flex-col gap-3" data-testid="recycle-universe" aria-labelledby="recycle-u-{{ group.extension.id }}">
+                            <h2 id="recycle-u-{{ group.extension.id }}" class="h2 text-lg">
+                                {{ group.extension.name }}
+                                <span class="muted font-sans text-sm font-normal normal-case" data-testid="universe-recyclable">· {{ group.recyclable }} recyclable{{ group.recyclable > 1 ? 's' }}</span>
+                            </h2>
+                            <div class="recycle-grid" data-testid="recycle-grid">
                                 {% for row in group.rows %}
-                                    {% set card = row.card %}
-                                    {% set sel = this.selectionFor(card.id) %}
-                                    {% set totalSelected = sel.normal + sel.holo %}
-                                    {% set recyclable = this.recyclableCopies(row) %}
-                                    {% set normalCap = this.normalCap(row) %}
-                                    {% set holoCap = this.holoCap(row) %}
-                                    
-                                    {% set engaged = this.isEngaged(row) %}
-                                    {% set listed = this.isListed(row) %}
-                                    <article class="relative flex flex-col border bg-surface p-4 transition-colors {{ totalSelected > 0 ? 'border-primary/70 shadow-[0_0_14px_#a435f033]' : 'border-hairline' }}"
-                                             data-testid="recycle-card"{% if engaged %} data-engaged="true"{% endif %}>
-                                        {# recyclable copies badge: the tile's headline figure #}
-                                        {% if engaged %}
-                                            <span class="chip-mono absolute -right-2 -top-2 border border-soon bg-black px-2 py-1 font-bold text-soon"
-                                                  data-testid="engaged-badge">{{ listed ? '¤ en vente' : '⇄ engagée dans un échange' }}</span>
-                                        {% else %}
-                                            <span class="chip-mono absolute -right-2 -top-2 px-2 py-1 font-bold {{ totalSelected > 0 ? 'bg-gradient-to-r from-primary to-magenta text-black' : 'border border-primary bg-black text-primary' }}"
-                                                  data-testid="recyclable-badge">
-                                                {% if totalSelected > 0 %}♻ {{ totalSelected }}/{{ recyclable }}{% else %}♻ {{ recyclable }} recyclable{{ recyclable > 1 ? 's' }}{% endif %}
-                                            </span>
-                                        {% endif %}
-
-                                        <div class="flex items-start gap-3">
-                                            <div class="w-28 shrink-0">
-                                                {{ include('components/CardComponent.html.twig', {
-                                                    card: card,
-                                                    holo: row.holoQuantity > 0,
-                                                    interactive: false,
-                                                    lazy: true,
-                                                    id: 'recycle-' ~ card.id,
-                                                }) }}
-                                            </div>
-                                            <div class="min-w-0 pr-6">
-                                                <h4 class="truncate font-display text-sm font-bold uppercase leading-tight text-ink-strong" title="{{ card.name }}">
-                                                    {{ card.name }}
-                                                </h4>
-                                                <p class="chip-mono mt-1" style="color: var(--rarity-{{ card.rarity.value }});">{{ card.rarity.label }}</p>
-                                                <p class="chip-mono mt-1.5 text-ink-dim">
-                                                    ×{{ row.quantity }}{% if row.holoQuantity > 0 %} dont ✦{{ row.holoQuantity }}{% endif %} · 1 gardée
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div class="mt-3 flex flex-col gap-2 border-t border-hairline pt-3">
-                                            {% if engaged %}
-                                                <p class="chip-mono text-ink-dim" data-testid="engaged-notice">
-                                                    {{ listed ? 'Non recyclable tant qu\'une de ses copies est en vente sur le marché.' : 'Non recyclable tant que tu la proposes dans une offre d\'échange en attente.' }}
-                                                </p>
-                                            {% endif %}
-                                            {% if normalCap > 0 %}
-                                                <div class="flex items-center justify-between gap-2">
-                                                    <span class="chip-mono text-ink-muted">Normale · {{ card.rarity.recyclePoints }} pt{{ card.rarity.recyclePoints > 1 ? 's' }}</span>
-                                                    <div class="flex items-center gap-1.5">
-                                                        <button type="button" aria-label="Retirer une copie normale de {{ card.name }}"
-                                                                data-action="live#action"
-                                                                data-live-action-param="removeCopy"
-                                                                data-live-card-id-param="{{ card.id }}"
-                                                                data-live-kind-param="normal"
-                                                                {{ sel.normal == 0 ? 'disabled' }}
-                                                                class="border border-hairline px-2.5 py-0.5 font-mono text-sm text-ink-muted transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">−</button>
-                                                        <span class="w-10 text-center font-mono text-sm font-bold {{ sel.normal > 0 ? 'text-primary' : 'text-ink-dim' }}" data-testid="normal-count">{{ sel.normal }}<span class="text-[10px] font-normal text-ink-dim">/{{ normalCap }}</span></span>
-                                                        <button type="button" aria-label="Recycler une copie normale de {{ card.name }}"
-                                                                data-action="live#action"
-                                                                data-live-action-param="addCopy"
-                                                                data-live-card-id-param="{{ card.id }}"
-                                                                data-live-kind-param="normal"
-                                                                data-testid="add-normal"
-                                                                {{ (totalSelected >= recyclable or sel.normal >= normalCap or not this.canAddCopy(row, 'normal')) ? 'disabled' }}
-                                                                class="border border-hairline px-2.5 py-0.5 font-mono text-sm text-ink-muted transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">+</button>
-                                                    </div>
-                                                </div>
-                                            {% endif %}
-                                            {% if holoCap > 0 %}
-                                                <div class="flex items-center justify-between gap-2">
-                                                    <span class="chip-mono text-magenta">✦ Holo · {{ card.rarity.holoRecyclePoints }} pts</span>
-                                                    <div class="flex items-center gap-1.5">
-                                                        <button type="button" aria-label="Retirer une copie holo de {{ card.name }}"
-                                                                data-action="live#action"
-                                                                data-live-action-param="removeCopy"
-                                                                data-live-card-id-param="{{ card.id }}"
-                                                                data-live-kind-param="holo"
-                                                                {{ sel.holo == 0 ? 'disabled' }}
-                                                                class="border border-hairline px-2.5 py-0.5 font-mono text-sm text-ink-muted transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">−</button>
-                                                        <span class="w-10 text-center font-mono text-sm font-bold {{ sel.holo > 0 ? 'text-magenta' : 'text-ink-dim' }}" data-testid="holo-count">{{ sel.holo }}<span class="text-[10px] font-normal text-ink-dim">/{{ holoCap }}</span></span>
-                                                        <button type="button" aria-label="Recycler une copie holo de {{ card.name }}"
-                                                                data-action="live#action"
-                                                                data-live-action-param="addCopy"
-                                                                data-live-card-id-param="{{ card.id }}"
-                                                                data-live-kind-param="holo"
-                                                                data-testid="add-holo"
-                                                                {{ (totalSelected >= recyclable or sel.holo >= holoCap or not this.canAddCopy(row, 'holo')) ? 'disabled' }}
-                                                                class="border border-hairline px-2.5 py-0.5 font-mono text-sm text-ink-muted transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">+</button>
-                                                    </div>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                    </article>
+                                    {{ _self.row(this, row) }}
                                 {% endfor %}
                             </div>
+                        </section>
+                    {% else %}
+                        <div class="panel flex flex-col items-center gap-2 border-dashed px-6 py-10 text-center" data-testid="recycle-no-match">
+                            <span class="muted">Aucun doublon ne correspond à ces filtres.</span>
+                            <button type="button" class="tl" data-action="live#action" data-live-action-param="resetFilters">Tout effacer</button>
                         </div>
                     {% endfor %}
-                </div>
-            </section>
+                {% endif %}
+            </div>
 
-            {# ------------------------------------------ Barre de validation #}
-            {# sticky at the bottom of the component: points, pack and confirm stay in reach while scrolling #}
-            <div class="sticky bottom-0 z-30 border-t border-primary/50 bg-bg/95 px-4 py-2.5 shadow-[0_-8px_24px_#0b0712] backdrop-blur md:px-12 md:py-3"
-                 data-testid="recycle-bar">
-                <div class="mx-auto flex max-w-7xl flex-col gap-2 md:flex-row md:items-center md:gap-6">
-                    <div class="flex min-w-0 flex-1 items-center gap-3 md:gap-4" data-testid="points-counter">
-                        <p class="shrink-0 font-display text-2xl font-bold leading-none text-ink-strong md:text-3xl">
-                            {{ this.points }}<span class="ml-1 font-mono text-xs font-normal text-ink-muted">pts</span>
-                        </p>
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate font-display text-xs font-bold uppercase tracking-[.1em] {{ this.boosterCount > 0 ? 'text-primary' : 'text-ink-muted' }}" data-testid="recycle-outcome">
-                                {% if this.boosterCount > 0 %}
-                                    → 1 booster{% if this.lostPoints > 0 %}<span class="text-soon">, {{ this.lostPoints }} pt{{ this.lostPoints > 1 ? 's' }} perdu{{ this.lostPoints > 1 ? 's' }}</span>{% endif %}
-                                {% else %}
-                                    Encore {{ this.cost - this.points }} pt{{ this.cost - this.points > 1 ? 's' }} pour 1 booster
-                                {% endif %}
-                            </p>
-                            <div class="mt-1.5 h-1.5 border border-hairline bg-bg" aria-hidden="true">
-                                <div class="h-full bg-gradient-to-r from-primary to-magenta shadow-[0_0_10px_#a435f0]"
-                                     style="width: {{ (min(this.points, this.cost) / this.cost * 100)|round }}%;"></div>
-                            </div>
-                            <p class="chip-mono mt-1 hidden truncate text-ink-dim sm:block">
-                                {{ this.selectedCopies }} copie{{ this.selectedCopies > 1 ? 's' }} · 1 booster par jour, {{ this.cost }} pts
-                            </p>
-                        </div>
+            {% if this.hasRows %}
+                {# sticky: points, pack and confirm stay in reach (right column on desktop, bottom bar on mobile) #}
+                <aside class="panel hot recycle-panel sticky" aria-label="Ton recyclage" data-testid="recycle-bar">
+                    <span class="lbl recycle-panel__title text-ink">Ton recyclage du jour</span>
+                    <div class="recycle-panel__score" data-testid="points-counter">
+                        <span class="d recycle-panel__points">{{ points }}</span>
+                        <span class="d muted recycle-panel__cost">/ {{ cost }} pts</span>
                     </div>
-
-                    <div class="flex items-center gap-2">
+                    <div class="bar recycle-panel__bar" aria-hidden="true"><i style="width: {{ (min(points, cost) / cost * 100)|round }}%"></i></div>
+                    <p class="muted recycle-panel__hint text-[13px]" data-testid="recycle-outcome">
+                        {%- if this.boosterCount > 0 -%}
+                            → 1 booster{% if this.lostPoints > 0 %}<span class="text-soon">, {{ this.lostPoints }} pt{{ this.lostPoints > 1 ? 's' }} perdu{{ this.lostPoints > 1 ? 's' }}</span>{% endif %}
+                        {%- else -%}
+                            Encore {{ cost - points }} pt{{ cost - points > 1 ? 's' }} pour 1 booster
+                        {%- endif -%}
+                    </p>
+                    <p class="muted recycle-panel__more text-[13px]">
+                        {{ this.selectedCopies }} copie{{ this.selectedCopies > 1 ? 's' }} sélectionnée{{ this.selectedCopies > 1 ? 's' }}. Les points au-delà de {{ cost }} sont perdus.
+                    </p>
+                    <button type="button" class="btn btn-g btn-s recycle-panel__auto"
+                            data-action="live#action" data-live-action-param="autoComplete"
+                            data-loading="addAttribute(disabled)"
+                            data-testid="recycle-autofill"
+                            {{ (points >= cost or this.hasRecycledToday) ? 'disabled' }}>Compléter automatiquement</button>
+                    <div class="recycle-panel__pack">
                         {% if this.boosters is empty %}
-                            <p class="chip-mono text-ink-dim">Aucun pack disponible pour le moment.</p>
+                            <p class="muted text-[13px]">Aucun pack disponible pour le moment.</p>
                         {% else %}
-                            <label class="sr-only" for="recycle-booster">Pack à recevoir</label>
-                            <select id="recycle-booster"
-                                    data-model="boosterId"
-                                    data-testid="booster-choice"
-                                    class="min-w-0 flex-1 border border-hairline bg-surface px-3 py-2.5 font-display text-xs font-bold uppercase tracking-[.08em] text-ink-strong focus:border-primary focus:outline-none md:w-60 md:flex-none">
-                                <option value="" {{ boosterId is null or this.selectedBooster is null ? 'selected' }}>2 · Choisis ton pack</option>
+                            <label for="recycle-booster" class="lbl recycle-panel__pack-label">Pack à recevoir</label>
+                            <select id="recycle-booster" data-model="boosterId" data-testid="booster-choice" class="field dd-select w-full">
+                                <option value="" {{ boosterId is null or this.selectedBooster is null ? 'selected' }}>Choisis ton pack</option>
                                 {% for booster in this.boosters %}
                                     <option value="{{ booster.id }}" {{ boosterId == (booster.id ~ '') ? 'selected' }}>
                                         {{ booster.displayName }}{{ booster.extension.name not in booster.displayName ? ' — ' ~ booster.extension.name }}
@@ -258,22 +129,79 @@
                                 {% endfor %}
                             </select>
                         {% endif %}
-
-                        {# plain label + opacity while loading: swapping two spans
-                           leaves the hidden one hidden after the re-render #}
-                        <button type="button"
-                                data-action="live#action"
-                                data-live-action-param="recycle"
-                                data-loading="addAttribute(disabled) addClass(opacity-50)"
-                                data-testid="recycle-confirm"
-                                {{ (this.boosterCount < 1 or this.hasRecycledToday) ? 'disabled' }}
-                                class="shrink-0 border border-primary bg-primary px-4 py-2.5 font-display text-xs font-bold uppercase tracking-[.12em] text-black transition hover:bg-transparent hover:text-primary disabled:cursor-not-allowed disabled:border-hairline disabled:bg-surface disabled:text-ink-dim">
-                            ♻ Recycler{% if this.boosterCount > 0 %}<span class="hidden sm:inline"> contre</span> 1 pack{% endif %}
-                        </button>
                     </div>
-                </div>
-                <p class="chip-mono mx-auto mt-2 hidden max-w-7xl text-ink-dim md:block">Hors quota quotidien · 1 booster par jour (10 pts) · irréversible</p>
-            </div>
-        {% endif %}
+                    {# plain label + opacity while loading: swapping two spans leaves the hidden one hidden after the re-render #}
+                    <button type="button" class="btn btn-p btn-w recycle-panel__confirm"
+                            data-action="live#action" data-live-action-param="recycle"
+                            data-loading="addAttribute(disabled) addClass(opacity-50)"
+                            data-testid="recycle-confirm"
+                            {{ (this.boosterCount < 1 or this.hasRecycledToday) ? 'disabled' }}>
+                        {%- if this.boosterCount > 0 -%}
+                            ♻ Recycler contre 1 pack
+                        {%- else -%}
+                            Recycler · {{ cost - points }} pt{{ cost - points > 1 ? 's' }} manquant{{ cost - points > 1 ? 's' }}
+                        {%- endif -%}
+                    </button>
+                    <span class="lbl recycle-panel__rule text-center">1 recyclage par jour · irréversible</span>
+                </aside>
+            {% endif %}
+        </div>
     </main>
 </div>
+
+{% macro row(hub, row) %}
+    {% set card = row.card %}
+    {% set sel = hub.selectionFor(card.id) %}
+    {% set totalSelected = sel.normal + sel.holo %}
+    {% set recyclable = hub.recyclableCopies(row) %}
+    {% set normalCap = hub.normalCap(row) %}
+    {% set holoCap = hub.holoCap(row) %}
+    {% set engaged = hub.isEngaged(row) %}
+    {% set listed = hub.isListed(row) %}
+    <article class="panel recycle-row{{ totalSelected > 0 ? ' hot' }}" data-testid="recycle-card"{% if engaged %} data-engaged="true"{% endif %}>
+        {{ include('parts/ui/_card_thumb.html.twig', { card: card, holo: row.holoQuantity > 0 }, with_context = false) }}
+        <div class="flex min-w-0 flex-col gap-[3px]">
+            <span class="cn" title="{{ card.name }}">{{ card.name }}</span>
+            <span class="lbl r-{{ card.rarity.value|first }}">{{ card.rarity.icon }} {{ card.rarity.label }} · {{ card.rarity.recyclePoints }} pt{{ card.rarity.recyclePoints > 1 ? 's' }}</span>
+            {% if engaged %}
+                <span class="chip chip-soon self-start" data-testid="engaged-badge">{{ listed ? '¤ en vente' : '⇄ engagée dans un échange' }}</span>
+                <span class="muted text-xs" data-testid="engaged-notice">
+                    {{ listed ? 'Non recyclable tant qu\'une copie est en vente.' : 'Non recyclable tant que tu la proposes dans un échange.' }}
+                </span>
+            {% else %}
+                <span class="muted text-xs" data-testid="recyclable-badge">
+                    ×{{ row.quantity }}{% if row.holoQuantity > 0 %} <span class="text-magenta">dont ✦ {{ row.holoQuantity }}</span>{% endif %} · {{ totalSelected > 0 ? 'tu en gardes ' ~ (row.quantity - totalSelected) : recyclable ~ ' recyclable' ~ (recyclable > 1 ? 's') }}
+                </span>
+            {% endif %}
+        </div>
+        {% if not engaged %}
+            <div class="recycle-row__steppers">
+                {% if normalCap > 0 %}
+                    {{ _self.stepper(card, 'normal', sel.normal, normalCap, holoCap > 0 ? 'Normale' : null,
+                        totalSelected >= recyclable or sel.normal >= normalCap or not hub.canAddCopy(row, 'normal')) }}
+                {% endif %}
+                {% if holoCap > 0 %}
+                    {{ _self.stepper(card, 'holo', sel.holo, holoCap, '✦ Holo',
+                        totalSelected >= recyclable or sel.holo >= holoCap or not hub.canAddCopy(row, 'holo')) }}
+                {% endif %}
+            </div>
+        {% endif %}
+    </article>
+{% endmacro %}
+
+{% macro stepper(card, kind, selected, cap, label, addDisabled) %}
+    {% set kindLabel = kind == 'holo' ? 'holo' : 'normale' %}
+    <div class="recycle-stepper{{ kind == 'holo' ? ' recycle-stepper--holo' }}">
+        {% if label %}<span class="recycle-stepper__label">{{ label }}</span>{% endif %}
+        <button type="button" class="ib recycle-stepper__btn" aria-label="Retirer une copie {{ kindLabel }} de {{ card.name }}"
+                data-action="live#action" data-live-action-param="removeCopy"
+                data-live-card-id-param="{{ card.id }}" data-live-kind-param="{{ kind }}"
+                {{ selected == 0 ? 'disabled' }}>−</button>
+        <span class="mono recycle-stepper__count{{ selected > 0 ? ' is-on' }}" data-testid="{{ kind }}-count">{{ selected }}<span class="recycle-stepper__cap">/{{ cap }}</span></span>
+        <button type="button" class="ib recycle-stepper__btn" aria-label="Recycler une copie {{ kindLabel }} de {{ card.name }}"
+                data-action="live#action" data-live-action-param="addCopy"
+                data-live-card-id-param="{{ card.id }}" data-live-kind-param="{{ kind }}"
+                data-testid="add-{{ kind }}"
+                {{ addDisabled ? 'disabled' }}>+</button>
+    </div>
+{% endmacro %}
