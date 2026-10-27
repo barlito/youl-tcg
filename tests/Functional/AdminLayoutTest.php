@@ -43,6 +43,43 @@ final class AdminLayoutTest extends WebTestCase
         $this->assertStringContainsString('Joueurs', $menu);
     }
 
+    public function testMenuIsGroupedAndKeepsEveryEntry(): void
+    {
+        $client = self::createClient();
+        $this->authenticateClient($client);
+
+        $crawler = $client->request('GET', self::CARDS_URL);
+
+        self::assertResponseIsSuccessful();
+        $groups = $crawler->filter('#main-menu .ea-sidebar-group-label-text')->each(static fn ($label): string => trim($label->text()));
+        $this->assertSame(['Contenu', 'Distribution', 'Économie · lecture seule', 'Réglages', ''], $groups);
+
+        $items = $crawler->filter('#main-menu .ea-sidebar-item-label')->each(static fn ($label): string => trim($label->text()));
+        $this->assertSame([
+            'Tableau de bord',
+            'Cartes', 'Ajout en masse', 'Univers', 'Bannières d\'univers', 'Boosters',
+            'Générer des codes', 'Codes', 'Utilisations de codes', 'Annonces', 'Historique des envois',
+            'Joueurs', 'Ouvertures', 'Récupérations', 'Échanges', 'Annonces du marché', 'Ventes du marché',
+            'Achats de boosters', 'Récompenses d\'univers', 'Fusions',
+            'Fonctionnalités', 'Réglages coin', 'API admin', 'Guide admin',
+            'Retour au site',
+        ], $items);
+    }
+
+    public function testThemeIsPinnedToTheDarkScheme(): void
+    {
+        $client = self::createClient();
+        $this->authenticateClient($client);
+
+        $crawler = $client->request('GET', self::CARDS_URL);
+
+        self::assertResponseIsSuccessful();
+        $this->assertCount(1, $crawler->filter('link[rel="stylesheet"][href*="/styles/admin/theme"]'));
+        // no light/dark/auto selector: the Violet Arcade theme only exists in dark
+        $this->assertCount(0, $crawler->filter('[data-ea-color-scheme]'));
+        $this->assertStringContainsString("classList.add('ea-dark-scheme')", (string) $client->getResponse()->getContent());
+    }
+
     public function testMenuLinksBackToTheSite(): void
     {
         $client = self::createClient();
