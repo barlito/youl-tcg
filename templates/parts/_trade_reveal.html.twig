@@ -1,7 +1,7 @@
 {#- Received cards of an accepted trade: `lines` = TradeLineView[], sorted rarest last, all in clear -#}
 {% set count = lines|length %}
 {% set climax = (lines|last).rarity.value %}
-<div id="trade-reveal-{{ offer.id }}" class="trade-reveal{{ count > 4 ? ' trade-reveal--many' : (count > 2 ? ' trade-reveal--some') }}"
+<div id="trade-reveal-{{ offer.id }}" class="trade-reveal{{ count > 4 ? ' trade-reveal--many' : (count > 2 ? ' trade-reveal--some' : (count == 1 ? ' trade-reveal--one')) }}"
      style="--reveal-climax: var(--rarity-{{ climax }});"
      role="dialog" aria-modal="true" aria-labelledby="trade-reveal-title-{{ offer.id }}"
      data-controller="trade-reveal"

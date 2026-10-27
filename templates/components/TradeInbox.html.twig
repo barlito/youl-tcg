@@ -147,7 +147,7 @@
                                      {%- if isFocused %} open data-focused data-controller="trade-focus"{% endif %}>
                                 <summary class="trade-hist__summary">
                                     {{ _self.status(offer.status) }}
-                                    <span class="min-w-0 flex-1 text-[15px]">
+                                    <span class="trade-hist__text">
                                         {{ isMine ? 'Offre à' : 'Offre de' }} <strong class="text-ink-strong">{{ isMine ? offer.receiver.username : offer.proposer.username }}</strong>
                                         <span class="muted">· {{ accepted ? 'tu as reçu' : 'tu aurais reçu' }} {{ gotCopies }} carte{{ gotCopies > 1 ? 's' }} contre {{ givenCopies }}</span>
                                     </span>

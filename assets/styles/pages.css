@@ -647,6 +647,8 @@ select.dd-select option { background: var(--surface); color: var(--text); text-t
     cursor: pointer;
     list-style: none;
 }
+/* a 0 flex-basis would squeeze the sentence to one word per line on mobile */
+.trade-hist__text { flex: 1 1 14rem; min-width: 0; font-size: 15px; }
 
 .trade-hist__summary::-webkit-details-marker { display: none; }
 .trade-hist__summary:hover { background: var(--surface-hot); }
@@ -770,10 +772,11 @@ select.dd-select option { background: var(--surface); color: var(--text); text-t
 .trade-tile__check { background: var(--primary); }
 .trade-tile--requested .trade-tile__check { background: var(--live); color: var(--bg); }
 
+/* bottom-right: the top-left corner holds the card name in the frame */
 .trade-tile__wish {
     position: absolute;
-    top: -6px;
-    left: -6px;
+    right: -6px;
+    bottom: -6px;
     z-index: 6;
     display: inline-flex;
     align-items: center;
@@ -841,13 +844,16 @@ select.dd-select option { background: var(--surface); color: var(--text); text-t
 .composer-bar__actions { display: flex; flex: none; align-items: center; gap: 12px; }
 .composer-bar__submit { min-height: 40px; padding: 0 16px; font-size: 12px; }
 
-.composer-recap { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.composer-recap { display: flex; align-items: center; gap: 14px; min-width: 0; overflow: hidden; }
 .composer-recap__count { font-size: 20px; line-height: 1.1; color: var(--text-strong); }
 .composer-recap__thumbs,
 .composer-recap__digest { display: none; }
-.composer-recap__thumbs { gap: 8px; }
+.composer-recap__thumbs { flex: none; align-items: center; }
 .composer-recap__thumbs .card-thumb,
-.composer-recap__back { width: 52px; flex: none; }
+.composer-recap__back { width: 44px; flex: none; box-shadow: -3px 0 8px #0b0712cc; }
+/* stacked like a fanned hand: four thumbs never push into the digest or the ⇄ */
+.composer-recap__thumbs > :not(:first-child):not(.composer-recap__more) { margin-left: -22px; }
+.composer-recap__more { margin-left: 8px; white-space: nowrap; }
 
 .composer-recap__back {
     display: block;
@@ -857,7 +863,7 @@ select.dd-select option { background: var(--surface); color: var(--text); text-t
     background: url('/images/card-back.svg') center / cover, var(--surface);
 }
 
-.composer-recap__digest { font-size: 13px; }
+.composer-recap__digest { min-width: 0; font-size: 13px; }
 
 @media (min-width: 1024px) {
     .composer-bar__inner { gap: 28px; padding-top: 16px; padding-bottom: 16px; }
@@ -866,6 +872,11 @@ select.dd-select option { background: var(--surface); color: var(--text); text-t
     .composer-bar__submit { min-height: 48px; padding: 0 24px; font-size: 14px; }
     .composer-recap__count { font-size: 26px; }
     .composer-recap__thumbs { display: flex; }
+}
+
+@media (min-width: 1280px) {
+    .composer-recap__thumbs .card-thumb,
+    .composer-recap__back { width: 48px; }
     .composer-recap__digest { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 

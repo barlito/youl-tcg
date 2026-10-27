@@ -441,7 +441,9 @@ final class TradeComposer extends AbstractController
             return null;
         }
 
-        return $this->redirectToRoute('trades');
+        $this->addFlash(TradeInbox::SENT_FLASH, \sprintf('Offre envoyée à %s : elle reste en attente de sa réponse.', $this->getCounterpart()->getUsername()));
+
+        return $this->redirectToRoute('trades', ['onglet' => 'envoyees']);
     }
 
     /**

@@ -16,6 +16,8 @@ use App\Repository\TradeOfferRepository;
 use App\Repository\UserCardRepository;
 use App\Service\Trade\TradeOfferService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\Uid\Uuid;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -23,6 +25,7 @@ use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
+use Symfony\UX\LiveComponent\Metadata\UrlMapping;
 
 #[RequiresFeature(FeatureEnum::TRADES)]
 #[AsLiveComponent]
@@ -33,7 +36,10 @@ final class TradeInbox extends AbstractController
 
     public const int HISTORY_PER_PAGE = 20;
 
-    public const array TABS = ['received', 'sent', 'history'];
+    public const string SENT_FLASH = 'trade_offer_sent';
+
+    /** Url slug (`?onglet=`) => tab. */
+    public const array TABS = ['recues' => 'received', 'envoyees' => 'sent', 'historique' => 'history'];
 
     #[LiveProp]
     public ?string $error = null;
@@ -57,9 +63,9 @@ final class TradeInbox extends AbstractController
     #[LiveProp]
     public bool $revealPending = false;
 
-    /** Shown tab: received|sent|history (the three lists are rendered, only one is visible). */
-    #[LiveProp]
-    public string $tab = 'received';
+    /** Shown tab, by url slug (the three lists are rendered, only one is visible). */
+    #[LiveProp(writable: true, url: new UrlMapping(as: 'onglet'))]
+    public string $tab = 'recues';
 
     /**
      * Cards the reader owns (hence may see) with their copies. Memoized: one
@@ -85,6 +91,7 @@ final class TradeInbox extends AbstractController
         private readonly TradeOfferRepository $tradeOfferRepository,
         private readonly TradeOfferService $tradeOfferService,
         private readonly UserCardRepository $userCardRepository,
+        private readonly RequestStack $requestStack,
     ) {
     }
 
@@ -97,6 +104,13 @@ final class TradeInbox extends AbstractController
 
         if ($offer instanceof TradeOffer) {
             $this->focusOn($offer);
+        }
+
+        // set by the composer right before redirecting here
+        $session = $this->requestStack->getCurrentRequest()?->hasSession() ? $this->requestStack->getSession() : null;
+        $sent = $session instanceof FlashBagAwareSessionInterface ? $session->getFlashBag()->get(self::SENT_FLASH) : [];
+        if ([] !== $sent) {
+            $this->success = (string) $sent[0];
         }
     }
 
@@ -186,7 +200,7 @@ final class TradeInbox extends AbstractController
 
     public function getCurrentTab(): string
     {
-        return \in_array($this->tab, self::TABS, true) ? $this->tab : self::TABS[0];
+        return self::TABS[$this->tab] ?? self::TABS['recues'];
     }
 
     public function getCurrentHistoryPage(): int
@@ -217,7 +231,8 @@ final class TradeInbox extends AbstractController
     #[LiveAction]
     public function showTab(#[LiveArg] string $tab): void
     {
-        $this->tab = \in_array($tab, self::TABS, true) ? $tab : self::TABS[0];
+        $slug = array_search($tab, self::TABS, true);
+        $this->tab = false === $slug ? 'recues' : $slug;
     }
 
     #[LiveAction]
@@ -336,7 +351,7 @@ final class TradeInbox extends AbstractController
         $this->focus = (string) $offer->getId();
         $this->focusedOffer = $offer;
         $this->revealPending = TradeOfferStatusEnum::ACCEPTED === $offer->getStatus();
-        $this->tab = 'history';
+        $this->tab = 'historique';
         $this->historyPage = intdiv($this->tradeOfferRepository->countHistoryBefore($this->getDiscordUser(), $offer), self::HISTORY_PER_PAGE) + 1;
     }
 
