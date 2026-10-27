@@ -96,6 +96,28 @@ final class CollectionControllerTest extends WebTestCase
         $this->assertStringContainsString('0/2 cartes', $strip);
     }
 
+    public function testUniverseTilesNeverFallBackOnACardArtwork(): void
+    {
+        // extension B has no image and the player owns none of its cards
+        $secret = $this->createCard($this->extensionB, 'Secret legendary ' . uniqid(), rarity: CardRarityEnum::LEGENDARY);
+        $secret->setImageName('secret-artwork-' . uniqid() . '.png');
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/collection');
+        self::assertResponseIsSuccessful();
+        $strip = (string) $crawler->filter('[data-testid="universe-strip"]')->html();
+        $this->assertStringContainsString($this->extensionB->getName(), $strip);
+        $this->assertStringNotContainsString('uploads/cards/', $strip, 'A strip tile used a card artwork as background.');
+
+        $this->client->request('GET', '/univers');
+        self::assertResponseIsSuccessful();
+        $this->assertStringNotContainsString((string) $secret->getImageName(), (string) $this->client->getResponse()->getContent());
+
+        $this->client->request('GET', '/univers/' . $this->extensionB->getSlug());
+        self::assertResponseIsSuccessful();
+        $this->assertStringNotContainsString((string) $secret->getImageName(), (string) $this->client->getResponse()->getContent());
+    }
+
     public function testCompletionStripLeadsWithTheAllCardsTile(): void
     {
         $crawler = $this->client->request('GET', '/collection');

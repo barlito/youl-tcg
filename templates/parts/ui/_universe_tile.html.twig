@@ -1,12 +1,8 @@
 {#
-  Tuile univers `.tile` (fond = image de l'extension, dégradé de lisibilité, coin coupé).
-  À utiliser avec include (contenu par défaut : le nom) ou embed (blocs top / content).
-  Paramètres : extension (Extension, requis), href (défaut : page de l'univers ; false = tuile
-  non cliquable), coverUrl (optionnel, remplace l'image de l'extension), class (taille,
-  ex. « h-[280px] »), soon (bool : fond rayé « bientôt »), testid (défaut « universe-tile »),
-  nameClass (taille du nom, défaut « text-[22px] »).
-  Blocs : top (chip en haut à gauche, ex. ● live), name_aside (à droite du nom, ex. « 94 % »),
-  content (sous le nom : description, barre…).
+  Universe tile `.tile` (extension image background, never a card artwork), include or embed.
+  Params: extension (required), href (default: universe page; false = not clickable), coverUrl (replaces the extension image),
+    class (sizing), soon (striped « bientôt » background), testid (default « universe-tile »), nameClass (default « text-[22px] »).
+  Blocks: top (top-left chip), name_aside (right of the name), content (under the name)
 #}
 {% set href = href ?? path('universes_show', { slug: extension.slug }) %}
 {% set coverUrl = coverUrl|default(extension.imageName ? vich_uploader_asset(extension) : null) %}

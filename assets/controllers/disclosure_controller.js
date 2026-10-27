@@ -1,11 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 
-/**
- * Button + panel disclosure (header account menu, mobile « Plus » sheet):
- * toggles `hidden`, keeps aria-expanded in sync, closes on outside click,
- * Escape (focus back on the button) and when focus leaves; arrow keys move
- * between the panel links.
- */
+// Button + panel disclosure (account menu, mobile « Plus » sheet): Escape, outside click, arrow keys
 export default class extends Controller {
     static targets = ['button', 'panel', 'backdrop'];
 

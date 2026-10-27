@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace App\Enum\Collection;
 
-/**
- * Collection sort (url `?tri=`): UNIVERSE keeps the per-universe sections,
- * the others flatten the grid.
- */
+// Collection `?tri=`: UNIVERSE keeps the per-universe sections, the others flatten the grid
 enum CollectionSortEnum: string
 {
     case UNIVERSE = 'univers';

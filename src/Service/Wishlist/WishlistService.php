@@ -242,8 +242,7 @@ final readonly class WishlistService
     }
 
     /**
-     * Published universes the player does not watch yet and still misses cards of,
-     * by name (same two grouped queries as listUniverses()).
+     * Published universes not watched yet with missing cards, by name (same queries as listUniverses()).
      *
      * @return list<array{extension: Extension, missing: int}>
      */

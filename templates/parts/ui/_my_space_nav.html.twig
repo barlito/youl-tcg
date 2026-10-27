@@ -1,8 +1,6 @@
 {#
-  Sous-navigation « Mon espace » (onglets `.tab`), à poser dans le bloc nav de _page_header.
-  Paramètres : current = collection | wishlist | openings | recycle | fusion (onglet actif),
-  counts (optionnel) = compteurs affichés à côté du libellé, mêmes clés (ex. { openings: 15 }).
-  Wishlist / Recyclage / Fusion suivent leurs feature flags.
+  « Mon espace » sub-navigation (`.tab`), for the nav block of _page_header; feature-flagged tabs follow their flag.
+  Params: current = collection | wishlist | openings | recycle | fusion, counts (optional, same keys, e.g. { openings: 15 })
 #}
 {% set counts = counts|default({}) %}
 {% set items = [

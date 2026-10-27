@@ -118,13 +118,12 @@ final readonly class HomeDashboardBuilder
      * The started universes closest to 100 % (same completion as /univers),
      * plus the self-drawn reward progress while rewards are on.
      *
-     * @param list<array{extension: Extension, cardCount: int, hasClaimableBooster: bool}> $extensions  published universes with their published card count
-     * @param array<string, string>                                                        $coverImages extension id => fallback artwork
-     * @param array<string, int>                                                           $owned       extension id => distinct owned published cards
+     * @param list<array{extension: Extension, cardCount: int, hasClaimableBooster: bool}> $extensions published universes with their published card count
+     * @param array<string, int>                                                           $owned      extension id => distinct owned published cards
      *
-     * @return list<array{extension: Extension, owned: int, total: int, percentage: int, coverImage: string|null, reward: array{drawn: int, total: int, amount: string}|null}>
+     * @return list<array{extension: Extension, owned: int, total: int, percentage: int, reward: array{drawn: int, total: int, amount: string}|null}>
      */
-    public function universesToFinish(DiscordUser $user, array $extensions, array $coverImages, array $owned): array
+    public function universesToFinish(DiscordUser $user, array $extensions, array $owned): array
     {
         $started = [];
         foreach ($extensions as $item) {
@@ -138,7 +137,6 @@ final readonly class HomeDashboardBuilder
                 'owned' => $count,
                 'total' => $item['cardCount'],
                 'percentage' => (int) floor($count / $item['cardCount'] * 100),
-                'coverImage' => $coverImages[$extensionId] ?? null,
             ];
         }
 
@@ -154,8 +152,7 @@ final readonly class HomeDashboardBuilder
     }
 
     /**
-     * The hero sentence of the QG, built from the real « today » data: what is
-     * waiting first, then the universe closest to completion.
+     * QG hero sentence: what is waiting first, then the universe closest to completion.
      *
      * @param array{claims: array{remaining: int}, unopenedBoosters: int, pendingTrades: int|null, streak: array{length: int, atRisk: bool}} $today
      * @param list<array{extension: Extension, owned: int, total: int}>                                                                      $toFinish

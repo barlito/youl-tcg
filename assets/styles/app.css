@@ -26,6 +26,13 @@
         outline-color: #a435f0;
     }
 
+    /* cut corners (clip-path) hide any outer ring: keyboard focus is drawn inside */
+    .btn-arcade:focus-visible,
+    .btn-ghost:focus-visible {
+        outline: 2px solid var(--text-strong);
+        outline-offset: -5px;
+    }
+
     /* .eyebrow lives in ui.css (plain CSS, loaded before this file) */
 
     /* Petites étiquettes monospace (codes, méta) */

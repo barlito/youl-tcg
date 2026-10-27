@@ -62,7 +62,7 @@ final class FusionHub extends AbstractController
     private ?array $reserved = null;
 
     /**
-     * @var array<string, true>|null
+     * @var array<string, array{normal: int, holo: int}>|null
      */
     private ?array $listed = null;
 
@@ -157,11 +157,12 @@ final class FusionHub extends AbstractController
         return $this->getReserved()[(string) $row->getCard()->getId()]['normal'] ?? 0;
     }
 
+    // a listed holo never locks the normals: only normal copies on sale count
     public function isListed(UserCard $row): bool
     {
-        $this->listed ??= $this->engagedCopies->listedCardIds($this->getDiscordUser());
+        $this->listed ??= $this->engagedCopies->listedQuantities($this->getDiscordUser());
 
-        return isset($this->listed[(string) $row->getCard()->getId()]);
+        return ($this->listed[(string) $row->getCard()->getId()]['normal'] ?? 0) > 0;
     }
 
     public function getFusedCard(): ?Card

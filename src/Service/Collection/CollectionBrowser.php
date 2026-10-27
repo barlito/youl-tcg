@@ -15,15 +15,7 @@ use App\Enum\Collection\CollectionPossessionEnum;
 use App\Enum\Collection\CollectionSortEnum;
 use App\Enum\Entity\CardRarityEnum;
 
-/**
- * Applies the collection url filters to the player's own comparison, in PHP:
- * the catalogue is already loaded, no query here.
- *
- * Masking: a card the player does not own is rendered face down, so the name
- * search never matches it (otherwise typing a name would confirm a hidden
- * card) and the name sort never orders it by name — missing cards always
- * follow the owned ones in catalogue order.
- */
+// Collection url filters applied in PHP; a face-down card never matches the search nor sorts by name (masking)
 final readonly class CollectionBrowser
 {
     public function browse(ProfileComparison $comparison, CollectionQuery $query): CollectionView

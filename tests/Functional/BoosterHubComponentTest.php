@@ -113,6 +113,9 @@ final class BoosterHubComponentTest extends WebTestCase
 
         $this->assertStringContainsString('data-testid="drop-rates-toggle"', $rendered);
         $this->assertStringContainsString('Taux par carte', $rendered);
+        // the panel covers its own summary: it must close on any click, Escape or ✕
+        $this->assertStringContainsString('data-controller="details-dismiss"', $rendered);
+        $this->assertStringContainsString('data-testid="drop-rates-close"', $rendered);
         // every fixture slot weight map normalises to percentages
         $this->assertStringContainsString('%', $rendered);
         // no fixture slot advertises a one-of-one chance

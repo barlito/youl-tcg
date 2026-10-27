@@ -1,8 +1,4 @@
-/**
- * The datagrid scrolls horizontally inside its panel (admin.css): an absolute
- * dropdown would be clipped by that scroll box, a fixed one is not. Bootstrap
- * reads data-bs-popper-config (JSON) when it creates the dropdown on first click.
- */
+// The datagrid scrolls inside its panel, which would clip an absolute dropdown: make them fixed
 const FIXED = JSON.stringify({ strategy: 'fixed' });
 
 const fixDropdowns = () => {

@@ -6,11 +6,7 @@ namespace App\Enum\Leaderboard;
 
 use App\Dto\LeaderboardEntry;
 
-/**
- * Leaderboard ranking (url `?tri=`). Each one ranks on its own metric first,
- * then falls back to the completion order (distinct, copies, username, id) so
- * the ranking stays deterministic.
- */
+// Leaderboard ranking (`?tri=`): own metric first, then the completion order as tiebreak
 enum LeaderboardSortEnum: string
 {
     case COMPLETION = 'completion';
@@ -35,9 +31,6 @@ enum LeaderboardSortEnum: string
         };
     }
 
-    /**
-     * Primary metric of an entry for this ranking (desc).
-     */
     public function metric(LeaderboardEntry $entry): int
     {
         return match ($this) {

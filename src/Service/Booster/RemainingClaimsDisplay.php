@@ -7,11 +7,7 @@ namespace App\Service\Booster;
 use App\Entity\DiscordUser;
 use Symfony\Contracts\Service\ResetInterface;
 
-/**
- * Display-only, per-request memo of the free claims left: the header badge,
- * the mobile tab and the notification bell share ONE quota query. Never use
- * it in a claim flow — the value is not refreshed after a claim.
- */
+// Display-only per-request memo of the claims left (header, tab, bell); never use it in a claim flow
 final class RemainingClaimsDisplay implements ResetInterface
 {
     /** @var array<string, int> */

@@ -50,7 +50,6 @@
                         {% set extension = universe.extension %}
                         {% embed 'parts/ui/_universe_tile.html.twig' with {
                             extension: extension,
-                            coverUrl: extension.imageName ? vich_uploader_asset(extension) : (universe.coverImage ? asset('uploads/cards/' ~ universe.coverImage)),
                             class: 'h-[230px] md:h-[280px]',
                             universe: universe,
                         } only %}
@@ -96,7 +95,6 @@
                     {% for universe in completed %}
                         {% embed 'parts/ui/_universe_tile.html.twig' with {
                             extension: universe.extension,
-                            coverUrl: universe.extension.imageName ? vich_uploader_asset(universe.extension) : (universe.coverImage ? asset('uploads/cards/' ~ universe.coverImage)),
                             class: 'h-[150px] md:h-[180px]',
                             nameClass: 'text-base md:text-xl',
                             universe: universe,

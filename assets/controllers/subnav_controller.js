@@ -7,6 +7,8 @@ export default class extends Controller {
         if (!current || this.element.scrollWidth <= this.element.clientWidth) {
             return;
         }
-        this.element.scrollLeft = current.offsetLeft - (this.element.clientWidth - current.offsetWidth) / 2;
+        // offsetLeft is relative to the offsetParent, not to this (unpositioned) scroller
+        const left = current.getBoundingClientRect().left - this.element.getBoundingClientRect().left + this.element.scrollLeft;
+        this.element.scrollLeft = left - (this.element.clientWidth - current.offsetWidth) / 2;
     }
 }

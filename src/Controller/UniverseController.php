@@ -72,9 +72,8 @@ class UniverseController extends AbstractController
 
         $extensions = $this->extensionRepository->findPublishedWithPublishedCardCount();
         $ownedByExtension = $this->userCardRepository->countOwnedGroupedByExtension($user);
-        $coverImages = $this->cardRepository->findCoverImageNamesByExtension();
 
-        $universes = array_map(static function (array $item) use ($ownedByExtension, $coverImages): array {
+        $universes = array_map(static function (array $item) use ($ownedByExtension): array {
             $extensionId = (string) $item['extension']->getId();
             $owned = min($ownedByExtension[$extensionId] ?? 0, $item['cardCount']);
 
@@ -83,7 +82,6 @@ class UniverseController extends AbstractController
                 'total' => $item['cardCount'],
                 'owned' => $owned,
                 'percentage' => $item['cardCount'] > 0 ? (int) floor($owned / $item['cardCount'] * 100) : 0,
-                'coverImage' => $coverImages[$extensionId] ?? null,
                 'hasClaimableBooster' => $item['hasClaimableBooster'],
             ];
         }, $extensions);
@@ -172,7 +170,6 @@ class UniverseController extends AbstractController
             'uniquesTotal' => $uniquesTotal,
             'uniquesClaimed' => $uniquesClaimed,
             'reward' => $this->rewardProgress($user, $extension, $catalog),
-            'coverImage' => $this->cardRepository->findCoverImageNamesByExtension()[(string) $extension->getId()] ?? null,
         ]);
     }
 

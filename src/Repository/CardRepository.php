@@ -270,43 +270,6 @@ class CardRepository extends ServiceEntityRepository
     }
 
     /**
-     * Cover artwork per extension: the image of each extension's rarest
-     * published card (name as tiebreak, so the pick is deterministic). One
-     * portable query, the "rarest" pick happens in PHP — no DISTINCT ON,
-     * the test database is SQLite.
-     *
-     * @return array<string, string> extension id => card image name
-     */
-    public function findCoverImageNamesByExtension(): array
-    {
-        /** @var list<array{extensionId: mixed, rarity: CardRarityEnum|string, imageName: string, name: string}> $rows */
-        $rows = $this->createQueryBuilder('c')
-            ->select('IDENTITY(c.extension) AS extensionId', 'c.rarity AS rarity', 'c.imageName AS imageName', 'c.name AS name')
-            ->andWhere('c.status = :status')
-            ->andWhere('c.imageName IS NOT NULL')
-            ->setParameter('status', CardStatusEnum::PUBLISHED->value, ParameterType::INTEGER)
-            ->getQuery()
-            ->getArrayResult()
-        ;
-
-        $covers = [];
-        $bestKeys = [];
-        foreach ($rows as $row) {
-            $extensionId = (string) $row['extensionId'];
-            $rarity = $row['rarity'] instanceof CardRarityEnum ? $row['rarity'] : CardRarityEnum::tryFrom($row['rarity']);
-            // rarest first, then name ascending: comparable sort keys
-            $key = [-($rarity?->rank() ?? -1), $row['name']];
-
-            if (!isset($bestKeys[$extensionId]) || $key < $bestKeys[$extensionId]) {
-                $bestKeys[$extensionId] = $key;
-                $covers[$extensionId] = $row['imageName'];
-            }
-        }
-
-        return $covers;
-    }
-
-    /**
      * @return list<mixed> published card ids
      */
     public function findRandomCardId(int $maxResult): array

@@ -1,7 +1,4 @@
-/*
- * Violet Arcade — mises en page propres aux pages (accueil, hub boosters, univers, collection, profils, classement, ouvertures).
- * Plain CSS chargé après ui.css et avant app.css (les utilitaires Tailwind gardent la main).
- */
+/* Violet Arcade page layouts, plain CSS loaded after ui.css and before app.css (Tailwind utilities win) */
 
 /* --- Accueil : héro « Salut <pseudo> » ------------------------------------ */
 
@@ -33,14 +30,15 @@
 
 @media (min-width: 1024px) {
     .home-hero {
-        grid-template-columns: minmax(0, 1fr) 420px;
+        --hs: 1;
+        grid-template-columns: minmax(0, 1fr) calc(420px * var(--hs));
         padding-top: 56px;
         padding-bottom: 40px;
     }
 
     .home-hero-band { background: radial-gradient(ellipse 60% 90% at 50% 0%, #a435f014, transparent 70%); }
 
-    .home-hero__stage { position: relative; display: block; height: 420px; }
+    .home-hero__stage { position: relative; display: block; height: calc(420px * var(--hs)); }
 
     /* halo behind the cards: closest-side = fully transparent at its own box edges */
     .home-hero__stage::before {
@@ -55,17 +53,22 @@
 .home-hero__logo {
     position: absolute;
     top: 0;
-    left: 110px;
-    width: 200px;
+    left: calc(110px * var(--hs, 1));
+    width: calc(200px * var(--hs, 1));
     height: auto;
     -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 50%, transparent 100%);
     mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 50%, transparent 100%);
 }
 
-.home-hero__card { position: absolute; width: 150px; }
-.home-hero__card--1 { left: 0; top: 168px; transform: rotate(-9deg); z-index: 1; }
-.home-hero__card--2 { left: 270px; top: 168px; transform: rotate(9deg); z-index: 1; }
-.home-hero__card--3 { left: 117px; top: 120px; width: 186px; transform: rotate(2deg); z-index: 2; }
+.home-hero__card { position: absolute; width: calc(150px * var(--hs, 1)); }
+.home-hero__card--1 { left: 0; top: calc(168px * var(--hs, 1)); transform: rotate(-9deg); z-index: 1; }
+.home-hero__card--2 { left: calc(270px * var(--hs, 1)); top: calc(168px * var(--hs, 1)); transform: rotate(9deg); z-index: 1; }
+.home-hero__card--3 { left: calc(117px * var(--hs, 1)); top: calc(120px * var(--hs, 1)); width: calc(186px * var(--hs, 1)); transform: rotate(2deg); z-index: 2; }
+
+/* scale factor of the whole hero stage (cards, logo, column) */
+@media (min-width: 1280px) { .home-hero { --hs: 1.25; } }
+@media (min-width: 1600px) { .home-hero { --hs: 1.45; } }
+@media (min-width: 2200px) { .home-hero { --hs: 1.7; } }
 
 /* --- Accueil : « À faire aujourd'hui » ------------------------------------ */
 
@@ -181,9 +184,17 @@
     .home-univ { grid-template-columns: 1.6fr 1fr 1fr; grid-template-rows: 220px 160px; gap: 16px; }
     .home-univ__main { grid-row: span 2; }
     .home-univ__soon { grid-column: span 2; }
+    /* fewer than 3 published universes: the soon tile takes the free cell instead of a full row */
+    .home-univ--n2 { grid-template-columns: 1.6fr 1fr; }
+    .home-univ--n2 .home-univ__soon,
+    .home-univ--n1 .home-univ__soon,
+    .home-univ--n0 .home-univ__soon { grid-column: auto; }
+    .home-univ--n1 { grid-template-columns: 1.6fr 1fr; grid-template-rows: 220px; }
+    .home-univ--n1 .home-univ__main { grid-row: auto; }
+    .home-univ--n0 { grid-template-columns: minmax(0, 1fr); grid-template-rows: 160px; }
 }
 
-/* Tuile « Bientôt » : artwork flouté en filigrane sous les rayures */
+/* « Bientôt » tile: blurred artwork watermark under the stripes */
 .soon-tile { position: relative; overflow: hidden; }
 .soon-tile > * { position: relative; z-index: 1; }
 
@@ -1089,14 +1100,22 @@ select.dd-select option { background: var(--surface); color: var(--text); text-t
     background: var(--surface);
     border: 1px solid var(--hairline-strong);
     box-shadow: 0 10px 30px #000000aa, 0 0 24px #a435f033;
+    display: flex;
+    flex-direction: column;
+    /* the fixed .tabbar (z 210) sits above the header's stacking context: stay clear of it */
+    max-height: calc(100svh - var(--header-h) - var(--tabbar-h) - env(safe-area-inset-bottom, 0px) - 24px);
 }
 
 @media (min-width: 768px) {
     .bell-panel { position: absolute; top: calc(100% + 10px); right: 0; left: auto; width: 420px; }
 }
 
+@media (min-width: 1024px) {
+    .bell-panel { max-height: none; }
+}
+
 .bell-panel__head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--hairline); }
-.bell-panel__list { display: flex; flex-direction: column; max-height: min(70vh, 520px); overflow-y: auto; padding-bottom: 6px; }
+.bell-panel__list { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; max-height: min(70vh, 520px); overflow-y: auto; padding-bottom: 6px; }
 .bell-panel__group { padding: 10px 16px 4px; }
 .bell-panel__group--sep { padding-top: 14px; }
 

@@ -198,8 +198,7 @@ final class BoosterHub extends AbstractController
     }
 
     /**
-     * The player's completion of each published universe (same rule as /univers: published
-     * cards of a published extension), from two grouped queries.
+     * Completion of each published universe (same rule as /univers), from two grouped queries.
      *
      * @return array<string, array{owned: int, total: int, percentage: int}> extension id => completion
      */

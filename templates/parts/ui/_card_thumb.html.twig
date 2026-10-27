@@ -1,7 +1,4 @@
-{#
-  Vignette plate d'une carte VISIBLE (listes : recyclage, fusion, boutique, wishlist), halo de rareté.
-  Paramètres : card (obligatoire, jamais une carte masquée), holo (défaut false), class (optionnel).
-#}
+{# Flat thumbnail of a VISIBLE card with its rarity glow. Params: card (never masked), holo (default false), class #}
 <img class="card-thumb g-{{ card.rarity.value|first }}{{ holo|default(false) ? ' card-thumb--holo' }} {{ class|default('') }}"
      src="{{ card.imageName ? vich_uploader_asset(card) : asset('images/default_card.png') }}"
      alt="" loading="lazy" decoding="async">

@@ -38,6 +38,12 @@ final readonly class EngagedCopies
         return $this->tradeOfferRepository->findEngagedCardIds($owner) + $this->listedCardIds($owner);
     }
 
+    /** @return array<string, array{normal: int, holo: int}> copies on sale per card, by finish */
+    public function listedQuantities(DiscordUser $owner): array
+    {
+        return $this->marketListingRepository->sumReservedQuantities($owner);
+    }
+
     /** @return array<string, true> */
     public function listedCardIds(DiscordUser $owner): array
     {

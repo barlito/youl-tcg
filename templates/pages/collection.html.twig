@@ -72,8 +72,7 @@
         {% endif %}
 
         {% if visible.total > 0 %}
-            {# filtres dans l'url (GET) : partageables, et la recherche reste côté serveur,
-               où une carte face cachée n'est jamais comparée à un nom #}
+            {# GET filters: shareable, and the search stays server-side where a face-down card never matches a name #}
             <form method="get" action="{{ path('collection', slugParams) }}" role="search"
                   class="panel coll-filters" aria-label="Filtres"
                   data-controller="collection-filters" data-testid="collection-filters">

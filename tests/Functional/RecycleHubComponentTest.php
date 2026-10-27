@@ -629,6 +629,28 @@ final class RecycleHubComponentTest extends WebTestCase
         $this->assertSame(['normal' => 3, 'holo' => 0], $selection[(string) $rare->getId()]);
     }
 
+    public function testAutoCompleteResetsTheFiltersSoTheWholeSelectionShows(): void
+    {
+        $client = static::createClient();
+        $user = $this->authenticateClient($client, self::USER);
+        $scenario = $this->createScenario($user, [
+            ['name' => 'Auto filtered rare', 'rarity' => CardRarityEnum::RARE, 'quantity' => 2],
+            ['name' => 'Auto hidden common', 'rarity' => CardRarityEnum::COMMON, 'quantity' => 11],
+        ]);
+        [, $common] = $scenario['cards'];
+
+        $component = $this->createLiveComponent(RecycleHub::class, client: $client);
+        $component->set('rarity', 'rare');
+        $component->call('autoComplete');
+
+        $hub = $component->component();
+        $this->assertArrayHasKey((string) $common->getId(), $hub->selection, 'Auto-complete picks outside the filter.');
+        $this->assertNull($hub->rarity);
+        $this->assertNull($hub->universe);
+        $this->assertFalse($hub->holoOnly);
+        $this->assertStringContainsString($common->getName(), $component->render()->crawler()->filter('[data-testid="recycle-grid"]')->text(), 'Every selected copy is visible, so it can be removed.');
+    }
+
     public function testAutoCompleteExplainsWhyItCannotFill(): void
     {
         $client = static::createClient();
@@ -654,11 +676,15 @@ final class RecycleHubComponentTest extends WebTestCase
 
         $component = $this->createLiveComponent(RecycleHub::class, client: $client);
         $component->set('rarity', 'common');
-        $text = $component->render()->crawler()->filter('[data-testid="recycle-grid"]')->text();
+        $crawler = $component->render()->crawler();
+        $text = $crawler->filter('[data-testid="recycle-grid"]')->text();
         $this->assertStringContainsString($common->getName(), $text);
         $this->assertStringNotContainsString($rare->getName(), $text);
+        // the universe heading counts the filtered rows only: 2 commons, not the 2 rares on top
+        $this->assertSame('· 2 recyclables', trim($crawler->filter('[data-testid="universe-recyclable"]')->text()));
 
         $component->set('rarity', '');
+        $this->assertNull($component->component()->rarity, 'The « toutes » option never lands in the url as ?rarete=.');
         $component->call('toggleHoloOnly');
         $text = $component->render()->crawler()->filter('[data-testid="recycle-grid"]')->text();
         $this->assertStringContainsString($rare->getName(), $text);

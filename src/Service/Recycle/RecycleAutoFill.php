@@ -4,21 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Recycle;
 
-/**
- * « Compléter automatiquement »: the copies to add to a recycle selection so it
- * reaches RecycleService::BOOSTER_COST while staying MINIMAL in the sense of
- * RecycleService::isOvershooting() — the least precious copies first.
- *
- * Pure: the caller passes the copies still free (keep-one rule, engaged copies
- * and the current selection already deducted) and RecycleService re-validates
- * everything under lock anyway.
- *
- * Search: every multiset of point values (1 to 6 points, ≤ 15 points in total,
- * so a few hundred at most) is ranked — lowest most precious copy, then fewest
- * points, then the spread towards cheap copies — and the first one the free
- * copies can supply wins. Supplying is a small bipartite b-matching (values ↔
- * cards): a card feeds two values (normal / holo) through ONE shared cap.
- */
+// « Compléter automatiquement »: cheapest copies reaching BOOSTER_COST as a MINIMAL selection (RecycleService re-validates)
 final class RecycleAutoFill
 {
     /**
@@ -62,8 +48,7 @@ final class RecycleAutoFill
     }
 
     /**
-     * value => card id => copies of that card worth that value, the cards with
-     * the most spare copies first (they are the real duplicates).
+     * value => card id => copies worth that value, cards with the most spare copies first.
      *
      * @param array<string, array{normalPoints: int, holoPoints: int, normal: int, holo: int, total: int}> $candidates
      *
@@ -136,8 +121,7 @@ final class RecycleAutoFill
     }
 
     /**
-     * Supplies $counts copies per value from the cards, respecting each kind's
-     * cap AND the card's shared cap; null when impossible.
+     * $counts copies per value within each kind's cap AND the card's shared cap; null when impossible.
      *
      * @param array<int, int>                                                                              $counts
      * @param array<int, array<string, int>>                                                               $edges

@@ -233,6 +233,10 @@ final class MarketBoard extends AbstractController
 
     public function resetPage(): void
     {
+        // a select's « toutes » option posts '': keep it out of the url (?univers=&rarete=)
+        $this->universe = '' === $this->universe ? null : $this->universe;
+        $this->rarity = '' === $this->rarity ? null : $this->rarity;
+        $this->finish = '' === $this->finish ? null : $this->finish;
         $this->page = 1;
         $this->confirming = null;
     }
@@ -392,10 +396,7 @@ final class MarketBoard extends AbstractController
         return isset($this->wishedIds[(string) $listing->getCard()->getId()]);
     }
 
-    /**
-     * « te manque / tu l'as déjà » of a player shop: listings are shown in clear, so
-     * telling the visitor whether they own the card leaks nothing. One query per render.
-     */
+    // « te manque / tu l'as déjà »: listings are in clear, so this leaks nothing
     public function isOwnedByMe(MarketListing $listing): bool
     {
         $this->myCardIds ??= array_flip($this->userCardRepository->findOwnedCardIds($this->getDiscordUser()));

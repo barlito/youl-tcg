@@ -27,7 +27,7 @@
                             <td>
                                 <a href="{{ card.url }}">{{ card.name }}</a>
                                 {% if card.unique %}
-                                    <span class="badge bg-warning text-dark" title="Carte unique : un seul exemplaire existe">{{ unique_icon() }} 1/1</span>
+                                    <span class="badge badge-warning" title="Carte unique : un seul exemplaire existe">{{ unique_icon() }} 1/1</span>
                                 {% endif %}
                             </td>
                             <td>{{ rarity_label(card.rarity) }}</td>

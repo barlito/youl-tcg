@@ -1,13 +1,10 @@
-{# « Prochain univers » : tuile rayée `.tile--soon` (aucun lien, aucun bouton « Me prévenir »).
-   Quand un univers est flaggé upcoming : son nom + son artwork flouté en filigrane
-   (image extension → artwork de la carte la plus rare, brouillons compris = upcomingCover).
-   Sans univers flaggé : placeholder « Prochain univers ». `class` porte le sizing de la grille. #}
+{# « Prochain univers » striped tile, no link: flagged universe's name + blurred artwork, else a placeholder; `class` = grid sizing #}
 {% set coverUrl = upcoming
     ? (upcoming.imageName ? vich_uploader_asset(upcoming) : (upcomingCover|default ? asset('uploads/cards/' ~ upcomingCover)))
     : null %}
 <article class="tile tile--soon soon-tile {{ class|default('') }}{{ upcoming ? '' : ' opacity-70' }}" data-testid="soon-tile">
     {% if coverUrl %}
-        {# scale-110 : le flou tire les bords vers l'intérieur, on les pousse hors cadre #}
+        {# scale-110: the blur pulls the edges inwards, push them out of the frame #}
         <img src="{{ coverUrl }}" alt="" loading="lazy" onerror="this.remove()" aria-hidden="true"
              class="soon-tile__img scale-110 blur-lg">
     {% endif %}

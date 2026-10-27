@@ -1,10 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 
-/**
- * Collection filter form (GET, state in the url). From md a select submits
- * the form as soon as it changes; under md the selects live in a panel opened
- * by the « Filtres · n » button and wait for « Appliquer ».
- */
+// Collection GET filter form: selects submit on change from md, wait for « Appliquer » in the mobile panel
 export default class extends Controller {
     static targets = ['toggle', 'panel'];
 

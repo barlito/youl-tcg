@@ -5,7 +5,7 @@
     {% set totalOwned = this.totalOwned %}
     {% set streak = this.streak %}
     <main>
-        {# ----------------------------------------------------- En-tête + stats du jour #}
+        {# ----------------------------------------------------- Header + today's stats #}
         {% embed 'parts/ui/_page_header.html.twig' with {
             eyebrow: 'Jouer',
             title: 'Tes packs',
@@ -258,8 +258,7 @@
                                     </div>
                                 {% endif %}
 
-                                {# actions : « Récupérer » et « Ouvrir » ont chacun leur place fixe — un clic
-                                   ne transforme jamais le bouton sous le pointeur en une autre action #}
+                                {# « Récupérer » and « Ouvrir » keep fixed slots: a click never turns the button under the pointer into another action #}
                                 {% if not drawable %}
                                     <span class="btn btn-g btn-w" aria-disabled="true" title="Cette extension n'a pas encore de carte publiée.">À venir</span>
                                 {% else %}
@@ -314,7 +313,7 @@
                                     </div>
                                 {% endif %}
 
-                                {# ligne basse : récupérer en plus du stock / reste à trouver, puis « Taux » #}
+                                {# bottom line: claimable on top of the stock / left to find, then « Taux » #}
                                 <div class="pack__foot">
                                     {% if universe and universe.owned >= universe.total %}
                                         <span class="text-xs text-live">✓ Univers complet</span>
@@ -327,10 +326,13 @@
 
                                     {# drop rates: native details/summary, no JS — the panel overlays the pack #}
                                     {% if booster.cardCount > 0 %}
-                                        <details class="booster-rates">
+                                        <details class="booster-rates" data-controller="details-dismiss">
                                             <summary class="tl" data-testid="drop-rates-toggle">Taux</summary>
                                             <div class="booster-rates__panel" data-testid="drop-rates-panel">
-                                                <p class="lbl mb-2 text-ink-strong">Taux par carte</p>
+                                                <div class="mb-2 flex items-center justify-between gap-2">
+                                                    <p class="lbl text-ink-strong">Taux par carte</p>
+                                                    <button type="button" class="tl" aria-label="Fermer les taux" data-testid="drop-rates-close">✕</button>
+                                                </div>
                                                 {% for slot in booster.dropRates %}
                                                     <div class="mb-1.5 flex flex-wrap items-baseline gap-x-2 font-mono text-[11px]">
                                                         <span class="text-ink-muted">Carte {{ loop.index }} ·</span>

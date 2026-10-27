@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace App\Dto;
 
-/**
- * One block of the collection grid: a universe (sorted by universe) or the
- * whole flattened result (any other sort, universe = null).
- */
+// One block of the collection grid: a universe, or the flattened result (universe = null)
 final readonly class CollectionSection
 {
     /**

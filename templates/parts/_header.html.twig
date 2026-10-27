@@ -1,6 +1,4 @@
-{# Header Violet Arcade : nav complète à partir de lg, sinon logo + YLC + cloche
-   + compte (la navigation passe dans la barre d'onglets du bas,
-   parts/_mobile_tabbar.html.twig). #}
+{# Full nav from lg; below, logo + YLC + bell + account (nav moves to parts/_mobile_tabbar.html.twig) #}
 {% set currentRoute = app.request.get('_route')|default('') %}
 <header class="site-header">
     <div class="site-header__inner">
@@ -46,7 +44,7 @@
                 <div class="relative" data-controller="disclosure"
                      data-action="keydown->disclosure#keydown focusout->disclosure#focusout">
                     <button type="button" class="account-btn max-lg:!h-11 max-lg:!w-11 max-lg:!border-0 max-lg:!bg-transparent max-lg:!p-0 lg:max-xl:!px-1"
-                            aria-expanded="false" aria-controls="account-menu" aria-haspopup="true"
+                            aria-expanded="false" aria-controls="account-menu"
                             aria-label="Menu du compte"
                             data-disclosure-target="button" data-action="disclosure#toggle"
                             data-testid="account-menu-toggle">
