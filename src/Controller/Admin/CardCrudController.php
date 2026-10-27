@@ -33,6 +33,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\BooleanFilter;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -77,8 +78,8 @@ class CardCrudController extends AbstractGuardedCrudController
     {
         return $filters
             ->add('extension')
-            ->add('rarity')
-            ->add('status')
+            ->add(ChoiceFilter::new('rarity', 'Rareté')->setTranslatableChoices(CardRarityEnum::ascending()))
+            ->add(ChoiceFilter::new('status', 'Statut')->setTranslatableChoices(CardStatusEnum::cases()))
             ->add(BooleanFilter::new('uniqueFlag', 'Carte unique (1/1)'))
             ->add(BooleanFilter::new('alwaysHolo', 'Toujours holo'))
         ;
@@ -282,7 +283,7 @@ class CardCrudController extends AbstractGuardedCrudController
         yield $statusField;
         yield ChoiceField::new('rarity')
             ->setLabel('Rareté')
-            ->setChoices(CardRarityEnum::cases())
+            ->setChoices(CardRarityEnum::ascending())
         ;
         yield AssociationField::new('extension')->setLabel('Univers');
         $uniqueField = BooleanField::new('unique')
