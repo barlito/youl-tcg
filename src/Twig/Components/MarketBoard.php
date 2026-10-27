@@ -13,6 +13,7 @@ use App\Exception\Market\MarketException;
 use App\Exception\Wishlist\WishlistRefusedException;
 use App\Repository\DiscordUserRepository;
 use App\Repository\MarketListingRepository;
+use App\Repository\UserCardRepository;
 use App\Service\Coin\CoinAmount;
 use App\Service\Coin\WalletBalances;
 use App\Service\Market\MarketPurchaseService;
@@ -85,6 +86,9 @@ final class MarketBoard extends AbstractController
     /** @var array<string, true>|null */
     private ?array $wishedIds = null;
 
+    /** @var array<string, int>|null */
+    private ?array $myCardIds = null;
+
     private bool $balanceLoaded = false;
 
     private ?CoinAmount $balance = null;
@@ -96,6 +100,7 @@ final class MarketBoard extends AbstractController
         private readonly WalletBalances $walletBalances,
         private readonly RequestStack $requestStack,
         private readonly WishlistService $wishlist,
+        private readonly UserCardRepository $userCardRepository,
     ) {
     }
 
@@ -341,6 +346,17 @@ final class MarketBoard extends AbstractController
         $this->wishedIds ??= $this->wishlist->wishedCardIds($this->getDiscordUser());
 
         return isset($this->wishedIds[(string) $listing->getCard()->getId()]);
+    }
+
+    /**
+     * « te manque / tu l'as déjà » of a player shop: listings are shown in clear, so
+     * telling the visitor whether they own the card leaks nothing. One query per render.
+     */
+    public function isOwnedByMe(MarketListing $listing): bool
+    {
+        $this->myCardIds ??= array_flip($this->userCardRepository->findOwnedCardIds($this->getDiscordUser()));
+
+        return isset($this->myCardIds[(string) $listing->getCard()->getId()]);
     }
 
     private function getWishOf(): ?DiscordUser

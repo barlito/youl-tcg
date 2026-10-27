@@ -95,7 +95,7 @@ final class OpeningHistoryControllerTest extends WebTestCase
 
         // Newest first: the recent opening leads.
         $first = $entries->first();
-        $this->assertStringContainsString($this->booster->getDisplayName(), $first->filter('h2')->text());
+        $this->assertStringContainsString($this->booster->getDisplayName(), $first->filter('h3')->text());
         $this->assertStringContainsString('20/02/2026', $first->text());
         $this->assertStringContainsString('2 cartes', $first->text());
         $this->assertStringContainsString('Légendaire', $first->filter('[data-testid="best-rarity"]')->text());

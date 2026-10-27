@@ -11,6 +11,8 @@ use App\Entity\UserCard;
 use App\Enum\Entity\CardRarityEnum;
 use App\Enum\Entity\CardStatusEnum;
 use App\Enum\Entity\ExtensionStatusEnum;
+use App\Enum\FeatureEnum;
+use App\Tests\FeatureFlagTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -24,6 +26,7 @@ use Symfony\Component\DomCrawler\Crawler;
  */
 final class PlayerProfileTest extends WebTestCase
 {
+    use FeatureFlagTrait;
     use JwtAuthTrait;
 
     private KernelBrowser $client;
@@ -62,15 +65,15 @@ final class PlayerProfileTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $this->assertStringContainsString($this->rival->getUsername(), $crawler->filter('h1')->text());
-        $this->assertStringContainsString('joueur depuis', $crawler->filter('main')->text());
+        $this->assertStringContainsString('joueur depuis', $crawler->filter('[data-testid="profile-head"]')->text());
         // completion reads as a fraction of the published catalogue, like « Ma collection »
         $this->assertMatchesRegularExpression(
-            '#\b3 / \d+ cartes · \d+%#',
+            '#\b3 / \d+ · \d+ %#',
             $crawler->filter('[data-testid="profile-completion"]')->text(),
         );
 
         $stats = $crawler->filter('[data-testid="profile-stats"]')->text();
-        $this->assertStringContainsString('4 cartes au total', $stats);
+        $this->assertStringContainsString('4 cartes', $stats);
         $this->assertStringContainsString('1 holo', $stats);
         $this->assertStringContainsString('1 unique 1/1', $stats);
         $this->assertStringContainsString('#', $crawler->filter('[data-testid="profile-rank"]')->text());
@@ -84,7 +87,7 @@ final class PlayerProfileTest extends WebTestCase
         $this->assertCount(1, $crawler->filter(\sprintf('img[alt="%s"]', $this->sharedCard->getName())));
         // the profile's own quantities are public: ×2 and one holo chip
         $this->assertStringContainsString('×2', $this->universeBlock($crawler)->filter('[data-testid="profile-grid"]')->text());
-        $this->assertStringContainsString('✦1', $this->universeBlock($crawler)->filter('[data-testid="profile-grid"]')->text());
+        $this->assertStringContainsString('✦ 1', $this->universeBlock($crawler)->filter('[data-testid="profile-grid"]')->text());
     }
 
     public function testUnsharedCardsAreMaskedWithoutLeakingTheirNames(): void
@@ -175,7 +178,7 @@ final class PlayerProfileTest extends WebTestCase
             static fn (Crawler $node): string => (string) $node->attr('data-state'),
         );
 
-        $this->assertSame(['all', 'common', 'profile-only', 'visitor-only', 'missing-both'], $states);
+        $this->assertSame(['all', 'profile-only', 'visitor-only', 'common', 'missing-both'], $states);
     }
 
     public function testAFilterWithNothingToShowIsDisabledAndHasAFallback(): void
@@ -221,7 +224,7 @@ final class PlayerProfileTest extends WebTestCase
         $this->assertCount(1, $tile);
         // the rival holds 3 of the 5 published cards — their completion, not what we share
         $this->assertStringContainsString('3/5 cartes', $tile->text());
-        $this->assertStringContainsString('60%', $tile->text());
+        $this->assertStringContainsString('60 %', $tile->text());
     }
 
     public function testStripTileNarrowsTheProfileToOneUniverse(): void
@@ -231,19 +234,19 @@ final class PlayerProfileTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $blocks = $crawler->filter('[data-testid="profile-universe"]');
         $this->assertCount(1, $blocks);
-        $this->assertStringContainsString($this->extension->getName(), $blocks->filter('h2')->text());
+        $this->assertStringContainsString($this->extension->getName(), $blocks->filter('h3')->text());
 
         // the active strip tile is the filtered universe
         $this->assertStringContainsString(
             $this->extension->getName(),
-            $crawler->filter('[data-testid="completion-strip"] a[data-carousel-active]')->text(),
+            $crawler->filter('[data-testid="completion-strip"] a[aria-current]')->text(),
         );
 
         // the filter counters follow the universe rendered, not the whole catalogue
         $counts = $crawler->filter('[data-testid="profile-filters"] button')->each(
-            static fn (Crawler $node): string => (string) $node->filter('.filter-chip__count')->text(),
+            static fn (Crawler $node): string => (string) preg_replace('/^.*· /', '', $node->text()),
         );
-        $this->assertSame(['5', '1', '2', '1', '1'], $counts);
+        $this->assertSame(['5', '2', '1', '1', '1'], $counts);
     }
 
     public function testUnknownUniverseOnAProfileIsNotFound(): void
@@ -339,16 +342,38 @@ final class PlayerProfileTest extends WebTestCase
 
         // completion and stats stay on the published catalogue: still 3 distinct cards
         $this->assertMatchesRegularExpression(
-            '#\b3 / \d+ cartes#',
+            '#\b3 / \d+ · #',
             $crawler->filter('[data-testid="profile-completion"]')->text(),
         );
         $stats = $crawler->filter('[data-testid="profile-stats"]')->text();
-        $this->assertStringContainsString('4 cartes au total', $stats);
+        $this->assertStringContainsString('4 cartes', $stats);
         $this->assertStringContainsString('1 holo', $stats);
 
         $html = (string) $this->client->getResponse()->getContent();
         $this->assertStringNotContainsString($draftCard->getName(), $html);
         $this->assertStringNotContainsString($draftExtension->getName(), $html);
+    }
+
+    public function testBetweenUsCountsWhatTheProfileCouldGiveMe(): void
+    {
+        $crawler = $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId());
+
+        self::assertResponseIsSuccessful();
+        // the rival holds the secret card and the 1/1, the visitor neither
+        $this->assertStringContainsString('2 cartes de ' . $this->rival->getUsername() . ' te manquent', $crawler->filter('[data-testid="between-us-theirs"]')->text());
+        $this->assertMatchesRegularExpression('#^\d+ de tes doublons#', trim($crawler->filter('[data-testid="between-us-mine"]')->text()));
+        $this->assertSame('/echanges/nouveau/' . $this->rival->getDiscordId(), $crawler->filter('[data-testid="propose-trade"]')->attr('href'));
+    }
+
+    public function testTradeButtonFollowsTheTradesFlag(): void
+    {
+        $this->setFeature(FeatureEnum::TRADES, false);
+
+        $crawler = $this->client->request('GET', '/joueur/' . $this->rival->getDiscordId());
+
+        self::assertResponseIsSuccessful();
+        $this->assertCount(1, $crawler->filter('[data-testid="between-us"]'));
+        $this->assertCount(0, $crawler->filter('[data-testid="propose-trade"]'));
     }
 
     public function testUnknownPlayerIsNotFound(): void
@@ -372,7 +397,7 @@ final class PlayerProfileTest extends WebTestCase
     private function universeBlock(Crawler $crawler): Crawler
     {
         $block = $crawler->filter('[data-testid="profile-universe"]')->reduce(
-            fn (Crawler $node): bool => str_contains($node->filter('h2')->text(), $this->extension->getName()),
+            fn (Crawler $node): bool => str_contains($node->filter('h3')->text(), $this->extension->getName()),
         );
 
         $this->assertCount(1, $block, 'The scenario universe must appear exactly once in the grid.');

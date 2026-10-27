@@ -21,6 +21,13 @@ final readonly class LeaderboardEntry
         public int $uniqueCards,
         public int $openedBoosters,
         public int $completionPct,
+        /** published cards of published extensions: the completion denominator */
+        public int $catalogueSize = 0,
     ) {
+    }
+
+    public function withRank(int $rank): self
+    {
+        return new self($rank, $this->user, $this->distinctCards, $this->totalCards, $this->holoCards, $this->uniqueCards, $this->openedBoosters, $this->completionPct, $this->catalogueSize);
     }
 }

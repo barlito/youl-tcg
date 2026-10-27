@@ -48,6 +48,8 @@ final readonly class OpeningLuckStatsProvider
             $rarityShares[$rarity->value] = $this->share($count, $cardCount);
         }
 
+        $boosters = $this->buildBoosterLucks($user);
+
         return new OpeningLuckStats(
             $openingCount,
             $cardCount,
@@ -55,8 +57,9 @@ final readonly class OpeningLuckStatsProvider
             $this->share($holoCount, $cardCount),
             $rarityCounts,
             $rarityShares,
-            $this->buildBoosterLucks($user),
+            $boosters,
             $this->buildBestPull($user),
+            $this->expectedSharesOverall($boosters),
         );
     }
 
@@ -105,6 +108,31 @@ final readonly class OpeningLuckStatsProvider
         usort($boosters, static fn (BoosterLuckStats $left, BoosterLuckStats $right): int => [$right->openingCount, $left->booster->getDisplayName()] <=> [$left->openingCount, $right->booster->getDisplayName()]);
 
         return $boosters;
+    }
+
+    /**
+     * What the packs advertised for the cards actually pulled: each booster's
+     * expected share weighted by the cards it gave (« annoncé : 4 % par carte »).
+     *
+     * @param list<BoosterLuckStats> $boosters
+     *
+     * @return array<string, float>
+     */
+    private function expectedSharesOverall(array $boosters): array
+    {
+        $cards = array_sum(array_map(static fn (BoosterLuckStats $luck): int => $luck->cardCount, $boosters));
+        $shares = [];
+
+        foreach (CardRarityEnum::ascending() as $rarity) {
+            $weighted = 0.0;
+            foreach ($boosters as $luck) {
+                $weighted += ($luck->rarityRows[$rarity->value]['expected'] ?? 0.0) * $luck->cardCount;
+            }
+
+            $shares[$rarity->value] = $cards > 0 ? round($weighted / $cards, 1) : 0.0;
+        }
+
+        return $shares;
     }
 
     private function buildBestPull(DiscordUser $user): ?BestPull

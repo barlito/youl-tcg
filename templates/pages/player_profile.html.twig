@@ -6,61 +6,44 @@
 
 {% block body %}
     <main>
-        {# --------------------------------------------------- Bandeau joueur #}
-        <section class="relative border-b border-hairline px-6 py-10 lg:px-12">
-            <div class="glow-ambient" aria-hidden="true"></div>
-            <div class="relative mx-auto grid max-w-7xl items-center gap-8 md:grid-cols-[auto_1fr_auto]">
-                <div class="notched-avatar h-[100px] w-[100px] bg-gradient-to-br from-primary to-magenta p-[3px]">
-                    <div class="notched-avatar flex h-full w-full items-center justify-center bg-bg font-display text-[44px] font-bold text-primary">
-                        {{ profile.username|first|upper }}
-                    </div>
-                </div>
+    {# pseudo tronqué : un pseudo Discord long ferait déborder les segments en mobile #}
+    {% set shortName = profile.username|slice(0, 12) ~ (profile.username|length > 12 ? '…' : '') %}
 
-                <div>
-                    <p class="eyebrow">Profil joueur</p>
-                    <h1 class="mt-1 font-display text-4xl font-bold uppercase tracking-[-0.04em] text-ink-strong md:text-5xl">
-                        {{ profile.username }}
-                    </h1>
-                    <p class="mt-1.5 font-mono text-xs text-ink-dim">joueur depuis {{ profile.createdAt|date('m/Y') }}</p>
-
-                    <div class="mt-4 max-w-md" data-testid="profile-completion">
-                        <div class="chip-mono mb-1 flex justify-between text-ink-muted">
-                            <span>Complétion</span>
-                            <span>{{ comparison.owned }} / {{ comparison.total }} cartes · {{ comparison.completionPct }}%</span>
-                        </div>
-                        <div class="h-2 border border-hairline bg-surface">
-                            <div class="h-full bg-gradient-to-r from-primary to-magenta shadow-[0_0_10px_#a435f0]"
-                                 style="width: {{ comparison.completionPct }}%;"></div>
-                        </div>
-                    </div>
-
-                    <div class="chip-mono mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-ink-muted" data-testid="profile-stats">
-                        <span>◈ {{ entry.totalCards }} carte{{ entry.totalCards > 1 ? 's' }} au total</span>
-                        <span class="{{ entry.holoCards > 0 ? 'text-primary' : '' }}">✦ {{ entry.holoCards }} holo{{ entry.holoCards > 1 ? 's' }}</span>
-                        <span class="{{ entry.uniqueCards > 0 ? 'text-magenta' : '' }}">◆ {{ entry.uniqueCards }} unique{{ entry.uniqueCards > 1 ? 's' }} 1/1</span>
-                        <span>▣ {{ entry.openedBoosters }} pack{{ entry.openedBoosters > 1 ? 's' }} ouvert{{ entry.openedBoosters > 1 ? 's' }}</span>
-                    </div>
-                </div>
-
-                <div class="flex flex-col items-start gap-2.5 md:items-end">
-                    <div class="bg-primary px-5 py-3.5 text-black" data-testid="profile-rank">
-                        <p class="font-mono text-[10px] font-bold tracking-[.2em]">CLASSEMENT</p>
-                        <p class="mt-1 font-display text-3xl font-bold leading-none">#{{ entry.rank }}</p>
-                    </div>
-                    <a href="{{ path('leaderboard') }}"
-                       class="border border-primary bg-black px-5 py-3.5 font-display text-[13px] font-bold uppercase tracking-[.15em] text-primary">
-                        ◂ Le classement
-                    </a>
-                    <a href="{{ path('collection') }}"
-                       class="chip-mono text-ink-dim transition-colors hover:text-primary"
-                       data-testid="collection-link">
-                        ◈ Ma collection ▸
-                    </a>
-                </div>
+    {% embed 'parts/ui/_profile_head.html.twig' with {
+        player: profile,
+        entry: entry,
+        owned: comparison.owned,
+        total: comparison.total,
+        percentage: comparison.completionPct,
+        completionTestid: 'profile-completion',
+    } %}
+        {% block top %}
+            <a href="{{ path('leaderboard') }}" class="lbl no-underline hover:text-ink-strong" data-testid="back-to-leaderboard">‹ Classement</a>
+        {% endblock %}
+        {% block meta %}
+            <span data-testid="profile-rank">#{{ entry.rank }}</span> · joueur depuis {{ profile.createdAt|date('m/Y') }}
+        {% endblock %}
+        {% block aside %}
+            <div class="panel hot flex flex-col gap-3 p-4 md:w-[320px] md:p-[18px]" data-testid="between-us">
+                <span class="lbl text-ink">Entre vous deux</span>
+                <span class="text-ink" data-testid="between-us-theirs">
+                    <strong class="d text-[22px] text-ink-strong">{{ match.theyHaveForMe }}</strong>
+                    carte{{ match.theyHaveForMe > 1 ? 's' }} de {{ profile.username }} te manque{{ match.theyHaveForMe > 1 ? 'nt' }}
+                </span>
+                <span class="text-ink" data-testid="between-us-mine">
+                    <strong class="d text-[22px] text-ink-strong">{{ match.iHaveForThem }}</strong>
+                    de tes doublons lui manque{{ match.iHaveForThem > 1 ? 'nt' }}
+                </span>
+                {% if feature_enabled('trades') %}
+                    <a href="{{ path('trades_compose', { discordId: profile.discordId }) }}" class="btn btn-p btn-w" data-testid="propose-trade">⇄ Proposer un échange</a>
+                {% endif %}
+                <a href="{{ path('collection') }}" class="lbl self-start hover:text-ink-strong" data-testid="collection-link">◈ Ma collection</a>
             </div>
-        </section>
+        {% endblock %}
+    {% endembed %}
 
-        {{ include('parts/_completion_strip.html.twig', {
+    <div class="wrap flex flex-col gap-10 pb-24 pt-6 md:pt-8">
+        {{ include('parts/ui/_universe_strip.html.twig', {
             strip: strip,
             currentExtension: currentExtension,
             route: 'leaderboard_player',
@@ -68,138 +51,131 @@
             owned: comparison.owned,
             total: comparison.total,
             percentage: comparison.completionPct,
+            title: 'Sa collection par univers',
         }) }}
 
-        {# ----------------------------------------------------- Boutique #}
-        <div class="px-6 pt-8 lg:px-12">
-            <div class="mx-auto max-w-7xl">
-                {{ component('MarketBoard', { sellerId: profile.discordId }) }}
-            </div>
-        </div>
+        {{ component('MarketBoard', { sellerId: profile.discordId }) }}
 
-        {# --------------------------------------- Collection comparée par univers #}
-        <section class="px-6 pb-24 pt-8 lg:px-12" data-controller="profile-filter">
-            <div class="mx-auto max-w-7xl">
-                {% if comparison.owned == 0 %}
-                    <div class="mb-10 border border-dashed border-hairline px-8 py-16 text-center text-ink-dim" data-testid="empty-state">
-                        <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Collection vide.</p>
-                        <p class="mt-3 text-sm">Ce joueur n'a encore aucune carte.</p>
-                    </div>
-                {% endif %}
-
+        {# ------------------------------------- Collection comparée par univers #}
+        <section aria-labelledby="cmp" class="flex flex-col gap-4" data-controller="profile-filter">
+            <div class="flex flex-wrap items-center gap-3">
+                <h2 id="cmp" class="h2 mr-3">Vos collections</h2>
                 {% if visible.total > 0 %}
-                    {# pseudo tronqué : un pseudo Discord long ferait déborder la barre en mobile #}
-                    {% set shortName = profile.username|slice(0, 12) ~ (profile.username|length > 12 ? '…' : '') %}
-
-                    <div class="mb-8 flex flex-wrap items-center gap-2" role="group" aria-label="Filtrer la collection" data-testid="profile-filters">
+                    <div role="group" aria-label="Comparer" class="flex flex-wrap gap-1.5" data-testid="profile-filters">
                         {% for filter in [
-                            { state: 'all', label: 'Tout', count: visible.total },
-                            { state: 'common', label: 'En commun', count: visible.common },
-                            { state: 'profile-only', label: 'Seulement ' ~ shortName, count: visible.profileOnly },
-                            { state: 'visitor-only', label: 'Seulement toi', count: visible.visitorOnly },
-                            { state: 'missing-both', label: 'Manquantes aux deux', count: visible.missingBoth },
+                            { state: 'all', label: 'Tout', count: visible.total, hint: 'Face cachée = tu ne l\'as pas : seule sa rareté est visible. ◈ = ' ~ profile.username ~ ' l\'a, toi non.' },
+                            { state: 'profile-only', label: 'Seulement ' ~ shortName, count: visible.profileOnly, hint: 'Ces cartes, ' ~ profile.username ~ ' les a et toi non : seule leur rareté est visible.' },
+                            { state: 'visitor-only', label: 'Seulement toi', count: visible.visitorOnly, hint: 'Ces cartes, tu les as et ' ~ profile.username ~ ' non.' },
+                            { state: 'common', label: 'En commun', count: visible.common, hint: 'Ces cartes, vous les avez tous les deux.' },
+                            { state: 'missing-both', label: 'Personne', count: visible.missingBoth, hint: 'Ces cartes, aucun de vous deux ne les a encore.' },
                         ] %}
                             {# un filtre à 0 n'a rien à montrer : il reste lisible mais inactif #}
                             <button type="button"
-                                    class="filter-chip{{ loop.first ? ' is-active' }}"
+                                    class="seg{{ loop.first ? ' on' }}"
                                     data-state="{{ filter.state }}"
+                                    data-hint="{{ filter.hint }}"
                                     data-profile-filter-target="button"
                                     data-action="profile-filter#select"
                                     aria-pressed="{{ loop.first ? 'true' : 'false' }}"
                                     {{ filter.count == 0 and not loop.first ? 'disabled' }}>
-                                {{ filter.label }} <span class="filter-chip__count">{{ filter.count }}</span>
+                                {{ filter.label }} · {{ filter.count }}
                             </button>
                         {% endfor %}
                     </div>
-
-                    <p class="chip-mono mb-8 border border-hairline bg-surface px-3 py-2 text-ink-muted" data-testid="masking-hint">
-                        Face cachée = tu ne l'as pas encore. <span class="text-primary">◈ Sa collection</span> = {{ profile.username }} l'a, toi non. Éteinte = personne ne l'a.
-                        <span class="text-magenta">◆ 1/1</span> = carte unique.
-                    </p>
                 {% endif %}
+            </div>
 
-                {# annonce le résultat du filtrage aux lecteurs d'écran #}
-                <p class="sr-only" aria-live="polite" data-profile-filter-target="status"></p>
+            {% if visible.total > 0 %}
+                <p class="muted m-0 text-[13px]" data-testid="masking-hint" data-profile-filter-target="hint">
+                    Face cachée = tu ne l'as pas : seule sa rareté est visible. ◈ = {{ profile.username }} l'a, toi non.
+                </p>
+            {% endif %}
 
-                {% for universe in visible.universes %}
-                    <div class="mb-12" data-profile-filter-target="universe" data-testid="profile-universe">
-                        <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                            <h2 class="font-display text-sm font-bold uppercase tracking-[.1em] text-ink-strong">
-                                <a href="{{ path('universes_show', { slug: universe.extension.slug }) }}"
-                                   class="transition-colors hover:text-primary">{{ universe.extension.name }}</a>
-                            </h2>
-                            <span class="chip-mono text-ink-muted"
-                                  data-profile-filter-target="count"
-                                  data-total="{{ universe.total }}"
-                                  data-testid="universe-count">
-                                {{ universe.total }} carte{{ universe.total > 1 ? 's' }}
-                            </span>
-                        </div>
-
-                        {# compteurs du catalogue complet : estompés dès qu'un filtre restreint la grille #}
-                        <div class="chip-mono mt-2 flex flex-wrap gap-x-5 gap-y-1.5 text-ink-muted transition-opacity"
-                             data-profile-filter-target="counters"
-                             data-testid="universe-compare">
-                            <span>◈ {{ universe.common }} en commun</span>
-                            <span>▲ {{ universe.profileOnly }} seulement {{ profile.username }}</span>
-                            <span>▼ {{ universe.visitorOnly }} seulement toi</span>
-                            <span>✕ {{ universe.missingBoth }} manquante{{ universe.missingBoth > 1 ? 's' }} aux deux</span>
-                        </div>
-
-                        <div class="mt-6 grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5" data-testid="profile-grid">
-                            {% for item in universe.cards %}
-                                <div class="card-tile relative"
-                                     data-state="{{ item.state.value }}"
-                                     data-profile-filter-target="tile"
-                                     data-testid="profile-tile">
-                                    {# le voile des états va sur la carte, jamais sur la tuile :
-                                       il éteindrait les chips, qui portent toute l'information #}
-                                    <div class="{{ item.state.value == 'visitor-only' ? 'opacity-50 grayscale' }}{{ item.state.value == 'profile-only' ? 'ring-1 ring-primary/60' }}{{ item.state.value == 'missing-both' ? 'opacity-60' }}">
-                                        {% if item.state.revealsCard %}
-                                            {{ include('components/CardComponent.html.twig', { card: item.card, holo: item.profileCard and item.profileCard.holoQuantity > 0, lazy: true }) }}
-                                        {% else %}
-                                            {{ include('parts/_masked_card.html.twig', with_context = false) }}
-                                        {% endif %}
-                                    </div>
-
-                                    {# libellés en toutes lettres à partir de sm : sur 2 colonnes ils
-                                       recouvriraient le nom de la carte #}
-                                    <div class="card-tile__chips card-tile__chips--sticky pointer-events-none absolute -right-2 -top-2 z-10 flex max-w-full flex-col items-end gap-1.5 sm:flex-row sm:flex-wrap sm:justify-end">
-                                        {% if item.card.isUnique %}
-                                            <span class="chip-mono border border-magenta bg-black/90 px-2 py-1 font-bold text-magenta" data-testid="chip-unique">
-                                                ◆<span class="sr-only sm:not-sr-only sm:ml-1">1/1</span>
-                                            </span>
-                                        {% endif %}
-                                        {% if item.state.value == 'common' %}
-                                            <span class="chip-mono bg-black/90 px-2 py-1 font-bold text-white">×{{ item.profileCard.quantity }}</span>
-                                            {% if item.profileCard.holoQuantity > 0 %}
-                                                <span class="chip-mono bg-gradient-to-r from-primary to-magenta px-2 py-1 font-bold text-black">✦{{ item.profileCard.holoQuantity }}</span>
-                                            {% endif %}
-                                        {% elseif item.state.value == 'profile-only' %}
-                                            <span class="chip-mono border border-primary bg-black/90 px-2 py-1 font-bold text-primary" data-testid="chip-owned">
-                                                ◈<span class="sr-only sm:not-sr-only sm:ml-1">Sa collection</span>
-                                            </span>
-                                        {% elseif item.state.value == 'visitor-only' %}
-                                            <span class="chip-mono border border-hairline bg-black/90 px-2 py-1 font-bold text-ink-muted" data-testid="chip-wanted">
-                                                ✕<span class="sr-only sm:not-sr-only sm:ml-1">Lui manque</span>
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% endfor %}
-
-                {# filtre qui ne ramène rien : sans ça la page tombe dans le vide #}
-                <div class="border border-dashed border-hairline px-8 py-16 text-center text-ink-dim"
-                     data-profile-filter-target="empty"
-                     data-testid="filter-empty"
-                     hidden>
-                    <p class="font-display text-lg font-bold uppercase tracking-[.15em]">Rien dans cet état.</p>
-                    <p class="mt-3 text-sm">Choisis un autre filtre.</p>
+            {% if comparison.owned == 0 %}
+                <div class="panel px-8 py-10 text-center" data-testid="empty-state">
+                    <p class="h2">Collection vide.</p>
+                    <p class="muted mt-2 text-sm">Ce joueur n'a encore aucune carte.</p>
                 </div>
+            {% endif %}
+
+            {# annonce le résultat du filtrage aux lecteurs d'écran #}
+            <p class="sr" aria-live="polite" data-profile-filter-target="status"></p>
+
+            {% for universe in visible.universes %}
+                <div class="flex flex-col gap-3.5 pt-2" data-profile-filter-target="universe" data-testid="profile-universe">
+                    <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                        <h3 class="d up text-lg text-ink-strong">
+                            <a href="{{ path('universes_show', { slug: universe.extension.slug }) }}" class="text-ink-strong no-underline hover:text-primary">{{ universe.extension.name }}</a>
+                        </h3>
+                        <span class="lbl"
+                              data-profile-filter-target="count"
+                              data-total="{{ universe.total }}"
+                              data-testid="universe-count">
+                            {{ universe.total }} carte{{ universe.total > 1 ? 's' }}
+                        </span>
+                        {# compteurs du catalogue complet : estompés dès qu'un filtre restreint la grille #}
+                        <span class="muted flex flex-wrap gap-x-4 gap-y-1 text-[13px] transition-opacity"
+                              data-profile-filter-target="counters"
+                              data-testid="universe-compare">
+                            <span>{{ universe.common }} en commun</span>
+                            <span>{{ universe.profileOnly }} seulement {{ profile.username }}</span>
+                            <span>{{ universe.visitorOnly }} seulement toi</span>
+                            <span>{{ universe.missingBoth }} manquante{{ universe.missingBoth > 1 ? 's' }} aux deux</span>
+                        </span>
+                    </div>
+
+                    <div class="set-grid set-grid--dense" data-testid="profile-grid">
+                        {% for item in universe.cards %}
+                            {% set state = item.state.value %}
+                                {% if state == 'common' %}
+                                    {{ include('parts/ui/_card_cell.html.twig', {
+                                        card: item.card,
+                                        quantity: item.profileCard.quantity,
+                                        holoQuantity: item.profileCard.holoQuantity,
+                                        holo: item.profileCard.holoQuantity > 0,
+                                        interactive: true,
+                                        testid: 'profile-tile',
+                                        state: state,
+                                        attrs: { 'data-profile-filter-target': 'tile' },
+                                    }, with_context = false) }}
+                                {% elseif state == 'visitor-only' %}
+                                    {{ include('parts/ui/_card_cell.html.twig', {
+                                        card: item.card,
+                                        interactive: true,
+                                        artClass: 'opacity-50 grayscale',
+                                        badge: { text: '✕ Lui manque', testid: 'chip-wanted' },
+                                        testid: 'profile-tile',
+                                        state: state,
+                                        attrs: { 'data-profile-filter-target': 'tile' },
+                                    }, with_context = false) }}
+                                {% else %}
+                                    {# carte qu'il a et pas toi, ou que personne n'a : dos de carte, rareté seule #}
+                                    {{ include('parts/ui/_card_cell.html.twig', {
+                                        card: null,
+                                        rarity: item.card.rarity.value,
+                                        unique: item.card.isUnique,
+                                        maskedLabel: state == 'profile-only' ? 'Carte à trouver' : 'Personne ne l\'a',
+                                        artClass: state == 'missing-both' ? 'opacity-50' : 'ring-1 ring-primary/60',
+                                        badge: state == 'profile-only' ? { text: '◈ Sa collection', class: 'chip-fill', testid: 'chip-owned' } : null,
+                                        testid: 'profile-tile',
+                                        state: state,
+                                        attrs: { 'data-profile-filter-target': 'tile' },
+                                    }, with_context = false) }}
+                                {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+
+            {# filtre qui ne ramène rien : sans ça la page tombe dans le vide #}
+            <div class="panel px-8 py-10 text-center"
+                 data-profile-filter-target="empty"
+                 data-testid="filter-empty"
+                 hidden>
+                <p class="h2">Rien dans cet état.</p>
+                <p class="muted mt-2 text-sm">Choisis un autre filtre.</p>
             </div>
         </section>
+    </div>
     </main>
 {% endblock %}

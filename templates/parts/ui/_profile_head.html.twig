@@ -1,0 +1,42 @@
+{#
+  En-tête de profil (`.ph`) : avatar octogonal, pseudo, complétion et compteurs du joueur.
+  À utiliser avec embed. Paramètres : player (DiscordUser), entry (LeaderboardEntry),
+  owned / total / percentage (complétion), completionTestid (défaut « global-completion »),
+  showPacks (compteur de packs ouverts, défaut true).
+  Blocs : top (eyebrow ou lien retour), meta (à droite du pseudo), aside (colonne de droite :
+  actions, encart), nav (sous-navigation collée au bord bas).
+#}
+{% set navHtml %}{% block nav %}{% endblock %}{% endset %}
+{% set navHtml = navHtml|trim %}
+<div class="ph" data-testid="profile-head">
+    <div class="wrap flex flex-col gap-6 pt-6 md:gap-7 md:pt-10 {{ navHtml ? '' : 'pb-8 md:pb-9' }}">
+        <div class="profile-head">
+            <span class="av oct profile-head__av" aria-hidden="true">{{ player.username|first|upper }}</span>
+            <div class="profile-head__main">
+                {% block top %}{% endblock %}
+                <div class="flex min-w-0 flex-wrap items-baseline gap-x-3.5 gap-y-1">
+                    <h1 class="h1 profile-head__name">{{ player.username }}</h1>
+                    <span class="muted text-sm">{% block meta %}{% endblock %}</span>
+                </div>
+                <div class="flex flex-col gap-2" data-testid="{{ completionTestid|default('global-completion') }}">
+                    <div class="flex items-baseline justify-between gap-3">
+                        <span class="lbl">Complétion</span>
+                        <span class="mono text-[13px] text-ink-strong">{{ owned }} / {{ total }} · {{ percentage }} %</span>
+                    </div>
+                    <div class="bar h-1.5" aria-hidden="true"><i style="width: {{ percentage }}%"></i></div>
+                </div>
+                <div class="flex flex-wrap gap-x-5 gap-y-1 text-sm text-ink-muted" data-testid="profile-stats">
+                    <span><strong class="text-ink-strong">{{ entry.totalCards }}</strong> carte{{ entry.totalCards > 1 ? 's' }}</span>
+                    <span><span class="text-magenta" aria-hidden="true">✦</span> <strong class="text-ink-strong">{{ entry.holoCards }}</strong> holo{{ entry.holoCards > 1 ? 's' }}</span>
+                    <span><span class="r-s" aria-hidden="true">★</span> <strong class="text-ink-strong">{{ entry.uniqueCards }}</strong> unique{{ entry.uniqueCards > 1 ? 's' }} 1/1</span>
+                    {% if showPacks ?? true %}
+                        <span><strong class="text-ink-strong">{{ entry.openedBoosters }}</strong> pack{{ entry.openedBoosters > 1 ? 's' }} ouvert{{ entry.openedBoosters > 1 ? 's' }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% set asideHtml %}{% block aside %}{% endblock %}{% endset %}
+            {% if asideHtml|trim %}<div class="profile-head__aside">{{ asideHtml }}</div>{% endif %}
+        </div>
+        {{ navHtml|raw }}
+    </div>
+</div>

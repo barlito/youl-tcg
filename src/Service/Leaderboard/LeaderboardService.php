@@ -6,6 +6,7 @@ namespace App\Service\Leaderboard;
 
 use App\Dto\LeaderboardEntry;
 use App\Entity\DiscordUser;
+use App\Enum\Leaderboard\LeaderboardSortEnum;
 use App\Repository\BoosterOpeningRepository;
 use App\Repository\CardRepository;
 use App\Repository\DiscordUserRepository;
@@ -14,8 +15,8 @@ use App\Repository\UserCardRepository;
 
 /**
  * Builds the collectors leaderboard: every player ranked by global completion
- * (distinct owned cards vs published catalogue). Each metric comes from one
- * grouped query — never one query per player.
+ * (distinct owned cards vs published catalogue) by default, or by holos / opened
+ * packs. Each metric comes from one grouped query — never one query per player.
  */
 final readonly class LeaderboardService
 {
@@ -29,9 +30,9 @@ final readonly class LeaderboardService
     }
 
     /**
-     * @return list<LeaderboardEntry>
+     * @return list<LeaderboardEntry> ranked by $sort, rank = position in that ranking
      */
-    public function getLeaderboard(): array
+    public function getLeaderboard(LeaderboardSortEnum $sort = LeaderboardSortEnum::COMPLETION): array
     {
         $ownedStats = $this->userCardRepository->aggregateOwnedByUser();
         $uniqueCounts = $this->cardRepository->countClaimedUniquesByUser();
@@ -39,30 +40,13 @@ final readonly class LeaderboardService
         // same denominator as the collection page: published cards of published extensions
         $totalPublished = array_sum(array_column($this->extensionRepository->findPublishedWithPublishedCardCount(), 'cardCount'));
 
-        $players = $this->discordUserRepository->findAll();
-
-        usort(
-            $players,
-            static function (DiscordUser $a, DiscordUser $b) use ($ownedStats): int {
-                $statsA = $ownedStats[$a->getDiscordId()] ?? ['distinct' => 0, 'total' => 0];
-                $statsB = $ownedStats[$b->getDiscordId()] ?? ['distinct' => 0, 'total' => 0];
-
-                // completion desc == distinct desc (shared denominator), total copies
-                // then username/discordId as deterministic tiebreaks
-                return $statsB['distinct'] <=> $statsA['distinct']
-                    ?: $statsB['total'] <=> $statsA['total']
-                    ?: strcasecmp($a->getUsername(), $b->getUsername())
-                    ?: $a->getDiscordId() <=> $b->getDiscordId();
-            },
-        );
-
         $entries = [];
-        foreach ($players as $index => $player) {
+        foreach ($this->discordUserRepository->findAll() as $player) {
             $discordId = $player->getDiscordId();
             $stats = $ownedStats[$discordId] ?? ['distinct' => 0, 'total' => 0, 'holo' => 0];
 
             $entries[] = new LeaderboardEntry(
-                rank: $index + 1,
+                rank: 0,
                 user: $player,
                 distinctCards: $stats['distinct'],
                 totalCards: $stats['total'],
@@ -70,10 +54,26 @@ final readonly class LeaderboardService
                 uniqueCards: $uniqueCounts[$discordId] ?? 0,
                 openedBoosters: $openingCounts[$discordId] ?? 0,
                 completionPct: $totalPublished > 0 ? (int) round($stats['distinct'] / $totalPublished * 100) : 0,
+                catalogueSize: $totalPublished,
             );
         }
 
-        return $entries;
+        // the chosen metric desc, then the completion order: distinct desc (shared
+        // denominator), total copies, username, discordId — always deterministic
+        usort(
+            $entries,
+            static fn (LeaderboardEntry $a, LeaderboardEntry $b): int => $sort->metric($b) <=> $sort->metric($a)
+                ?: $b->distinctCards <=> $a->distinctCards
+                ?: $b->totalCards <=> $a->totalCards
+                ?: strcasecmp($a->user->getUsername(), $b->user->getUsername())
+                ?: $a->user->getDiscordId() <=> $b->user->getDiscordId(),
+        );
+
+        return array_map(
+            static fn (LeaderboardEntry $entry, int $index): LeaderboardEntry => $entry->withRank($index + 1),
+            $entries,
+            array_keys($entries),
+        );
     }
 
     /**
