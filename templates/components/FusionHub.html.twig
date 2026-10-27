@@ -17,9 +17,9 @@
 
         <div class="wrap flex flex-col gap-8 pb-24 pt-6 md:pt-8">
             {% if error %}
-                <div class="panel flash-msg flash-msg--err" role="alert" data-testid="fusion-error">⚠ {{ error }}</div>
+                <div class="panel flash-msg flash-msg--err" role="alert" data-controller="reveal-message" data-reveal-message-key-value="{{ error }}" data-testid="fusion-error">⚠ {{ error }}</div>
             {% elseif success %}
-                <div class="panel flash-msg flash-msg--ok fusion-flash flex items-center gap-4" role="status" data-testid="fusion-success">
+                <div class="panel flash-msg flash-msg--ok fusion-flash flex items-center gap-4" role="status" data-controller="reveal-message" data-reveal-message-key-value="{{ success }}" data-testid="fusion-success">
                     {% set fused = this.fusedCard %}
                     {% if fused %}
                         <div class="w-16 shrink-0">

@@ -21,9 +21,9 @@
                 {% endif %}
 
                 {% if error %}
-                    <div class="panel flash-msg flash-msg--err" role="alert" data-testid="recycle-error">⚠ {{ error }}</div>
+                    <div class="panel flash-msg flash-msg--err" role="alert" data-controller="reveal-message" data-reveal-message-key-value="{{ error }}" data-testid="recycle-error">⚠ {{ error }}</div>
                 {% elseif success %}
-                    <div class="panel flash-msg flash-msg--ok" role="status" data-testid="recycle-success">♻ {{ success }}</div>
+                    <div class="panel flash-msg flash-msg--ok" role="status" data-controller="reveal-message" data-reveal-message-key-value="{{ success }}" data-testid="recycle-success">♻ {{ success }}</div>
                 {% endif %}
 
                 {% if not this.hasRows %}

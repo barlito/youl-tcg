@@ -6,7 +6,7 @@
 
     <div class="wrap flex flex-col gap-4 pb-10 pt-5">
         {% if error %}
-            <div class="panel flash-msg flash-msg--err" role="alert" data-testid="composer-error">⚠ {{ error }}</div>
+            <div class="panel flash-msg flash-msg--err" role="alert" data-controller="reveal-message" data-reveal-message-key-value="{{ error }}" data-testid="composer-error">⚠ {{ error }}</div>
         {% endif %}
 
         {# -------------------------------------------- Univers + recherche #}

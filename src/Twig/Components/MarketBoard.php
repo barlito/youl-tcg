@@ -188,6 +188,11 @@ final class MarketBoard extends AbstractController
             || null !== $this->getActiveHolo() || $this->wishlistOnly || $this->isMineFilterActive() || $this->missingOnly;
     }
 
+    public function isWishlistFilterActive(): bool
+    {
+        return $this->getWishOf() instanceof DiscordUser;
+    }
+
     public function isMineFilterActive(): bool
     {
         return $this->mineOnly && null === $this->sellerId;
@@ -233,20 +238,20 @@ final class MarketBoard extends AbstractController
 
     public function onUniverseUpdated(?string $previous): void
     {
-        $this->universe = self::nullIfEmpty($this->universe);
-        $this->resetPageIfChanged(self::nullIfEmpty($previous), $this->universe);
+        $this->universe = $this->nullIfEmpty($this->universe);
+        $this->resetPageIfChanged($this->nullIfEmpty($previous), $this->universe);
     }
 
     public function onRarityUpdated(?string $previous): void
     {
-        $this->rarity = self::nullIfEmpty($this->rarity);
-        $this->resetPageIfChanged(self::nullIfEmpty($previous), $this->rarity);
+        $this->rarity = $this->nullIfEmpty($this->rarity);
+        $this->resetPageIfChanged($this->nullIfEmpty($previous), $this->rarity);
     }
 
     public function onFinishUpdated(?string $previous): void
     {
-        $this->finish = self::nullIfEmpty($this->finish);
-        $this->resetPageIfChanged(self::nullIfEmpty($previous), $this->finish);
+        $this->finish = $this->nullIfEmpty($this->finish);
+        $this->resetPageIfChanged($this->nullIfEmpty($previous), $this->finish);
     }
 
     public function onQueryUpdated(string $previous): void
@@ -274,7 +279,7 @@ final class MarketBoard extends AbstractController
     }
 
     // a select's « toutes » option posts '': keep it out of the url (?univers=&rarete=)
-    private static function nullIfEmpty(?string $value): ?string
+    private function nullIfEmpty(?string $value): ?string
     {
         return '' === $value ? null : $value;
     }

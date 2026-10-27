@@ -5,7 +5,7 @@
 
     <div class="wrap wishlist-layout pb-24 pt-6 md:pt-8">
         {% if error %}
-            <div class="panel flash-msg flash-msg--err wishlist-layout__msg" role="alert" data-testid="wishlist-error">⚠ {{ error }}</div>
+            <div class="panel flash-msg flash-msg--err wishlist-layout__msg" role="alert" data-controller="reveal-message" data-reveal-message-key-value="{{ error }}" data-testid="wishlist-error">⚠ {{ error }}</div>
         {% endif %}
 
         {# ------------------------------------------ Univers surveillés #}

@@ -164,6 +164,15 @@ final class MarketComponentTest extends WebTestCase
         $this->assertTrue($board->component()->wishlistOnly);
     }
 
+    public function testBothFiltersInTheUrlOnlyPressTheOneThatApplies(): void
+    {
+        $crawler = $this->client->request('GET', '/marche?wishlist=1&mine=1');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSame('true', $crawler->filter('[data-testid="filter-mine"]')->attr('aria-pressed'));
+        $this->assertSame('false', $crawler->filter('[data-testid="filter-wishlist"]')->attr('aria-pressed'));
+    }
+
     public function testMyOwnListingNeverMatchesMyWishlist(): void
     {
         $mine = $this->card('Wished and mine');
@@ -519,6 +528,27 @@ final class MarketComponentTest extends WebTestCase
 
         $this->assertCount(1, $crawler->filter('[data-testid="shop-error"]'));
         $this->assertSame(0, $this->entityManager->getRepository(MarketListing::class)->count(['seller' => $this->buyer]));
+    }
+
+    public function testARefusedNewPriceKeepsTheFieldOpenWithItsError(): void
+    {
+        $card = $this->card('Repriced badly');
+        $this->give($this->buyer, $card, 1);
+        $listing = $this->listingViaService($this->buyer, $card, false, 10);
+        $shop = $this->myShop();
+        $shop->call('startEdit', ['listingId' => (string) $listing->getId()]);
+        $shop->set('editPrice', '0');
+
+        $crawler = $shop->call('savePrice', ['listingId' => (string) $listing->getId()])->render()->crawler();
+
+        $this->assertCount(1, $crawler->filter('[data-testid="edit-price"]'), 'The field stays open to fix the price.');
+        $this->assertCount(1, $crawler->filter('[data-testid="my-listing"] [data-testid="shop-error"]'), 'The error sits next to the field.');
+        $this->assertSame(10, $this->entityManager->getRepository(MarketListing::class)->find($listing->getId())?->getPrice());
+
+        $shop->set('editPrice', '15');
+        $crawler = $shop->call('savePrice', ['listingId' => (string) $listing->getId()])->render()->crawler();
+        $this->assertCount(0, $crawler->filter('[data-testid="edit-price"]'));
+        $this->assertCount(1, $crawler->filter('[data-testid="shop-success"]'));
     }
 
     public function testTheFourthListingIsRefusedAndTheShopSaysWhy(): void

@@ -215,6 +215,7 @@ final class MyShop extends AbstractController
         $listing = $this->findOwnListing($listingId);
 
         if ($listing instanceof MarketListing) {
+            $this->selling = null;
             $this->editingId = $listingId;
             $this->editPrice = (string) $listing->getPrice();
         }
@@ -233,20 +234,30 @@ final class MyShop extends AbstractController
         $listing = $this->findOwnListing($listingId);
         $price = $this->parsePrice($this->editPrice);
 
-        if (!$listing instanceof MarketListing || null === $price) {
-            $this->error ??= 'Cette annonce n\'existe plus.';
+        if (!$listing instanceof MarketListing) {
+            $this->error = 'Cette annonce n\'existe plus.';
+            $this->editingId = null;
 
             return;
         }
 
+        if (null === $price) {
+            return;
+        }
+
         $this->run(fn () => $this->listingService->changePrice($this->getDiscordUser(), $listing, $price), 'Prix mis à jour.');
-        $this->editingId = null;
+
+        if (null === $this->error) {
+            $this->editingId = null;
+        }
     }
 
     #[LiveAction]
     public function withdraw(#[LiveArg] string $listingId): void
     {
         $this->resetMessages();
+        $this->editingId = null;
+        $this->selling = null;
         $listing = $this->findOwnListing($listingId);
 
         if (!$listing instanceof MarketListing) {
@@ -262,6 +273,7 @@ final class MyShop extends AbstractController
     public function startSelling(#[LiveArg] string $cardId, #[LiveArg] string $finish): void
     {
         $this->resetMessages();
+        $this->editingId = null;
         $this->selling = \in_array($finish, ['normal', 'holo'], true) ? $cardId . '|' . $finish : null;
         $this->sellPrice = '';
     }
