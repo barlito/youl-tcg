@@ -85,7 +85,8 @@
     position: absolute;
     inset: -18%;
     border-radius: 50%;
-    background: radial-gradient(circle, color-mix(in srgb, var(--reveal-color, #fff) 38%, transparent) 0%, transparent 62%);
+    /* closest-side: transparent at the box edges, never cut by them */
+    background: radial-gradient(circle closest-side, color-mix(in srgb, var(--reveal-color, #fff) 38%, transparent) 0%, transparent 92%);
     opacity: 0;
     transition: opacity .5s ease .45s;
     pointer-events: none;

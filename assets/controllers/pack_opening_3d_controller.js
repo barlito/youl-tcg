@@ -226,8 +226,9 @@ export default class extends Controller {
 
         this.element.classList.add('is-ready'); // styling hook: the 3D pack is live
         this._updateDragDistance();
-        this._onResize = () => this._resize();
-        window.addEventListener('resize', this._onResize);
+        // the stage is resized by CSS too (the reveal mode stretches it), not only by the window
+        this._resizeObserver = new ResizeObserver(() => this._resize());
+        this._resizeObserver.observe(this.element);
         // track the cursor across the whole scene so the pack leans toward it even
         // when the pointer is not directly over the (small) pack element
         this._onPointerMove = (event) => this._trackPointer(event);
@@ -615,8 +616,11 @@ export default class extends Controller {
         if (!this.renderer) {
             return;
         }
-        const width = this.element.clientWidth || 360;
-        const height = this.element.clientHeight || 480;
+        const width = this.element.clientWidth;
+        const height = this.element.clientHeight;
+        if (!width || !height) {
+            return;
+        }
         this.renderer.setSize(width, height, false);
         this.camera.aspect = width / height;
         this.camera.updateProjectionMatrix();
@@ -633,9 +637,7 @@ export default class extends Controller {
         if (this.frame) {
             cancelAnimationFrame(this.frame);
         }
-        if (this._onResize) {
-            window.removeEventListener('resize', this._onResize);
-        }
+        this._resizeObserver?.disconnect();
         if (this._onPointerMove) {
             window.removeEventListener('pointermove', this._onPointerMove);
         }

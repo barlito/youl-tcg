@@ -88,15 +88,26 @@
 
 /* --- Mise en page --------------------------------------------------------- */
 
-.wrap {
-    max-width: 1360px;
-    margin: 0 auto;
-    padding: 0 40px;
-    box-sizing: border-box;
+:root {
+    --wrap-max: 1360px;
+    --wrap-pad: 40px;
 }
 
-@media (max-width: 767.98px) {
-    .wrap { padding: 0 16px; }
+/* large screens: the container widens by steps (card grids gain columns, see
+ * pages.css), backgrounds stay full-bleed outside it */
+@media (min-width: 1800px) { :root { --wrap-max: 1640px; } }
+@media (min-width: 2200px) { :root { --wrap-max: 1980px; --wrap-pad: 56px; } }
+@media (min-width: 2800px) { :root { --wrap-max: 2480px; --wrap-pad: 64px; } }
+
+@media (max-width: 767.98px) { :root { --wrap-pad: 16px; } }
+
+.wrap {
+    /* width: a .wrap that is a flex item of the body column would shrink to its content */
+    width: 100%;
+    max-width: var(--wrap-max);
+    margin: 0 auto;
+    padding: 0 var(--wrap-pad);
+    box-sizing: border-box;
 }
 
 /* En-tête de page (parts/ui/_page_header.html.twig) */
@@ -449,13 +460,20 @@ a.tile:hover { border-color: var(--primary); color: var(--text); }
 .site-header {
     position: relative;
     z-index: 45;
+    border-bottom: 1px solid var(--hairline);
+    background: var(--bg);
+}
+
+/* same width as the page container: nav and actions line up with the content */
+.site-header__inner {
     display: flex;
     align-items: center;
     gap: 16px;
+    max-width: var(--wrap-max);
     height: var(--header-h);
-    padding: 0 40px;
-    border-bottom: 1px solid var(--hairline);
-    background: var(--bg);
+    margin: 0 auto;
+    padding: 0 var(--wrap-pad);
+    box-sizing: border-box;
 }
 
 .nav {
@@ -548,13 +566,13 @@ a.tile:hover { border-color: var(--primary); color: var(--text); }
 .menu__sep { height: 1px; margin: 6px 0; background: var(--hairline); }
 
 @media (max-width: 1279.98px) {
-    .site-header { gap: 12px; padding: 0 24px; }
+    .site-header__inner { gap: 12px; padding: 0 24px; }
     .nav { gap: 4px; padding: 0 6px; letter-spacing: .04em; }
     .nav-sep { margin: 0 4px; }
 }
 
 @media (max-width: 1023.98px) {
-    .site-header { gap: 8px; padding: 0 16px; }
+    .site-header__inner { gap: 8px; padding: 0 16px; }
     .wallet-chip { gap: 6px; padding: 0 10px; font-size: 12px; }
 }
 
