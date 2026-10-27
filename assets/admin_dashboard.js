@@ -15,7 +15,7 @@ function applyTheme(config) {
         const color = 'expected' === dataset.seriesRole ? PALETTE.expected : PALETTE.series[dataset.seriesSlot ?? 0];
         dataset.backgroundColor = color;
         dataset.borderColor = color;
-        dataset.borderWidth = 'line' === config.type ? 2 : 0;
+        dataset.borderWidth = 'line' === (dataset.type ?? config.type) ? 2 : 0;
         dataset.borderRadius = 0;
         dataset.maxBarThickness = 28;
     }
