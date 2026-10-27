@@ -1,0 +1,14 @@
+{# session flash messages (redirects such as an unopenable pack), same look as the components' messages #}
+{% set flashes = app.flashes %}
+{% if flashes is not empty %}
+    <div class="wrap mt-4 flex flex-col gap-2" data-testid="flashes">
+        {% for type, messages in flashes %}
+            {% set isError = type in ['error', 'danger'] %}
+            {% for message in messages %}
+                <div class="panel flash-msg {{ isError ? 'flash-msg--err' : (type == 'success' ? 'flash-msg--ok' : 'text-soon') }}"
+                     role="{{ isError or type == 'warning' ? 'alert' : 'status' }}"
+                     data-testid="flash-{{ type }}">{{ isError or type == 'warning' ? '⚠ ' }}{{ message }}</div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+{% endif %}
