@@ -1,5 +1,5 @@
-{# session flash messages (redirects such as an unopenable pack), same look as the components' messages #}
-{% set flashes = app.flashes %}
+{# standard flash types only: a component reading its own type (TradeInbox::SENT_FLASH) must still find it #}
+{% set flashes = app.flashes(['error', 'warning', 'success', 'info'])|filter(messages => messages is not empty) %}
 {% if flashes is not empty %}
     <div class="wrap mt-4 flex flex-col gap-2" data-testid="flashes">
         {% for type, messages in flashes %}
