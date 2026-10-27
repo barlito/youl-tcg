@@ -206,6 +206,31 @@ class UserCardRepository extends ServiceEntityRepository
     }
 
     /**
+     * Same set as findOwnedCardIds(), with the copies held (holo included).
+     *
+     * @return array<string, int> card id => quantity
+     */
+    public function findOwnedQuantities(DiscordUser $discordUser): array
+    {
+        /** @var list<array{cardId: string, quantity: int|string}> $rows */
+        $rows = $this->createQueryBuilder('uc')
+            ->select('IDENTITY(uc.card) AS cardId', 'uc.quantity AS quantity')
+            ->andWhere('uc.discordUser = :user')
+            ->andWhere('uc.quantity > 0 OR uc.holoQuantity > 0')
+            ->setParameter('user', $discordUser)
+            ->getQuery()
+            ->getResult()
+        ;
+
+        $quantities = [];
+        foreach ($rows as $row) {
+            $quantities[(string) $row['cardId']] = (int) $row['quantity'];
+        }
+
+        return $quantities;
+    }
+
+    /**
      * Distinct PUBLISHED cards (card and extension) every other player owns, one grouped query.
      *
      * @return array<string, array<string, true>> discord id => card id => owned

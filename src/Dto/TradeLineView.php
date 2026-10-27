@@ -20,6 +20,8 @@ final readonly class TradeLineView
         public int $totalQuantity,
         public int $holoQuantity,
         public bool $new = false,
+        /** Copies the reader holds right now, null when not relevant (history). */
+        public ?int $owned = null,
     ) {
     }
 

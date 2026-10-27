@@ -33,6 +33,8 @@ final class TradeInbox extends AbstractController
 
     public const int HISTORY_PER_PAGE = 20;
 
+    public const array TABS = ['received', 'sent', 'history'];
+
     #[LiveProp]
     public ?string $error = null;
 
@@ -55,11 +57,15 @@ final class TradeInbox extends AbstractController
     #[LiveProp]
     public bool $revealPending = false;
 
+    /** Shown tab: received|sent|history (the three lists are rendered, only one is visible). */
+    #[LiveProp]
+    public string $tab = 'received';
+
     /**
-     * Cards the reader owns, hence may see. Memoized: one query per render,
-     * never one per offer.
+     * Cards the reader owns (hence may see) with their copies. Memoized: one
+     * query per render, never one per offer.
      *
-     * @var array<string, true>|null
+     * @var array<string, int>|null
      */
     private ?array $owned = null;
 
@@ -168,11 +174,19 @@ final class TradeInbox extends AbstractController
         return $this->tradeOfferRepository->findHistoryPageFor($this->getDiscordUser(), $this->getCurrentHistoryPage(), self::HISTORY_PER_PAGE);
     }
 
+    public function getHistoryCount(): int
+    {
+        return $this->historyCount ??= $this->tradeOfferRepository->countHistoryFor($this->getDiscordUser());
+    }
+
     public function getHistoryPageCount(): int
     {
-        $this->historyCount ??= $this->tradeOfferRepository->countHistoryFor($this->getDiscordUser());
+        return max(1, (int) ceil($this->getHistoryCount() / self::HISTORY_PER_PAGE));
+    }
 
-        return max(1, (int) ceil($this->historyCount / self::HISTORY_PER_PAGE));
+    public function getCurrentTab(): string
+    {
+        return \in_array($this->tab, self::TABS, true) ? $this->tab : self::TABS[0];
     }
 
     public function getCurrentHistoryPage(): int
@@ -198,6 +212,12 @@ final class TradeInbox extends AbstractController
     public function historyReceivedView(TradeOffer $offer): array
     {
         return $this->historyView($offer, given: false);
+    }
+
+    #[LiveAction]
+    public function showTab(#[LiveArg] string $tab): void
+    {
+        $this->tab = \in_array($tab, self::TABS, true) ? $tab : self::TABS[0];
     }
 
     #[LiveAction]
@@ -267,7 +287,7 @@ final class TradeInbox extends AbstractController
      */
     private function view(array $lines): array
     {
-        $owned = $this->ownedCardIds();
+        $owned = $this->ownedQuantities();
 
         return array_map(
             static fn (TradeOfferLine $line): TradeLineView => new TradeLineView(
@@ -275,6 +295,7 @@ final class TradeInbox extends AbstractController
                 $line->getCard()->getRarity(),
                 $line->getTotalQuantity(),
                 $line->getHoloQuantity(),
+                owned: $owned[(string) $line->getCard()->getId()] ?? 0,
             ),
             $lines,
         );
@@ -315,6 +336,7 @@ final class TradeInbox extends AbstractController
         $this->focus = (string) $offer->getId();
         $this->focusedOffer = $offer;
         $this->revealPending = TradeOfferStatusEnum::ACCEPTED === $offer->getStatus();
+        $this->tab = 'history';
         $this->historyPage = intdiv($this->tradeOfferRepository->countHistoryBefore($this->getDiscordUser(), $offer), self::HISTORY_PER_PAGE) + 1;
     }
 
@@ -334,14 +356,11 @@ final class TradeInbox extends AbstractController
     }
 
     /**
-     * @return array<string, true>
+     * @return array<string, int>
      */
-    private function ownedCardIds(): array
+    private function ownedQuantities(): array
     {
-        return $this->owned ??= array_fill_keys(
-            $this->userCardRepository->findOwnedCardIds($this->getDiscordUser()),
-            true,
-        );
+        return $this->owned ??= $this->userCardRepository->findOwnedQuantities($this->getDiscordUser());
     }
 
     /**
