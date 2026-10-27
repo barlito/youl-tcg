@@ -1,0 +1,57 @@
+App\Entity\MarketListing:
+    listing_barlito_withdrawn:
+        __construct: ['@discord_user_barlito', '@card_cyberpunk_julian_kuzu_delavega', false, 25]
+        createdAt: '<parisAtMutable(10, "10:00")>'
+        __calls:
+            - close: ['<(App\Enum\Market\MarketListingStatusEnum::WITHDRAWN)>', '<parisAt(9, "08:00")>']
+    listing_barlito_sold:
+        __construct: ['@discord_user_barlito', '@card_cyberpunk_julian_kuzu_delavega', false, 35]
+        createdAt: '<parisAtMutable(7, "12:00")>'
+        __calls:
+            - close: ['<(App\Enum\Market\MarketListingStatusEnum::SOLD)>', '<parisAt(5, "15:00")>']
+    listing_collectionneur_l5:
+        __construct: ['@discord_user_collectionneur', '@card_divinity_god_almighty', true, 350]
+        createdAt: '<parisAtMutable(5, "20:00")>'
+    listing_collectionneur_sold:
+        __construct: ['@discord_user_collectionneur', '@card_divinity_ahlototh_the_sightless', false, 45]
+        createdAt: '<parisAtMutable(4, "09:00")>'
+        __calls:
+            - close: ['<(App\Enum\Market\MarketListingStatusEnum::SOLD)>', '<parisAt(2, "10:30")>']
+    listing_farph_l3:
+        __construct: ['@discord_user_farph', '@card_40k_benj_champion_du_chaos', false, 120]
+        createdAt: '<parisAtMutable(4, "19:00")>'
+    listing_juju_l2:
+        __construct: ['@discord_user_juju', '@card_psychedelic_velo', false, 40]
+        createdAt: '<parisAtMutable(3, "12:00")>'
+    listing_warny_l6:
+        __construct: ['@discord_user_weeby', '@card_space_nomad_benj_soldat_de_l_union', false, 15]
+        createdAt: '<parisAtMutable(3, "18:00")>'
+    listing_benj_l1:
+        __construct: ['@discord_user_benj', '@card_bleach_barlito_bankai', true, 300]
+        createdAt: '<parisAtMutable(2, "09:00")>'
+    listing_barlito_b2:
+        __construct: ['@discord_user_barlito', '@card_40k_empereur_de_l_humanite', true, 80]
+        createdAt: '<parisAtMutable(2, "22:00")>'
+    listing_veli_l4:
+        __construct: ['@discord_user_veli', '@card_divinity_benj_the_eternal', false, 60]
+        createdAt: '<parisAtMutable(1, "10:00")>'
+    listing_barlito_b1:
+        __construct: ['@discord_user_barlito', '@card_space_nomad_spatio_gare', false, 20]
+        createdAt: '<parisAtMutable(1, "19:00")>'
+
+# commission 5 % (CoinSettings.marketFeePercent) en unités mineures : prix × 10^8 × 5 / 100
+App\Entity\MarketPurchase:
+    market_purchase_1:
+        __construct: ['@listing_barlito_sold', '@discord_user_juju', '@discord_user_barlito', 35, '175000000', '<parisAt(5, "15:00")>']
+        __calls:
+            - markCardTransferred: ['<uuid()>']
+            - complete: ['<uuid()>', '<parisAt(5, "15:00")>']
+    market_purchase_2:
+        __construct: ['@listing_collectionneur_sold', '@discord_user_barlito', '@discord_user_collectionneur', 45, '225000000', '<parisAt(2, "10:30")>']
+        __calls:
+            - markCardTransferred: ['<uuid()>']
+            - complete: ['<uuid()>', '<parisAt(2, "10:30")>']
+    market_purchase_3:
+        __construct: ['@listing_farph_l3', '@discord_user_barlito', '@discord_user_farph', 120, '600000000', '<parisAt(1, "13:00")>']
+        __calls:
+            - fail: ['Solde insuffisant', '<parisAt(1, "13:00")>']

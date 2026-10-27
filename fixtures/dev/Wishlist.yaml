@@ -1,0 +1,29 @@
+App\Entity\WishlistEntry:
+    wish_barlito_divinity_benj_the_eternal:
+        __construct: ['@discord_user_barlito', '@card_divinity_benj_the_eternal']
+        createdAt: '<parisAtMutable(9, "22:30")>'
+    wish_barlito_bleach_barlito_bankai:
+        __construct: ['@discord_user_barlito', '@card_bleach_barlito_bankai']
+        createdAt: '<parisAtMutable(1, "22:30")>'
+    wish_juju_40k_empereur_de_l_humanite:
+        __construct: ['@discord_user_juju', '@card_40k_empereur_de_l_humanite']
+        createdAt: '<parisAtMutable(1, "22:30")>'
+
+App\Entity\WishlistUniverse:
+    watch_barlito_bleach:
+        __construct: ['@discord_user_barlito', '@extension_bleach']
+        createdAt: '<parisAtMutable(10, "09:00")>'
+    watch_barlito_psychedelic:
+        __construct: ['@discord_user_barlito', '@extension_psychedelic']
+        createdAt: '<parisAtMutable(8, "09:00")>'
+    watch_juju_space_nomad:
+        __construct: ['@discord_user_juju', '@extension_space_nomad']
+        createdAt: '<parisAtMutable(6, "09:00")>'
+
+App\Entity\WishlistAlert:
+    alert_barlito_listing_juju_l2:
+        __construct: ['@discord_user_barlito', '@listing_juju_l2', '<parisAt(3, "12:00")>']
+    alert_barlito_listing_benj_l1:
+        __construct: ['@discord_user_barlito', '@listing_benj_l1', '<parisAt(2, "09:00")>']
+    alert_barlito_listing_veli_l4:
+        __construct: ['@discord_user_barlito', '@listing_veli_l4', '<parisAt(1, "10:00")>']

@@ -1,5 +1,5 @@
 # fixtures/shared : les joueurs, communs aux deux jeux.
-# fixtures/dev    : le catalogue complet généré depuis public/uploads (reset local).
+# fixtures/dev    : catalogue de la prod + historique simulé (docs/dev-fixtures.md).
 # fixtures/test   : un jeu minimal et stable — la CI charge celui-ci, les tests
 #                   s'appuient dessus, donc il ne grossit pas au gré des images.
 when@dev:
