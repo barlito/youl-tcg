@@ -39,14 +39,14 @@
 
 .opening {
     --track-tile: 52px;
-    --rv-chrome: 112px; /* label + « Carte suivante » (+ counter from lg) around the revealed card */
+    --rv-chrome: 118px; /* label + « Carte suivante » (+ counter from lg) around the revealed card */
     --rv-side: 0px;     /* room kept on each side of the card (vertical tracker from lg) */
 }
 @media (min-width: 640px) {
     .opening { --track-tile: clamp(76px, 8.5vh, 124px); }
 }
 @media (min-width: 1024px) {
-    .opening { --rv-chrome: 156px; }
+    .opening { --rv-chrome: 168px; }
 }
 
 /* ------------------------------------------------------------ reveal mode */
@@ -298,9 +298,11 @@
     font-weight: 700;
     font-size: clamp(24px, 3.4vw, 38px);
     line-height: 1.1;
-    /* reserve one line even while empty (face-down) so the rarity label appearing
-     * on reveal doesn't grow the showcase and shove the card up */
-    min-height: 1.1em;
+    /* reserve the tallest (legendary) line even while empty or smaller, so the rarity
+     * label appearing on reveal never grows the showcase and shoves the card up */
+    display: flex;
+    align-items: flex-end;
+    min-height: calc(clamp(30px, 3.6vw, 50px) * 1.1);
     text-transform: uppercase;
     letter-spacing: -.02em;
     white-space: nowrap;
@@ -310,6 +312,16 @@
     pointer-events: none;
 }
 .opening__label.is-on { animation: opening-labelSlam .6s cubic-bezier(.2,1.4,.4,1) forwards; }
+/* the label scales with the pull: quiet for a common, loud for a legendary */
+.opening__label[data-rarity="common"],
+.opening__label[data-rarity="uncommon"] {
+    font-size: clamp(13px, 1.1vw, 16px);
+    letter-spacing: .2em;
+    text-shadow: none;
+}
+.opening__label[data-rarity="uncommon"] { font-size: clamp(15px, 1.4vw, 20px); text-shadow: 0 0 14px color-mix(in srgb, var(--reveal-color) 50%, transparent); }
+.opening__label[data-rarity="rare"] { font-size: clamp(22px, 2.2vw, 32px); text-shadow: 0 0 24px color-mix(in srgb, var(--reveal-color) 55%, transparent); }
+.opening__label[data-rarity="legendary"] { font-size: clamp(30px, 3.6vw, 50px); text-shadow: 0 0 18px var(--reveal-color), 0 0 48px color-mix(in srgb, var(--reveal-color) 60%, transparent); }
 
 .opening__reveal-cards {
     position: relative;
@@ -530,6 +542,8 @@
 @media (max-width: 1023px) {
     .opening.is-revealing .opening__aside-toggle { display: none; }
 }
+.opening__aside-toggle-short,
+.opening__aside-head { display: none; }
 @media (min-width: 1024px) {
     .opening__aside-toggle { display: none; }
 }
@@ -616,6 +630,78 @@
     box-shadow: 0 6px 18px #0008;
 }
 .opening__set-top:hover { border-color: var(--primary); color: #fff; }
+
+/* desktop reveal: the aside folds into a drawer opened on demand. Open, it pushes the
+ * reveal (still clickable) so the card stays centred between « Tes cartes » and it */
+@media (min-width: 1024px) {
+    .opening.is-revealing { --drawer-w: min(640px, 50vw); }
+    .opening.is-revealing .opening__main { grid-template-columns: minmax(0, 1fr); max-width: none; }
+    .opening.is-revealing .opening__topline > .lbl:last-child { visibility: hidden; }
+    .opening.is-revealing .opening__aside-toggle {
+        position: absolute;
+        top: 20px;
+        right: 40px;
+        z-index: 7;
+        display: inline-flex;
+        width: auto;
+        max-width: none;
+    }
+    .opening.is-revealing .opening__aside-toggle-long { display: none; }
+    .opening.is-revealing .opening__aside-toggle-short { display: inline; }
+    .opening.is-revealing.is-aside-open .opening__aside-toggle { visibility: hidden; }
+
+    .opening.is-revealing .opening__pack-col { transition: padding .35s ease; }
+    .opening.is-revealing.is-aside-open .opening__pack-col {
+        --rv-side: 0px;
+        padding-left: calc(40px + var(--track-tile) + 24px);
+        padding-right: calc(var(--drawer-w) + 24px);
+    }
+    /* the back link stays at the page edge */
+    .opening.is-revealing.is-aside-open .opening__topline { margin-left: calc(-1 * (var(--track-tile) + 24px)); }
+
+    /* closed: « Tes cartes » sits right beside the revealed card instead of the page edge */
+    .opening.is-revealing .opening__track { transition: left .35s ease; }
+    .opening.is-revealing:not(.is-aside-open) .opening__track {
+        left: max(40px, calc(50% - var(--pack-card-w) / 2 - var(--track-tile) - 64px));
+    }
+
+    .opening.is-revealing .opening__panel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 8;
+        width: var(--drawer-w);
+        height: auto;
+        box-sizing: border-box;
+        padding: 20px 36px 0;
+        gap: 24px;
+        box-shadow: -30px 0 60px #000a;
+        visibility: hidden;
+        transform: translateX(100%);
+        transition: transform .35s ease, visibility 0s linear .35s;
+    }
+    .opening.is-revealing.is-aside-open .opening__panel {
+        visibility: visible;
+        transform: none;
+        transition: transform .35s ease, visibility 0s;
+    }
+    .opening.is-revealing .opening__aside-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .opening.is-revealing .opening__rates .panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 28px; }
+    .opening.is-revealing .opening__rates-detail { grid-column: 1 / -1; }
+    .opening.is-revealing .opening__rate { grid-template-columns: 112px minmax(0, 1fr) 52px; }
+    .opening.is-revealing .opening__set-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .opening.is-revealing .opening__panel,
+    .opening.is-revealing .opening__pack-col,
+    .opening.is-revealing .opening__track { transition: none; }
+}
 
 /* ==================================================== end-of-opening summary */
 .opening__recap {

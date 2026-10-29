@@ -43,16 +43,32 @@ final class BoosterHub extends AbstractController
 
     public const string FILTER_ALL = 'tous';
 
-    public const string FILTER_STOCK = 'stock';
-
     public const string FILTER_INCOMPLETE = 'incomplets';
+
+    public const string FILTER_PAID = 'payants';
+
+    public const string SORT_COMPLETION = 'completion';
+
+    public const string SORT_NAME = 'az';
 
     #[LiveProp]
     public ?string $error = null;
 
-    /** Packs grid filter (tous|stock|incomplets), mirrored in the url as ?filtre=. */
+    /** Packs grid filter (tous|incomplets|payants), mirrored in the url as ?filtre=. */
     #[LiveProp(writable: true, url: new UrlMapping(as: 'filtre'))]
     public string $filter = self::FILTER_ALL;
+
+    /** Packs grid order (completion|az), mirrored in the url as ?tri=. */
+    #[LiveProp(writable: true, url: new UrlMapping(as: 'tri'))]
+    public string $sort = self::SORT_COMPLETION;
+
+    /**
+     * Variant picked on each universe tile (Standard / Boosted…), kept across re-renders.
+     *
+     * @var array<string, string> extension id => booster id
+     */
+    #[LiveProp]
+    public array $variants = [];
 
     #[LiveProp(writable: true)]
     public string $code = '';
@@ -172,17 +188,28 @@ final class BoosterHub extends AbstractController
 
     public function getActiveFilter(): string
     {
-        return \in_array($this->filter, [self::FILTER_STOCK, self::FILTER_INCOMPLETE], true) ? $this->filter : self::FILTER_ALL;
+        return \in_array($this->filter, [self::FILTER_INCOMPLETE, self::FILTER_PAID], true) ? $this->filter : self::FILTER_ALL;
     }
 
     #[LiveAction]
     public function filterPacks(#[LiveArg] string $filter): void
     {
-        $this->filter = \in_array($filter, [self::FILTER_STOCK, self::FILTER_INCOMPLETE], true) ? $filter : self::FILTER_ALL;
+        $this->filter = \in_array($filter, [self::FILTER_INCOMPLETE, self::FILTER_PAID], true) ? $filter : self::FILTER_ALL;
+    }
+
+    public function getActiveSort(): string
+    {
+        return self::SORT_NAME === $this->sort ? self::SORT_NAME : self::SORT_COMPLETION;
+    }
+
+    #[LiveAction]
+    public function sortPacks(#[LiveArg] string $sort): void
+    {
+        $this->sort = self::SORT_NAME === $sort ? self::SORT_NAME : self::SORT_COMPLETION;
     }
 
     /**
-     * The grid once the « Tous / En stock / Univers incomplets » filter is applied.
+     * The grid once the « Tous / Incomplets / Payants » filter is applied.
      *
      * @return list<Booster>
      */
@@ -198,9 +225,81 @@ final class BoosterHub extends AbstractController
     {
         return [
             self::FILTER_ALL => \count($this->getBoosters()),
-            self::FILTER_STOCK => \count($this->filterBoosters(self::FILTER_STOCK)),
             self::FILTER_INCOMPLETE => \count($this->filterBoosters(self::FILTER_INCOMPLETE)),
+            self::FILTER_PAID => \count($this->filterBoosters(self::FILTER_PAID)),
         ];
+    }
+
+    /**
+     * Owned packs that can be opened, for the « Prêts à ouvrir » row.
+     *
+     * @return list<Booster>
+     */
+    public function getReadyBoosters(): array
+    {
+        $inventory = $this->getInventory();
+        $drawable = $this->getDrawableBoosterIds();
+
+        return array_values(array_filter(
+            $this->getBoosters(),
+            static fn (Booster $booster): bool => ($inventory[(string) $booster->getId()] ?? 0) > 0 && isset($drawable[(string) $booster->getId()]),
+        ));
+    }
+
+    /**
+     * The filtered packs as one tile per universe, its variants (Standard, Boosted…) inside,
+     * in the chosen order: completion = unfinished universes closest to completion first, finished ones last.
+     *
+     * @return list<array{extensionId: string, name: string, boosters: list<Booster>, selected: Booster, completion: array{owned: int, total: int, percentage: int}|null}>
+     */
+    public function getPackGroups(): array
+    {
+        $completion = $this->getCompletionByExtension();
+        $groups = [];
+
+        foreach ($this->getFilteredBoosters() as $booster) {
+            $extensionId = (string) $booster->getExtension()->getId();
+            $groups[$extensionId] ??= [
+                'extensionId' => $extensionId,
+                'name' => (string) $booster->getExtension()->getName(),
+                'boosters' => [],
+                'completion' => $completion[$extensionId] ?? null,
+            ];
+            $groups[$extensionId]['boosters'][] = $booster;
+        }
+
+        $result = [];
+        foreach ($groups as $extensionId => $group) {
+            $result[] = $group + ['selected' => $this->selectedVariant($extensionId, $group['boosters'])];
+        }
+
+        $sort = $this->getActiveSort();
+        usort($result, static function (array $a, array $b) use ($sort): int {
+            $percentA = $a['completion']['percentage'] ?? -1;
+            $percentB = $b['completion']['percentage'] ?? -1;
+            $doneA = 100 === $percentA;
+            $doneB = 100 === $percentB;
+
+            if (self::SORT_NAME === $sort) {
+                return strnatcasecmp($a['name'], $b['name']);
+            }
+
+            return $doneA <=> $doneB ?: $percentB <=> $percentA ?: strnatcasecmp($a['name'], $b['name']);
+        });
+
+        return $result;
+    }
+
+    #[LiveAction]
+    public function pickVariant(#[LiveArg] string $extensionId, #[LiveArg] string $boosterId): void
+    {
+        foreach ($this->getBoosters() as $booster) {
+            if ((string) $booster->getId() === $boosterId && (string) $booster->getExtension()->getId() === $extensionId) {
+                $this->variants[$extensionId] = $boosterId;
+
+                return;
+            }
+        }
     }
 
     /**
@@ -583,18 +682,40 @@ final class BoosterHub extends AbstractController
      */
     private function filterBoosters(string $filter): array
     {
-        $inventory = $this->getInventory();
         $completion = $this->getCompletionByExtension();
+        $onSale = $this->getShopBoosterIds();
 
-        return array_values(array_filter($this->getBoosters(), static function (Booster $booster) use ($filter, $inventory, $completion): bool {
+        return array_values(array_filter($this->getBoosters(), static function (Booster $booster) use ($filter, $completion, $onSale): bool {
             $universe = $completion[(string) $booster->getExtension()->getId()] ?? null;
 
             return match ($filter) {
-                self::FILTER_STOCK => ($inventory[(string) $booster->getId()] ?? 0) > 0,
                 self::FILTER_INCOMPLETE => null !== $universe && $universe['owned'] < $universe['total'],
+                self::FILTER_PAID => isset($onSale[(string) $booster->getId()]),
                 default => true,
             };
         }));
+    }
+
+    /**
+     * The picked variant if still in the tile, else the first claimable one (the free pack), else the first.
+     *
+     * @param non-empty-list<Booster> $boosters
+     */
+    private function selectedVariant(string $extensionId, array $boosters): Booster
+    {
+        foreach ($boosters as $booster) {
+            if ((string) $booster->getId() === ($this->variants[$extensionId] ?? null)) {
+                return $booster;
+            }
+        }
+
+        foreach ($boosters as $booster) {
+            if ($booster->isClaimable()) {
+                return $booster;
+            }
+        }
+
+        return $boosters[0];
     }
 
     /**

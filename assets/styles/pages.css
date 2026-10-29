@@ -294,6 +294,152 @@
     .pack__canvas { transition: none; }
 }
 
+/* Hub v2: today's state on one line, packs in stock first, one tile per universe with a corner « + » */
+.hub-statline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.hub-stat {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 6px 14px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.hub-stat b { font: 700 16px/1 "Space Grotesk", sans-serif; color: var(--text-strong); }
+.hub-stat b.text-soon { color: var(--soon); }
+.hub-stat--hot { background: var(--surface-hot); border-color: var(--primary); }
+a.hub-stat:hover { border-color: var(--hairline-strong); color: var(--text); }
+.hub-code-form { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+
+@media (min-width: 768px) { .hub-code-form { width: 300px; } }
+
+.ready-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+
+.ready-pack {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 18px;
+    align-items: center;
+    padding: 18px;
+    background: linear-gradient(180deg, var(--surface-hot), var(--surface) 70%);
+    border: 1px solid var(--primary);
+}
+
+.pack-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 20px; }
+.pack-tile { min-width: 0; background: var(--surface); border: 1px solid var(--hairline); }
+.pack-tile--has { border-color: var(--primary); }
+
+.pack-tile__variant {
+    position: relative;
+    display: grid;
+    grid-template-columns: 124px minmax(0, 1fr);
+    gap: 20px;
+    height: 100%;
+    padding: 20px;
+}
+
+@media (max-width: 479.98px) { .pack-tile__variant { grid-template-columns: 96px minmax(0, 1fr); gap: 16px; padding: 16px; } }
+
+/* the display above would beat the hidden attribute of the unselected variants */
+.pack-tile__variant[hidden] { display: none; }
+.pack-tile__art { align-self: start; }
+.pack-tile__art .pack__canvas { display: block; width: 100%; height: auto; box-shadow: 0 12px 28px -12px #a435f088; }
+.pack-tile__body { display: flex; min-width: 0; flex-direction: column; gap: 8px; }
+
+/* only the rows level with the corner « + » keep clear of it, the rest uses the full width */
+.pack-tile__body > .pack-tile__name, .pack-tile__body > .pack-tile__name + * { margin-right: 52px; }
+.pack-tile__variant--dual .pack-tile__body { padding-right: 52px; }
+.pack-tile__variant--dual .pack-tile__body > * { margin-right: 0; }
+
+.pack-tile__name {
+    margin: 0;
+    font: 700 17px/1.2 "Space Grotesk", sans-serif;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--text-strong);
+    overflow-wrap: break-word;
+}
+
+.ready-pack .pack-tile__name { font-size: 18px; }
+.pack-variants { display: flex; flex-wrap: wrap; gap: 6px; }
+.pack-variants .seg { height: 32px; padding: 0 10px; font-size: 10px; }
+.hub-sort { display: flex; gap: 8px; padding-left: 8px; border-left: 1px solid var(--hairline-mid); }
+.pack-tile__price { font: 500 12px/1.3 "JetBrains Mono", monospace; color: var(--soon); }
+.pack-tile__foot { display: flex; align-items: center; gap: 12px; margin-top: auto; padding-top: 4px; }
+
+/* « Taux » keeps the right end of the row, with or without « Ouvrir » before it */
+.pack-tile__foot .booster-rates { margin-left: auto; }
+
+/* corner action: violet = free and useful, outline = free but already owned / complete, yellow = paid */
+.pack-tile__plus {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    background: var(--primary);
+    color: #fff;
+    cursor: pointer;
+    font: 700 22px/1 "Space Grotesk", sans-serif;
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+
+.pack-tile__plus:hover { background: var(--magenta); }
+.pack-tile__plus--ghost { background: var(--surface-hot); outline: 1px solid var(--hairline-strong); outline-offset: -1px; }
+.pack-tile__plus--ghost:hover { background: var(--primary); }
+.pack-tile__plus--coin { background: var(--soon); color: var(--bg); }
+.pack-tile__plus--coin:hover { background: #ffe27a; color: var(--bg); }
+.pack-tile__plus.is-loading { cursor: progress; opacity: .6; }
+
+.pack-tile__plus:disabled {
+    background: var(--surface);
+    color: var(--text-faint);
+    outline: 1px dashed var(--hairline-strong);
+    outline-offset: -1px;
+    cursor: not-allowed;
+}
+
+.pack-tile__soon {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 4px 8px;
+    border: 1px dashed var(--hairline-strong);
+    font: 500 10px/1.4 "JetBrains Mono", monospace;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}
+
+/* a claimable pack also on sale: its small yellow buy button sits under the corner « + » */
+.pack-tile__buy {
+    position: absolute;
+    top: 64px;
+    right: 12px;
+    width: 44px;
+    padding: 4px 0;
+    border: 1px solid #ffd24a88;
+    background: transparent;
+    color: var(--soon);
+    cursor: pointer;
+    font: 500 9px/1.2 "JetBrains Mono", monospace;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.pack-tile__buy:hover { border-color: var(--soon); color: #fff; }
+.pack-tile__confirm { background: var(--soon); color: var(--bg); }
+.pack-tile__confirm:hover { background: #ffe27a; }
+
 /* --- Univers --------------------------------------------------------------- */
 
 .universe-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
