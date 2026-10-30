@@ -130,9 +130,6 @@ final class BoosterHub extends AbstractController
     private ?array $shopBoosters = null;
 
     /** @var array<string, true>|null */
-    private ?array $shopBoosterIds = null;
-
-    /** @var array<string, true>|null */
     private ?array $drawableBoosterIds = null;
 
     /** @var array<string, array{owned: int, total: int, percentage: int}>|null */
@@ -404,14 +401,6 @@ final class BoosterHub extends AbstractController
         return $this->inventory = $inventory;
     }
 
-    /**
-     * Total unopened boosters across every pack type, for the hero counter.
-     */
-    public function getTotalOwned(): int
-    {
-        return array_sum($this->getInventory());
-    }
-
     #[LiveAction]
     public function claimBooster(#[LiveArg] string $boosterId): void
     {
@@ -427,11 +416,7 @@ final class BoosterHub extends AbstractController
 
         try {
             $this->boosterClaimService->claim($this->getDiscordUser(), $booster);
-            $this->inventory = null; // the memoized inventory is stale after a claim
-            $this->boosters = null;
-            $this->drawableBoosterIds = null;
-            $this->shopBoosters = null;
-            $this->shopBoosterIds = null;
+            $this->resetInventoryMemos();
         } catch (BoosterException $exception) {
             $this->error = $exception->getUserMessage();
         }
@@ -485,11 +470,7 @@ final class BoosterHub extends AbstractController
             return;
         }
 
-        $this->inventory = null; // the memoized inventory is stale after a redemption
-        $this->boosters = null;
-        $this->drawableBoosterIds = null;
-        $this->shopBoosters = null;
-        $this->shopBoosterIds = null;
+        $this->resetInventoryMemos();
         $this->code = '';
         $this->codeLink = null;
         $this->codeSuccess = \sprintf(
@@ -561,11 +542,7 @@ final class BoosterHub extends AbstractController
             return;
         }
 
-        $this->inventory = null; // the memoized inventory is stale after the credit
-        $this->boosters = null;
-        $this->drawableBoosterIds = null;
-        $this->shopBoosters = null;
-        $this->shopBoosterIds = null;
+        $this->resetInventoryMemos();
         $this->streakRewardBoosterId = '';
         $this->streakSuccess = \sprintf(
             'Palier %d jours : un pack « %s » ajouté à ton stock !',
@@ -599,16 +576,12 @@ final class BoosterHub extends AbstractController
      */
     public function getShopBoosterIds(): array
     {
-        if (null !== $this->shopBoosterIds) {
-            return $this->shopBoosterIds;
-        }
-
         $ids = [];
         foreach ($this->getShopBoosters() as $booster) {
             $ids[(string) $booster->getId()] = true;
         }
 
-        return $this->shopBoosterIds = $ids;
+        return $ids;
     }
 
     public function getRemainingPurchases(): int
@@ -698,11 +671,7 @@ final class BoosterHub extends AbstractController
         }
 
         // inventory and balance memoized before the purchase are stale
-        $this->inventory = null;
-        $this->boosters = null;
-        $this->drawableBoosterIds = null;
-        $this->shopBoosters = null;
-        $this->shopBoosterIds = null;
+        $this->resetInventoryMemos();
         $this->balanceLoaded = false;
         $this->pendingPurchaseLoaded = false;
 
@@ -763,6 +732,15 @@ final class BoosterHub extends AbstractController
         }
 
         return $this->boosterRepository->find($boosterId);
+    }
+
+    // memoized inventory and pack lists are stale after any credit or purchase
+    private function resetInventoryMemos(): void
+    {
+        $this->inventory = null;
+        $this->boosters = null;
+        $this->drawableBoosterIds = null;
+        $this->shopBoosters = null;
     }
 
     private function getDiscordUser(): DiscordUser
