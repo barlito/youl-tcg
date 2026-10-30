@@ -26,7 +26,7 @@
                         </a>
                     {% endif %}
                     {% if unopened > 0 %}
-                        <a class="btn {{ claims.remaining > 0 ? 'btn-g max-md:hidden' : 'btn-p max-md:w-full' }}" href="{{ path('boosters', { filtre: 'stock' }) }}" data-testid="hero-open">
+                        <a class="btn {{ claims.remaining > 0 ? 'btn-g max-md:hidden' : 'btn-p max-md:w-full' }}" href="{{ path('boosters') ~ '#prets' }}" data-testid="hero-open">
                             Ouvrir un pack · {{ unopened }}
                         </a>
                     {% endif %}

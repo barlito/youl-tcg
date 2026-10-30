@@ -18,6 +18,7 @@ export default class extends Controller {
     static targets = [
         'showcase', 'aura', 'label', 'card', 'flip', 'stack', 'next', 'counter',
         'track', 'revealedCount', 'flash', 'cta', 'toRecap', 'recap', 'asideToggle',
+        'asideToggleLabel', 'asideClose',
     ];
 
     static values = {
@@ -286,6 +287,7 @@ export default class extends Controller {
         this._retrigger(this.auraTarget, 'is-on');
         this._stampNew(card);
         this.labelTarget.textContent = card.dataset.label;
+        this.labelTarget.dataset.rarity = rarity;
         this._retrigger(this.labelTarget, 'is-on');
 
         // Burst on EVERY legendary, whatever its slot — not just the last card.
@@ -364,11 +366,34 @@ export default class extends Controller {
     }
 
     toggleAside() {
-        const open = !this.element.classList.contains('is-aside-open');
+        this._setAside(!this.element.classList.contains('is-aside-open'));
+    }
+
+    closeAside(event) {
+        if (!this.element.classList.contains('is-aside-open')) {
+            return;
+        }
+        // Escape meant for another overlay (dropdown, details, dialog) outside the drawer
+        const aside = this.element.querySelector('#opening-aside');
+        const inAside = aside && aside.contains(document.activeElement);
+        if (event && (event.defaultPrevented || (!inAside && document.activeElement && document.activeElement.closest('details[open], [role="dialog"], [aria-expanded="true"]:not([data-booster-opening-target="asideToggle"])')))) {
+            return;
+        }
+        this._setAside(false, inAside);
+    }
+
+    _setAside(open, refocus = true) {
         this.element.classList.toggle('is-aside-open', open);
         if (this.hasAsideToggleTarget) {
             this.asideToggleTarget.setAttribute('aria-expanded', String(open));
-            this.asideToggleTarget.textContent = open ? 'Masquer le contenu et les taux' : 'Voir le contenu et les taux';
+        }
+        if (this.hasAsideToggleLabelTarget) {
+            this.asideToggleLabelTarget.textContent = open ? 'Masquer le contenu et les taux' : 'Voir le contenu et les taux';
+        }
+        // desktop drawer: focus follows it (the toggle is covered while it is open)
+        const focus = open ? (this.hasAsideCloseTarget && this.asideCloseTarget) : (this.hasAsideToggleTarget && this.asideToggleTarget);
+        if (refocus && focus && focus.offsetParent !== null && this.element.contains(document.activeElement)) {
+            focus.focus({ preventScroll: true });
         }
     }
 

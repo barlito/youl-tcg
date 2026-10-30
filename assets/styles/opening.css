@@ -1,7 +1,7 @@
 /*
  * Booster opening — dedicated packs.com-style page: the 3D pack and its
  * « Tes cartes » slots on the left, the pack rates and the extension's card set
- * in the aside (folded behind a button under lg). The set list fills in real
+ * in a drawer folded behind a « Contenu et taux » button. The set list fills in real
  * time as the showcase reveals each card; the summary replaces the page at the end.
  *
  * Driven by assets/controllers/booster_opening_controller.js (no anime.js):
@@ -39,14 +39,14 @@
 
 .opening {
     --track-tile: 52px;
-    --rv-chrome: 112px; /* label + « Carte suivante » (+ counter from lg) around the revealed card */
+    --rv-chrome: 124px; /* label + « Carte suivante » (+ counter from lg) around the revealed card */
     --rv-side: 0px;     /* room kept on each side of the card (vertical tracker from lg) */
 }
 @media (min-width: 640px) {
     .opening { --track-tile: clamp(76px, 8.5vh, 124px); }
 }
 @media (min-width: 1024px) {
-    .opening { --rv-chrome: 156px; }
+    .opening { --rv-chrome: 174px; }
 }
 
 /* ------------------------------------------------------------ reveal mode */
@@ -74,35 +74,8 @@
 .opening.is-revealing .opening__showcase { inset: 0; }
 .opening--page.is-revealing .opening__cta[hidden] { display: none !important; }
 
-/* lg (1024-1279): too narrow for a permanent side column (it squeezed the pack to ~175px):
- * « Tes cartes » stays under the pack and only moves to the left while revealing */
-@media (min-width: 1024px) and (max-width: 1279.98px) {
-    .opening.is-revealing {
-        --track-tile: clamp(48px, calc((100svh - var(--header-h, 72px) - 150px) / var(--slots, 5) * .718 - 10px), 116px);
-        --rv-side: calc(var(--track-tile) + 24px);
-    }
-    .opening.is-revealing .opening__track {
-        position: absolute;
-        top: 50%;
-        left: 40px;
-        transform: translateY(-50%);
-    }
-    .opening.is-revealing .opening__track > .lbl { max-width: calc(var(--track-tile) + 16px); text-align: center; }
-    .opening.is-revealing .opening__track-prefix { display: none; }
-    .opening.is-revealing .opening__track-suffix { display: block; }
-    .opening.is-revealing .opening__track-grid {
-        display: grid;
-        grid-template-rows: repeat(var(--slots, 5), auto);
-        grid-auto-flow: column;
-        gap: 10px;
-    }
-    /* revealed card as tall as the sealed pack's visible part (3/4 of the default stage, frozen pre-reveal track size) */
-    .opening--page { --pack-card-w: calc(min(720px / .92, 100vh - 260px - clamp(76px, 8.5vh, 124px) / .718) * .75 * .718); }
-}
-
-/* xl: « Tes cartes » is a vertical column on the left in every phase, so the pack and the
- * revealed card share one height (--pack-h, the pack's visible part is ~3/4 of its stage) */
-@media (min-width: 1280px) {
+/* desktop: « Tes cartes » is a vertical column beside the pack / card, sharing one height */
+@media (min-width: 1024px) {
     .opening--page {
         --track-tile: clamp(48px, calc((100svh - var(--header-h, 72px) - 150px) / var(--slots, 5) * .718 - 10px), 116px);
         --rv-side: calc(var(--track-tile) + 24px);
@@ -184,7 +157,7 @@
     margin-top: clamp(-90px, -7vh, -20px);
     margin-bottom: -40px;
 }
-@media (min-width: 1280px) {
+@media (min-width: 1024px) {
     .opening--page { --pack-card-w: calc(var(--pack-h) * .75 * .718); }
     .opening--page .opening__pack-stage { width: min(calc(100% - var(--rv-side) * 2), calc(var(--pack-h) * .92)); }
 }
@@ -293,14 +266,15 @@
 
 .opening__label {
     z-index: 3;
-    margin-bottom: 12px;
+    margin-bottom: 18px;
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
     font-size: clamp(24px, 3.4vw, 38px);
     line-height: 1.1;
-    /* reserve one line even while empty (face-down) so the rarity label appearing
-     * on reveal doesn't grow the showcase and shove the card up */
-    min-height: 1.1em;
+    /* reserve the tallest line so the label appearing on reveal never shifts the card */
+    display: flex;
+    align-items: flex-end;
+    min-height: calc(clamp(30px, 3.6vw, 50px) * 1.1);
     text-transform: uppercase;
     letter-spacing: -.02em;
     white-space: nowrap;
@@ -310,6 +284,16 @@
     pointer-events: none;
 }
 .opening__label.is-on { animation: opening-labelSlam .6s cubic-bezier(.2,1.4,.4,1) forwards; }
+/* the label scales with the pull: quiet for a common, loud for a legendary */
+.opening__label[data-rarity="common"],
+.opening__label[data-rarity="uncommon"] {
+    font-size: clamp(13px, 1.1vw, 16px);
+    letter-spacing: .2em;
+    text-shadow: none;
+}
+.opening__label[data-rarity="uncommon"] { font-size: clamp(15px, 1.4vw, 20px); text-shadow: 0 0 14px color-mix(in srgb, var(--reveal-color) 50%, transparent); }
+.opening__label[data-rarity="rare"] { font-size: clamp(22px, 2.2vw, 32px); text-shadow: 0 0 24px color-mix(in srgb, var(--reveal-color) 55%, transparent); }
+.opening__label[data-rarity="legendary"] { font-size: clamp(30px, 3.6vw, 50px); text-shadow: 0 0 18px var(--reveal-color), 0 0 48px color-mix(in srgb, var(--reveal-color) 60%, transparent); }
 
 .opening__reveal-cards {
     position: relative;
@@ -530,6 +514,8 @@
 @media (max-width: 1023px) {
     .opening.is-revealing .opening__aside-toggle { display: none; }
 }
+.opening__aside-toggle-short,
+.opening__aside-head { display: none; }
 @media (min-width: 1024px) {
     .opening__aside-toggle { display: none; }
 }
@@ -544,13 +530,9 @@
 }
 .opening.is-aside-open .opening__panel { display: flex; }
 @media (min-width: 1024px) {
-    .opening__panel,
-    .opening.is-aside-open .opening__panel {
-        position: sticky;
-        top: 0;
+    /* a drawer on desktop: positioned with the toggle rules below */
+    .opening__panel {
         display: flex;
-        height: calc(100vh - var(--header-h, 72px));
-        padding: 28px 28px 0;
         border-left: 1px solid #a435f033;
         background: #0e0918;
     }
@@ -616,6 +598,92 @@
     box-shadow: 0 6px 18px #0008;
 }
 .opening__set-top:hover { border-color: var(--primary); color: #fff; }
+
+/* desktop: the aside is a drawer opened on demand; the pack / card pair stays centred left of it */
+@media (min-width: 1024px) {
+    .opening--page { --drawer-w: min(640px, 50vw); --pair-gap: 64px; }
+    .opening--page .opening__main { grid-template-columns: minmax(0, 1fr); max-width: none; }
+    .opening.is-revealing .opening__topline > .lbl:last-child { visibility: hidden; }
+    /* pack phase: the stock stays readable left of the toggle */
+    .opening--page:not(.is-revealing):not(.is-aside-open) .opening__topline > .lbl:last-child { margin-right: 200px; }
+    .opening--page .opening__aside-toggle {
+        position: absolute;
+        top: 20px;
+        right: 40px;
+        z-index: 7;
+        display: inline-flex;
+        width: auto;
+        max-width: none;
+    }
+    .opening--page .opening__aside-toggle-long { display: none; }
+    .opening--page .opening__aside-toggle-short { display: inline; }
+    .opening--page.is-aside-open .opening__aside-toggle { visibility: hidden; }
+
+    .opening--page .opening__pack-col {
+        --pc-pl: 40px;
+        --pc-pr: 40px;
+        padding-left: var(--pc-pl);
+        padding-right: var(--pc-pr);
+        transition: padding .35s ease;
+    }
+    .opening--page.is-aside-open .opening__pack-col {
+        --rv-side: 0px;
+        --pc-pr: calc(var(--drawer-w) + 24px);
+    }
+    /* the pair is centred: room for « Tes cartes » on the left */
+    .opening--page.is-aside-open .opening__pack-col { --pc-pl: calc(40px + var(--track-tile) + var(--pair-gap)); }
+    /* the back link stays at the page edge */
+    .opening--page.is-aside-open .opening__topline { margin-left: calc(40px - var(--pc-pl)); }
+
+    /* « Tes cartes » right beside the pack / revealed card, whether the drawer is open or not */
+    .opening--page .opening__track {
+        --pair-w: var(--pack-card-w);
+        transition: left .35s ease;
+    }
+    .opening.is-revealing .opening__track,
+    .opening--page .opening__track {
+        left: max(40px, calc((var(--pc-pl) + 100% - var(--pc-pr)) / 2 - var(--pair-w) / 2 - var(--track-tile) - var(--pair-gap)));
+    }
+    /* the sealed 3D pack is ~.62 of its stage height wide */
+    .opening--page:not(.is-revealing) .opening__track { --pair-w: calc(var(--pack-h) * .62); }
+
+    .opening--page .opening__panel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 8;
+        width: var(--drawer-w);
+        height: auto;
+        box-sizing: border-box;
+        padding: 20px 36px 0;
+        gap: 24px;
+        box-shadow: -30px 0 60px #000a;
+        visibility: hidden;
+        transform: translateX(100%);
+        transition: transform .35s ease, visibility 0s linear .35s;
+    }
+    .opening--page.is-aside-open .opening__panel {
+        visibility: visible;
+        transform: none;
+        transition: transform .35s ease, visibility 0s;
+    }
+    .opening--page .opening__aside-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .opening--page .opening__rates .panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 28px; }
+    .opening--page .opening__rates-detail { grid-column: 1 / -1; }
+    .opening--page .opening__rate { grid-template-columns: 112px minmax(0, 1fr) 52px; }
+    .opening--page .opening__set-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .opening--page .opening__panel,
+    .opening--page .opening__pack-col,
+    .opening--page .opening__track { transition: none; }
+}
 
 /* ==================================================== end-of-opening summary */
 .opening__recap {

@@ -39,10 +39,11 @@ final class BoosterHubComponentTest extends WebTestCase
         $this->assertSame(1, $userBooster->getQuantity());
         $this->assertNull($component->component()->error);
 
-        // The owned count is surfaced on the pack card and totalled in the hero.
+        // The owned count is surfaced on the pack's « Ouvrir » and totalled in the hero.
         $rendered = (string) $component->render();
-        $this->assertStringContainsString('1 en stock', $rendered);
+        $this->assertStringContainsString('Ouvrir · 1', new Crawler($rendered)->filter('[data-testid="boosters-grid"]')->text(normalizeWhitespace: true));
         $this->assertStringContainsString('En stock 1', $this->stockTile($rendered));
+        $this->assertSame('#prets', (new Crawler($rendered))->filter('[data-testid="total-owned"]')->attr('href'));
     }
 
     public function testEmptyInventoryShowsAnExplicitZeroStockState(): void
@@ -53,8 +54,27 @@ final class BoosterHubComponentTest extends WebTestCase
         $component = $this->createLiveComponent(BoosterHub::class, client: $client);
         $rendered = (string) $component->render();
 
-        $this->assertStringContainsString('0 en stock', $rendered);
         $this->assertStringContainsString('En stock 0', $this->stockTile($rendered));
+        $this->assertNull((new Crawler($rendered))->filter('[data-testid="total-owned"]')->attr('href'));
+        // nothing to open: no « Prêts à ouvrir » row and no « Ouvrir » on the tiles
+        $crawler = new Crawler($rendered);
+        $this->assertCount(0, $crawler->filter('[data-testid="ready-packs"]'));
+        $this->assertCount(0, $crawler->filter('[data-testid="pack-open"]'));
+    }
+
+    public function testOwnedPacksAreListedFirstReadyToOpen(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $booster = $this->firstPublishedBooster();
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        $component->call('claimBooster', ['boosterId' => (string) $booster->getId()]);
+
+        $ready = $component->render()->crawler()->filter('[data-testid="ready-packs"] [data-testid="ready-pack"]');
+        $this->assertCount(1, $ready);
+        $this->assertStringContainsString('×1', $ready->text());
+        $this->assertSame('/boosters/' . $booster->getId() . '/open', $ready->filter('[data-testid="ready-open"]')->attr('href'));
     }
 
     public function testClaimBoosterWithMalformedIdReportsNotFoundInsteadOfCrashing(): void
@@ -177,31 +197,26 @@ final class BoosterHubComponentTest extends WebTestCase
         $booster = $this->firstPublishedBooster();
 
         $component = $this->createLiveComponent(BoosterHub::class, client: $client);
-        $actions = $this->packActions($component->render()->crawler(), $booster);
+        $tile = $this->packTile($component->render()->crawler(), $booster);
 
-        // 0 in stock: « Récupérer » (with the claims left) first, a dead « Ouvrir · 0 » next to it
-        $claim = $actions->children()->eq(0);
-        $this->assertSame('pack-claim', $claim->attr('data-testid'));
+        // 0 in stock: the corner « + » claims (with the claims left), no dead « Ouvrir · 0 »
+        $claim = $tile->filter('[data-testid="pack-claim"]');
         $this->assertSame('claimBooster', $claim->attr('data-live-action-param'));
         $this->assertNull($claim->attr('disabled'));
         $this->assertStringContainsString('addAttribute(disabled)', (string) $claim->attr('data-loading'));
         $this->assertSame('2', $claim->filter('[data-testid="pack-claims-left"]')->text());
-        $open = $actions->children()->eq(1);
-        $this->assertSame('pack-open', $open->attr('data-testid'));
-        $this->assertSame('span', $open->nodeName());
-        $this->assertSame('true', $open->attr('aria-disabled'));
-        $this->assertSame('Ouvrir · 0', $open->text(normalizeWhitespace: true));
+        $this->assertCount(0, $tile->filter('[data-testid="pack-open"]'));
 
-        // after a claim the claim button is still the claim button, in the same slot: a second
+        // after a claim the « + » is still the claim button, in the same corner: a second
         // click claims again instead of leading to the opening page
         $component->call('claimBooster', ['boosterId' => (string) $booster->getId()]);
-        $actions = $this->packActions($component->render()->crawler(), $booster);
+        $tile = $this->packTile($component->render()->crawler(), $booster);
 
-        $claim = $actions->children()->eq(0);
-        $this->assertSame('pack-claim', $claim->attr('data-testid'));
+        $claim = $tile->filter('[data-testid="pack-claim"]');
         $this->assertSame('claimBooster', $claim->attr('data-live-action-param'));
         $this->assertSame('1', $claim->filter('[data-testid="pack-claims-left"]')->text());
-        $open = $actions->children()->eq(1);
+        $this->assertStringContainsString('pack-tile__plus--ghost', (string) $claim->attr('class'), 'Already in stock: the « + » steps back.');
+        $open = $tile->filter('[data-testid="pack-actions"] [data-testid="pack-open"]');
         $this->assertSame('a', $open->nodeName());
         $this->assertSame('/boosters/' . $booster->getId() . '/open', $open->attr('href'));
         $this->assertSame('Ouvrir · 1', $open->text(normalizeWhitespace: true));
@@ -217,26 +232,23 @@ final class BoosterHubComponentTest extends WebTestCase
         $component->call('claimBooster', ['boosterId' => (string) $booster->getId()]);
         $component->call('claimBooster', ['boosterId' => (string) $booster->getId()]);
 
-        $actions = $this->packActions($component->render()->crawler(), $booster);
-        $claim = $actions->children()->eq(0);
-        $this->assertSame('pack-claim', $claim->attr('data-testid'));
+        $tile = $this->packTile($component->render()->crawler(), $booster);
+        $claim = $tile->filter('[data-testid="pack-claim"]');
         $this->assertNotNull($claim->attr('disabled'));
         $this->assertNull($claim->attr('data-live-action-param'));
         $this->assertSame('0', $claim->filter('[data-testid="pack-claims-left"]')->text());
-        $this->assertSame('Ouvrir · 2', $actions->filter('[data-testid="pack-open"]')->text(normalizeWhitespace: true));
+        $this->assertSame('Ouvrir · 2', $tile->filter('[data-testid="pack-open"]')->text(normalizeWhitespace: true));
     }
 
     /**
-     * The « Récupérer / Ouvrir » row of a booster's tile.
+     * A booster's variant inside its universe tile (« + » in the corner, « Ouvrir » in the foot).
      */
-    private function packActions(Crawler $crawler, \App\Entity\Booster $booster): Crawler
+    private function packTile(Crawler $crawler, \App\Entity\Booster $booster): Crawler
     {
-        $tile = $crawler->filter('[data-testid="booster-card"]')->reduce(
-            static fn (Crawler $card): bool => str_contains($card->text(), $booster->getDisplayName()),
-        );
+        $tile = $crawler->filter('[data-testid="booster-card"][data-booster-id="' . $booster->getId() . '"]');
         $this->assertCount(1, $tile, 'Pack tile not found.');
 
-        return $tile->filter('[data-testid="pack-actions"]');
+        return $tile;
     }
 
     public function testBoosterOverExtensionWithoutPublishedCardsIsNotDrawable(): void
@@ -299,7 +311,7 @@ final class BoosterHubComponentTest extends WebTestCase
             ->findOneBy(['discordUser' => $user, 'booster' => $bleach]));
     }
 
-    public function testThePackFilterKeepsTheStockedPacksOrTheIncompleteUniverses(): void
+    public function testThePackFilterKeepsThePacksOnSaleOrTheIncompleteUniverses(): void
     {
         $client = static::createClient();
         $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
@@ -307,16 +319,19 @@ final class BoosterHubComponentTest extends WebTestCase
 
         $component = $this->createLiveComponent(BoosterHub::class, client: $client);
         $all = $component->render()->crawler()->filter('[data-testid="booster-card"]')->count();
-        $this->assertStringContainsString('En stock · 0', $component->render()->crawler()->filter('[data-testid="pack-filter-stock"]')->text());
+        // nothing on sale: no « Payants » filter at all
+        $this->assertCount(0, $component->render()->crawler()->filter('[data-testid="pack-filter-payants"]'));
 
-        $component->call('claimBooster', ['boosterId' => (string) $booster->getId()]);
-        $component->call('filterPacks', ['filter' => 'stock']);
+        $booster->setPurchasable(true)->setPurchasePrice(10);
+        static::getContainer()->get(EntityManagerInterface::class)->flush();
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        $component->call('filterPacks', ['filter' => 'payants']);
 
-        $this->assertSame('stock', $component->component()->filter);
+        $this->assertSame('payants', $component->component()->filter);
         $crawler = $component->render()->crawler();
-        $this->assertSame('true', $crawler->filter('[data-testid="pack-filter-stock"]')->attr('aria-pressed'));
+        $this->assertSame('true', $crawler->filter('[data-testid="pack-filter-payants"]')->attr('aria-pressed'));
+        $this->assertStringContainsString('Payants · 1', $crawler->filter('[data-testid="pack-filter-payants"]')->text());
         $this->assertCount(1, $crawler->filter('[data-testid="boosters-grid"] [data-testid="booster-card"]'));
-        $this->assertStringContainsString('/boosters/' . $booster->getId() . '/open', $crawler->filter('[data-testid="boosters-grid"]')->html());
         $this->assertStringContainsString('Tous · ' . $all, $crawler->filter('[data-testid="pack-filter-tous"]')->text());
 
         // an incomplete universe = published cards the player does not own yet: the fixtures leave some
@@ -336,12 +351,107 @@ final class BoosterHubComponentTest extends WebTestCase
         $client = static::createClient();
         $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
 
-        $crawler = $client->request('GET', '/boosters?filtre=stock');
+        $crawler = $client->request('GET', '/boosters?filtre=payants');
 
         self::assertResponseIsSuccessful();
-        $this->assertSame('true', $crawler->filter('[data-testid="pack-filter-stock"]')->attr('aria-pressed'));
+        // nothing on sale in the fixtures: the paid filter is empty and says so
         $this->assertCount(0, $crawler->filter('[data-testid="booster-card"]'));
         $this->assertCount(1, $crawler->filter('[data-testid="pack-filter-empty"]'));
+        $this->assertStringContainsString('Aucun pack payant', $crawler->filter('[data-testid="pack-filter-empty"]')->text());
+
+        // the retired « En stock » filter falls back to every pack
+        $crawler = $client->request('GET', '/boosters?filtre=stock');
+        $this->assertSame('true', $crawler->filter('[data-testid="pack-filter-tous"]')->attr('aria-pressed'));
+    }
+
+    public function testTheCompletionSortPutsTheUnfinishedUniversesFirstAndAzIsReadFromTheUrl(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        $suggested = array_map(static fn (array $group): ?array => $group['completion'], $component->component()->getPackGroups());
+        // completion (default): every unfinished universe before the complete ones, closest to completion first
+        $this->assertSame('true', $component->render()->crawler()->filter('[data-testid="pack-sort-completion"]')->attr('aria-pressed'));
+        $seenComplete = false;
+        $previous = 101;
+        foreach ($suggested as $completion) {
+            $percentage = $completion['percentage'] ?? -1;
+            if (100 === $percentage) {
+                $seenComplete = true;
+                continue;
+            }
+            $this->assertFalse($seenComplete, 'An unfinished universe comes after a complete one.');
+            $this->assertLessThanOrEqual($previous, $percentage);
+            $previous = $percentage;
+        }
+
+        $crawler = $client->request('GET', '/boosters?tri=az');
+        self::assertResponseIsSuccessful();
+        $this->assertSame('true', $crawler->filter('[data-testid="pack-sort-az"]')->attr('aria-pressed'));
+        $this->assertSame('false', $crawler->filter('[data-testid="pack-sort-completion"]')->attr('aria-pressed'));
+        $names = $crawler->filter('[data-testid="universe-tile"]')->each(
+            static fn (Crawler $tile): string => (string) $tile->attr('data-universe'),
+        );
+        $sorted = $names;
+        natcasesort($sorted);
+        $this->assertSame(array_values($sorted), $names);
+    }
+
+    public function testVariantsOfAUniverseShareOneTileAndThePickedOneStaysSelected(): void
+    {
+        $client = static::createClient();
+        $this->authenticateClient($client, self::USER_WITHOUT_INVENTORY);
+        $standard = $this->firstPublishedBooster();
+        $boosted = new \App\Entity\Booster()
+            ->setExtension($standard->getExtension())
+            ->setName($standard->getExtension()->getName() . ' - Boosted Drops')
+            ->setClaimable(false)
+            ->setPurchasable(true)
+            ->setPurchasePrice(500)
+            ->setRarityRates([['rarities' => ['rare' => 100], 'holoChance' => 100]])
+        ;
+        $boosted->setImageName('default_card.png');
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist($boosted);
+        $entityManager->flush();
+
+        $component = $this->createLiveComponent(BoosterHub::class, client: $client);
+        $tile = $this->universeTile($component->render()->crawler(), $standard);
+        $this->assertCount(2, $tile->filter('[data-testid="booster-card"]'));
+        // the free pack is shown first, the Boosted one waits behind its tab
+        $this->assertNull($this->packTile($tile, $standard)->attr('hidden'));
+        $this->assertNotNull($this->packTile($tile, $boosted)->attr('hidden'));
+
+        $component->call('pickVariant', ['extensionId' => (string) $standard->getExtension()->getId(), 'boosterId' => (string) $boosted->getId()]);
+        // a later re-render (a claim, another filter) keeps the picked tab
+        $component->call('filterPacks', ['filter' => 'tous']);
+
+        $tile = $this->universeTile($component->render()->crawler(), $standard);
+        $picked = $this->packTile($tile, $boosted);
+        $this->assertNull($picked->attr('hidden'));
+        $this->assertNotNull($this->packTile($tile, $standard)->attr('hidden'));
+        // paid variant: the corner « + » is the yellow buy button
+        $this->assertStringContainsString('pack-tile__plus--coin', (string) $picked->filter('[data-testid="shop-buy"]')->attr('class'));
+        // its odds stay behind « Taux », like every other pack
+        $this->assertCount(1, $picked->filter('[data-testid="drop-rates-toggle"]'));
+
+        // a forged pick from another universe is ignored
+        $component->call('pickVariant', ['extensionId' => 'nope', 'boosterId' => (string) $boosted->getId()]);
+        $this->assertArrayNotHasKey('nope', $component->component()->variants);
+    }
+
+    /**
+     * The universe tile holding a booster (all its variants inside).
+     */
+    private function universeTile(Crawler $crawler, \App\Entity\Booster $booster): Crawler
+    {
+        $tile = $crawler->filter('[data-testid="universe-tile"]')->reduce(
+            static fn (Crawler $universe): bool => $universe->filter('[data-booster-id="' . $booster->getId() . '"]')->count() > 0,
+        );
+        $this->assertCount(1, $tile, 'Universe tile not found.');
+
+        return $tile;
     }
 
     /**

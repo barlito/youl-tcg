@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\Entity\CardRarityEnum;
 use App\Repository\BoosterRepository;
 use App\Validator\ValidRarityRates;
 use Barlito\Utils\Traits\IdUuidTrait;
@@ -196,6 +197,42 @@ class Booster implements \Stringable
         }
 
         return $slots;
+    }
+
+    /**
+     * Per-slot rarity percentages averaged over the slots (ascending rarity, tiers at 0 omitted),
+     * plus the average holo and 1/1 chances.
+     *
+     * @return array{rarities: array<string, float>, holo: float, unique: float}
+     */
+    public function getAverageRates(): array
+    {
+        $slots = $this->getDropRates();
+        $count = \count($slots);
+        $rarities = [];
+        $holo = 0.0;
+        $unique = 0.0;
+
+        foreach (CardRarityEnum::ascending() as $rarity) {
+            $sum = 0.0;
+            foreach ($slots as $slot) {
+                $sum += $slot['rates'][$rarity->value] ?? 0.0;
+            }
+            if ($sum > 0) {
+                $rarities[$rarity->value] = round($sum / $count, 1);
+            }
+        }
+
+        foreach ($slots as $slot) {
+            $holo += $slot['holoChance'];
+            $unique += $slot['uniqueRate'];
+        }
+
+        return [
+            'rarities' => $rarities,
+            'holo' => $count > 0 ? round($holo / $count, 1) : 0.0,
+            'unique' => $count > 0 ? round($unique / $count, 2) : 0.0,
+        ];
     }
 
     /**

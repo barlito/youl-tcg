@@ -132,32 +132,7 @@ final class BoosterOpening extends AbstractController
      */
     public function getPackRates(): array
     {
-        $slots = $this->getBooster()->getDropRates();
-        $count = \count($slots);
-        $rarities = [];
-        $holo = 0.0;
-        $unique = 0.0;
-
-        foreach (CardRarityEnum::ascending() as $rarity) {
-            $sum = 0.0;
-            foreach ($slots as $slot) {
-                $sum += $slot['rates'][$rarity->value] ?? 0.0;
-            }
-            if ($sum > 0) {
-                $rarities[$rarity->value] = round($sum / $count, 1);
-            }
-        }
-
-        foreach ($slots as $slot) {
-            $holo += $slot['holoChance'];
-            $unique += $slot['uniqueRate'];
-        }
-
-        return [
-            'rarities' => $rarities,
-            'holo' => $count > 0 ? round($holo / $count, 1) : 0.0,
-            'unique' => $count > 0 ? round($unique / $count, 2) : 0.0,
-        ];
+        return $this->getBooster()->getAverageRates();
     }
 
     // « x / y trouvées » before the reveal: the set's cards owned BEFORE the ongoing opening

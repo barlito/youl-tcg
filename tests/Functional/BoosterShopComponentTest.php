@@ -78,8 +78,13 @@ final class BoosterShopComponentTest extends WebTestCase
 
         $crawler = $this->hub()->render()->crawler();
 
-        $this->assertCount(1, $crawler->filter('[data-testid="boosters-grid"] [data-testid="shop-only"]'));
-        $this->assertSame('Acheter', trim($crawler->filter('[data-testid="shop-buy"]')->text()));
+        // no « Boutique » chip, no « Non récupérable » either: the yellow « + » says it all
+        $this->assertCount(0, $crawler->filter('[data-testid="boosters-grid"] [data-testid="not-claimable"]'));
+        // not claimable: the corner « + » is the yellow buy button
+        $buy = $crawler->filter('[data-testid="shop-buy"]');
+        $this->assertStringContainsString('pack-tile__plus--coin', (string) $buy->attr('class'));
+        $this->assertStringContainsString('Acheter un pack', (string) $buy->attr('aria-label'));
+        $this->assertSame('askPurchase', $buy->attr('data-live-action-param'));
     }
 
     public function testBuyingNeedsASecondConfirmingClick(): void
@@ -104,10 +109,23 @@ final class BoosterShopComponentTest extends WebTestCase
 
         $this->assertSame(BoosterPurchaseStatusEnum::COMPLETED, $this->onlyPurchase()->getStatus());
         $this->assertStringContainsString('ajouté à ton stock', $crawler->filter('[data-testid="purchase-success"]')->text());
-        $this->assertStringContainsString('1 en stock', $crawler->filter('[data-testid="boosters-grid"]')->text());
-        $this->assertSame('Déjà acheté aujourd\'hui', trim($crawler->filter('[data-testid="shop-buy"]')->text()));
-        $this->assertNotNull($crawler->filter('[data-testid="shop-buy"]')->attr('disabled'));
+        $this->assertStringContainsString('Ouvrir · 1', $crawler->filter('[data-testid="boosters-grid"]')->text(normalizeWhitespace: true));
+        $this->assertSame('Déjà acheté aujourd\'hui', trim($crawler->filter('[data-testid="shop-block"]')->text()));
+        $this->assertCount(0, $crawler->filter('[data-testid="shop-buy"]'));
         $this->assertCount(1, $crawler->filter('[data-testid="shop-countdown"]'));
+    }
+
+    public function testTheShopNoticesStayVisibleWhenNothingIsOnSaleAnymore(): void
+    {
+        $hub = $this->hub();
+        $hub->call('askPurchase', ['boosterId' => $this->boosterId]);
+        static::getContainer()->get(EntityManagerInterface::class)->getRepository(Booster::class)->find($this->boosterId)->setPurchasable(false);
+        static::getContainer()->get(EntityManagerInterface::class)->flush();
+
+        $crawler = $hub->call('confirmPurchase', ['boosterId' => $this->boosterId])->render()->crawler();
+
+        $this->assertCount(1, $crawler->filter('[data-testid="purchase-error"]'));
+        $this->assertSame(0, $this->purchaseCount());
     }
 
     public function testConfirmingWithoutAskingFirstBuysNothing(): void
@@ -128,7 +146,7 @@ final class BoosterShopComponentTest extends WebTestCase
 
         $this->assertStringContainsString('Solde Youl Coin insuffisant', $crawler->filter('[data-testid="purchase-error"]')->text());
         $this->assertSame(BoosterPurchaseStatusEnum::FAILED, $this->onlyPurchase()->getStatus());
-        $this->assertStringNotContainsString('1 en stock', $crawler->filter('[data-testid="boosters-grid"]')->text());
+        $this->assertCount(0, $crawler->filter('[data-testid="boosters-grid"] [data-testid="pack-open"]'));
     }
 
     public function testAnUncertainPaymentShowsThePendingNotice(): void
@@ -140,7 +158,7 @@ final class BoosterShopComponentTest extends WebTestCase
         $crawler = $hub->call('confirmPurchase', ['boosterId' => $this->boosterId])->render()->crawler();
 
         $this->assertCount(1, $crawler->filter('[data-testid="purchase-pending"]'));
-        $this->assertSame('Paiement en cours de vérification', trim($crawler->filter('[data-testid="shop-buy"]')->text()));
+        $this->assertSame('Paiement en cours de vérification', trim($crawler->filter('[data-testid="shop-block"]')->text()));
         $this->assertSame(BoosterPurchaseStatusEnum::PENDING, $this->onlyPurchase()->getStatus());
     }
 
@@ -148,20 +166,33 @@ final class BoosterShopComponentTest extends WebTestCase
     {
         $this->coin()->override('GET', '/api/user/' . self::JUJU . '/wallet', static fn (): MockResponse => CoinMockResponses::json(['id' => 'W', 'amount' => '999999999']));
 
+        $crawler = $this->hub()->render()->crawler();
+
+        $this->assertSame('Solde insuffisant', trim($crawler->filter('[data-testid="shop-block"]')->text()));
+        $this->assertCount(0, $crawler->filter('[data-testid="shop-buy"]'));
+    }
+
+    public function testTheYellowBuyButtonOfAShopOnlyPackIsDisabledWithItsReason(): void
+    {
+        static::getContainer()->get(EntityManagerInterface::class)->getRepository(Booster::class)->find($this->boosterId)->setClaimable(false);
+        static::getContainer()->get(EntityManagerInterface::class)->flush();
+        $this->coin()->override('GET', '/api/user/' . self::JUJU . '/wallet', static fn (): MockResponse => CoinMockResponses::json(['id' => 'W', 'amount' => '999999999']));
+
         $button = $this->hub()->render()->crawler()->filter('[data-testid="shop-buy"]');
 
-        $this->assertSame('Solde insuffisant', trim($button->text()));
         $this->assertNotNull($button->attr('disabled'));
+        $this->assertSame('Solde insuffisant', $button->attr('title'));
+        $this->assertNull($button->attr('data-live-action-param'));
     }
 
     public function testTheBuyButtonIsDisabledWhenTheCoinIsUnavailable(): void
     {
         $this->coin()->override('GET', '/api/user/' . self::JUJU . '/wallet', static fn (): MockResponse => new MockResponse('', ['http_code' => 503]));
 
-        $button = $this->hub()->render()->crawler()->filter('[data-testid="shop-buy"]');
+        $crawler = $this->hub()->render()->crawler();
 
-        $this->assertSame('Youl Coin indisponible', trim($button->text()));
-        $this->assertNotNull($button->attr('disabled'));
+        $this->assertSame('Youl Coin indisponible', trim($crawler->filter('[data-testid="shop-block"]')->text()));
+        $this->assertCount(0, $crawler->filter('[data-testid="shop-buy"]'));
     }
 
     private function hub(): TestLiveComponent

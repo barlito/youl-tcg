@@ -2,32 +2,26 @@
 <div {{ attributes.defaults({'data-action': 'live-updates:inventory-changed@window->live#$render'}) }}>
     {% set dailyLimit = constant('App\\Service\\Booster\\BoosterClaimQuotaInterface::DAILY_LIMIT') %}
     {% set remainingClaims = this.remainingClaims %}
-    {% set totalOwned = this.totalOwned %}
+    {% set readyCount = this.readyCount %}
     {% set streak = this.streak %}
     <main>
-        {# ----------------------------------------------------- Header + today's stats #}
+        {# ----------------------------------------------------- Header: today's state on one line, the code field beside it #}
         {% embed 'parts/ui/_page_header.html.twig' with {
             eyebrow: 'Jouer',
             title: 'Tes packs',
-            lead: 'Chaque jour, ' ~ dailyLimit ~ ' packs gratuits. Choisis l\'univers que tu veux récupérer, puis ouvre-les quand tu veux.',
             testid: 'hub-header',
         } %}
-            {% block actions %}
-                <div class="panel hub-stats">
-                    <div class="hub-stats__cell{{ remainingClaims > 0 ? ' hub-stats__cell--hot' }}" data-testid="daily-packs">
-                        <span class="lbl flex items-center gap-2">{% if remainingClaims > 0 %}<span class="dot" aria-hidden="true"></span>{% endif %}Gratuits<span class="max-sm:hidden"> aujourd'hui</span></span>
-                        <span><span class="d text-[28px] text-ink-strong">{{ remainingClaims }}</span><span class="d text-base text-ink-muted">/{{ dailyLimit }}<span class="max-sm:hidden"> restant{{ remainingClaims > 1 ? 's' }}</span></span></span>
-                        <span class="text-xs text-ink-muted">reset dans <span data-controller="countdown" data-countdown-seconds-value="{{ this.secondsUntilReset }}">--:--:--</span></span>
-                    </div>
-                    <div class="hub-stats__cell" data-testid="total-owned">
-                        <span class="lbl">En stock</span>
-                        <span class="d text-[28px] {{ totalOwned > 0 ? 'text-ink-strong' : 'text-ink-muted' }}">{{ totalOwned }}</span>
-                        <a href="{{ path('opening_history') }}" class="text-xs text-ink-muted underline-offset-2 hover:underline" data-testid="history-link">mes ouvertures</a>
-                    </div>
-                    <div class="hub-stats__cell" data-testid="streak-flame">
-                        <span class="lbl">Série</span>
-                        <span class="d text-[28px] {{ streak.running ? 'text-soon' : 'text-ink-strong' }}">{{ streak.running ? streak.length : 0 }} j</span>
-                        <span class="text-xs {{ streak.atRisk ? 'text-soon' : 'text-ink-muted' }}">
+            {% block aside %}
+                <div class="hub-statline">
+                    <span class="hub-stat{{ remainingClaims > 0 ? ' hub-stat--hot' }}" data-testid="daily-packs">
+                        {% if remainingClaims > 0 %}<span class="dot" aria-hidden="true"></span>{% endif %}
+                        <span>Gratuits</span> <b>{{ remainingClaims }}/{{ dailyLimit }}</b>
+                        <span>· {{ remainingClaims > 0 ? 'reset' : 'prochains' }} dans <span data-controller="countdown" data-countdown-seconds-value="{{ this.secondsUntilReset }}">--:--:--</span></span>
+                    </span>
+                    {% if readyCount > 0 %}<a href="#prets" class="hub-stat" data-testid="total-owned"><span>En stock</span> <b>{{ readyCount }}</b></a>{% else %}<span class="hub-stat" data-testid="total-owned"><span>En stock</span> <b>0</b></span>{% endif %}
+                    <span class="hub-stat" data-testid="streak-flame">
+                        <span>Série</span> <b class="{{ streak.running ? 'text-soon' }}">{{ streak.running ? streak.length : 0 }} j</b>
+                        <span class="{{ streak.atRisk ? 'text-soon' }}">·
                             {% if not streak.running %}
                                 ouvre un pack pour la lancer
                             {% elseif streak.atRisk %}
@@ -36,12 +30,46 @@
                                 prochain palier à {{ streak.nextMilestone }} j
                             {% endif %}
                         </span>
-                    </div>
+                    </span>
                 </div>
+            {% endblock %}
+            {% block actions %}
+                <form id="code"
+                      data-action="live#action:prevent"
+                      data-live-action-param="redeemCode"
+                      class="hub-code-form">
+                    <label for="booster-code" class="lbl">{{ codePrefilled ? 'Ton code est déjà saisi : valide-le' : 'Un code booster ?' }}</label>
+                    <span class="flex items-center gap-2">
+                        <input type="text"
+                               id="booster-code"
+                               data-model="norender|code"
+                               value="{{ code }}"
+                               placeholder="ABCD-EFGH-JKLM"
+                               autocomplete="off"
+                               spellcheck="false"
+                               data-testid="code-input"
+                               class="field hub-code min-w-0 flex-1{{ codePrefilled ? ' hub-code--prefilled' }}">
+                        {# plain label + opacity while loading: swapping two spans
+                           leaves the hidden one hidden after the re-render #}
+                        <button type="submit"
+                                data-testid="code-submit"
+                                data-loading="addAttribute(disabled) addClass(opacity-50)"
+                                class="btn {{ codePrefilled ? 'btn-p' : 'btn-g' }} btn-s shrink-0">
+                            Valider
+                        </button>
+                    </span>
+                    {% if codePrefilled %}<span class="sr" data-testid="code-prefilled">Ton code est déjà saisi : valide-le pour récupérer tes packs.</span>{% endif %}
+                </form>
             {% endblock %}
         {% endembed %}
 
-        <div class="wrap flex flex-col gap-6 pb-24 pt-6 md:gap-8 md:pt-8">
+        <div class="wrap flex flex-col gap-8 pb-24 pt-6 md:gap-10 md:pt-8">
+            {% if codeError %}
+                <p class="chip chip-err w-full normal-case tracking-normal" data-testid="code-error">⚠ {{ codeError }}</p>
+            {% elseif codeSuccess %}
+                <p class="chip chip-live w-full normal-case tracking-normal" data-testid="code-success">✦ {{ codeSuccess }}</p>
+            {% endif %}
+
             {# ----------------------------------------------------- Streak reward #}
             {% set pendingRewards = this.pendingStreakRewards %}
             {% if pendingRewards is not empty or streakError or streakSuccess %}
@@ -80,8 +108,6 @@
                                             </option>
                                         {% endfor %}
                                     </select>
-                                    {# plain label + opacity while loading: swapping two spans
-                                       leaves the hidden one hidden after the re-render #}
                                     <button type="button"
                                             data-action="live#action"
                                             data-live-action-param="chooseStreakReward"
@@ -104,63 +130,48 @@
                 </section>
             {% endif %}
 
-            {# ----------------------------------------------------- Code redemption #}
-            <section id="code" class="panel flex flex-col gap-3 px-5 py-4{{ codePrefilled ? ' hot' }}">
-                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div class="flex flex-col gap-0.5">
-                        <span class="d up text-[15px] tracking-[.08em] text-ink-strong">Un code booster ?</span>
-                        {% if codePrefilled %}
-                            <span class="text-sm text-magenta" data-testid="code-prefilled">🎁 Ton code est déjà saisi : valide-le pour récupérer tes packs.</span>
-                        {% else %}
-                            <span class="text-sm text-ink-muted">Les codes d'event et de giveaway ajoutent des packs sans toucher à tes gratuits.</span>
-                        {% endif %}
+            {% if error %}
+                <p class="chip chip-err w-full px-4 py-3 normal-case tracking-normal" data-testid="hub-error">⚠ {{ error }}</p>
+            {% endif %}
+
+            {% set boosters = this.boosters %}
+            {% set inventory = this.inventory %}
+            {% set completion = this.completionByExtension %}
+
+            {# ----------------------------------------------------- Ready to open: the packs in stock come first #}
+            {% set ready = this.readyBoosters %}
+            {% if ready is not empty %}
+                <section id="prets" aria-labelledby="prets-title" class="flex flex-col gap-4" data-testid="ready-packs">
+                    <div class="flex items-baseline justify-between gap-3">
+                        <h2 id="prets-title" class="h2">Prêts à ouvrir <span class="muted font-sans text-sm font-normal normal-case">{{ readyCount }} pack{{ readyCount > 1 ? 's' }}</span></h2>
+                        <a href="{{ path('opening_history') }}" class="tl" data-testid="history-link">Mes ouvertures</a>
                     </div>
+                    <div class="ready-grid">
+                        {% for booster in ready %}
+                            {% set owned = inventory[booster.id ~ '']|default(0) %}
+                            {% set universe = completion[booster.extension.id ~ '']|default(null) %}
+                            <article class="ready-pack" data-testid="ready-pack">
+                                {{ _self.pack_art(booster) }}
+                                <div class="flex min-w-0 flex-col gap-2.5">
+                                    <div class="flex flex-wrap items-start justify-between gap-2">
+                                        <h3 class="pack-tile__name">{{ booster.displayName }}</h3>
+                                        <span class="chip chip-fill shrink-0">×{{ owned }}</span>
+                                    </div>
+                                    <span class="text-xs text-ink-muted">{{ booster.cardCount }} carte{{ booster.cardCount > 1 ? 's' }} par pack{% if universe %} · {{ universe.owned }}/{{ universe.total }} trouvées{% endif %}</span>
+                                    {% if universe %}<span class="bar" aria-hidden="true"><i style="width: {{ universe.percentage }}%"></i></span>{% endif %}
+                                    <a href="{{ path('booster_open', {id: booster.id}) }}" class="btn btn-p w-full" data-testid="ready-open"
+                                       aria-label="Ouvrir un pack {{ booster.displayName }} ({{ owned }} en stock)">Ouvrir</a>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endif %}
 
-                    <form data-action="live#action:prevent"
-                          data-live-action-param="redeemCode"
-                          class="flex w-full items-center gap-2 md:w-auto">
-                        <label for="booster-code" class="sr">Code booster</label>
-                        <input type="text"
-                               id="booster-code"
-                               data-model="norender|code"
-                               value="{{ code }}"
-                               placeholder="ABCD-EFGH-JKLM"
-                               autocomplete="off"
-                               spellcheck="false"
-                               data-testid="code-input"
-                               class="field hub-code min-w-0 flex-1 md:w-[220px] md:flex-none{{ codePrefilled ? ' hub-code--prefilled' }}">
-                        {# plain label + opacity while loading: swapping two spans
-                           leaves the hidden one hidden after the re-render #}
-                        <button type="submit"
-                                data-testid="code-submit"
-                                data-loading="addAttribute(disabled) addClass(opacity-50)"
-                                class="btn btn-g shrink-0">
-                            Valider
-                        </button>
-                    </form>
-                </div>
-
-                {% if codeError %}
-                    <p class="chip chip-err w-full normal-case tracking-normal" data-testid="code-error">⚠ {{ codeError }}</p>
-                {% elseif codeSuccess %}
-                    <p class="chip chip-live w-full normal-case tracking-normal" data-testid="code-success">✦ {{ codeSuccess }}</p>
-                {% endif %}
-            </section>
-
-            {# ----------------------------------------------------- Shop #}
+            {# ----------------------------------------------------- Shop notices (the buy button lives on the tile) #}
             {% set shopBoosters = this.shopBoosters %}
-            {% if shopBoosters is not empty or purchaseError or purchaseSuccess %}
-                <section id="boutique" class="panel flex flex-col gap-3 px-5 py-4" data-testid="shop">
-                    <div class="flex flex-col gap-1 md:flex-row md:items-baseline md:justify-between md:gap-6">
-                        <span class="d up text-[15px] tracking-[.08em] text-ink-strong"><span class="text-soon">¤</span> Boutique</span>
-                        <span class="text-sm text-ink-muted">
-                            Un pack par jour en Youl Coin, sans entamer tes récupérations gratuites : achète-le depuis sa tuile ci-dessous.
-                            {% if this.remainingPurchases < 1 %}
-                                Prochain achat dans <span data-controller="countdown" data-countdown-seconds-value="{{ this.secondsUntilReset }}" data-testid="shop-countdown">--:--:--</span>.
-                            {% endif %}
-                        </span>
-                    </div>
-
+            {% if this.pendingPurchase or purchaseError or purchaseSuccess or (shopBoosters is not empty and this.remainingPurchases < 1) %}
+                <div class="flex flex-col gap-2" data-testid="shop">
                     {% if this.pendingPurchase %}
                         <p class="chip chip-soon w-full normal-case tracking-normal" data-testid="purchase-pending">
                             ⏳ Paiement en cours de vérification : ton pack arrivera dès que Youl Coin le confirme.
@@ -171,33 +182,46 @@
                     {% elseif purchaseSuccess %}
                         <p class="chip chip-live w-full normal-case tracking-normal" data-testid="purchase-success">✦ {{ purchaseSuccess }}</p>
                     {% endif %}
-                </section>
+                    {% if shopBoosters is not empty and this.remainingPurchases < 1 %}
+                        <p class="text-sm text-ink-muted"><span class="text-soon">¤</span> Boutique : prochain achat dans <span data-controller="countdown" data-countdown-seconds-value="{{ this.secondsUntilReset }}" data-testid="shop-countdown">--:--:--</span>.</p>
+                    {% endif %}
+                </div>
             {% endif %}
 
-            {% if error %}
-                <p class="chip chip-err w-full px-4 py-3 normal-case tracking-normal" data-testid="hub-error">⚠ {{ error }}</p>
-            {% endif %}
-
-            {# ----------------------------------------------------- Packs grid #}
-            {% set boosters = this.boosters %}
-            <section aria-labelledby="packs" class="flex flex-col gap-4">
+            {# ----------------------------------------------------- Catalogue: one tile per universe, variants inside #}
+            <section id="catalogue" aria-labelledby="packs" class="flex flex-col gap-4">
                 <div class="flex flex-wrap items-center justify-between gap-4">
-                    <h2 id="packs" class="h2">Packs <span class="muted font-sans text-sm font-normal normal-case">{{ boosters|length }} disponible{{ boosters|length > 1 ? 's' }}</span></h2>
+                    <h2 id="packs" class="h2">Tous les packs <span class="muted font-sans text-sm font-normal normal-case">{{ boosters|length }} disponible{{ boosters|length > 1 ? 's' }}</span></h2>
                     {% if boosters is not empty %}
                         {% set counts = this.filterCounts %}
                         {% set activeFilter = this.activeFilter %}
-                        <div role="group" aria-label="Filtrer les packs" class="flex flex-wrap gap-2" data-testid="pack-filters">
-                            {% for key, label in { tous: 'Tous', stock: 'En stock', incomplets: 'Univers incomplets' } %}
-                                <button type="button"
-                                        class="seg{{ activeFilter == key ? ' on' }}"
-                                        aria-pressed="{{ activeFilter == key ? 'true' : 'false' }}"
-                                        data-action="live#action"
-                                        data-live-action-param="filterPacks"
-                                        data-live-filter-param="{{ key }}"
-                                        data-testid="pack-filter-{{ key }}">
-                                    {{ label }} · {{ counts[key] }}
-                                </button>
-                            {% endfor %}
+                        <div class="flex flex-wrap items-center gap-2">
+                            <div role="group" aria-label="Filtrer les packs" class="flex flex-wrap gap-2" data-testid="pack-filters">
+                                {% for key, label in { tous: 'Tous', incomplets: 'Incomplets', payants: 'Payants' } %}
+                                    {% if key != 'payants' or counts[key] > 0 %}
+                                        <button type="button"
+                                                class="seg{{ activeFilter == key ? ' on' }}"
+                                                aria-pressed="{{ activeFilter == key ? 'true' : 'false' }}"
+                                                data-action="live#action"
+                                                data-live-action-param="filterPacks"
+                                                data-live-filter-param="{{ key }}"
+                                                data-testid="pack-filter-{{ key }}">
+                                            {% if key == 'payants' %}<span class="text-soon" aria-hidden="true">¤</span> {% endif %}{{ label }} · {{ counts[key] }}
+                                        </button>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <div role="group" aria-label="Trier les packs" class="hub-sort" data-testid="pack-sort">
+                                {% for key, label in { completion: 'Complétion', az: 'A – Z' } %}
+                                    <button type="button"
+                                            class="seg{{ this.activeSort == key ? ' on' }}"
+                                            aria-pressed="{{ this.activeSort == key ? 'true' : 'false' }}"
+                                            data-action="live#action"
+                                            data-live-action-param="sortPacks"
+                                            data-live-sort-param="{{ key }}"
+                                            data-testid="pack-sort-{{ key }}">{{ label }}</button>
+                                {% endfor %}
+                            </div>
                         </div>
                     {% endif %}
                 </div>
@@ -208,68 +232,132 @@
                         <p class="mt-3 text-sm">Reviens bientôt, de nouveaux univers arrivent.</p>
                     </div>
                 {% else %}
-                    {% set inventory = this.inventory %}
+                    <p class="text-xs text-ink-muted">
+                        « + » récupère un pack gratuit ({{ remainingClaims > 0 ? remainingClaims ~ ' restant' ~ (remainingClaims > 1 ? 's') ~ ' aujourd\'hui' : 'plus de gratuits aujourd\'hui' }}){% if shopBoosters is not empty %} · <span class="text-soon">« + » jaune</span> = achat en Youl Coin{% endif %}
+                    </p>
+
                     {% set drawableBoosterIds = this.drawableBoosterIds %}
                     {% set retrievableBoosterIds = this.retrievableBoosterIds %}
                     {% set shopBoosterIds = this.shopBoosterIds %}
-                    {% set completion = this.completionByExtension %}
-                    {% set filtered = this.filteredBoosters %}
-                    {% if filtered is empty %}
+                    {% set groups = this.packGroups %}
+                    {% if groups is empty %}
                         <div class="panel px-6 py-10 text-center text-sm text-ink-muted" data-testid="pack-filter-empty">
-                            {{ activeFilter == 'stock' ? 'Aucun pack en stock : récupère tes packs gratuits du jour.' : 'Tous les univers de tes packs sont complets. Bravo !' }}
+                            {{ activeFilter == 'payants' ? 'Aucun pack payant pour le moment.' : 'Tous les univers de tes packs sont complets. Bravo !' }}
                             <button type="button" class="tl ml-2" data-action="live#action" data-live-action-param="filterPacks" data-live-filter-param="tous">Voir tous les packs</button>
                         </div>
                     {% endif %}
-                    <div class="pack-grid" data-testid="boosters-grid">
-                        {% for booster in filtered %}
-                            {% set owned = inventory[booster.id ~ '']|default(0) %}
-                            {% set drawable = drawableBoosterIds[booster.id ~ '']|default(false) %}
-                            {% set retrievable = booster.claimable and remainingClaims > 0 and retrievableBoosterIds[booster.id ~ '']|default(false) %}
-                            {% set onSale = shopBoosterIds[booster.id ~ '']|default(false) %}
-                            {% set universe = completion[booster.extension.id ~ '']|default(null) %}
-                            <article class="pack{{ owned > 0 ? ' pack--has' }}" data-testid="booster-card">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="lbl min-w-0 truncate text-ink-strong" title="{{ booster.displayName }}">{{ booster.displayName }}</span>
-                                    <span class="lbl shrink-0 px-2{{ owned > 0 ? ' bg-primary text-ink-strong' }}" data-testid="owned-count">{{ owned }} en stock</span>
-                                </div>
-                                {% if booster.extension.name not in booster.displayName %}
-                                    <span class="lbl -mt-2 truncate">Cartes de {{ booster.extension.name }}</span>
-                                {% endif %}
+                    <div class="pack-tiles" data-testid="boosters-grid">
+                        {% for group in groups %}
+                            {% set universe = group.completion %}
+                            {% set complete = universe and universe.owned >= universe.total %}
+                            <article class="pack-tile{{ inventory[group.selected.id ~ '']|default(0) > 0 ? ' pack-tile--has' }}" data-testid="universe-tile" data-universe="{{ group.name }}">
+                                {% for booster in group.boosters %}
+                                    {% set selected = booster.id == group.selected.id %}
+                                    {% set owned = inventory[booster.id ~ '']|default(0) %}
+                                    {% set drawable = drawableBoosterIds[booster.id ~ '']|default(false) %}
+                                    {% set retrievable = booster.claimable and remainingClaims > 0 and retrievableBoosterIds[booster.id ~ '']|default(false) %}
+                                    {% set onSale = shopBoosterIds[booster.id ~ '']|default(false) %}
+                                    {% set block = onSale ? this.purchaseBlock(booster) : null %}
+                                    {% set confirming = confirmingPurchaseBoosterId == booster.id %}
+                                    <div class="pack-tile__variant{{ booster.claimable and onSale ? ' pack-tile__variant--dual' }}" data-testid="booster-card" data-booster-id="{{ booster.id }}" {{ selected ? '' : 'hidden' }}>
+                                        {{ _self.pack_art(booster) }}
+                                        <div class="pack-tile__body">
+                                            <h3 class="pack-tile__name" title="{{ booster.displayName }}">{{ group.name }}{% if booster.displayName != group.name %}<span class="sr"> — {{ booster.displayName }}</span>{% endif %}</h3>
 
-                                {# the pack front — same composite as the 3D opening pack, drawn into a canvas #}
-                                <div class="pack__art">
-                                    <canvas width="840" height="1300"
-                                            data-controller="pack-front"
-                                            data-pack-front-bg-url-value="{{ booster.imageName ? vich_uploader_asset(booster) : (booster.extension.imageName ? vich_uploader_asset(booster.extension) : '') }}"
-                                            data-pack-front-fallback-url-value="{{ asset('images/ytcg_background.png') }}"
-                                            data-pack-front-logo-url-value="{{ asset('images/ytcg_logo.png') }}"
-                                            data-pack-front-name-value="{{ booster.displayName }}"
-                                            data-pack-front-count-value="{{ booster.cardCount }}"
-                                            {# custom booster image = full pack design: no text drawn on top #}
-                                            data-pack-front-plain-value="{{ booster.imageName ? 'true' : 'false' }}"
-                                            aria-label="Pack {{ booster.displayName }}" role="img"
-                                            class="pack__canvas"></canvas>
-                                </div>
+                                            {% if group.boosters|length > 1 %}
+                                                <div class="pack-variants" role="group" aria-label="Version du pack {{ group.name }}">
+                                                    {% for variant in group.boosters %}
+                                                        {% set variantName = variant.displayName == group.name ? 'Standard' : variant.displayName|replace({(group.name ~ ' - '): '', (group.name ~ ' — '): '', (group.name): ''})|trim(' -') %}
+                                                        <button type="button"
+                                                                class="seg{{ variant.id == booster.id ? ' on' }}"
+                                                                aria-pressed="{{ variant.id == booster.id ? 'true' : 'false' }}"
+                                                                data-action="live#action"
+                                                                data-live-action-param="pickVariant"
+                                                                data-live-extension-id-param="{{ group.extensionId }}"
+                                                                data-live-booster-id-param="{{ variant.id }}"
+                                                                data-testid="pack-variant">
+                                                            {% if shopBoosterIds[variant.id ~ '']|default(false) and not variant.claimable %}<span class="text-soon" aria-hidden="true">¤</span> {% endif %}{{ variantName }} · {{ variant.cardCount }} c.
+                                                        </button>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
 
-                                {% if universe %}
-                                    <div class="flex flex-col gap-1.5" data-testid="pack-completion">
-                                        <span class="flex justify-between gap-2"><span class="text-sm text-ink-muted">Ta complétion</span><span class="mono text-xs text-ink-strong">{{ universe.owned }}/{{ universe.total }} · {{ universe.percentage }} %</span></span>
-                                        <span class="bar" aria-hidden="true"><i style="width: {{ universe.percentage }}%"></i></span>
-                                    </div>
-                                {% endif %}
+                                            {# no stock chip: « Ouvrir · N » and the border already say it; a shop-only pack needs none either #}
+                                            {% if not booster.claimable and not onSale %}
+                                                <div class="flex flex-wrap gap-1.5">
+                                                    <span class="chip" data-testid="not-claimable" title="Ce pack se gagne en event ou via un code — il n'est pas récupérable ici.">✕ Non récupérable</span>
+                                                </div>
+                                            {% endif %}
 
-                                {# « Récupérer » and « Ouvrir » keep fixed slots: a click never turns the button under the pointer into another action #}
-                                {% if not drawable %}
-                                    <span class="btn btn-g btn-w" aria-disabled="true" title="Cette extension n'a pas encore de carte publiée.">À venir</span>
-                                {% else %}
-                                    <div class="pack__actions" data-testid="pack-actions">
-                                        {% if not booster.claimable and onSale %}
-                                            <span class="btn btn-g btn-s" aria-disabled="true" data-testid="shop-only">Boutique uniquement</span>
-                                        {% elseif not booster.claimable %}
-                                            <span class="btn btn-g btn-s" aria-disabled="true" data-testid="not-claimable"
-                                                  title="Ce pack se gagne en event ou via un code — il n'est pas récupérable ici.">✕ Non récupérable</span>
-                                        {% else %}
-                                            <button type="button" class="btn {{ owned > 0 ? 'btn-g' : 'btn-p' }} btn-s"
+                                            {% if complete %}
+                                                <span class="text-xs text-live">✓ Univers complet · {{ universe.owned }}/{{ universe.total }}</span>
+                                            {% elseif universe %}
+                                                {% set missing = universe.total - universe.owned %}
+                                                <span class="flex justify-between gap-2 text-xs" data-testid="pack-completion">
+                                                    <span class="{{ missing <= 2 ? 'text-magenta' : 'text-ink-muted' }}">{{ missing == 1 ? 'Plus qu\'une carte' : (missing <= 2 ? 'Plus que ' ~ missing ~ ' cartes' : missing ~ ' cartes à trouver') }}</span>
+                                                    <span class="mono text-ink-strong">{{ universe.percentage }} %</span>
+                                                </span>
+                                                <span class="bar" aria-hidden="true"><i style="width: {{ universe.percentage }}%"></i></span>
+                                            {% endif %}
+
+                                            {% if onSale %}
+                                                <div class="flex flex-wrap items-center justify-between gap-2" data-testid="shop-item">
+                                                    <span class="pack-tile__price" title="Prix en Youl Coin"><span aria-hidden="true">¤</span> <span data-testid="shop-price">{{ coin_amount(booster.purchasePrice) }} YLC</span> · 1 achat / jour</span>
+                                                    {% if block %}
+                                                        <span class="text-xs text-ink-muted" data-testid="shop-block">{{ block }}</span>
+                                                    {% elseif confirming %}
+                                                        <span class="flex shrink-0 gap-1.5">
+                                                            <button type="button" data-action="live#action" data-live-action-param="confirmPurchase" data-live-booster-id-param="{{ booster.id }}"
+                                                                    data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="shop-confirm"
+                                                                    class="btn btn-s pack-tile__confirm">Confirmer · {{ coin_amount(booster.purchasePrice) }}</button>
+                                                            <button type="button" data-action="live#action" data-live-action-param="cancelPurchase" data-testid="shop-cancel"
+                                                                    aria-label="Annuler l'achat" class="ib">✕</button>
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+
+                                            {# bottom row: open what you own, rates on demand #}
+                                            <div class="pack-tile__foot" data-testid="pack-actions">
+                                                {% if owned > 0 and drawable %}
+                                                    <a href="{{ path('booster_open', {id: booster.id}) }}" class="btn btn-p btn-s flex-1" data-testid="pack-open"
+                                                       aria-label="Ouvrir un pack {{ booster.displayName }} ({{ owned }} en stock)">Ouvrir · {{ owned }}</a>
+                                                {% endif %}
+                                                {% if booster.cardCount > 0 %}
+                                                    {# drop rates: native details/summary, no JS — the panel overlays the tile #}
+                                                    <details class="booster-rates" data-controller="details-dismiss">
+                                                        <summary class="tl" data-testid="drop-rates-toggle">Taux</summary>
+                                                        <div class="booster-rates__panel" data-testid="drop-rates-panel">
+                                                            <div class="mb-2 flex items-center justify-between gap-2">
+                                                                <p class="lbl text-ink-strong">Taux par carte</p>
+                                                                <button type="button" class="tl" aria-label="Fermer les taux" data-testid="drop-rates-close">✕</button>
+                                                            </div>
+                                                            {% for slot in booster.dropRates %}
+                                                                <div class="mb-1.5 flex flex-wrap items-baseline gap-x-2 font-mono text-[11px]">
+                                                                    <span class="text-ink-muted">Carte {{ loop.index }} ·</span>
+                                                                    {% for rarity, rate in slot.rates %}
+                                                                        <span class="r-{{ rarity|first }}">{{ rarity_icon(rarity) }} {{ rarity_label(rarity) }} {{ rate == rate|round ? rate|round : rate }}%</span>
+                                                                    {% endfor %}
+                                                                    {% if slot.holoChance > 0 %}
+                                                                        <span class="text-magenta">✦ Holo {{ slot.holoChance }}%</span>
+                                                                    {% endif %}
+                                                                    {% if slot.uniqueChance > 0 %}
+                                                                        <span class="text-soon" title="Chance de tirer une carte unique 1/1 encore non réclamée">{{ unique_icon() }} Unique 1/1 · {{ slot.uniqueRate == slot.uniqueRate|round ? slot.uniqueRate|round : slot.uniqueRate }}%</span>
+                                                                    {% endif %}
+                                                                </div>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </details>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                        {# corner action: « + » claims (violet = useful, outline = already owned / complete), yellow « + » buys #}
+                                        {% if not drawable %}
+                                            <span class="pack-tile__soon" aria-disabled="true" title="Cette extension n'a pas encore de carte publiée.">À venir</span>
+                                        {% elseif booster.claimable %}
+                                            <button type="button"
+                                                    class="pack-tile__plus{{ owned > 0 or complete ? ' pack-tile__plus--ghost' }}"
                                                     data-testid="pack-claim"
                                                     {% if retrievable %}
                                                         data-action="live#action"
@@ -277,80 +365,36 @@
                                                         data-live-booster-id-param="{{ booster.id }}"
                                                         data-loading="addAttribute(disabled) addClass(is-loading)"
                                                         aria-label="Récupérer un pack {{ booster.displayName }} ({{ remainingClaims }} gratuit{{ remainingClaims > 1 ? 's' }} restant{{ remainingClaims > 1 ? 's' }} aujourd'hui)"
+                                                        title="Récupérer · {{ remainingClaims }} gratuit{{ remainingClaims > 1 ? 's' }} restant{{ remainingClaims > 1 ? 's' }}"
                                                     {% else %}
                                                         disabled
+                                                        aria-label="Récupérer un pack {{ booster.displayName }} : {{ remainingClaims > 0 ? 'ce pack ne peut pas être récupéré pour le moment' : 'plus de pack gratuit aujourd\'hui' }}"
                                                         title="{{ remainingClaims > 0 ? 'Ce pack ne peut pas être récupéré pour le moment.' : 'Plus de pack gratuit aujourd\'hui : reviens demain.' }}"
-                                                    {% endif %}>Récupérer <span class="pack__count" data-testid="pack-claims-left">{{ remainingClaims }}</span></button>
+                                                    {% endif %}><span aria-hidden="true">+</span><span class="sr" data-testid="pack-claims-left">{{ remainingClaims }}</span></button>
+                                        {% elseif onSale %}
+                                            <button type="button"
+                                                    class="pack-tile__plus pack-tile__plus--coin"
+                                                    data-testid="shop-buy"
+                                                    {% if block %}
+                                                        disabled
+                                                        title="{{ block }}"
+                                                        aria-label="Acheter un pack {{ booster.displayName }} : {{ block }}"
+                                                    {% else %}
+                                                        data-action="live#action"
+                                                        data-live-action-param="askPurchase"
+                                                        data-live-booster-id-param="{{ booster.id }}"
+                                                        title="Acheter · {{ coin_amount(booster.purchasePrice) }} YLC"
+                                                        aria-label="Acheter un pack {{ booster.displayName }} pour {{ coin_amount(booster.purchasePrice) }} Youl Coin"
+                                                    {% endif %}><span aria-hidden="true">+</span></button>
                                         {% endif %}
-                                        {% if owned > 0 %}
-                                            <a href="{{ path('booster_open', {id: booster.id}) }}" class="btn btn-p btn-s" data-testid="pack-open"
-                                               aria-label="Ouvrir un pack {{ booster.displayName }} ({{ owned }} en stock)">Ouvrir · {{ owned }}</a>
-                                        {% else %}
-                                            <span class="btn btn-g btn-s" aria-disabled="true" data-testid="pack-open"
-                                                  title="Aucun pack {{ booster.displayName }} en stock">Ouvrir · 0</span>
-                                        {% endif %}
-                                    </div>
-                                {% endif %}
-
-                                {% if onSale %}
-                                    {% set block = this.purchaseBlock(booster) %}
-                                    <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1" data-testid="shop-item">
-                                        <span class="lbl whitespace-nowrap" title="Prix en Youl Coin"><span class="text-soon">¤</span> <span data-testid="shop-price">{{ coin_amount(booster.purchasePrice) }} YLC</span></span>
-                                        {% if block %}
-                                            <button type="button" disabled data-testid="shop-buy" class="tl cursor-not-allowed whitespace-nowrap no-underline opacity-70">{{ block }}</button>
-                                        {% elseif confirmingPurchaseBoosterId == booster.id %}
-                                            <span class="flex shrink-0 gap-1.5">
-                                                <button type="button" data-action="live#action" data-live-action-param="confirmPurchase" data-live-booster-id-param="{{ booster.id }}"
-                                                        data-loading="addAttribute(disabled) addClass(opacity-50)" data-testid="shop-confirm"
-                                                        class="btn btn-p btn-s">Confirmer</button>
-                                                <button type="button" data-action="live#action" data-live-action-param="cancelPurchase" data-testid="shop-cancel"
-                                                        aria-label="Annuler l'achat" class="ib">✕</button>
-                                            </span>
-                                        {% else %}
+                                        {# a claimable pack also on sale: its buy button sits in the price row #}
+                                        {% if booster.claimable and onSale and not block and not confirming %}
                                             <button type="button" data-action="live#action" data-live-action-param="askPurchase" data-live-booster-id-param="{{ booster.id }}"
-                                                    data-testid="shop-buy" class="btn btn-g btn-s">Acheter</button>
+                                                    data-testid="shop-buy" class="pack-tile__buy"
+                                                    aria-label="Acheter un pack {{ booster.displayName }} pour {{ coin_amount(booster.purchasePrice) }} Youl Coin">Acheter</button>
                                         {% endif %}
                                     </div>
-                                {% endif %}
-
-                                {# bottom line: claimable on top of the stock / left to find, then « Taux » #}
-                                <div class="pack__foot">
-                                    {% if universe and universe.owned >= universe.total %}
-                                        <span class="text-xs text-live">✓ Univers complet</span>
-                                    {% elseif universe %}
-                                        {% set missing = universe.total - universe.owned %}
-                                        <span class="text-xs {{ missing == 1 ? 'text-magenta' : 'text-ink-muted' }}">{{ missing == 1 ? 'Plus qu\'une carte à trouver' : missing ~ ' cartes à trouver' }}</span>
-                                    {% else %}
-                                        <span></span>
-                                    {% endif %}
-
-                                    {# drop rates: native details/summary, no JS — the panel overlays the pack #}
-                                    {% if booster.cardCount > 0 %}
-                                        <details class="booster-rates" data-controller="details-dismiss">
-                                            <summary class="tl" data-testid="drop-rates-toggle">Taux</summary>
-                                            <div class="booster-rates__panel" data-testid="drop-rates-panel">
-                                                <div class="mb-2 flex items-center justify-between gap-2">
-                                                    <p class="lbl text-ink-strong">Taux par carte</p>
-                                                    <button type="button" class="tl" aria-label="Fermer les taux" data-testid="drop-rates-close">✕</button>
-                                                </div>
-                                                {% for slot in booster.dropRates %}
-                                                    <div class="mb-1.5 flex flex-wrap items-baseline gap-x-2 font-mono text-[11px]">
-                                                        <span class="text-ink-muted">Carte {{ loop.index }} ·</span>
-                                                        {% for rarity, rate in slot.rates %}
-                                                            <span class="r-{{ rarity|first }}">{{ rarity_icon(rarity) }} {{ rarity_label(rarity) }} {{ rate == rate|round ? rate|round : rate }}%</span>
-                                                        {% endfor %}
-                                                        {% if slot.holoChance > 0 %}
-                                                            <span class="text-magenta">✦ Holo {{ slot.holoChance }}%</span>
-                                                        {% endif %}
-                                                        {% if slot.uniqueChance > 0 %}
-                                                            <span class="text-soon" title="Chance de tirer une carte unique 1/1 encore non réclamée">{{ unique_icon() }} Unique 1/1 · {{ slot.uniqueRate == slot.uniqueRate|round ? slot.uniqueRate|round : slot.uniqueRate }}%</span>
-                                                        {% endif %}
-                                                    </div>
-                                                {% endfor %}
-                                            </div>
-                                        </details>
-                                    {% endif %}
-                                </div>
+                                {% endfor %}
                             </article>
                         {% endfor %}
                     </div>
@@ -359,3 +403,20 @@
         </div>
     </main>
 </div>
+
+{% macro pack_art(booster) %}
+    {# the pack front — same composite as the 3D opening pack, drawn into a canvas #}
+    <div class="pack-tile__art">
+        <canvas width="840" height="1300"
+                data-controller="pack-front"
+                data-pack-front-bg-url-value="{{ booster.imageName ? vich_uploader_asset(booster) : (booster.extension.imageName ? vich_uploader_asset(booster.extension) : '') }}"
+                data-pack-front-fallback-url-value="{{ asset('images/ytcg_background.png') }}"
+                data-pack-front-logo-url-value="{{ asset('images/ytcg_logo.png') }}"
+                data-pack-front-name-value="{{ booster.displayName }}"
+                data-pack-front-count-value="{{ booster.cardCount }}"
+                {# custom booster image = full pack design: no text drawn on top #}
+                data-pack-front-plain-value="{{ booster.imageName ? 'true' : 'false' }}"
+                aria-label="Pack {{ booster.displayName }}" role="img"
+                class="pack__canvas"></canvas>
+    </div>
+{% endmacro %}

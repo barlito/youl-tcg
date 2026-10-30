@@ -18,7 +18,7 @@
          {#- l'id du tirage, pas son nombre de cartes : deux packs d'affilée ont
              le même compte, seul l'id dit qu'un nouveau tirage est sur la table -#}
          data-booster-opening-opening-id-value="{{ opening ? opening.id : '' }}"
-         data-action="pack3d:opened->booster-opening#startReveal pack3d:ready->booster-opening#syncPack">
+         data-action="pack3d:opened->booster-opening#startReveal pack3d:ready->booster-opening#syncPack keydown.esc@window->booster-opening#closeAside">
 
         <div class="opening__main">
             {# ====================================================== the pack #}
@@ -177,7 +177,8 @@
                 <button type="button" class="btn btn-g btn-s opening__aside-toggle"
                         aria-expanded="false" aria-controls="opening-aside"
                         data-booster-opening-target="asideToggle" data-action="booster-opening#toggleAside">
-                    Voir le contenu et les taux
+                    <span class="opening__aside-toggle-long" data-booster-opening-target="asideToggleLabel">Voir le contenu et les taux</span>
+                    <span class="opening__aside-toggle-short"><span aria-hidden="true">◫</span> Contenu et taux</span>
                 </button>
             </section>
 
@@ -188,6 +189,12 @@
             {%- if extConfig.frameLineStart %}{% set panelVars = panelVars|merge(["--frame-line-1: #{extConfig.frameLineStart}"]) %}{% endif -%}
             {%- if extConfig.frameLineEnd %}{% set panelVars = panelVars|merge(["--frame-line-2: #{extConfig.frameLineEnd}"]) %}{% endif -%}
             <aside class="opening__panel" id="opening-aside" aria-label="Contenu du set" data-testid="opening-aside"{% if panelVars is not empty %} style="{{ panelVars|join('; ') }}"{% endif %}>
+                {#- folded drawer while revealing on desktop: its own close button -#}
+                <div class="opening__aside-head">
+                    <span class="lbl text-ink-strong">{{ booster.displayName }} · contenu et taux</span>
+                    <button type="button" class="ib opening__aside-close" aria-label="Fermer le panneau"
+                            data-booster-opening-target="asideClose" data-action="booster-opening#toggleAside">✕</button>
+                </div>
 
                 {% if rates.rarities is not empty %}
                     <section class="opening__rates" data-testid="pack-rates">
