@@ -126,6 +126,15 @@ final class BoosterHub extends AbstractController
     /** @var list<Booster>|null */
     private ?array $boosters = null;
 
+    /** @var list<Booster>|null */
+    private ?array $shopBoosters = null;
+
+    /** @var array<string, true>|null */
+    private ?array $shopBoosterIds = null;
+
+    /** @var array<string, true>|null */
+    private ?array $drawableBoosterIds = null;
+
     /** @var array<string, array{owned: int, total: int, percentage: int}>|null */
     private ?array $completion = null;
 
@@ -247,6 +256,16 @@ final class BoosterHub extends AbstractController
     }
 
     /**
+     * Packs the « Prêts à ouvrir » section actually lists (sum of their quantities).
+     */
+    public function getReadyCount(): int
+    {
+        $inventory = $this->getInventory();
+
+        return array_sum(array_map(static fn (Booster $booster): int => $inventory[(string) $booster->getId()] ?? 0, $this->getReadyBoosters()));
+    }
+
+    /**
      * The filtered packs as one tile per universe, its variants (Standard, Boosted…) inside,
      * in the chosen order: completion = unfinished universes closest to completion first, finished ones last.
      *
@@ -273,18 +292,17 @@ final class BoosterHub extends AbstractController
             $result[] = $group + ['selected' => $this->selectedVariant($extensionId, $group['boosters'])];
         }
 
-        $sort = $this->getActiveSort();
-        usort($result, static function (array $a, array $b) use ($sort): int {
+        if (self::SORT_NAME === $this->getActiveSort()) {
+            usort($result, static fn (array $a, array $b): int => strnatcasecmp($a['name'], $b['name']));
+
+            return $result;
+        }
+
+        usort($result, static function (array $a, array $b): int {
             $percentA = $a['completion']['percentage'] ?? -1;
             $percentB = $b['completion']['percentage'] ?? -1;
-            $doneA = 100 === $percentA;
-            $doneB = 100 === $percentB;
 
-            if (self::SORT_NAME === $sort) {
-                return strnatcasecmp($a['name'], $b['name']);
-            }
-
-            return $doneA <=> $doneB ?: $percentB <=> $percentA ?: strnatcasecmp($a['name'], $b['name']);
+            return (100 === $percentA) <=> (100 === $percentB) ?: $percentB <=> $percentA ?: strnatcasecmp($a['name'], $b['name']);
         });
 
         return $result;
@@ -355,7 +373,7 @@ final class BoosterHub extends AbstractController
      */
     public function getDrawableBoosterIds(): array
     {
-        return $this->boosterAvailability->drawableBoosterIds($this->getBoosters());
+        return $this->drawableBoosterIds ??= $this->boosterAvailability->drawableBoosterIds($this->getBoosters());
     }
 
     /**
@@ -411,6 +429,9 @@ final class BoosterHub extends AbstractController
             $this->boosterClaimService->claim($this->getDiscordUser(), $booster);
             $this->inventory = null; // the memoized inventory is stale after a claim
             $this->boosters = null;
+            $this->drawableBoosterIds = null;
+            $this->shopBoosters = null;
+            $this->shopBoosterIds = null;
         } catch (BoosterException $exception) {
             $this->error = $exception->getUserMessage();
         }
@@ -466,6 +487,9 @@ final class BoosterHub extends AbstractController
 
         $this->inventory = null; // the memoized inventory is stale after a redemption
         $this->boosters = null;
+        $this->drawableBoosterIds = null;
+        $this->shopBoosters = null;
+        $this->shopBoosterIds = null;
         $this->code = '';
         $this->codeLink = null;
         $this->codeSuccess = \sprintf(
@@ -539,6 +563,9 @@ final class BoosterHub extends AbstractController
 
         $this->inventory = null; // the memoized inventory is stale after the credit
         $this->boosters = null;
+        $this->drawableBoosterIds = null;
+        $this->shopBoosters = null;
+        $this->shopBoosterIds = null;
         $this->streakRewardBoosterId = '';
         $this->streakSuccess = \sprintf(
             'Palier %d jours : un pack « %s » ajouté à ton stock !',
@@ -564,7 +591,7 @@ final class BoosterHub extends AbstractController
      */
     public function getShopBoosters(): array
     {
-        return $this->boosterAvailability->filterPurchasable($this->boosterRepository->findPublished());
+        return $this->shopBoosters ??= $this->boosterAvailability->filterPurchasable($this->boosterRepository->findPublished());
     }
 
     /**
@@ -572,12 +599,16 @@ final class BoosterHub extends AbstractController
      */
     public function getShopBoosterIds(): array
     {
+        if (null !== $this->shopBoosterIds) {
+            return $this->shopBoosterIds;
+        }
+
         $ids = [];
         foreach ($this->getShopBoosters() as $booster) {
             $ids[(string) $booster->getId()] = true;
         }
 
-        return $ids;
+        return $this->shopBoosterIds = $ids;
     }
 
     public function getRemainingPurchases(): int
@@ -669,6 +700,9 @@ final class BoosterHub extends AbstractController
         // inventory and balance memoized before the purchase are stale
         $this->inventory = null;
         $this->boosters = null;
+        $this->drawableBoosterIds = null;
+        $this->shopBoosters = null;
+        $this->shopBoosterIds = null;
         $this->balanceLoaded = false;
         $this->pendingPurchaseLoaded = false;
 

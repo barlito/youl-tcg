@@ -74,9 +74,7 @@
 .opening.is-revealing .opening__showcase { inset: 0; }
 .opening--page.is-revealing .opening__cta[hidden] { display: none !important; }
 
-/* desktop: « Tes cartes » is a vertical column beside the pack / revealed card in every phase
- * (the contents live in a drawer), so both share one height (--pack-h, the pack's visible part
- * is ~3/4 of its stage) */
+/* desktop: « Tes cartes » is a vertical column beside the pack / card, sharing one height */
 @media (min-width: 1024px) {
     .opening--page {
         --track-tile: clamp(48px, calc((100svh - var(--header-h, 72px) - 150px) / var(--slots, 5) * .718 - 10px), 116px);
@@ -273,8 +271,7 @@
     font-weight: 700;
     font-size: clamp(24px, 3.4vw, 38px);
     line-height: 1.1;
-    /* reserve the tallest (legendary) line even while empty or smaller, so the rarity
-     * label appearing on reveal never grows the showcase and shoves the card up */
+    /* reserve the tallest line so the label appearing on reveal never shifts the card */
     display: flex;
     align-items: flex-end;
     min-height: calc(clamp(30px, 3.6vw, 50px) * 1.1);
@@ -602,9 +599,7 @@
 }
 .opening__set-top:hover { border-color: var(--primary); color: #fff; }
 
-/* desktop: the aside folds into a drawer opened on demand, before and during the reveal.
- * Open, it pushes the pack column (still clickable): the pack / card and « Tes cartes »
- * stay side by side, centred as a pair in the room left of the drawer */
+/* desktop: the aside is a drawer opened on demand; the pack / card pair stays centred left of it */
 @media (min-width: 1024px) {
     .opening--page { --drawer-w: min(640px, 50vw); --pair-gap: 64px; }
     .opening--page .opening__main { grid-template-columns: minmax(0, 1fr); max-width: none; }

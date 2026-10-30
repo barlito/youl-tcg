@@ -43,6 +43,7 @@ final class BoosterHubComponentTest extends WebTestCase
         $rendered = (string) $component->render();
         $this->assertStringContainsString('Ouvrir · 1', new Crawler($rendered)->filter('[data-testid="boosters-grid"]')->text(normalizeWhitespace: true));
         $this->assertStringContainsString('En stock 1', $this->stockTile($rendered));
+        $this->assertSame('#prets', (new Crawler($rendered))->filter('[data-testid="total-owned"]')->attr('href'));
     }
 
     public function testEmptyInventoryShowsAnExplicitZeroStockState(): void
@@ -54,6 +55,7 @@ final class BoosterHubComponentTest extends WebTestCase
         $rendered = (string) $component->render();
 
         $this->assertStringContainsString('En stock 0', $this->stockTile($rendered));
+        $this->assertNull((new Crawler($rendered))->filter('[data-testid="total-owned"]')->attr('href'));
         // nothing to open: no « Prêts à ouvrir » row and no « Ouvrir » on the tiles
         $crawler = new Crawler($rendered);
         $this->assertCount(0, $crawler->filter('[data-testid="ready-packs"]'));

@@ -369,13 +369,20 @@ export default class extends Controller {
         this._setAside(!this.element.classList.contains('is-aside-open'));
     }
 
-    closeAside() {
-        if (this.element.classList.contains('is-aside-open')) {
-            this._setAside(false);
+    closeAside(event) {
+        if (!this.element.classList.contains('is-aside-open')) {
+            return;
         }
+        // Escape meant for another overlay (dropdown, details, dialog) outside the drawer
+        const aside = this.element.querySelector('#opening-aside');
+        const inAside = aside && aside.contains(document.activeElement);
+        if (event && (event.defaultPrevented || (!inAside && document.activeElement && document.activeElement.closest('details[open], [role="dialog"], [aria-expanded="true"]:not([data-booster-opening-target="asideToggle"])')))) {
+            return;
+        }
+        this._setAside(false, inAside);
     }
 
-    _setAside(open) {
+    _setAside(open, refocus = true) {
         this.element.classList.toggle('is-aside-open', open);
         if (this.hasAsideToggleTarget) {
             this.asideToggleTarget.setAttribute('aria-expanded', String(open));
@@ -385,7 +392,7 @@ export default class extends Controller {
         }
         // desktop drawer: focus follows it (the toggle is covered while it is open)
         const focus = open ? (this.hasAsideCloseTarget && this.asideCloseTarget) : (this.hasAsideToggleTarget && this.asideToggleTarget);
-        if (focus && focus.offsetParent !== null && this.element.contains(document.activeElement)) {
+        if (refocus && focus && focus.offsetParent !== null && this.element.contains(document.activeElement)) {
             focus.focus({ preventScroll: true });
         }
     }

@@ -8,6 +8,7 @@ use App\Entity\Card;
 use App\Entity\DiscordUser;
 use App\Entity\Extension;
 use App\Entity\MarketListing;
+use App\Entity\UserBooster;
 use App\Entity\UserCard;
 use App\Entity\WishlistEntry;
 use App\Enum\Entity\CardRarityEnum;
@@ -69,6 +70,17 @@ final class HomepageDashboardTest extends WebTestCase
         $this->assertStringContainsString('Classement', $crawler->filter('[data-testid="today-rank"]')->text());
         $this->assertStringContainsString('Collection', $crawler->filter('[data-testid="today-collection"]')->text());
         $this->assertCount(1, $crawler->filter('[data-testid="today-streak"]'));
+    }
+
+    public function testTheHeroOpenButtonLinksToTheHubReadySection(): void
+    {
+        $booster = static::getContainer()->get(\App\Repository\BoosterRepository::class)->findPublished()[0];
+        $this->entityManager->persist(new UserBooster()->setDiscordUser($this->me)->setBooster($booster)->setQuantity(1));
+        $this->entityManager->flush();
+
+        $href = (string) $this->home()->filter('[data-testid="hero-open"]')->attr('href');
+
+        $this->assertSame('/boosters#prets', $href);
     }
 
     public function testTheFusionTileCountsOnlyTheFreeNormalCopies(): void

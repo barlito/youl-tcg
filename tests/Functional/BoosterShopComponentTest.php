@@ -115,6 +115,19 @@ final class BoosterShopComponentTest extends WebTestCase
         $this->assertCount(1, $crawler->filter('[data-testid="shop-countdown"]'));
     }
 
+    public function testTheShopNoticesStayVisibleWhenNothingIsOnSaleAnymore(): void
+    {
+        $hub = $this->hub();
+        $hub->call('askPurchase', ['boosterId' => $this->boosterId]);
+        static::getContainer()->get(EntityManagerInterface::class)->getRepository(Booster::class)->find($this->boosterId)->setPurchasable(false);
+        static::getContainer()->get(EntityManagerInterface::class)->flush();
+
+        $crawler = $hub->call('confirmPurchase', ['boosterId' => $this->boosterId])->render()->crawler();
+
+        $this->assertCount(1, $crawler->filter('[data-testid="purchase-error"]'));
+        $this->assertSame(0, $this->purchaseCount());
+    }
+
     public function testConfirmingWithoutAskingFirstBuysNothing(): void
     {
         $crawler = $this->hub()->call('confirmPurchase', ['boosterId' => $this->boosterId])->render()->crawler();
