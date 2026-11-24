@@ -4,10 +4,7 @@ app_container_id = $(shell docker ps --filter name="$(stack_name)_php" -q)
 db_container_id = $(shell docker ps --filter name="$(stack_name)_db" -q)
 prod_host=ytcg.youlz.fr
 image_name=barlito/youl-tcg
-backup_path=/srv/ytcg/backups
-prod_compose_file=docker-compose-prod.yml
-assert_timeout=180
-deploy_timeout=300
+db_user=postgres
 
 # Config paths
 config_cs_fixer=vendor/barlito/utils/config/.php-cs-fixer.dist.php
@@ -15,37 +12,6 @@ config_phpcs=vendor/barlito/utils/config/phpcs.xml.dist
 
 # Include all make rules from submodule
 include make/entrypoint.mk
-
-### Overrides — submodule rules adaptées au projet
-
-# Rolling stack deploy, never `stack rm`: a recreated service has nothing to roll back to
-deploy.prod:
-	make db.backup
-	make docker.deploy.prod
-	make deploy.assert_image
-	castor barlito:castor:wait-db-container
-	make doctrine.migrate
-	make smoke.test
-	make deploy.prune
-
-# Waits for convergence or rollback; a crash-looping new service never converges, assert_image reports it
-docker.deploy.prod:
-	docker compose -f $(prod_compose_file) pull
-	@timeout $(deploy_timeout) docker stack deploy --detach=false -c $(prod_compose_file) $(stack_name) \
-		|| { rc=$$?; [ $$rc -eq 124 ] && echo "⚠ $(stack_name) not converged after $(deploy_timeout)s"; [ $$rc -eq 124 ]; }
-
-# Dump pg_dump dans le volume host $(backup_path) (monté dans le container db).
-# Format -F c (custom, compressé). Skippé silencieusement si la DB n'est pas démarrée
-# (cas 1er deploy).
-db.backup:
-	@cid="$$(docker ps --filter name='$(stack_name)_db' -q | head -1)"; \
-	if [ -n "$$cid" ]; then \
-		ts="$$(date +%Y%m%d-%H%M%S)"; \
-		echo "🗄  Backup DB → $(backup_path)/ytcg-$$ts.dump (container $$cid)"; \
-		docker exec -t "$$cid" sh -c "pg_dump -U postgres -F c -d ytcg -f /backups/ytcg-$$ts.dump"; \
-	else \
-		echo "ℹ  DB container introuvable, backup skippé (1er deploy ?)"; \
-	fi
 
 # Tailwind est requis pour rendre base.html.twig (TailwindCssAssetCompiler lève
 # une exception si var/tailwind/tailwind.built.css est absent) — nécessaire en CI
@@ -62,19 +28,7 @@ tailwind.build:
 doctrine.schema_validate.ci:
 	docker exec -t $(app_container_id) bin/console doctrine:schema:validate --env=test
 
-# Swarm rollbacks exit 0: fail unless the service really runs $(TAG), healthy (php-make-rules castor task)
-assert_settle=10
-deploy.assert_image:
-	castor barlito:castor:assert-deployed $(stack_name)_php $(image_name):$(TAG) --timeout=$(assert_timeout) --settle=$(assert_settle)
-
-# Removes the stack's stopped containers (old tasks); prune never touches running ones
-deploy.prune:
-	docker container prune -f --filter label=com.docker.stack.namespace=$(stack_name)
-
-# Smoke test : curl GET / → fail sur 4xx/5xx (le 302 vers l'IdP prouve que l'app répond).
-smoke.test:
-	@echo "🩺 Smoke test https://$(prod_host)/..."
-	@curl -fsS -o /dev/null -w "  HTTP %{http_code}\n" https://$(prod_host)/ || (echo "❌ Smoke test KO" && exit 1)
-	@echo "✓ Smoke test OK"
+jwt.generate:
+	castor generate-jwt-key-pair
 
 quality: check_style

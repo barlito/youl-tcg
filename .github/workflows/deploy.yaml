@@ -1,72 +1,24 @@
-name: Deploy Workflow
+name: deploy
 
 on:
   workflow_dispatch:
     inputs:
       re-deploy:
-        description: "Stack deploy complet (applique tout docker-compose-prod.yml, rolling update avec rollback) au lieu de la seule mise à jour d'image"
-        required: true
+        description: Full stack deploy (applies all of docker-compose-prod.yml, rolling update with rollback) instead of the image update only
         type: boolean
         default: false
 
+permissions: {}
+
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    # A crash-looping container keeps wait-php-container spinning forever
-    timeout-minutes: 15
-
-    env:
-      DOCKER_HOST: ssh://${{ vars.SERVER_USERNAME }}@${{ vars.SERVER_HOST }}:${{ vars.SERVER_PORT }}
-      # Substitués dans docker-compose-prod.yml au moment du stack deploy
-      APP_SECRET: ${{ secrets.APP_SECRET }}
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
-      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
-      JWT_PASSPHRASE: ${{ secrets.JWT_PASSPHRASE }}
-      MERCURE_JWT_SECRET: ${{ secrets.MERCURE_JWT_SECRET }}
-      YOUL_COIN_API_KEY: ${{ secrets.YOUL_COIN_API_KEY }}
-      YTCG_WEBHOOK_SECRET: ${{ secrets.YTCG_WEBHOOK_SECRET }}
-
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          submodules: 'true'
-
-      - name: Setup castor
-        uses: castor-php/setup-castor@v1.1.0
-
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p ${{ vars.SERVER_PORT }} ${{ vars.SERVER_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_READ_WRITE_DELETE_ACCESS_TOKEN }}
-
-      - name: Re-Deploy Stack
-        if: inputs.re-deploy
-        # No `stack rm`: deploy.prod rolls the existing stack (creates it on a first deploy)
-        run: TAG=$GITHUB_REF_NAME make deploy.prod
-
-      - name: Update main service + migrate
-        if: ${{ ! inputs.re-deploy }}
-        run: |
-          make db.backup
-          make docker.service.update args="--image barlito/youl-tcg:$GITHUB_REF_NAME ytcg_php"
-          TAG=$GITHUB_REF_NAME make deploy.assert_image
-          castor barlito:castor:wait-php-container
-          make doctrine.migrate
-
-      - name: Smoke test
-        if: ${{ ! inputs.re-deploy }}
-        run: make smoke.test
-
-      - name: Remove stopped containers
-        if: ${{ ! inputs.re-deploy }}
-        run: make deploy.prune
+    permissions:
+      contents: read
+      deployments: write
+    uses: barlito/ci/.github/workflows/swarm-deploy.yaml@v1
+    with:
+      full: ${{ inputs.re-deploy }}
+      images: barlito/youl-tcg
+      env-secrets: APP_SECRET DB_USER DB_PASSWORD JWT_PUBLIC_KEY JWT_SECRET_KEY JWT_PASSPHRASE MERCURE_JWT_SECRET YOUL_COIN_API_KEY YTCG_WEBHOOK_SECRET
+      castor: true
+    secrets: inherit
