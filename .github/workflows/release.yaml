@@ -1,56 +1,18 @@
-name: Release Workflow
+name: release
 
 on:
   release:
     types: [published]
 
+permissions: {}
+
 jobs:
   release:
-    runs-on: ubuntu-latest
-
     permissions:
       contents: read
-      # buildcache is written to GHCR (native GITHUB_TOKEN login)
       packages: write
-
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          submodules: 'true'
-
-      # Buildx + type=registry cache reuse Docker layers across runs regardless
-      # of the Git ref. type=gha would be ref-scoped → every tag would get an
-      # isolated, empty cache. The cache lives on GHCR (free, no rate limit)
-      # and NOT on Docker Hub: every cache layer counts as a pull against the
-      # account quota (~200/6h on the free plan) — that's what 429'd the
-      # v1.0.1 release on a busy CI day.
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_READ_WRITE_DELETE_ACCESS_TOKEN }}
-
-      - name: Login to GHCR (buildcache)
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build & Push Main Image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: .docker/Dockerfile
-          target: frankenphp_prod
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/youl-tcg:${{ github.ref_name }}
-            ${{ secrets.DOCKER_HUB_USERNAME }}/youl-tcg:latest
-          build-args: |
-            APP_VERSION=${{ github.ref_name }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache,mode=max
+    uses: barlito/ci/.github/workflows/docker-release.yaml@v1
+    with:
+      images: '[{"name":"youl-tcg","target":"frankenphp_prod"}]'
+      dockerfile: .docker/Dockerfile
+    secrets: inherit

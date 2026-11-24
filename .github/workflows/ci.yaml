@@ -1,0 +1,46 @@
+name: ci
+
+on: push
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  php-ci:
+    permissions:
+      contents: read
+    uses: barlito/ci/.github/workflows/php-ci.yaml@v1
+    with:
+      checks: composer.validate phpcs cs_fixer.dry_run phpstan rector.dry_run
+      tests: jwt.generate doctrine.schema_validate.ci tailwind.build phpunit
+      cache-paths: |
+        var/tailwind
+        var/cache/phpstan
+        var/cache/rector
+        .php-cs-fixer.cache
+        vendor/barlito/utils/config/.phpcs-cache
+    secrets: inherit
+
+  docker-check:
+    permissions:
+      contents: read
+    uses: barlito/ci/.github/workflows/docker-check.yaml@v1
+    with:
+      dockerfile: .docker/Dockerfile
+      targets: frankenphp_prod
+      compose-files: docker-compose.yml docker-compose-prod.yml
+      compose-env: |
+        TAG=ci
+        APP_SECRET=dummy
+        DB_USER=dummy
+        DB_PASSWORD=dummy
+        JWT_PUBLIC_KEY=dummy
+        JWT_SECRET_KEY=dummy
+        JWT_PASSPHRASE=dummy
+        MERCURE_JWT_SECRET=dummy
+        YOUL_COIN_API_KEY=dummy
+        YTCG_WEBHOOK_SECRET=dummy
+    secrets: inherit

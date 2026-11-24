@@ -58,7 +58,9 @@ Discord OAuth needs `OAUTH_DISCORD_CLIENT_ID` / `OAUTH_DISCORD_CLIENT_SECRET` in
 |---------|-------------|
 | `make docker.deploy` | Deploy the dev stack |
 | `make docker.bash` | Shell into the PHP container |
-| `make deploy.prod` | Prod deploy (deploy → DB backup → migrate → smoke test) |
+| `make deploy.prod TAG=<tag>` | Prod stack deploy (DB backup → deploy → migrate → smoke test) |
+| `make deploy.update TAG=<tag>` | Prod rolling image update |
+| `make rollback TAG=<tag> [RESTORE=1]` | Roll back to a tag (reverts added migrations, or restores the DB dump) |
 | `make doctrine.migrate` | Run migrations |
 | `make doctrine.diff` | Generate a migration from entity changes |
 | `make doctrine.load_fixtures` | Load Alice fixtures |
@@ -79,7 +81,7 @@ make phpunit
 
 ## CI/CD
 
-`entrypoint.yaml` runs on every push and fans out to `code-quality.yaml` (cs-fixer / phpcs / PHPStan / Rector) and `test.yaml` (full stack in CI: deploy, migrate, fixtures, Tailwind, PHPUnit). `release.yaml` builds and pushes images on GitHub Release; `deploy.yaml` / `rollback.yaml` are manual; Trivy scans run weekly (`security.yaml`).
+`ci.yaml` runs on every push: `php-ci` (cs-fixer / phpcs / PHPStan / Rector, then the full CI stack with Tailwind and PHPUnit) and `docker-check` (prod image build and compose validation). `release.yaml` builds and pushes the image on GitHub Release; `deploy.yaml` / `rollback.yaml` are manual (`rollback` can restore the database dump of the target version). `security.yaml` runs a Trivy scan weekly and on image changes. All of them are thin callers of [barlito/ci](https://github.com/barlito/ci) (`@v1`); the project specifics live in the `Makefile` and the `make` submodule ([php-make-rules](https://github.com/barlito/php-make-rules)).
 
 ## Docs
 
